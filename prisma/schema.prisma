@@ -1,0 +1,356 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model apiKey {
+  id                    String            @id @default(cuid())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  apiKey                String            @unique
+  status                APIKeyStatus
+  permission            Permission
+  usageLimited          Boolean           @default(false)
+  remainingUsageCredits UsageAmount[]
+  PurchaseRequest       PurchaseRequest[]
+
+  @@index([apiKey])
+}
+
+model UsageAmount {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  amount    BigInt
+  unit      String
+  apiKey    apiKey?  @relation(fields: [apiKeyId], references: [id])
+  apiKeyId  String?
+}
+
+enum APIKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum Permission {
+  READ
+  READ_PAY
+  ADMIN
+}
+
+model SellingWallet {
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  walletVkey     String       @unique
+  walletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
+  walletSecretId String
+
+  pendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
+  pendingTransactionId String?
+
+  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
+
+  note            String?
+  PaymentRequest  PaymentRequest[]
+  PurchaseRequest PurchaseRequest[]
+
+  @@unique([networkHandlerId, walletVkey])
+}
+
+model PurchasingWallet {
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  walletVkey     String
+  walletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
+  walletSecretId String
+
+  pendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
+  pendingTransactionId String?
+
+  networkHandler   NetworkHandler    @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
+  note             String?
+  PurchaseRequest  PurchaseRequest[]
+  PaymentRequest   PaymentRequest[]
+
+  @@unique([networkHandlerId, walletVkey])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hash             String? //null if not yet send out
+  lastCheckedAt    DateTime?
+  SellingWallet    SellingWallet[]
+  PurchasingWallet PurchasingWallet[]
+}
+
+model WalletSecret {
+  id                String             @id @default(cuid())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  secret            String //encrypted 
+  SellingWallets    SellingWallet[]
+  PurchasingWallets PurchasingWallet[]
+}
+
+model BuyerWallet {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  walletVkey       String
+  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
+
+  note           String?
+  PaymentRequest PaymentRequest[]
+
+  @@unique([networkHandlerId, walletVkey])
+}
+
+model SellerWallet {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  walletVkey       String
+  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
+
+  note            String?
+  PurchaseRequest PurchaseRequest[]
+
+  @@unique([networkHandlerId, walletVkey])
+}
+
+model CollectionWallet {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  walletAddress String
+
+  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String         @unique
+  note             String?
+
+  @@unique([networkHandlerId, walletAddress])
+}
+
+model PaymentRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lastCheckedAt DateTime?
+  checkedBy     NetworkHandler @relation("PaymentRequestHandler", fields: [checkedById], references: [id], onDelete: Cascade)
+  checkedById   String
+
+  smartContractWallet   PurchasingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
+  smartContractWalletId String?
+
+  buyerWallet   BuyerWallet? @relation(fields: [buyerWalletId], references: [id], onDelete: SetNull)
+  buyerWalletId String?
+
+  amounts          RequestAmount[]
+  status           PaymentRequestStatus
+  identifier       String
+  resultHash       String?
+  submitResultTime BigInt
+  unlockTime       BigInt
+  refundTime       BigInt
+  utxo             String?
+  txHash           String?
+  potentialTxHash  String?
+
+  errorRetries              Int                      @default(0)
+  errorType                 PaymentRequestErrorType?
+  errorNote                 String?
+  errorRequiresManualReview Boolean?
+  SellingWallet             SellingWallet?           @relation(fields: [sellingWalletId], references: [id], onDelete: SetNull)
+  sellingWalletId           String?
+
+  @@unique([checkedById, identifier])
+}
+
+model PurchaseRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lastCheckedAt    DateTime?
+  networkHandler   NetworkHandler @relation("PurchaseRequestNetworkHandler", fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
+
+  sellerWallet       SellerWallet      @relation(fields: [sellerWalletId], references: [id], onDelete: Cascade)
+  sellerWalletId     String
+  purchaserWallet    PurchasingWallet? @relation(fields: [purchasingWalletId], references: [id], onDelete: SetNull)
+  purchasingWalletId String?
+
+  smartContractWallet   SellingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
+  smartContractWalletId String?
+
+  amounts          RequestAmount[]
+  status           PurchasingRequestStatus
+  identifier       String
+  resultHash       String?
+  submitResultTime BigInt
+  unlockTime       BigInt
+  refundTime       BigInt
+
+  utxo            String?
+  txHash          String?
+  potentialTxHash String?
+
+  errorRetries              Int                       @default(0)
+  errorType                 PurchaseRequestErrorType?
+  errorNote                 String?
+  errorRequiresManualReview Boolean?
+
+  triggeredBy   apiKey @relation(fields: [triggeredById], references: [id])
+  triggeredById String
+
+  @@unique([networkHandlerId, identifier, sellerWalletId])
+}
+
+model RequestAmount {
+  id                String           @id @default(cuid())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  amount            BigInt
+  unit              String
+  PaymentRequest    PaymentRequest?  @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
+  paymentRequestId  String?
+  PurchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  purchaseRequestId String?
+}
+
+//TODO maybe add a rating system via payment amounts (success and failure)
+enum PaymentRequestErrorType {
+  NETWORK_ERROR
+  UNKNOWN
+}
+
+//TODO maybe add a rating system via payment amounts (success and failure)
+enum PurchaseRequestErrorType {
+  NETWORK_ERROR
+  INSUFFICIENT_FUNDS
+  UNKNOWN
+}
+
+enum PaymentType {
+  WEB3_CARDANO_V1
+}
+
+enum PaymentRequestStatus {
+  PaymentRequested
+
+  PaymentConfirmed
+  PaymentInvalid
+
+  ResultGenerated
+
+  CompletedInitiated
+  CompletedConfirmed
+
+  Denied
+
+  RefundRequested
+
+  Refunded
+
+  WithdrawnInitiated
+  WithdrawnConfirmed
+
+  DisputedWithdrawn
+}
+
+enum PurchasingRequestStatus {
+  PurchaseRequested
+
+  PurchaseInitiated
+  PurchaseConfirmed
+
+  Completed
+
+  RefundRequestInitiated
+  RefundRequestConfirmed
+
+  RefundInitiated
+  RefundConfirmed
+
+  RefundRequestCanceledInitiated
+
+  Withdrawn
+
+  DisputedWithdrawn
+}
+
+model NetworkHandler {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  network          Network
+  lastCheckedAt    DateTime?
+  page             Int       @default(1)
+  blockfrostApiKey String
+  latestIdentifier String?
+  addressToCheck   String
+  isSyncing        Boolean   @default(false)
+
+  AdminWallets             AdminWallet[] @relation("AdminWallets")
+  FeeReceiverNetworkWallet AdminWallet   @relation("FeeReceiverNetworkWallet", fields: [adminWalletId], references: [id], onDelete: Cascade)
+  adminWalletId            String
+  FeePermille              Int           @default(50)
+
+  PaymentRequests  PaymentRequest[]  @relation("PaymentRequestHandler")
+  PurchaseRequests PurchaseRequest[] @relation("PurchaseRequestNetworkHandler")
+
+  CollectionWallet  CollectionWallet?
+  paymentType       PaymentType
+  BuyerWallets      BuyerWallet[]
+  SellerWallets     SellerWallet[]
+  SellingWallets    SellingWallet[]
+  PurchasingWallets PurchasingWallet[]
+
+  maxCollectRefundRetries  Int @default(3)
+  maxCollectPaymentRetries Int @default(3)
+  maxCollectionRetries     Int @default(3)
+  maxRefundRetries         Int @default(3)
+  maxPaymentRetries        Int @default(3)
+  maxRefundDenyRetries     Int @default(3)
+
+  @@unique([network, addressToCheck])
+}
+
+model AdminWallet {
+  id                    String          @id @default(cuid())
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  walletAddress         String
+  NetworkHandlerAdmin   NetworkHandler? @relation("AdminWallets", fields: [networkHandlerAdminId], references: [id], onDelete: SetNull)
+  networkHandlerAdminId String?
+  order                 Int
+
+  NetworkHandlerFeeReceiver NetworkHandler[] @relation("FeeReceiverNetworkWallet")
+}
+
+enum Network {
+  PREVIEW
+  PREPROD
+  MAINNET
+}
