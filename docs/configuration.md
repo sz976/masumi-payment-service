@@ -1,5 +1,15 @@
+# Configuration
+
 Configure the environment variables by copying the `.env.example` file to `.env`or `.env.local` and setup the
 variables
+
+**TLDR;** Most of the variables can be left as the example values, if you want to just test the service. However you will need to set the following:
+
+- **DATABASE_URL**: The endpoint for a PostgreSQL database to be used
+- **ENCRYPTION_KEY**: The key for encrypting the wallets in the database (Please see the [Security](#security)
+- If you need to seed a new database, you will also need to set the following:
+
+  - **BLOCKFROST_API_KEY**: An API Key from [https://blockfrost.io/](https://blockfrost.io/) for the correct blockchain
 
 - **DATABASE_URL**: The endpoint for a PostgreSQL database to be used
 - **PORT**: The port to run the server on (default is 3001)
