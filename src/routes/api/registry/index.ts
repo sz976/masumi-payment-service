@@ -147,8 +147,6 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         });
         //send the minted asset to the address where we want to receive payments
         tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
-            //used to defrag for further transactions
-            .sendLovelace(address, '3000000');
         //sign the transaction with our address
         tx.setChangeAddress(address).setRequiredSigners([address]);
         //build the transaction
@@ -258,9 +256,8 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             .mintRedeemerValue(redeemer.data, 'Mesh');
         //send the minted asset to the address where we want to receive payments
         //used to defrag for further transactions
-        tx.sendLovelace(address, '120000000');
         //sign the transaction with our address
-        tx.setRequiredSigners([address]).setChangeAddress(address);
+        tx.setChangeAddress(address).setRequiredSigners([address]);
         //build the transaction
         const unsignedTx = await tx.build();
         const signedTx = await wallet.signTx(unsignedTx, true);
