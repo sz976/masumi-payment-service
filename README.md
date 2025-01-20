@@ -22,8 +22,9 @@ To run this project locally follow this guide. Otherwise take a look at the [Dep
 5. Configure environment (see [Configuration](docs/CONFIGURATION.md))
 6. Setup Database
    1. Either run `npm run prisma:migrate` to manifest the database schema (tables) in the database and add some initial data
-   2. Or run `npm run prisma:generate` to generate the schema and optionally `npm run prisma:seed` to add some initial data
-7. Run the service
+   2. Or run `npm run prisma:generate` to generate the schema
+7. Optionally run `npm run prisma:seed` to add some initial data
+8. Run the service
    1. Either run `npm run build && npm start`
    2. Or run `npm run dev` to run the service in development mode
 

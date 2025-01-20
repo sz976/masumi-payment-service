@@ -79,7 +79,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             },
         });
 
-        const address = (await wallet.getUsedAddresses())[0];
+        const address = (await wallet.getUnusedAddresses())[0];
 
         const { script, policyId, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
 
@@ -150,7 +150,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             //used to defrag for further transactions
             .sendLovelace(address, '120000000');
         //sign the transaction with our address
-        tx.setRequiredSigners([address]).setChangeAddress(address);
+        tx.setChangeAddress(address).setRequiredSigners([address]);
         //build the transaction
         const unsignedTx = await tx.build();
         const signedTx = await wallet.signTx(unsignedTx, true);
@@ -229,7 +229,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             },
         });
 
-        const address = (await wallet.getUsedAddresses())[0];
+        const address = (await wallet.getUnusedAddresses())[0];
 
 
         const utxos = await wallet.getUtxos();

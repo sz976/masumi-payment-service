@@ -95,7 +95,7 @@ export async function submitResultV1() {
                         },
                     });
 
-                    const address = (await wallet.getUsedAddresses())[0];
+                    const address = (await wallet.getUnusedAddresses())[0];
                     console.log(address);
 
 
