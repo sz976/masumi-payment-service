@@ -7,6 +7,9 @@ variables
 
 - **DATABASE_URL**: The endpoint for a PostgreSQL database to be used
 - **ENCRYPTION_KEY**: The key for encrypting the wallets in the database (Please see the [Security](#security)
+
+## Advanced Configuration
+
 - If you need to seed a new database, you will also need to set the following:
 
   - **BLOCKFROST_API_KEY**: An API Key from [https://blockfrost.io/](https://blockfrost.io/) for the correct blockchain
@@ -26,7 +29,7 @@ variables
   - **CHECK_REFUND_INTERVAL**: Cron expression for checking refund
   - **CHECK_DENY_INTERVAL**: Cron expression for checking deny
 
-5. If you're setting up the database for the first time (or want to provide some initial data) you also need the
+1. If you're setting up the database for the first time (or want to provide some initial data) you also need the
    following variables:
 
    - **BLOCKFROST_API_KEY**: An API Key from [https://blockfrost.io/](https://blockfrost.io/) for the correct blockchain
