@@ -96,7 +96,7 @@ export async function collectOutstandingPaymentsV1() {
                         },
                     });
 
-                    const address = (await wallet.getUsedAddresses())[0];
+                    const address = (await wallet.getUnusedAddresses())[0];
 
                     const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
 
