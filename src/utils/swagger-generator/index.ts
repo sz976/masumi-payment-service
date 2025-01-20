@@ -14,6 +14,7 @@ import { registerAgentSchemaInput, registerAgentSchemaOutput, unregisterAgentSch
 import { getAPIKeyStatusSchemaOutput, } from '@/routes/api/api-key-status';
 import { getWalletSchemaInput, getWalletSchemaOutput, postWalletSchemaInput, postWalletSchemaOutput } from '@/routes/api/wallet';
 import { getRpcProviderKeysSchemaInput, getRpcProviderKeysSchemaOutput } from '@/routes/api/rpc-api-keys';
+import { getUTXOSchemaInput, getUTXOSchemaOutput } from '@/routes/api/utxos';
 
 extendZodWithOpenApi(z);
 
@@ -45,6 +46,40 @@ export function generateOpenAPI() {
     in: 'header',
     name: 'token',
     description: 'API key authentication via header (token)',
+  });
+  /********************* UTXOS *****************************/
+  registry.registerPath({
+    method: 'get',
+    path: '/utxos/',
+    description: 'Gets UTXOs',
+    summary: 'REQUIRES API KEY Authentication (+READ)',
+    tags: ['utxos',],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: getUTXOSchemaInput.openapi({
+        example: {
+          network: $Enums.Network.PREPROD,
+          address: "addr1qx2ej34k567890",
+          count: 10,
+          page: 1,
+          order: "asc",
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: 'UTXOs',
+        content: {
+          'application/json': {
+            schema: getUTXOSchemaOutput.openapi({
+              example: {
+                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: { unit: "unit", quantity: "1000000" }, output_index: 1, block: 1 }]
+              }
+            }),
+          },
+        },
+      },
+    },
   });
 
   /********************* KEY STATUS *****************************/

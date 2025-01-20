@@ -8,6 +8,7 @@ import { paymentSourceEndpointDelete, paymentSourceEndpointGet, paymentSourceEnd
 import { queryAPIKeyStatusEndpointGet } from "./api-key-status";
 import { postWalletEndpointPost, queryWalletEndpointGet } from "./wallet";
 import { queryRpcProviderKeysEndpointGet } from "./rpc-api-keys";
+import { queryUTXOEndpointGet } from "./utxos";
 
 export const apiRouter: Routing = {
     v1: {
@@ -47,6 +48,9 @@ export const apiRouter: Routing = {
         }),
         "rpc-api-keys": new DependsOnMethod({
             get: queryRpcProviderKeysEndpointGet,
-        })
+        }),
+        "utxos": new DependsOnMethod({
+            get: queryUTXOEndpointGet,
+        }),
     }
 }
