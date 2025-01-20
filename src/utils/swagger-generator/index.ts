@@ -62,7 +62,7 @@ export function generateOpenAPI() {
           address: "addr1qx2ej34k567890",
           count: 10,
           page: 1,
-          order: "asc",
+          order: "desc",
         }
       })
     },
@@ -73,7 +73,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: getUTXOSchemaOutput.openapi({
               example: {
-                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: { unit: "unit", quantity: "1000000" }, output_index: 1, block: 1 }]
+                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "unit", quantity: 1000000 }], output_index: 1, block: "1" }]
               }
             }),
           },
