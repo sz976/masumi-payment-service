@@ -30,6 +30,8 @@ To run this project locally follow this guide. Otherwise take a look at the [Dep
 
 Congratulations! You have now setup the Masumi Payment Service. Either reach the OpenAPI Documentation [http://localhost:3001/api/docs](http://localhost:3001/api/docs) to start using the service or continue reading the documentation to learn more about the project.
 
+There also is a [Admin Dashboard](http://localhost:3001/admin) to manage the service.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
