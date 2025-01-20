@@ -97,7 +97,7 @@ describe('authMiddleware', () => {
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
             permission: $Enums.Permission.READ,
-            status: $Enums.APIKeyStatus.ACTIVE,
+            status: $Enums.ApiKeyStatus.ACTIVE,
             usageLimited: true,
         });
 
@@ -114,7 +114,7 @@ describe('authMiddleware', () => {
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
             permission: $Enums.Permission.READ_PAY,
-            status: $Enums.APIKeyStatus.ACTIVE,
+            status: $Enums.ApiKeyStatus.ACTIVE,
             usageLimited: true,
         });
 
@@ -131,7 +131,7 @@ describe('authMiddleware', () => {
         const mockApiKey = {
             id: 1,
             permission: $Enums.Permission.READ,
-            status: $Enums.APIKeyStatus.ACTIVE,
+            status: $Enums.ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
@@ -154,7 +154,7 @@ describe('authMiddleware', () => {
         const mockApiKey = {
             id: 1,
             permission: $Enums.Permission.READ_PAY,
-            status: $Enums.APIKeyStatus.ACTIVE,
+            status: $Enums.ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
@@ -176,7 +176,7 @@ describe('authMiddleware', () => {
         const mockApiKey = {
             id: 1,
             permission: $Enums.Permission.ADMIN,
-            status: $Enums.APIKeyStatus.ACTIVE,
+            status: $Enums.ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');

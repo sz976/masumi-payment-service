@@ -28,7 +28,7 @@ export const authMiddleware = (minPermission: $Enums.Permission) => new Middlewa
             throw createHttpError(401, "Invalid token");
         }
 
-        if (apiKey.status !== $Enums.APIKeyStatus.ACTIVE) {
+        if (apiKey.status !== $Enums.ApiKeyStatus.ACTIVE) {
             throw createHttpError(401, "API key is revoked");
         }
 
