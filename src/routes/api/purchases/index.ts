@@ -42,7 +42,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     handler: async ({ input, logger }) => {
         logger.info("Querying registry");
 
-        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.contractAddress } } })
+        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } } })
         if (networkHandler == null) {
             throw createHttpError(404, "Network handler not found")
         }
@@ -119,7 +119,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
             throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference")
         }
 
-        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.contractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
+        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
         return initial
     },
 });

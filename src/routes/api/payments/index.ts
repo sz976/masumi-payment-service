@@ -120,7 +120,7 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
         const provider = new BlockFrostAPI({
             projectId: networkCheckSupported.rpcProviderApiKey
         })
-        const { policyId } = await getRegistryScriptV1(input.contractAddress, input.network)
+        const { policyId } = await getRegistryScriptV1(input.paymentContractAddress, input.network)
         const assetInWallet = await provider.assetsAddresses(policyId + input.agentIdentifier, { order: "desc", count: 1 })
         if (assetInWallet.length == 0) {
             throw createHttpError(404, "Agent identifier not found")
