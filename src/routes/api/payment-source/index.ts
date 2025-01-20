@@ -18,12 +18,13 @@ export const paymentSourceSchemaOutput = z.object({
         createdAt: z.date(),
         updatedAt: z.date(),
         network: z.nativeEnum($Enums.Network),
-        addressToCheck: z.string(),
+        paymentContractAddress: z.string(),
         paymentType: z.nativeEnum($Enums.PaymentType),
-        blockfrostApiKey: z.string(),
-        page: z.number(),
+        rpcProviderApiKey: z.string(),
+        lastIdentifierChecked: z.string().nullable(),
         isSyncing: z.boolean(),
-        latestIdentifier: z.string().nullable(),
+        lastPageChecked: z.number(),
+        lastCheckedAt: z.date().nullable(),
         AdminWallets: z.array(z.object({
             walletAddress: z.string(),
             order: z.number(),
@@ -36,17 +37,19 @@ export const paymentSourceSchemaOutput = z.object({
         PurchasingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
+            walletAddress: z.string(),
             note: z.string().nullable(),
         })),
         SellingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
+            walletAddress: z.string(),
             note: z.string().nullable(),
         })),
         FeeReceiverNetworkWallet: z.object({
             walletAddress: z.string(),
         }),
-        FeePermille: z.number().min(0).max(1000),
+        feePermille: z.number().min(0).max(1000),
     })),
 });
 
@@ -76,8 +79,8 @@ export const paymentSourceEndpointGet = adminAuthenticatedEndpointFactory.build(
 export const paymentSourceCreateSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The network the payment source will be used on"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The type of payment contract used"),
-    blockfrostApiKey: z.string().max(250).describe("The blockfrost api key to be used for the payment source"),
-    FeePermille: z.number({ coerce: true }).min(0).max(1000).describe("The fee in permille to be used for the payment source. The default contract uses 50 (5%)"),
+    rpcProviderApiKey: z.string().max(250).describe("The rpc provider (blockfrost) api key to be used for the payment source"),
+    feePermille: z.number({ coerce: true }).min(0).max(1000).describe("The fee in permille to be used for the payment source. The default contract uses 50 (5%)"),
     AdminWallets: z.array(z.object({
         walletAddress: z.string().max(250),
     })).min(3).max(3).describe("The wallet addresses of the admin wallets (exactly 3)"),
@@ -102,13 +105,13 @@ export const paymentSourceCreateSchemaOutput = z.object({
     createdAt: z.date(),
     updatedAt: z.date(),
     network: z.nativeEnum($Enums.Network),
-    addressToCheck: z.string(),
+    paymentContractAddress: z.string(),
     paymentType: z.nativeEnum($Enums.PaymentType),
-    blockfrostApiKey: z.string(),
-    page: z.number(),
+    rpcProviderApiKey: z.string(),
     isSyncing: z.boolean(),
-    latestIdentifier: z.string().nullable(),
-
+    lastIdentifierChecked: z.string().nullable(),
+    lastPageChecked: z.number(),
+    lastCheckedAt: z.date().nullable(),
 });
 
 export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build({
@@ -142,25 +145,34 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
             };
         });
 
-        const result = await prisma.$transaction(async (prisma) => {
+        return await prisma.$transaction(async (prisma) => {
+
+            const { smartContractAddress } = await getPaymentScriptV1(input.AdminWallets[0].walletAddress, input.AdminWallets[1].walletAddress, input.AdminWallets[2].walletAddress, input.FeeReceiverNetworkWallet.walletAddress, input.FeePermille, input.network)
+
             const sellingWallets = await Promise.all(sellingWalletsMesh.map(async (sw) => {
-                const walletVkey = resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]);
                 return {
-                    walletVkey: walletVkey,
+                    walletAddress: (await sw.wallet.getUnusedAddresses())[0],
+                    walletVkey: resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]),
                     walletSecretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
                     note: sw.note
                 };
             }));
-            const { smartContractAddress } = await getPaymentScriptV1(input.AdminWallets[0].walletAddress, input.AdminWallets[1].walletAddress, input.AdminWallets[2].walletAddress, input.FeeReceiverNetworkWallet.walletAddress, input.FeePermille, input.network)
 
+            const purchasingWallets = await Promise.all(purchasingWalletsMesh.map(async (pw) => {
+                return {
+                    walletVkey: resolvePaymentKeyHash((await pw.wallet.getUnusedAddresses())[0]),
+                    walletAddress: (await pw.wallet.getUnusedAddresses())[0],
+                    walletSecretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
+                    note: pw.note,
+                };
+            }));
 
             const paymentSource = await prisma.networkHandler.create({
                 data: {
                     network: input.network,
-                    addressToCheck: smartContractAddress,
+                    paymentContractAddress: smartContractAddress,
                     paymentType: input.paymentType,
-                    blockfrostApiKey: input.blockfrostApiKey,
-
+                    rpcProviderApiKey: input.rpcProviderApiKey,
                     AdminWallets: {
                         createMany: {
                             data: input.AdminWallets.map((aw, index) => ({
@@ -169,7 +181,7 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                             }))
                         }
                     },
-                    FeePermille: input.FeePermille,
+                    feePermille: input.feePermille,
                     FeeReceiverNetworkWallet: {
                         create: {
                             walletAddress: input.FeeReceiverNetworkWallet.walletAddress,
@@ -184,38 +196,23 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                             data: sellingWallets
                         }
                     },
+                    PurchasingWallets: {
+                        createMany: {
+                            data: purchasingWallets
+                        }
+                    },
 
                 }
-            });
-            // First create the wallet secrets
-            const walletSecrets = await Promise.all(
-                purchasingWalletsMesh.map(pw =>
-                    prisma.walletSecret.create({
-                        data: { secret: pw.secret }
-                    })
-                )
-            );
-
-            // Then create purchasing wallets with the secret IDs
-            const data = await Promise.all(purchasingWalletsMesh.map(async (pw, index) => ({
-                walletVkey: resolvePaymentKeyHash((await pw.wallet.getUnusedAddresses())[0]),
-                walletSecretId: walletSecrets[index].id,
-                note: pw.note,
-                networkHandlerId: paymentSource.id
-            })));
-            await prisma.purchasingWallet.createMany({
-                data: data
             });
 
             return paymentSource
         })
-        return result
     },
 });
 
 export const paymentSourceUpdateSchemaInput = z.object({
     id: z.string().max(250).describe("The id of the payment source to be updated"),
-    blockfrostApiKey: z.string().max(250).optional().describe("The blockfrost api key to be used for the payment source"),
+    rpcProviderApiKey: z.string().max(250).optional().describe("The rpc provider (blockfrost) api key to be used for the payment source"),
     CollectionWallet: z.object({
         walletAddress: z.string().max(250),
         note: z.string().max(250),
@@ -234,20 +231,21 @@ export const paymentSourceUpdateSchemaInput = z.object({
     RemoveSellingWallets: z.array(z.object({
         id: z.string()
     })).max(10).optional().describe("The ids of the selling wallets to be removed. Please backup the mnemonic of the old wallet before removing it."),
-    page: z.number({ coerce: true }).min(1).max(100000000).optional().describe("The page number of the payment source. Usually should not be changed"),
-    latestIdentifier: z.string().max(250).nullable().optional().describe("The latest identifier of the payment source. Usually should not be changed")
+    lastPageChecked: z.number({ coerce: true }).min(1).max(100000000).optional().describe("The page number of the payment source. Usually should not be changed"),
+    lastIdentifierChecked: z.string().max(250).nullable().optional().describe("The latest identifier of the payment source. Usually should not be changed")
 });
 export const paymentSourceUpdateSchemaOutput = z.object({
     id: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),
     network: z.nativeEnum($Enums.Network),
-    addressToCheck: z.string(),
+    paymentContractAddress: z.string(),
     paymentType: z.nativeEnum($Enums.PaymentType),
-    blockfrostApiKey: z.string(),
-    page: z.number(),
+    rpcProviderApiKey: z.string(),
     isSyncing: z.boolean(),
-    latestIdentifier: z.string().nullable(),
+    lastIdentifierChecked: z.string().nullable(),
+    lastPageChecked: z.number(),
+    lastCheckedAt: z.date().nullable(),
 });
 
 export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
@@ -255,7 +253,11 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
     input: paymentSourceUpdateSchemaInput,
     output: paymentSourceUpdateSchemaOutput,
     handler: async ({ input }) => {
-        const networkHandler = await prisma.networkHandler.findUnique({ where: { id: input.id }, include: { PurchasingWallets: true, SellingWallets: true } })
+        const networkHandler = await prisma.networkHandler.findUnique({
+            where: { id: input.id }, include: {
+                PurchasingWallets: true, SellingWallets: true
+            }
+        })
         if (networkHandler == null) {
             throw createHttpError(404, "Payment source not found")
         }
@@ -285,11 +287,10 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
             };
         });
         const result = await prisma.$transaction(async (prisma) => {
-
             const sellingWallets = sellingWalletsMesh != null ? await Promise.all(sellingWalletsMesh.map(async (sw) => {
-                const walletVkey = resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]);
                 return {
-                    walletVkey: walletVkey,
+                    walletAddress: (await sw.wallet.getUnusedAddresses())[0],
+                    walletVkey: resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]),
                     walletSecretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
                     note: sw.note
                 };
@@ -297,11 +298,13 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
 
             const purchasingWallets = purchasingWalletsMesh != null ? await Promise.all(purchasingWalletsMesh.map(async (pw) => {
                 return {
+                    walletAddress: (await pw.wallet.getUnusedAddresses())[0],
                     walletVkey: resolvePaymentKeyHash((await pw.wallet.getUnusedAddresses())[0]),
                     walletSecretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
                     note: pw.note
                 };
             })) : [];
+
             if (input.RemoveSellingWallets != null && input.RemoveSellingWallets.length > 0 || input.RemovePurchasingWallets != null && input.RemovePurchasingWallets.length > 0) {
                 await prisma.networkHandler.update({
                     where: { id: input.id }, data: {
@@ -323,13 +326,13 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
                     }
                 });
             }
-            console.log("adding wallets")
+
             const paymentSource = await prisma.networkHandler.update({
                 where: { id: input.id },
                 data: {
-                    latestIdentifier: input.latestIdentifier,
-                    page: input.page,
-                    blockfrostApiKey: input.blockfrostApiKey,
+                    lastIdentifierChecked: input.lastIdentifierChecked,
+                    lastPageChecked: input.lastPageChecked,
+                    rpcProviderApiKey: input.rpcProviderApiKey,
                     CollectionWallet: input.CollectionWallet != undefined ? {
                         update: { walletAddress: input.CollectionWallet.walletAddress, note: input.CollectionWallet.note },
                     } : undefined,
@@ -364,7 +367,6 @@ export const paymentSourceEndpointDelete = adminAuthenticatedEndpointFactory.bui
     input: paymentSourceDeleteSchemaInput,
     output: paymentSourceDeleteSchemaOutput,
     handler: async ({ input }) => {
-
         return await prisma.networkHandler.delete({ where: { id: input.id }, })
     },
 });

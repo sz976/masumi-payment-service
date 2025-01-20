@@ -59,14 +59,14 @@ export async function checkLatestTransactions() {
             return;
         try {
             const results = await Promise.allSettled(networkChecks.map(async (networkCheck) => {
-                let latestPage = networkCheck.page;
-                let latestIdentifier = networkCheck.latestIdentifier;
+                let latestPage = networkCheck.lastPageChecked;
+                let latestIdentifier = networkCheck.lastIdentifierChecked;
                 const blockfrost = new BlockFrostAPI({
-                    projectId: networkCheck.blockfrostApiKey,
+                    projectId: networkCheck.rpcProviderApiKey,
                     network: networkCheck.network == $Enums.Network.MAINNET ? "mainnet" : networkCheck.network == $Enums.Network.PREVIEW ? "preview" : "preprod"
                 });
 
-                let latestTx = await blockfrost.addressesTransactions(networkCheck.addressToCheck, { count: 25, page: networkCheck.page })
+                let latestTx = await blockfrost.addressesTransactions(networkCheck.paymentContractAddress, { count: 25, page: networkCheck.lastPageChecked })
 
                 while (latestTx.length > 0) {
 
@@ -98,8 +98,8 @@ export async function checkLatestTransactions() {
                         const inputs = utxos.inputs;
                         const outputs = utxos.outputs;
 
-                        const valueInputs = inputs.filter((x) => { return x.address == networkCheck.addressToCheck })
-                        const valueOutputs = outputs.filter((x) => { return x.address == networkCheck.addressToCheck })
+                        const valueInputs = inputs.filter((x) => { return x.address == networkCheck.paymentContractAddress })
+                        const valueOutputs = outputs.filter((x) => { return x.address == networkCheck.paymentContractAddress })
 
                         const redeemers = tx.transaction.witness_set().redeemers();
 
@@ -157,12 +157,12 @@ export async function checkLatestTransactions() {
                                     const databaseEntry = await prisma.paymentRequest.findMany({
                                         where: {
                                             identifier: decodedNewContract.referenceId,
-                                            checkedById: networkCheck.id,
+                                            networkHandlerId: networkCheck.id,
                                             status: $Enums.PaymentRequestStatus.PaymentRequested,
 
                                         },
                                         include: {
-                                            amounts: true
+                                            Amounts: true
                                         }
                                     })
                                     if (databaseEntry.length == 0) {
@@ -186,7 +186,7 @@ export async function checkLatestTransactions() {
                                         return;
                                     }
 
-                                    const valueMatches = databaseEntry[0].amounts.every((x) => {
+                                    const valueMatches = databaseEntry[0].Amounts.every((x) => {
                                         const existingAmount = output.amount.find((y) => y.unit == x.unit)
                                         if (existingAmount == null)
                                             return false;
@@ -206,10 +206,10 @@ export async function checkLatestTransactions() {
                                             txHash: tx.tx.tx_hash,
                                             utxo: tx.utxos.hash,
                                             potentialTxHash: null,
-                                            buyerWallet: {
+                                            BuyerWallet: {
                                                 connectOrCreate: {
                                                     where: { networkHandlerId_walletVkey: { networkHandlerId: networkCheck.id, walletVkey: decodedNewContract.buyer } },
-                                                    create: { walletVkey: decodedNewContract.buyer, networkHandler: { connect: { id: networkCheck.id } } }
+                                                    create: { walletVkey: decodedNewContract.buyer, NetworkHandler: { connect: { id: networkCheck.id } } }
                                                 }
                                             }
                                         }
@@ -220,7 +220,7 @@ export async function checkLatestTransactions() {
                             }
                             await prisma.networkHandler.update({
                                 where: { id: networkCheck.id },
-                                data: { latestIdentifier: tx.tx.tx_hash, page: latestPage }
+                                data: { lastIdentifierChecked: tx.tx.tx_hash, lastPageChecked: latestPage }
                             })
                             latestIdentifier = tx.tx.tx_hash;
                         } else {
@@ -292,12 +292,12 @@ export async function checkLatestTransactions() {
                                         const databaseEntry = await prisma.paymentRequest.findMany({
                                             where: {
                                                 identifier: decodedNewContract!.referenceId,
-                                                checkedById: networkCheck.id,
+                                                networkHandlerId: networkCheck.id,
                                                 status: $Enums.PaymentRequestStatus.PaymentRequested,
 
                                             },
                                             include: {
-                                                amounts: true
+                                                Amounts: true
                                             }
                                         })
                                         if (databaseEntry.length == 0) {
@@ -321,7 +321,7 @@ export async function checkLatestTransactions() {
                                             return $Enums.PaymentRequestStatus.PaymentInvalid;
                                         }
 
-                                        const valueMatches = databaseEntry[0].amounts.every((x) => {
+                                        const valueMatches = databaseEntry[0].Amounts.every((x) => {
                                             const existingAmount = valueOutputs[0].amount.find((y) => y.unit == x.unit)
                                             if (existingAmount == null)
                                                 return false;
@@ -341,10 +341,10 @@ export async function checkLatestTransactions() {
                                                 txHash: tx.tx.tx_hash,
                                                 utxo: tx.utxos.hash,
                                                 potentialTxHash: null,
-                                                buyerWallet: {
+                                                BuyerWallet: {
                                                     connectOrCreate: {
                                                         where: { networkHandlerId_walletVkey: { networkHandlerId: networkCheck.id, walletVkey: decodedNewContract!.buyer } },
-                                                        create: { walletVkey: decodedNewContract!.buyer, networkHandler: { connect: { id: networkCheck.id } } }
+                                                        create: { walletVkey: decodedNewContract!.buyer, NetworkHandler: { connect: { id: networkCheck.id } } }
                                                     }
                                                 }
                                             }
@@ -380,7 +380,7 @@ export async function checkLatestTransactions() {
                                 await prisma.$transaction(async (prisma) => {
                                     //we dont need to do sanity checks as the tx hash is unique
                                     const paymentRequest = await prisma.paymentRequest.findUnique({
-                                        where: { checkedById_identifier: { checkedById: networkCheck.id, identifier: decodedOldContract.referenceId } },
+                                        where: { networkHandlerId_identifier: { networkHandlerId: networkCheck.id, identifier: decodedOldContract.referenceId } },
                                     })
 
                                     if (paymentRequest == null) {
@@ -411,7 +411,7 @@ export async function checkLatestTransactions() {
                         }
                         await prisma.networkHandler.update({
                             where: { id: networkCheck.id },
-                            data: { latestIdentifier: tx.tx.tx_hash, page: latestPage }
+                            data: { lastIdentifierChecked: tx.tx.tx_hash, lastPageChecked: latestPage }
                         })
                         latestIdentifier = tx.tx.tx_hash;
                     }
@@ -420,14 +420,14 @@ export async function checkLatestTransactions() {
                     //update to the final utxo and tx hash
                     await prisma.networkHandler.update({
                         where: { id: networkCheck.id },
-                        data: { latestIdentifier: latestTx[latestTx.length - 1].tx_hash, page: latestPage }
+                        data: { lastIdentifierChecked: latestTx[latestTx.length - 1].tx_hash, lastPageChecked: latestPage }
                     })
 
 
                     if (latestTx.length >= 25) {
 
                         latestPage++;
-                        latestTx = await blockfrost.addressesTransactions(networkCheck.addressToCheck, { count: 25, page: latestPage })
+                        latestTx = await blockfrost.addressesTransactions(networkCheck.paymentContractAddress, { count: 25, page: latestPage })
 
                     } else {
                         latestTx = []
@@ -465,7 +465,7 @@ async function handlePaymentTransactionCardanoV1(tx_hash: string, utxo_hash: str
     await prisma.$transaction(async (prisma) => {
         //we dont need to do sanity checks as the tx hash is unique
         const paymentRequest = await prisma.paymentRequest.findUnique({
-            where: { checkedById_identifier: { checkedById: networkCheckId, identifier: referenceId } },
+            where: { networkHandlerId_identifier: { networkHandlerId: networkCheckId, identifier: referenceId } },
         })
 
         if (paymentRequest == null) {
@@ -485,7 +485,7 @@ async function handlePurchasingTransactionCardanoV1(tx_hash: string, utxo_hash: 
     await prisma.$transaction(async (prisma) => {
         //we dont need to do sanity checks as the tx hash is unique
         const purchasingRequest = await prisma.paymentRequest.findUnique({
-            where: { checkedById_identifier: { checkedById: networkCheckId, identifier: referenceId } },
+            where: { networkHandlerId_identifier: { networkHandlerId: networkCheckId, identifier: referenceId } },
         })
 
         if (purchasingRequest == null) {

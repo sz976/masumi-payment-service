@@ -14,7 +14,7 @@ export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
     cursorIdentifier: z.object({ identifier: z.string().max(250), sellingWalletVkey: z.string().max(250) }).optional().describe("Used to paginate through the purchases"),
     network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
-    contractAddress: z.string().max(250).describe("The address of the smart contract where the purchases were made to"),
+    paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchases were made to"),
 })
 
 export const queryPurchaseRequestSchemaOutput = z.object({
@@ -28,11 +28,10 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         errorNote: z.string().nullable(),
         errorRequiresManualReview: z.boolean().nullable(),
         identifier: z.string(),
-        smartContractWallet: z.object({ id: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
-        purchaserWallet: z.object({ id: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
-        sellerWallet: z.object({ walletVkey: z.string(), note: z.string().nullable() }).nullable(),
-        amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
-        networkHandler: z.object({ id: z.string(), network: z.nativeEnum($Enums.Network), addressToCheck: z.string(), paymentType: z.nativeEnum($Enums.PaymentType) }).nullable(),
+        SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
+        SellerWallet: z.object({ walletVkey: z.string(), note: z.string().nullable() }).nullable(),
+        Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
+        NetworkHandler: z.object({ id: z.string(), network: z.nativeEnum($Enums.Network), paymentContractAddress: z.string(), paymentType: z.nativeEnum($Enums.PaymentType) }).nullable(),
     }))
 });
 
@@ -43,7 +42,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     handler: async ({ input, logger }) => {
         logger.info("Querying registry");
 
-        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_addressToCheck: { network: input.network, addressToCheck: input.contractAddress } } })
+        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.contractAddress } } })
         if (networkHandler == null) {
             throw createHttpError(404, "Network handler not found")
         }
@@ -61,17 +60,16 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
             cursor: cursor,
             take: input.limit,
             include: {
-                sellerWallet: { select: { walletVkey: true, note: true } },
-                purchaserWallet: { select: { id: true, walletVkey: true, note: true } },
-                networkHandler: true,
-                smartContractWallet: true,
-                amounts: true
+                SellerWallet: { select: { walletVkey: true, note: true, } },
+                SmartContractWallet: { select: { id: true, walletVkey: true, note: true, walletAddress: true } },
+                NetworkHandler: true,
+                Amounts: true
             }
         })
         if (result == null) {
             throw createHttpError(404, "Purchase not found")
         }
-        return { purchases: result.map(purchase => ({ ...purchase, amounts: purchase.amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) })) }
+        return { purchases: result.map(purchase => ({ ...purchase, Amounts: purchase.Amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) })) }
     },
 });
 
@@ -79,7 +77,7 @@ export const createPurchaseInitSchemaInput = z.object({
     identifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum($Enums.Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
-    contractAddress: z.string().max(250).describe("The address of the smart contract where the purchase will be made to"),
+    paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchase will be made to"),
     amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The payment type of smart contract used"),
     unlockTime: ez.dateIn().describe("The time after which the purchase will be unlocked"),
@@ -100,7 +98,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     output: createPurchaseInitSchemaOutput,
     handler: async ({ input, options, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_addressToCheck: { network: input.network, addressToCheck: input.contractAddress } } })
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
@@ -121,7 +119,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
             throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference")
         }
 
-
         const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.contractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
         return initial
     },
@@ -131,7 +128,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 export const refundPurchaseSchemaInput = z.object({
     identifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
     network: z.nativeEnum($Enums.Network).describe("The network the Cardano wallet will be used on"),
-    smartContractAddress: z.string().max(250).describe("The address of the smart contract holding the purchase"),
+    paymentContractAddress: z.string().max(250).describe("The address of the smart contract holding the purchase"),
 })
 
 export const refundPurchaseSchemaOutput = z.object({
@@ -144,7 +141,24 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
     output: refundPurchaseSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_addressToCheck: { network: input.network, addressToCheck: input.smartContractAddress } }, include: { FeeReceiverNetworkWallet: true, AdminWallets: true, PurchaseRequests: { where: { identifier: input.identifier }, include: { sellerWallet: true, purchaserWallet: { include: { walletSecret: true } } } } } })
+        const networkCheckSupported = await prisma.networkHandler.findUnique({
+            where: {
+                network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress }
+            }, include: {
+                FeeReceiverNetworkWallet: true,
+                AdminWallets: true,
+                PurchaseRequests: {
+                    where: {
+                        identifier: input.identifier
+                    }, include: {
+                        SellerWallet: true,
+                        SmartContractWallet: {
+                            include: { WalletSecret: true }
+                        }
+                    }
+                }
+            }
+        })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
@@ -158,7 +172,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
 
 
         const blockchainProvider = new BlockfrostProvider(
-            networkCheckSupported.blockfrostApiKey,
+            networkCheckSupported.rpcProviderApiKey,
         )
 
 
@@ -169,7 +183,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
             submitter: blockchainProvider,
             key: {
                 type: 'mnemonic',
-                words: decrypt(purchase.purchaserWallet!.walletSecret.secret!).split(" "),
+                words: decrypt(purchase.SmartContractWallet!.WalletSecret.secret!).split(" "),
             },
         });
 
@@ -200,8 +214,8 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
 
         // Decode the CBOR-encoded datum
 
-        const sellerVerificationKeyHash = purchase.sellerWallet.walletVkey;
-        const buyerVerificationKeyHash = purchase.purchaserWallet?.walletVkey;
+        const sellerVerificationKeyHash = purchase.SellerWallet.walletVkey;
+        const buyerVerificationKeyHash = purchase.SmartContractWallet?.walletVkey;
         if (!buyerVerificationKeyHash)
             throw createHttpError(404, "purchasing wallet not found")
 

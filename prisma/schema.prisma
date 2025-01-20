@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,18 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model apiKey {
+model ApiKey {
   id                    String            @id @default(cuid())
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   apiKey                String            @unique
-  status                APIKeyStatus
+  status                ApiKeyStatus
   permission            Permission
   usageLimited          Boolean           @default(false)
-  remainingUsageCredits UsageAmount[]
+  RemainingUsageCredits UsageAmount[]
   PurchaseRequest       PurchaseRequest[]
-
-  @@index([apiKey])
 }
 
 model UsageAmount {
@@ -33,11 +25,11 @@ model UsageAmount {
   updatedAt DateTime @updatedAt
   amount    BigInt
   unit      String
-  apiKey    apiKey?  @relation(fields: [apiKeyId], references: [id])
+  apiKey    ApiKey?  @relation(fields: [apiKeyId], references: [id])
   apiKeyId  String?
 }
 
-enum APIKeyStatus {
+enum ApiKeyStatus {
   ACTIVE
   REVOKED
 }
@@ -53,18 +45,18 @@ model SellingWallet {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   walletVkey     String       @unique
-  walletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
+  WalletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
   walletSecretId String
+  walletAddress  String
 
-  pendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
+  PendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
   pendingTransactionId String?
 
-  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  NetworkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String
 
-  note            String?
-  PaymentRequest  PaymentRequest[]
-  PurchaseRequest PurchaseRequest[]
+  note           String?
+  PaymentRequest PaymentRequest[]
 
   @@unique([networkHandlerId, walletVkey])
 }
@@ -74,17 +66,17 @@ model PurchasingWallet {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   walletVkey     String
-  walletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
+  WalletSecret   WalletSecret @relation(fields: [walletSecretId], references: [id])
   walletSecretId String
+  walletAddress  String
 
-  pendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
+  PendingTransaction   Transaction? @relation(fields: [pendingTransactionId], references: [id], onDelete: SetNull)
   pendingTransactionId String?
 
-  networkHandler   NetworkHandler    @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  NetworkHandler   NetworkHandler    @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String
   note             String?
   PurchaseRequest  PurchaseRequest[]
-  PaymentRequest   PaymentRequest[]
 
   @@unique([networkHandlerId, walletVkey])
 }
@@ -110,11 +102,12 @@ model WalletSecret {
 }
 
 model BuyerWallet {
-  id               String         @id @default(cuid())
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  walletVkey       String
-  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  walletVkey String
+
+  NetworkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String
 
   note           String?
@@ -124,11 +117,12 @@ model BuyerWallet {
 }
 
 model SellerWallet {
-  id               String         @id @default(cuid())
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  walletVkey       String
-  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  walletVkey String
+
+  NetworkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String
 
   note            String?
@@ -143,7 +137,7 @@ model CollectionWallet {
   updatedAt     DateTime @updatedAt
   walletAddress String
 
-  networkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  NetworkHandler   NetworkHandler @relation(fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String         @unique
   note             String?
 
@@ -155,17 +149,17 @@ model PaymentRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lastCheckedAt DateTime?
-  checkedBy     NetworkHandler @relation("PaymentRequestHandler", fields: [checkedById], references: [id], onDelete: Cascade)
-  checkedById   String
+  lastCheckedAt    DateTime?
+  NetworkHandler   NetworkHandler @relation("PaymentRequestHandler", fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  networkHandlerId String
 
-  smartContractWallet   PurchasingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
+  SmartContractWallet   SellingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
   smartContractWalletId String?
 
-  buyerWallet   BuyerWallet? @relation(fields: [buyerWalletId], references: [id], onDelete: SetNull)
+  BuyerWallet   BuyerWallet? @relation(fields: [buyerWalletId], references: [id], onDelete: SetNull)
   buyerWalletId String?
 
-  amounts          RequestAmount[]
+  Amounts          RequestAmount[]
   status           PaymentRequestStatus
   identifier       String
   resultHash       String?
@@ -180,10 +174,8 @@ model PaymentRequest {
   errorType                 PaymentRequestErrorType?
   errorNote                 String?
   errorRequiresManualReview Boolean?
-  SellingWallet             SellingWallet?           @relation(fields: [sellingWalletId], references: [id], onDelete: SetNull)
-  sellingWalletId           String?
 
-  @@unique([checkedById, identifier])
+  @@unique([networkHandlerId, identifier])
 }
 
 model PurchaseRequest {
@@ -192,18 +184,16 @@ model PurchaseRequest {
   updatedAt DateTime @updatedAt
 
   lastCheckedAt    DateTime?
-  networkHandler   NetworkHandler @relation("PurchaseRequestNetworkHandler", fields: [networkHandlerId], references: [id], onDelete: Cascade)
+  NetworkHandler   NetworkHandler @relation("PurchaseRequestNetworkHandler", fields: [networkHandlerId], references: [id], onDelete: Cascade)
   networkHandlerId String
 
-  sellerWallet       SellerWallet      @relation(fields: [sellerWalletId], references: [id], onDelete: Cascade)
-  sellerWalletId     String
-  purchaserWallet    PurchasingWallet? @relation(fields: [purchasingWalletId], references: [id], onDelete: SetNull)
-  purchasingWalletId String?
+  SellerWallet   SellerWallet @relation(fields: [sellerWalletId], references: [id], onDelete: Cascade)
+  sellerWalletId String
 
-  smartContractWallet   SellingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
+  SmartContractWallet   PurchasingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
   smartContractWalletId String?
 
-  amounts          RequestAmount[]
+  Amounts          RequestAmount[]
   status           PurchasingRequestStatus
   identifier       String
   resultHash       String?
@@ -220,7 +210,7 @@ model PurchaseRequest {
   errorNote                 String?
   errorRequiresManualReview Boolean?
 
-  triggeredBy   apiKey @relation(fields: [triggeredById], references: [id])
+  triggeredBy   ApiKey @relation(fields: [triggeredById], references: [id])
   triggeredById String
 
   @@unique([networkHandlerId, identifier, sellerWalletId])
@@ -238,13 +228,11 @@ model RequestAmount {
   purchaseRequestId String?
 }
 
-//TODO maybe add a rating system via payment amounts (success and failure)
 enum PaymentRequestErrorType {
   NETWORK_ERROR
   UNKNOWN
 }
 
-//TODO maybe add a rating system via payment amounts (success and failure)
 enum PurchaseRequestErrorType {
   NETWORK_ERROR
   INSUFFICIENT_FUNDS
@@ -304,18 +292,18 @@ model NetworkHandler {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  network          Network
-  lastCheckedAt    DateTime?
-  page             Int       @default(1)
-  blockfrostApiKey String
-  latestIdentifier String?
-  addressToCheck   String
-  isSyncing        Boolean   @default(false)
+  network                Network
+  lastCheckedAt          DateTime?
+  lastPageChecked        Int       @default(1)
+  rpcProviderApiKey      String
+  lastIdentifierChecked  String?
+  paymentContractAddress String
+  isSyncing              Boolean   @default(false)
 
   AdminWallets             AdminWallet[] @relation("AdminWallets")
   FeeReceiverNetworkWallet AdminWallet   @relation("FeeReceiverNetworkWallet", fields: [adminWalletId], references: [id], onDelete: Cascade)
   adminWalletId            String
-  FeePermille              Int           @default(50)
+  feePermille              Int           @default(50)
 
   PaymentRequests  PaymentRequest[]  @relation("PaymentRequestHandler")
   PurchaseRequests PurchaseRequest[] @relation("PurchaseRequestNetworkHandler")
@@ -334,7 +322,7 @@ model NetworkHandler {
   maxPaymentRetries        Int @default(3)
   maxRefundDenyRetries     Int @default(3)
 
-  @@unique([network, addressToCheck])
+  @@unique([network, paymentContractAddress])
 }
 
 model AdminWallet {

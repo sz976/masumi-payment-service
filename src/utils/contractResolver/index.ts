@@ -16,11 +16,11 @@ export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported
     const admin2 = sortedAdminWallets[1];
     const admin3 = sortedAdminWallets[2];
     const feeWallet = networkCheckSupported.FeeReceiverNetworkWallet
-    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, networkCheckSupported.FeePermille, networkCheckSupported.network)
+    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, networkCheckSupported.feePermille, networkCheckSupported.network)
 }
 
 export async function getRegistryScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler) {
-    return await getRegistryScriptV1(networkCheckSupported.addressToCheck, networkCheckSupported.network)
+    return await getRegistryScriptV1(networkCheckSupported.paymentContractAddress, networkCheckSupported.network)
 }
 
 export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalletAddress2: string, adminWalletAddress3: string, feeWalletAddress: string, feePermille: number, network: Network) {

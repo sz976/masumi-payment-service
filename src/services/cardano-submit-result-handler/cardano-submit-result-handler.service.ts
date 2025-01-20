@@ -33,20 +33,20 @@ export async function submitResultV1() {
                             , status: { in: ["PaymentConfirmed", "RefundRequested"] },
                             resultHash: { not: null },
                             errorType: null,
-                            smartContractWallet: { pendingTransaction: null }
+                            SmartContractWallet: { PendingTransaction: null }
                         },
-                        include: { buyerWallet: true, smartContractWallet: { include: { walletSecret: true } } }
+                        include: { BuyerWallet: true, SmartContractWallet: { include: { WalletSecret: true } } }
                     },
                     AdminWallets: true,
                     FeeReceiverNetworkWallet: true,
                     CollectionWallet: true
                 }
             })
-            const sellingWalletIds = networkChecks.map(x => x.PaymentRequests).flat().map(x => x.smartContractWallet?.id);
+            const sellingWalletIds = networkChecks.map(x => x.PaymentRequests).flat().map(x => x.SmartContractWallet?.id);
             for (const sellingWalletId of sellingWalletIds) {
                 await prisma.sellingWallet.update({
                     where: { id: sellingWalletId },
-                    data: { pendingTransaction: { create: { hash: null } } }
+                    data: { PendingTransaction: { create: { hash: null } } }
                 })
             }
             return networkChecks;
@@ -64,7 +64,7 @@ export async function submitResultV1() {
             if (!networkId)
                 throw new Error("Invalid network")
 
-            const blockchainProvider = new BlockfrostProvider(networkCheck.blockfrostApiKey, undefined);
+            const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, undefined);
 
 
             const paymentRequests = networkCheck.PaymentRequests;
@@ -72,8 +72,20 @@ export async function submitResultV1() {
             if (paymentRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ buyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; networkHandlerId: string; note: string | null; } | null; smartContractWallet: ({ walletSecret: { id: string; createdAt: Date; updatedAt: Date; secret: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletSecretId: string; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; status: $Enums.PaymentRequestStatus; errorType: $Enums.PaymentRequestErrorType | null; checkedById: string; smartContractWalletId: string | null; buyerWalletId: string | null; identifier: string; resultHash: string | null; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; })[] = []
+            const deDuplicatedRequests: ({
+                BuyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; networkHandlerId: string; note: string | null; } | null;
+                SmartContractWallet: ({
+                    WalletSecret: { id: string; createdAt: Date; updatedAt: Date; secret: string; };
+                } & {
+                    id: string; walletAddress: string;
+                    createdAt: Date; updatedAt: Date;
+                    walletVkey: string; walletSecretId: string; pendingTransactionId: string | null;
+                    networkHandlerId: string; note: string | null;
+                }) | null;
+            } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; status: $Enums.PaymentRequestStatus; errorType: $Enums.PaymentRequestErrorType | null; networkHandlerId: string; smartContractWalletId: string | null; buyerWalletId: string | null; identifier: string; resultHash: string | null; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; })[] = []
             for (const request of paymentRequests) {
+                if (request.smartContractWalletId == null)
+                    continue;
                 if (deDuplicatedRequests.some(r => r.smartContractWalletId == request.smartContractWalletId))
                     continue;
 
@@ -82,8 +94,8 @@ export async function submitResultV1() {
 
             await Promise.allSettled(deDuplicatedRequests.map(async (request) => {
                 try {
-                    const sellingWallet = request.smartContractWallet!;
-                    const encryptedSecret = sellingWallet.walletSecret.secret;
+                    const sellingWallet = request.SmartContractWallet!;
+                    const encryptedSecret = sellingWallet.WalletSecret.secret;
 
                     const wallet = new MeshWallet({
                         networkId: 0,
@@ -119,8 +131,8 @@ export async function submitResultV1() {
                     }
 
 
-                    const buyerVerificationKeyHash = request.buyerWallet?.walletVkey;
-                    const sellerVerificationKeyHash = request.smartContractWallet!.walletVkey;
+                    const buyerVerificationKeyHash = request.BuyerWallet?.walletVkey;
+                    const sellerVerificationKeyHash = request.SmartContractWallet!.walletVkey;
 
                     const utxoDatum = utxo.output.plutusData;
                     if (!utxoDatum) {
@@ -199,7 +211,7 @@ export async function submitResultV1() {
                     const txHash = await wallet.submitTx(signedTx);
 
                     await prisma.paymentRequest.update({
-                        where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PaymentRequestStatus.CompletedInitiated, smartContractWallet: { update: { pendingTransaction: { create: { hash: txHash } } } } }
+                        where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PaymentRequestStatus.CompletedInitiated, SmartContractWallet: { update: { PendingTransaction: { create: { hash: txHash } } } } }
                     })
 
                     logger.info(`Created withdrawal transaction:

@@ -4,7 +4,11 @@ import { $Enums } from '@prisma/client';
 
 async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit: string }[], network: $Enums.Network, identifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: Date, refundTime: Date, unlockTime: Date) {
     return await prisma.$transaction(async (transaction) => {
-        const result = await transaction.apiKey.findUnique({ where: { id: id }, include: { remainingUsageCredits: true } })
+        const result = await transaction.apiKey.findUnique({
+            where: { id: id }, include: {
+                RemainingUsageCredits: true
+            }
+        })
         if (!result) {
             throw Error("Invalid id: " + id)
         }
@@ -13,7 +17,7 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
         const remainingAccumulatedUsageCredits: Map<string, bigint> = new Map<string, bigint>();
 
         // Sum up all purchase amounts
-        result.remainingUsageCredits.forEach(request => {
+        result.RemainingUsageCredits.forEach(request => {
             if (!remainingAccumulatedUsageCredits.has(request.unit)) {
                 remainingAccumulatedUsageCredits.set(request.unit, 0n);
             }
@@ -51,14 +55,18 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
             await transaction.apiKey.update({
                 where: { id: id },
                 data: {
-                    remainingUsageCredits: {
+                    RemainingUsageCredits: {
                         set: updatedUsageAmounts
                     },
                 }
             })
         }
 
-        const networkHandler = await transaction.networkHandler.findUnique({ where: { network_addressToCheck: { network: network, addressToCheck: contractAddress } } })
+        const networkHandler = await transaction.networkHandler.findUnique({
+            where: {
+                network_paymentContractAddress: { network: network, paymentContractAddress: contractAddress }
+            }
+        })
         if (!networkHandler) {
             throw Error("Invalid networkHandler: " + networkHandler)
         }
@@ -66,15 +74,15 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
         const purchaseRequest = await prisma.purchaseRequest.create({
             data: {
                 triggeredBy: { connect: { id: id } },
-                amounts: {
+                Amounts: {
                     create: Array.from(totalCost.entries()).map(([unit, amount]) => ({
                         amount: amount,
                         unit: unit
                     }))
                 },
                 submitResultTime: submitResultTime.getTime(),
-                networkHandler: { connect: { id: networkHandler.id } },
-                sellerWallet: {
+                NetworkHandler: { connect: { id: networkHandler.id } },
+                SellerWallet: {
                     connectOrCreate: {
                         where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: sellerVkey } },
                         create: { walletVkey: sellerVkey, networkHandlerId: networkHandler.id }
@@ -84,7 +92,6 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
                 status: $Enums.PurchasingRequestStatus.PurchaseRequested,
                 refundTime: refundTime.getTime(),
                 unlockTime: unlockTime.getTime(),
-
             },
         })
 

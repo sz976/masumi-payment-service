@@ -7,7 +7,7 @@ import { registerAgentPost, unregisterAgentDelete } from "./registry";
 import { paymentSourceEndpointDelete, paymentSourceEndpointGet, paymentSourceEndpointPatch, paymentSourceEndpointPost } from "./payment-source";
 import { queryAPIKeyStatusEndpointGet } from "./api-key-status";
 import { postWalletEndpointPost, queryWalletEndpointGet } from "./wallet";
-import { queryBlockfrostKeysEndpointGet } from "./blockfrost-keys";
+import { queryRpcProviderKeysEndpointGet } from "./rpc-api-keys";
 
 export const apiRouter: Routing = {
     v1: {
@@ -45,8 +45,8 @@ export const apiRouter: Routing = {
             patch: paymentSourceEndpointPatch,
             delete: paymentSourceEndpointDelete
         }),
-        "blockfrost-keys": new DependsOnMethod({
-            get: queryBlockfrostKeysEndpointGet,
+        "rpc-api-keys": new DependsOnMethod({
+            get: queryRpcProviderKeysEndpointGet,
         })
     }
 }
