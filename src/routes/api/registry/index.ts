@@ -42,11 +42,11 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         logger.info("Registering Agent", input.paymentTypes);
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
-                network_addressToCheck: {
+                network_paymentContractAddress: {
                     network: input.network,
-                    addressToCheck: input.paymentContractAddress
+                    paymentContractAddress: input.paymentContractAddress
                 }
-            }, include: { AdminWallets: true, SellingWallets: { include: { walletSecret: true } } }
+            }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } }
         })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
@@ -57,7 +57,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         }
 
         const blockchainProvider = new BlockfrostProvider(
-            networkCheckSupported.blockfrostApiKey,
+            networkCheckSupported.rpcProviderApiKey,
         )
 
         let sellingWallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == input.sellingWalletVkey)
@@ -75,7 +75,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             submitter: blockchainProvider,
             key: {
                 type: 'mnemonic',
-                words: decrypt(sellingWallet.walletSecret.secret!).split(" "),
+                words: decrypt(sellingWallet.WalletSecret.secret!).split(" "),
             },
         });
 
@@ -148,7 +148,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         //send the minted asset to the address where we want to receive payments
         tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
             //used to defrag for further transactions
-            .sendLovelace(address, '2000000');
+            .sendLovelace(address, '3000000');
         //sign the transaction with our address
         tx.setChangeAddress(address).setRequiredSigners([address]);
         //build the transaction
@@ -182,7 +182,7 @@ function stringToMetadata(s: string) {
 export const unregisterAgentSchemaInput = z.object({
     assetName: z.string().max(250).describe("The identifier of the registration (asset) to be deregistered"),
     network: z.nativeEnum($Enums.Network).describe("The network the registration was made on"),
-    address: z.string().max(250).describe("The address of the wallet holding the registration"),
+    paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to which the registration belongs"),
 })
 
 export const unregisterAgentSchemaOutput = z.object({
@@ -195,7 +195,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     output: unregisterAgentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Deregister Agent", input.paymentTypes);
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_addressToCheck: { network: input.network, addressToCheck: input.address } }, include: { AdminWallets: true, SellingWallets: { include: { walletSecret: true } } } })
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
@@ -203,10 +203,10 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             throw createHttpError(404, "Selling Wallet not found")
         }
         const blockchainProvider = new BlockfrostProvider(
-            networkCheckSupported.blockfrostApiKey,
+            networkCheckSupported.rpcProviderApiKey,
         )
         const blockfrost = new BlockFrostAPI({
-            projectId: networkCheckSupported.blockfrostApiKey,
+            projectId: networkCheckSupported.rpcProviderApiKey,
         })
         const { policyId, script, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
         const holderWallet = await blockfrost.assetsAddresses(policyId + input.assetName, { order: "desc", count: 1 })
@@ -225,7 +225,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             submitter: blockchainProvider,
             key: {
                 type: 'mnemonic',
-                words: decrypt(sellingWallet.walletSecret.secret!).split(" "),
+                words: decrypt(sellingWallet.WalletSecret.secret!).split(" "),
             },
         });
 

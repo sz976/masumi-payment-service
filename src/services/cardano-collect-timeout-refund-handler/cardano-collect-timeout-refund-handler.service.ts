@@ -27,9 +27,11 @@ export async function collectTimeoutRefundsV1() {
                                 lte: Date.now() + 1000 * 60 * 25 //add 25 minutes for block time
                             }, status: "PurchaseConfirmed", resultHash: null,
                             errorType: null,
-                            smartContractWallet: { pendingTransaction: null }
+                            SmartContractWallet: { PendingTransaction: null }
                         },
-                        include: { purchaserWallet: true, smartContractWallet: { include: { walletSecret: true } } }
+                        include: {
+                            SmartContractWallet: { include: { WalletSecret: true } }
+                        }
                     },
                     AdminWallets: true,
                     FeeReceiverNetworkWallet: true,
@@ -39,17 +41,17 @@ export async function collectTimeoutRefundsV1() {
             const purchaserWalletIds: string[] = []
             for (const networkCheck of networkChecks) {
                 for (const purchaseRequest of networkCheck.PurchaseRequests) {
-                    if (purchaseRequest.purchaserWallet?.id) {
-                        purchaserWalletIds.push(purchaseRequest.purchaserWallet?.id)
+                    if (purchaseRequest.SmartContractWallet?.id) {
+                        purchaserWalletIds.push(purchaseRequest.SmartContractWallet?.id)
                     } else {
-                        logger.warn("No purchaser wallet found for purchase request", { purchaseRequest: purchaseRequest })
+                        logger.warn("No smart contract wallet found for purchase request", { purchaseRequest: purchaseRequest })
                     }
                 }
             }
             for (const purchaserWalletId of purchaserWalletIds) {
                 await prisma.purchasingWallet.update({
                     where: { id: purchaserWalletId },
-                    data: { pendingTransaction: { create: { hash: null } } }
+                    data: { PendingTransaction: { create: { hash: null } } }
                 })
             }
             return networkChecks;
@@ -68,7 +70,7 @@ export async function collectTimeoutRefundsV1() {
             if (!networkId)
                 throw new Error("Invalid network")
 
-            const blockchainProvider = new BlockfrostProvider(networkCheck.blockfrostApiKey, undefined);
+            const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, undefined);
 
 
             const purchaseRequests = networkCheck.PurchaseRequests;
@@ -76,20 +78,45 @@ export async function collectTimeoutRefundsV1() {
             if (purchaseRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ purchaserWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletSecretId: string; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; } | null; smartContractWallet: ({ walletSecret: { id: string; createdAt: Date; updatedAt: Date; secret: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletSecretId: string; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; status: $Enums.PurchasingRequestStatus; resultHash: string | null; errorType: $Enums.PurchaseRequestErrorType | null; networkHandlerId: string; sellerWalletId: string; purchasingWalletId: string | null; smartContractWalletId: string | null; identifier: string; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; triggeredById: string; })[] = []
+            const deDuplicatedRequests: ({
+                SmartContractWallet: ({
+                    WalletSecret: {
+                        id: string; createdAt: Date; updatedAt: Date; secret: string;
+                    };
+                } & {
+                    id: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    walletVkey: string;
+                    walletSecretId: string; pendingTransactionId: string | null;
+                    walletAddress: string;
+                    networkHandlerId: string;
+                    note: string | null;
+                }) | null;
+            } & {
+                id: string;
+                createdAt: Date; updatedAt: Date;
+                lastCheckedAt: Date | null;
+                status: $Enums.PurchasingRequestStatus;
+                resultHash: string | null; errorType: $Enums.PurchaseRequestErrorType | null;
+                networkHandlerId: string;
+                sellerWalletId: string;
+                smartContractWalletId: string | null; identifier: string; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; triggeredById: string;
+            })[] = []
             for (const request of purchaseRequests) {
+                if (request.smartContractWalletId == null)
+                    continue;
                 if (deDuplicatedRequests.some(r => r.smartContractWalletId == request.smartContractWalletId))
                     continue;
-
                 deDuplicatedRequests.push(request);
             }
 
             await Promise.allSettled(deDuplicatedRequests.map(async (request) => {
                 try {
-                    const purchasingWallet = request.smartContractWallet;
+                    const purchasingWallet = request.SmartContractWallet;
                     if (purchasingWallet == null)
                         throw new Error("Purchasing wallet not found");
-                    const encryptedSecret = purchasingWallet.walletSecret.secret;
+                    const encryptedSecret = purchasingWallet.WalletSecret.secret;
 
                     const wallet = new MeshWallet({
                         networkId: 0,
@@ -175,7 +202,7 @@ export async function collectTimeoutRefundsV1() {
                     const txHash = await wallet.submitTx(signedTx);
 
                     await prisma.purchaseRequest.update({
-                        where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.RefundInitiated, smartContractWallet: { update: { pendingTransaction: { update: { hash: txHash } } } } }
+                        where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.RefundInitiated, SmartContractWallet: { update: { PendingTransaction: { update: { hash: txHash } } } } }
                     })
 
                     logger.info(`Created withdrawal transaction:

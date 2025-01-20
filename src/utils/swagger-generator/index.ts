@@ -7,13 +7,13 @@ import {
 import { healthResponseSchema } from '@/routes/api/health';
 import { addAPIKeySchemaInput, addAPIKeySchemaOutput, deleteAPIKeySchemaInput, deleteAPIKeySchemaOutput, getAPIKeySchemaInput, getAPIKeySchemaOutput, updateAPIKeySchemaInput, updateAPIKeySchemaOutput } from '@/routes/api/api-key';
 import { $Enums } from '@prisma/client';
-import { createPaymentSchemaOutput, createPaymentsSchemaInput, queryPaymentsSchemaInput, queryRegistrySchemaOutput as queryPaymentsSchemaOutput, updatePaymentSchemaOutput, updatePaymentsSchemaInput } from '@/routes/api/payments';
+import { createPaymentSchemaOutput, createPaymentsSchemaInput, queryPaymentsSchemaInput, queryPaymentsSchemaOutput, updatePaymentSchemaOutput, updatePaymentsSchemaInput } from '@/routes/api/payments';
 import { createPurchaseInitSchemaInput, createPurchaseInitSchemaOutput, queryPurchaseRequestSchemaInput, queryPurchaseRequestSchemaOutput, refundPurchaseSchemaInput, refundPurchaseSchemaOutput } from '@/routes/api/purchases';
 import { paymentSourceCreateSchemaInput, paymentSourceCreateSchemaOutput, paymentSourceDeleteSchemaInput, paymentSourceDeleteSchemaOutput, paymentSourceSchemaInput, paymentSourceSchemaOutput, paymentSourceUpdateSchemaInput, paymentSourceUpdateSchemaOutput } from '@/routes/api/payment-source';
 import { registerAgentSchemaInput, registerAgentSchemaOutput, unregisterAgentSchemaInput, unregisterAgentSchemaOutput } from '@/routes/api/registry';
 import { getAPIKeyStatusSchemaOutput, } from '@/routes/api/api-key-status';
 import { getWalletSchemaInput, getWalletSchemaOutput, postWalletSchemaInput, postWalletSchemaOutput } from '@/routes/api/wallet';
-import { getBlockfrostKeysSchemaInput, getBlockfrostKeysSchemaOutput } from '@/routes/api/blockfrost-keys';
+import { getRpcProviderKeysSchemaInput, getRpcProviderKeysSchemaOutput } from '@/routes/api/rpc-api-keys';
 
 extendZodWithOpenApi(z);
 
@@ -65,10 +65,10 @@ export function generateOpenAPI() {
                 status: "success",
                 data: {
                   status: "ACTIVE",
-                  apiKey: "masumi-payment-api-key-secret",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  remainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
+                  RemainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
                 }
               }
             }),
@@ -80,15 +80,15 @@ export function generateOpenAPI() {
   /********************* BLOCKFROST KEYS *****************************/
   registry.registerPath({
     method: 'get',
-    path: '/blockfrost-keys/',
-    description: 'Gets blockfrost keys',
+    path: '/rpc-api-keys/',
+    description: 'Gets rpc api keys (blockfrost)',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['blockfrost-keys',],
+    tags: ['rpc-api-keys',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: getBlockfrostKeysSchemaInput.openapi({
+      query: getRpcProviderKeysSchemaInput.openapi({
         example: {
-          cursorId: "unique-cuid-v2",
+          cursorId: "unique_cuid_v2",
           limit: 50,
         }
       })
@@ -98,9 +98,9 @@ export function generateOpenAPI() {
         description: 'Blockfrost keys',
         content: {
           'application/json': {
-            schema: getBlockfrostKeysSchemaOutput.openapi({
+            schema: getRpcProviderKeysSchemaOutput.openapi({
               example: {
-                blockfrostKeys: [{ network: $Enums.Network.PREPROD, id: "unique-cuid-v2", blockfrostApiKey: "blockfrost_api_key", createdAt: new Date(), updatedAt: new Date() }]
+                rpcProviderKeys: [{ network: $Enums.Network.PREPROD, id: "unique_cuid_v2", rpcProviderApiKey: "blockfrost_api_key", createdAt: new Date(), updatedAt: new Date() }]
               }
             }),
           },
@@ -120,7 +120,7 @@ export function generateOpenAPI() {
     request: {
       query: getWalletSchemaInput.openapi({
         example: {
-          id: "unique-cuid-v2-of-entry-to-delete",
+          id: "unique_cuid_v2_of_entry_to_delete",
           includeSecret: "true",
           walletType: "Selling",
         }
@@ -135,11 +135,11 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  walletVkey: "walletVkey",
+                  walletVkey: "wallet_vkey",
                   note: "note",
-                  pendingTransaction: null,
-                  address: "addr1_testabcd",
-                  walletSecret: {
+                  PendingTransaction: null,
+                  walletAddress: "wallet_address",
+                  WalletSecret: {
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     secret: "decoded_secret",
@@ -180,7 +180,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: postWalletSchemaOutput.openapi({
               example: {
-                walletSecret: "wallet_secret",
+                walletMnemonic: "wallet_mnemonic",
                 walletAddress: "wallet_address",
                 walletVkey: "wallet_vkey",
               }
@@ -215,10 +215,10 @@ export function generateOpenAPI() {
               example: {
                 data: {
                   apiKeys: [{
-                    apiKey: "masumi-payment-api-key-secret",
+                    apiKey: "masumi_payment_api_key_secret",
                     permission: "ADMIN",
                     usageLimited: true,
-                    remainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
+                    RemainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
                     status: "ACTIVE"
                   }]
                 }, status: "success"
@@ -253,7 +253,7 @@ export function generateOpenAPI() {
             schema: addAPIKeySchemaInput.openapi({
               example: {
                 usageLimited: "true",
-                usageCredits: [{ unit: "unit", amount: 1000000 }],
+                UsageCredits: [{ unit: "unit", amount: 1000000 }],
                 permission: $Enums.Permission.ADMIN
               }
             })
@@ -271,11 +271,11 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-payment-api-key-secret",
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  status: $Enums.APIKeyStatus.ACTIVE,
+                  status: $Enums.ApiKeyStatus.ACTIVE,
                 }
               }
             }),
@@ -307,10 +307,10 @@ export function generateOpenAPI() {
           'application/json': {
             schema: updateAPIKeySchemaInput.openapi({
               example: {
-                id: "id_or_apiKey_unique-cuid-v2-of-entry-to-update",
-                apiKey: "id_or_apiKey_api-key-to-update",
-                usageCredits: [{ unit: "unit", amount: 1000000 }],
-                status: $Enums.APIKeyStatus.ACTIVE
+                id: "id_or_apiKey_unique_cuid_v2_of_entry_to_update",
+                apiKey: "id_or_apiKey_api_key_to_update",
+                UsageCredits: [{ unit: "unit", amount: 1000000 }],
+                status: $Enums.ApiKeyStatus.ACTIVE
               }
             })
           }
@@ -327,11 +327,11 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-payment-api-key-secret",
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  status: $Enums.APIKeyStatus.ACTIVE,
+                  status: $Enums.ApiKeyStatus.ACTIVE,
                 }
               }
             }),
@@ -363,8 +363,8 @@ export function generateOpenAPI() {
           'application/json': {
             schema: deleteAPIKeySchemaInput.openapi({
               example: {
-                id: "id_or_apiKey_unique-cuid-v2-of-entry-to-delete",
-                apiKey: "id_or_apiKey_api-key-to-delete",
+                id: "id_or_apiKey_unique_cuid_v2_of_entry_to_delete",
+                apiKey: "id_or_apiKey_api_key_to_delete",
               }
             })
           }
@@ -381,8 +381,8 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-registry-api-key-secret",
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_registry_api_key_secret",
                 }
               }
             }),
@@ -414,7 +414,7 @@ export function generateOpenAPI() {
           limit: 10,
           cursorIdentifier: "identifier",
           network: $Enums.Network.PREPROD,
-          contractAddress: "addr_abcd1234567890"
+          paymentContractAddress: "addr_abcd1234567890"
         }
       })
     },
@@ -426,6 +426,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: z.object({ status: z.string(), data: queryPaymentsSchemaOutput }).openapi({
               example: {
+                status: "success",
                 data: {
                   payments: [{
                     createdAt: new Date(),
@@ -437,13 +438,12 @@ export function generateOpenAPI() {
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
                     identifier: "identifier",
-                    SellingWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    buyerWallet: { walletVkey: "wallet_vkey" },
-                    smartContractWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    amounts: [{ id: "unique-cuid-v2-auto-generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
-                    checkedBy: { id: "unique-cuid-v2-auto-generated", network: $Enums.Network.PREPROD, addressToCheck: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
+                    BuyerWallet: { walletVkey: "wallet_vkey" },
+                    SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
+                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
+                    NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
                   }]
-                }, status: "success"
+                },
               }
             }),
           },
@@ -476,8 +476,7 @@ export function generateOpenAPI() {
               example: {
                 agentIdentifier: "agent_identifier",
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                contractAddress: "address",
+                paymentContractAddress: "address",
                 amounts: [{ amount: 1000000, unit: "unit" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
                 unlockTime: "2024-12-01T23:00:00.000Z",
@@ -499,8 +498,8 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
-                  identifier: "agentIdentifier_unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
+                  identifier: "agent_identifier_unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested,
@@ -536,8 +535,7 @@ export function generateOpenAPI() {
             schema: updatePaymentsSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                contractAddress: "address",
+                paymentContractAddress: "address",
                 hash: "hash",
                 identifier: "identifier",
               }
@@ -556,7 +554,7 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested,
@@ -590,9 +588,12 @@ export function generateOpenAPI() {
       query: queryPurchaseRequestSchemaInput.openapi({
         example: {
           limit: 10,
-          cursorIdentifier: { identifier: "identifier", sellingWalletVkey: "wallet_vkey" },
+          cursorIdentifier: {
+            identifier: "identifier",
+            sellingWalletVkey: "wallet_vkey"
+          },
           network: $Enums.Network.PREPROD,
-          contractAddress: "addr_abcd1234567890",
+          paymentContractAddress: "addr_abcd1234567890",
         }
       })
     },
@@ -616,11 +617,10 @@ export function generateOpenAPI() {
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
                     identifier: "identifier",
-                    smartContractWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    amounts: [{ id: "unique-cuid-v2-auto-generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
-                    networkHandler: { id: "unique-cuid-v2-auto-generated", network: $Enums.Network.PREPROD, addressToCheck: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
-                    purchaserWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    sellerWallet: { walletVkey: "wallet_vkey", note: "note" },
+                    SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
+                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
+                    NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
+                    SellerWallet: { walletVkey: "wallet_vkey", note: "note" },
                   }],
                 }
               }
@@ -656,7 +656,7 @@ export function generateOpenAPI() {
                 identifier: "identifier",
                 network: $Enums.Network.PREPROD,
                 sellerVkey: "seller_vkey",
-                contractAddress: "address",
+                paymentContractAddress: "address",
                 amounts: [{ amount: 1000000, unit: "unit" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
                 unlockTime: "2024-12-01T23:00:00.000Z",
@@ -678,7 +678,7 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   status: $Enums.PurchasingRequestStatus.PurchaseRequested,
@@ -714,8 +714,7 @@ export function generateOpenAPI() {
             schema: refundPurchaseSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                smartContractAddress: "address",
+                paymentContractAddress: "address",
                 identifier: "identifier",
               }
             })
@@ -817,7 +816,7 @@ export function generateOpenAPI() {
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: unregisterAgentSchemaInput.openapi({
-        example: { assetName: "asset_name", network: $Enums.Network.PREPROD, address: "address" }
+        example: { assetName: "asset_name", network: $Enums.Network.PREPROD, paymentContractAddress: "address" }
       })
     },
     responses: {
@@ -860,22 +859,23 @@ export function generateOpenAPI() {
                 status: "success",
                 data: {
                   paymentSources: [{
-                    id: "unique-cuid-v2-auto-generated",
+                    id: "unique_cuid_v2_auto_generated",
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     network: $Enums.Network.PREPROD,
                     paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                    addressToCheck: "address_to_check",
-                    blockfrostApiKey: "blockfrost_api_key",
-                    page: 1,
+                    paymentContractAddress: "address_of_the_smart_contract",
+                    rpcProviderApiKey: "rpc_provider_api_key",
                     isSyncing: false,
-                    latestIdentifier: null,
+                    lastPageChecked: 1,
+                    lastCheckedAt: new Date(),
+                    lastIdentifierChecked: null,
                     AdminWallets: [{ walletAddress: "wallet_address", order: 0 }, { walletAddress: "wallet_address", order: 1 }, { walletAddress: "wallet_address", order: 2 }],
-                    CollectionWallet: { id: "unique-cuid-v2-auto-generated", walletAddress: "wallet_address", note: "note" },
-                    PurchasingWallets: [{ id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" }],
-                    SellingWallets: [{ id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" }],
+                    CollectionWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", note: "note" },
+                    PurchasingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    SellingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
                     FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
-                    FeePermille: 50
+                    feePermille: 50
                   }]
                 }
               }
@@ -902,10 +902,10 @@ export function generateOpenAPI() {
               example: {
                 network: $Enums.Network.PREPROD,
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                blockfrostApiKey: "blockfrost_api_key",
+                rpcProviderApiKey: "rpc_provider_api_key",
                 AdminWallets: [{ walletAddress: "wallet_address_1" }, { walletAddress: "wallet_address_2" }, { walletAddress: "wallet_address_3" }],
                 FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
-                FeePermille: 50,
+                feePermille: 50,
                 CollectionWallet: { walletAddress: "wallet_address", note: "note" },
                 PurchasingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
                 SellingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }]
@@ -924,16 +924,17 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   network: $Enums.Network.PREPROD,
                   paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                  addressToCheck: "address_to_check",
-                  blockfrostApiKey: "blockfrost_api_key",
-                  page: 1,
+                  paymentContractAddress: "address_of_the_smart_contract",
+                  rpcProviderApiKey: "rpc_provider_api_key",
                   isSyncing: false,
-                  latestIdentifier: null,
+                  lastPageChecked: 1,
+                  lastCheckedAt: new Date(),
+                  lastIdentifierChecked: null,
                 }
               }
             })
@@ -957,15 +958,15 @@ export function generateOpenAPI() {
           'application/json': {
             schema: paymentSourceUpdateSchemaInput.openapi({
               example: {
-                id: "unique-cuid-v2",
-                latestIdentifier: "optional_identifier",
-                page: 1,
-                blockfrostApiKey: "blockfrost_api_key",
+                id: "unique_cuid_v2",
+                lastIdentifierChecked: "optional_identifier",
+                lastPageChecked: 1,
+                rpcProviderApiKey: "rpc_provider_api_key",
                 CollectionWallet: { walletAddress: "wallet_address", note: "note" },
-                AddPurchasingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
-                AddSellingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
-                RemovePurchasingWallets: [{ id: "unique-cuid-v2" }],
-                RemoveSellingWallets: [{ id: "unique-cuid-v2" }]
+                AddPurchasingWallets: [{ walletMnemonic: "wallet_mnemonic", note: "note" }],
+                AddSellingWallets: [{ walletMnemonic: "wallet_mnemonic", note: "note" }],
+                RemovePurchasingWallets: [{ id: "unique_cuid_v2" }],
+                RemoveSellingWallets: [{ id: "unique_cuid_v2" }]
               }
             })
           }
@@ -981,16 +982,17 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  paymentContractAddress: "address_of_the_smart_contract",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   network: $Enums.Network.PREPROD,
                   paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                  addressToCheck: "address_to_check",
-                  blockfrostApiKey: "blockfrost_api_key",
-                  page: 1,
+                  rpcProviderApiKey: "rpc_provider_api_key",
+                  lastPageChecked: 1,
+                  lastCheckedAt: new Date(),
+                  lastIdentifierChecked: null,
                   isSyncing: false,
-                  latestIdentifier: null,
                 }
               }
             })
@@ -1009,7 +1011,7 @@ export function generateOpenAPI() {
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: paymentSourceDeleteSchemaInput.openapi({
-        example: { id: "unique-cuid-v2-auto-generated" }
+        example: { id: "unique_cuid_v2_auto_generated" }
       })
     },
     responses: {
@@ -1018,7 +1020,7 @@ export function generateOpenAPI() {
         content: {
           'application/json': {
             schema: z.object({ status: z.string(), data: paymentSourceDeleteSchemaOutput }).openapi({
-              example: { status: "success", data: { id: "unique-cuid-v2-auto-generated" } }
+              example: { status: "success", data: { id: "unique_cuid_v2_auto_generated" } }
             })
           }
         }

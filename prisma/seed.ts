@@ -119,9 +119,9 @@ export const seed = async (prisma: PrismaClient) => {
       });
       await prisma.networkHandler.create({
         data: {
-          addressToCheck: smartContractAddress,
+          paymentContractAddress: smartContractAddress,
           network: registryNetwork === "preprod" ? Network.PREPROD : registryNetwork === "preview" ? Network.PREVIEW : Network.MAINNET,
-          blockfrostApiKey: blockfrostApiKey,
+          rpcProviderApiKey: blockfrostApiKey,
           paymentType: PaymentType.WEB3_CARDANO_V1,
           isSyncing: true,
           FeeReceiverNetworkWallet: {
@@ -130,7 +130,7 @@ export const seed = async (prisma: PrismaClient) => {
               order: 1,
             },
           },
-          FeePermille: fee,
+          feePermille: fee,
           AdminWallets: {
             create: [
               { walletAddress: adminWallet1Address, order: 1 },
@@ -141,15 +141,17 @@ export const seed = async (prisma: PrismaClient) => {
           PurchasingWallets: {
             create: {
               walletVkey: resolvePaymentKeyHash((await purchasingWallet.getUnusedAddresses())[0]),
+              walletAddress: (await purchasingWallet.getUnusedAddresses())[0],
               note: "Created by seeding",
-              walletSecret: { create: { secret: encrypt(purchaseWalletMnemonic) } }
+              WalletSecret: { create: { secret: encrypt(purchaseWalletMnemonic) } }
             }
           },
           SellingWallets: {
             create: {
               walletVkey: resolvePaymentKeyHash((await sellingWallet.getUnusedAddresses())[0]),
+              walletAddress: (await sellingWallet.getUnusedAddresses())[0],
               note: "Created by seeding",
-              walletSecret: { create: { secret: encrypt(sellingWalletMnemonic) } }
+              WalletSecret: { create: { secret: encrypt(sellingWalletMnemonic) } }
             }
           },
           CollectionWallet: {

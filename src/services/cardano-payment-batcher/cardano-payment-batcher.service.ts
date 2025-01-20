@@ -25,23 +25,24 @@ export async function batchLatestPaymentEntriesV1() {
             const networkChecks = await prisma.networkHandler.findMany({
                 where: {
                     paymentType: "WEB3_CARDANO_V1",
-                    PurchasingWallets: { some: { pendingTransaction: null } }
+                    PurchasingWallets: { some: { PendingTransaction: null } }
                 }, include: {
                     PurchaseRequests: {
                         where: { status: $Enums.PurchasingRequestStatus.PurchaseRequested, errorType: null, },
                         include: {
-                            amounts: {
+                            Amounts: {
                                 select: {
                                     amount: true, unit: true
                                 }
-                            }, sellerWallet: {
+                            },
+                            SellerWallet: {
                                 select: {
                                     walletVkey: true
                                 }
                             }
                         }
                     },
-                    PurchasingWallets: { include: { walletSecret: true } }
+                    PurchasingWallets: { include: { WalletSecret: true } }
                 }
             })
             const purchasingWalletIds: string[] = []
@@ -50,14 +51,14 @@ export async function batchLatestPaymentEntriesV1() {
                     if (purchasingWallet.id) {
                         purchasingWalletIds.push(purchasingWallet.id)
                     } else {
-                        logger.warn("No purchaser wallet found for purchase request", { purchasingWallet: purchasingWallet })
+                        logger.warn("No purchasing wallet found for purchase request", { purchasingWallet: purchasingWallet })
                     }
                 }
             }
             for (const purchasingWalletId of purchasingWalletIds) {
                 await prisma.purchasingWallet.update({
                     where: { id: purchasingWalletId },
-                    data: { pendingTransaction: { create: { hash: null } } }
+                    data: { PendingTransaction: { create: { hash: null } } }
                 })
             }
             return networkChecks;
@@ -68,17 +69,17 @@ export async function batchLatestPaymentEntriesV1() {
             if (!network)
                 throw new Error("Invalid network")
 
-            const blockchainHandler = new BlockfrostProvider(networkCheck.blockfrostApiKey, 0);
+            const blockchainHandler = new BlockfrostProvider(networkCheck.rpcProviderApiKey, 0);
             const paymentRequests = networkCheck.PurchaseRequests;
             if (paymentRequests.length == 0) {
-                logger.info("no payment requests found for network " + networkCheck.network + " " + networkCheck.addressToCheck)
+                logger.info("no payment requests found for network " + networkCheck.network + " " + networkCheck.paymentContractAddress)
                 return;
             }
 
             const potentialWallets = networkCheck.PurchasingWallets;
 
             const walletAmounts = await Promise.all(potentialWallets.map(async (wallet) => {
-                const secretEncrypted = wallet.walletSecret.secret;
+                const secretEncrypted = wallet.WalletSecret.secret;
                 const secretDecrypted = decrypt(secretEncrypted);
                 const meshWallet = new MeshWallet({
                     networkId: networkCheck.network == "MAINNET" ? 1 : 0,
@@ -94,12 +95,19 @@ export async function batchLatestPaymentEntriesV1() {
                 //TODO check if conversion to float fails
                 return {
                     wallet: meshWallet,
-                    scriptAddress: networkCheck.addressToCheck,
+                    scriptAddress: networkCheck.paymentContractAddress,
                     amounts: amounts.map((amount) => ({ unit: amount.unit, quantity: parseFloat(amount.quantity) }))
                 }
             }))
             const paymentRequestsRemaining = [...paymentRequests];
-            const walletPairings: { wallet: MeshWallet, scriptAddress: string, batchedRequests: { submitResultTime: bigint, amounts: { unit: string, amount: bigint }[], identifier: string, resultHash: string | null, id: string, sellerWallet: { walletVkey: string }, refundTime: bigint, unlockTime: bigint }[] }[] = [];
+            const walletPairings: {
+                wallet: MeshWallet, scriptAddress: string,
+                batchedRequests: {
+                    submitResultTime: bigint,
+                    Amounts: { unit: string, amount: bigint }[], identifier: string, resultHash: string | null, id: string,
+                    SellerWallet: { walletVkey: string }, refundTime: bigint, unlockTime: bigint
+                }[]
+            }[] = [];
             let maxBatchSizeReached = false;
             //TODO: greedy search?
             for (const walletData of walletAmounts) {
@@ -117,15 +125,15 @@ export async function batchLatestPaymentEntriesV1() {
 
 
                     //set min ada required;
-                    const lovelaceRequired = paymentRequest.amounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
+                    const lovelaceRequired = paymentRequest.Amounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
                     if (lovelaceRequired == -1) {
-                        paymentRequest.amounts.push({ unit: "lovelace", amount: minTransactionCalculation })
+                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation })
                     } else {
-                        const result = paymentRequest.amounts.splice(lovelaceRequired, 1);
-                        paymentRequest.amounts.push({ unit: "lovelace", amount: minTransactionCalculation + result[0].amount })
+                        const result = paymentRequest.Amounts.splice(lovelaceRequired, 1);
+                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation + result[0].amount })
                     }
                     let isFulfilled = true;
-                    for (const paymentAmount of paymentRequest.amounts) {
+                    for (const paymentAmount of paymentRequest.Amounts) {
                         const walletAmount = amounts.find((amount) => amount.unit == paymentAmount.unit);
                         if (walletAmount == null || paymentAmount.amount > walletAmount.quantity) {
                             isFulfilled = false;
@@ -135,7 +143,7 @@ export async function batchLatestPaymentEntriesV1() {
                     if (isFulfilled) {
                         batchedPaymentRequests.push(paymentRequest);
                         //deduct amounts from wallet
-                        for (const paymentAmount of paymentRequest.amounts) {
+                        for (const paymentAmount of paymentRequest.Amounts) {
                             const walletAmount = amounts.find((amount) => amount.unit == paymentAmount.unit);
                             walletAmount!.quantity -= parseInt(paymentAmount.amount.toString());
                         }
@@ -169,11 +177,11 @@ export async function batchLatestPaymentEntriesV1() {
                     })
                     for (const paymentRequest of batchedRequests) {
                         const buyerVerificationKeyHash = resolvePaymentKeyHash(wallet.getUsedAddress().toBech32())
-                        const sellerVerificationKeyHash = paymentRequest.sellerWallet.walletVkey;
+                        const sellerVerificationKeyHash = paymentRequest.SellerWallet.walletVkey;
                         const submitResultTime = paymentRequest.submitResultTime
                         const unlockTime = paymentRequest.unlockTime
                         const refundTime = paymentRequest.refundTime
-                        const correctedPaymentAmounts = paymentRequest.amounts;
+                        const correctedPaymentAmounts = paymentRequest.Amounts;
                         const lovelaceIndex = correctedPaymentAmounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
                         if (lovelaceIndex != -1) {
                             const removedLovelace = correctedPaymentAmounts.splice(lovelaceIndex, 1);
@@ -201,12 +209,11 @@ export async function batchLatestPaymentEntriesV1() {
                             },
                             inline: true,
                         };
-
                         unsignedTx.sendAssets({
                             address: walletPairing.scriptAddress,
                             datum,
                         },
-                            paymentRequest.amounts.map((amount) => ({ unit: amount.unit, quantity: amount.amount.toString() }))
+                            paymentRequest.Amounts.map((amount) => ({ unit: amount.unit, quantity: amount.amount.toString() }))
                         )
                     }
 
@@ -218,7 +225,7 @@ export async function batchLatestPaymentEntriesV1() {
                     try {
                         //update purchase requests
                         const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
-                            await prisma.purchaseRequest.update({ where: { id: request.id }, data: { smartContractWallet: { update: { pendingTransaction: { update: { hash: txHash } } } }, potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.PurchaseInitiated } })
+                            await prisma.purchaseRequest.update({ where: { id: request.id }, data: { SmartContractWallet: { update: { PendingTransaction: { update: { hash: txHash } } } }, potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.PurchaseInitiated } })
                         }))
                         const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
                         if (failedPurchaseRequests.length > 0) {
@@ -228,7 +235,7 @@ export async function batchLatestPaymentEntriesV1() {
                     } catch (error) {
                         logger.error("Error updating payment status, retrying ", error);
                         const failedRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
-                            await prisma.purchaseRequest.update({ where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.PurchaseInitiated, smartContractWallet: { update: { pendingTransaction: { update: { hash: txHash } } } } } })
+                            await prisma.purchaseRequest.update({ where: { id: request.id }, data: { potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.PurchaseInitiated, SmartContractWallet: { update: { PendingTransaction: { update: { hash: txHash } } } } } })
                         }))
                         const retriedFailedRequests = failedRequests.filter(x => x.status != "fulfilled")
                         if (retriedFailedRequests.length > 0) {

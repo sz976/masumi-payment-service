@@ -1,6 +1,6 @@
 import { adminAuthenticatedEndpointFactory } from '@/utils/endpoint-factory/admin-authenticated';
 import { z } from 'zod';
-import { $Enums, APIKeyStatus, Permission } from '@prisma/client';
+import { $Enums, ApiKeyStatus, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import { createId } from '@paralleldrive/cuid2';
 import createHttpError from 'http-errors';
@@ -17,11 +17,11 @@ export const getAPIKeySchemaOutput = z.object({
         apiKey: z.string(),
         permission: z.nativeEnum(Permission),
         usageLimited: z.boolean(),
-        remainingUsageCredits: z.array(z.object({
+        RemainingUsageCredits: z.array(z.object({
             unit: z.string(),
             amount: z.number({ coerce: true }).int().min(0)
         })),
-        status: z.nativeEnum(APIKeyStatus),
+        status: z.nativeEnum(ApiKeyStatus),
     }))
 });
 
@@ -30,14 +30,14 @@ export const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
     input: getAPIKeySchemaInput,
     output: getAPIKeySchemaOutput,
     handler: async ({ input, }) => {
-        const result = await prisma.apiKey.findMany({ where: {}, cursor: input.cursorApiKey ? { apiKey: input.cursorApiKey } : undefined, take: input.limit, include: { remainingUsageCredits: true } })
-        return { apiKeys: result.map((data) => { return { ...data, remainingUsageCredits: data.remainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) } }) }
+        const result = await prisma.apiKey.findMany({ where: {}, cursor: input.cursorApiKey ? { apiKey: input.cursorApiKey } : undefined, take: input.limit, include: { RemainingUsageCredits: true } })
+        return { apiKeys: result.map((data) => { return { ...data, RemainingUsageCredits: data.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) } }) }
     },
 });
 
 export const addAPIKeySchemaInput = z.object({
-    usageLimited: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).describe("Whether the API key is usage limited. Meaning only allowed to use the specified credits or can freely spend"),
-    usageCredits: z.array(z.object({
+    usageLimited: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).default("true").describe("Whether the API key is usage limited. Meaning only allowed to use the specified credits or can freely spend"),
+    UsageCredits: z.array(z.object({
         unit: z.string().max(150),
         amount: z.number({ coerce: true }).int().min(0).max(1000000)
     })).describe("The credits allowed to be used by the API key. Only relevant if usageLimited is true. "),
@@ -49,7 +49,7 @@ export const addAPIKeySchemaOutput = z.object({
     apiKey: z.string(),
     permission: z.nativeEnum(Permission),
     usageLimited: z.boolean(),
-    status: z.nativeEnum(APIKeyStatus),
+    status: z.nativeEnum(ApiKeyStatus),
 })
 
 export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
@@ -60,8 +60,8 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
         const apiKey = ("masumi-registry-" + input.permission == $Enums.Permission.ADMIN ? "admin-" : "") + createId()
         const result = await prisma.apiKey.create({
             data: {
-                apiKey: apiKey, status: $Enums.APIKeyStatus.ACTIVE, permission: input.permission, usageLimited: input.usageLimited, remainingUsageCredits: {
-                    createMany: { data: input.usageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: usageCredit.amount })) }
+                apiKey: apiKey, status: ApiKeyStatus.ACTIVE, permission: input.permission, usageLimited: input.usageLimited, RemainingUsageCredits: {
+                    createMany: { data: input.UsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: usageCredit.amount })) }
                 }
             }
         })
@@ -72,11 +72,11 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
 export const updateAPIKeySchemaInput = z.object({
     id: z.string().max(150).optional().describe("The id of the API key to update. Provide either id or apiKey"),
     apiKey: z.string().max(550).optional().describe("The API key to update. Provide either id or apiKey"),
-    usageCredits: z.array(z.object({
+    UsageCredits: z.array(z.object({
         unit: z.string().max(150),
         amount: z.number({ coerce: true }).int().min(0).max(1000000)
     })).optional().describe("The remaining credits allowed to be used by the API key. Only relevant if usageLimited is true. "),
-    status: z.nativeEnum(APIKeyStatus).default(APIKeyStatus.ACTIVE).optional().describe("The status of the API key"),
+    status: z.nativeEnum(ApiKeyStatus).default(ApiKeyStatus.ACTIVE).optional().describe("The status of the API key"),
 })
 
 export const updateAPIKeySchemaOutput = z.object({
@@ -84,7 +84,7 @@ export const updateAPIKeySchemaOutput = z.object({
     apiKey: z.string(),
     permission: z.nativeEnum(Permission),
     usageLimited: z.boolean(),
-    status: z.nativeEnum(APIKeyStatus),
+    status: z.nativeEnum(ApiKeyStatus),
 })
 
 export const updateAPIKeyEndpointPatch = adminAuthenticatedEndpointFactory.build({
@@ -94,10 +94,10 @@ export const updateAPIKeyEndpointPatch = adminAuthenticatedEndpointFactory.build
     handler: async ({ input, }) => {
 
         if (input.id) {
-            const result = await prisma.apiKey.update({ where: { id: input.id }, data: { usageLimited: input.usageLimited, status: input.status, remainingUsageCredits: { set: input.usageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
+            const result = await prisma.apiKey.update({ where: { id: input.id }, data: { usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: { set: input.UsageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
             return result
         } else if (input.apiKey) {
-            const result = await prisma.apiKey.update({ where: { apiKey: input.apiKey }, data: { usageLimited: input.usageLimited, status: input.status, remainingUsageCredits: { set: input.usageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
+            const result = await prisma.apiKey.update({ where: { apiKey: input.apiKey }, data: { usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: { set: input.UsageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
             return result;
         }
         throw createHttpError(400, "Invalid input")

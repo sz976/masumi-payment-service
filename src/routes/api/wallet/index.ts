@@ -12,17 +12,17 @@ import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 export const getWalletSchemaInput = z.object({
     walletType: z.enum(["Selling", "Purchasing"]).describe("The type of wallet to query"),
     id: z.string().min(1).max(250).describe("The id of the wallet to query"),
-    includeSecret: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).describe("Whether to include the decrypted secret in the response")
+    includeSecret: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).default("false").describe("Whether to include the decrypted secret in the response")
 })
 
 
 export const getWalletSchemaOutput = z.object({
-    walletSecret: z.object({
+    WalletSecret: z.object({
         createdAt: z.date(),
         updatedAt: z.date(),
         secret: z.string(),
     }).optional(),
-    pendingTransaction: z.object({
+    PendingTransaction: z.object({
         createdAt: z.date(),
         updatedAt: z.date(),
         hash: z.string().nullable(),
@@ -30,8 +30,7 @@ export const getWalletSchemaOutput = z.object({
     }).nullable(),
     note: z.string().nullable(),
     walletVkey: z.string(),
-    address: z.string().optional()
-
+    walletAddress: z.string()
 });
 
 export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
@@ -40,62 +39,42 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
     output: getWalletSchemaOutput,
     handler: async ({ input }) => {
         if (input.walletType == "Selling") {
-            const result = await prisma.sellingWallet.findFirst({ where: { id: input.id }, include: { walletSecret: true, pendingTransaction: true, networkHandler: true } })
+            const result = await prisma.sellingWallet.findFirst({ where: { id: input.id }, include: { WalletSecret: true, PendingTransaction: true, NetworkHandler: true } })
             if (result == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
-            const decodedSecret = decrypt(result.walletSecret.secret)
-            const wallet = new MeshWallet({
-                networkId: result.networkHandler.network == "MAINNET" ? 1 : 0,
-                key: {
-                    type: 'mnemonic',
-                    words: decodedSecret.split(" ")
-                },
-            });
-            const address = (await wallet.getAddresses())
-            if (input.includeSecret == true) {
 
+            if (input.includeSecret == true) {
+                const decodedSecret = decrypt(result.WalletSecret.secret)
                 return {
                     ...result,
                     walletSecret: {
-                        ...result.walletSecret,
+                        ...result.WalletSecret,
                         secret: decodedSecret
                     },
-                    address: address?.baseAddressBech32
                 }
             }
-            return { ...result, walletSecret: undefined, address: address?.baseAddressBech32 }
+            return { ...result, WalletSecret: undefined }
         } else if (input.walletType == "Purchasing") {
-            const result = await prisma.purchasingWallet.findFirst({ where: { id: input.id }, include: { walletSecret: true, pendingTransaction: true, networkHandler: true } })
+            const result = await prisma.purchasingWallet.findFirst({ where: { id: input.id }, include: { WalletSecret: true, PendingTransaction: true, NetworkHandler: true } })
             if (result == null) {
                 throw createHttpError(404, "Purchasing wallet not found")
             }
-            const decodedSecret = decrypt(result.walletSecret.secret)
 
-            const wallet = new MeshWallet({
-                networkId: result.networkHandler.network == "MAINNET" ? 1 : 0,
-                key: {
-                    type: 'mnemonic',
-                    words: decodedSecret.split(" ")
-                },
-            });
-            const address = (await wallet.getAddresses())
-            console.log(input.includeSecret)
             if (input.includeSecret == true) {
+                const decodedSecret = decrypt(result.WalletSecret.secret)
                 return {
                     ...result,
-                    walletSecret: {
-                        ...result.walletSecret,
+                    WalletSecret: {
+                        ...result.WalletSecret,
                         secret: decodedSecret
                     },
-                    address: address?.baseAddressBech32
                 }
             }
-            return { ...result, walletSecret: undefined, address: address?.baseAddressBech32 }
+            return { ...result, walletSecret: undefined }
 
         }
         throw createHttpError(400, "Invalid wallet type")
-
     },
 });
 
@@ -106,7 +85,7 @@ export const postWalletSchemaInput = z.object({
 
 
 export const postWalletSchemaOutput = z.object({
-    walletSecret: z.string(),
+    walletMnemonic: z.string(),
     walletAddress: z.string(),
     walletVkey: z.string(),
 });
@@ -132,7 +111,7 @@ export const postWalletEndpointPost = adminAuthenticatedEndpointFactory.build({
         const vKey = resolvePaymentKeyHash(address)
 
         return {
-            walletSecret: secretWords.join(' '),
+            walletMnemonic: secretWords.join(' '),
             walletAddress: address,
             walletVkey: vKey
         }

@@ -91,7 +91,7 @@
                                                 "usageLimited": {
                                                     "type": "boolean"
                                                 },
-                                                "remainingUsageCredits": {
+                                                "RemainingUsageCredits": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -124,7 +124,7 @@
                                                 "apiKey",
                                                 "permission",
                                                 "usageLimited",
-                                                "remainingUsageCredits",
+                                                "RemainingUsageCredits",
                                                 "status"
                                             ]
                                         }
@@ -137,10 +137,10 @@
                                         "status": "success",
                                         "data": {
                                             "status": "ACTIVE",
-                                            "apiKey": "masumi-payment-api-key-secret",
+                                            "apiKey": "masumi_payment_api_key_secret",
                                             "permission": "ADMIN",
                                             "usageLimited": true,
-                                            "remainingUsageCredits": [
+                                            "RemainingUsageCredits": [
                                                 {
                                                     "unit": "unit",
                                                     "amount": 1000000
@@ -155,12 +155,12 @@
                 }
             }
         },
-        "/blockfrost-keys/": {
+        "/rpc-api-keys/": {
             "get": {
-                "description": "Gets blockfrost keys",
+                "description": "Gets rpc api keys (blockfrost)",
                 "summary": "REQUIRES API KEY Authentication (+ADMIN)",
                 "tags": [
-                    "blockfrost-keys"
+                    "rpc-api-keys"
                 ],
                 "security": [
                     {
@@ -173,10 +173,10 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 250,
-                            "description": "Used to paginate through the blockfrost keys"
+                            "description": "Used to paginate through the rpc provider keys"
                         },
                         "required": false,
-                        "description": "Used to paginate through the blockfrost keys",
+                        "description": "Used to paginate through the rpc provider keys",
                         "name": "cursorId",
                         "in": "query"
                     },
@@ -186,10 +186,10 @@
                             "minimum": 1,
                             "maximum": 100,
                             "default": 100,
-                            "description": "The number of blockfrost keys to return"
+                            "description": "The number of rpc provider keys to return"
                         },
                         "required": false,
-                        "description": "The number of blockfrost keys to return",
+                        "description": "The number of rpc provider keys to return",
                         "name": "limit",
                         "in": "query"
                     }
@@ -202,7 +202,7 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "blockfrostKeys": {
+                                        "rpcProviderKeys": {
                                             "type": "array",
                                             "items": {
                                                 "type": "object",
@@ -210,7 +210,7 @@
                                                     "id": {
                                                         "type": "string"
                                                     },
-                                                    "blockfrostApiKey": {
+                                                    "rpcProviderApiKey": {
                                                         "type": "string"
                                                     },
                                                     "createdAt": {
@@ -230,7 +230,7 @@
                                                 },
                                                 "required": [
                                                     "id",
-                                                    "blockfrostApiKey",
+                                                    "rpcProviderApiKey",
                                                     "createdAt",
                                                     "updatedAt",
                                                     "network"
@@ -239,16 +239,16 @@
                                         }
                                     },
                                     "required": [
-                                        "blockfrostKeys"
+                                        "rpcProviderKeys"
                                     ],
                                     "example": {
-                                        "blockfrostKeys": [
+                                        "rpcProviderKeys": [
                                             {
                                                 "network": "PREPROD",
-                                                "id": "unique-cuid-v2",
-                                                "blockfrostApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-18T22:25:11.079Z",
-                                                "updatedAt": "2025-01-18T22:25:11.079Z"
+                                                "id": "unique_cuid_v2",
+                                                "rpcProviderApiKey": "blockfrost_api_key",
+                                                "createdAt": "2025-01-20T12:05:44.048Z",
+                                                "updatedAt": "2025-01-20T12:05:44.048Z"
                                             }
                                         ]
                                     }
@@ -301,9 +301,10 @@
                     {
                         "schema": {
                             "type": "string",
+                            "default": "false",
                             "description": "Whether to include the decrypted secret in the response"
                         },
-                        "required": true,
+                        "required": false,
                         "description": "Whether to include the decrypted secret in the response",
                         "name": "includeSecret",
                         "in": "query"
@@ -323,7 +324,7 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
-                                                "walletSecret": {
+                                                "WalletSecret": {
                                                     "type": "object",
                                                     "properties": {
                                                         "createdAt": {
@@ -342,7 +343,7 @@
                                                         "secret"
                                                     ]
                                                 },
-                                                "pendingTransaction": {
+                                                "PendingTransaction": {
                                                     "type": "object",
                                                     "nullable": true,
                                                     "properties": {
@@ -375,14 +376,15 @@
                                                 "walletVkey": {
                                                     "type": "string"
                                                 },
-                                                "address": {
+                                                "walletAddress": {
                                                     "type": "string"
                                                 }
                                             },
                                             "required": [
-                                                "pendingTransaction",
+                                                "PendingTransaction",
                                                 "note",
-                                                "walletVkey"
+                                                "walletVkey",
+                                                "walletAddress"
                                             ]
                                         }
                                     },
@@ -393,13 +395,13 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "walletVkey": "walletVkey",
+                                            "walletVkey": "wallet_vkey",
                                             "note": "note",
-                                            "pendingTransaction": null,
-                                            "address": "addr1_testabcd",
-                                            "walletSecret": {
-                                                "createdAt": "2025-01-18T22:25:11.079Z",
-                                                "updatedAt": "2025-01-18T22:25:11.079Z",
+                                            "PendingTransaction": null,
+                                            "walletAddress": "wallet_address",
+                                            "WalletSecret": {
+                                                "createdAt": "2025-01-20T12:05:44.048Z",
+                                                "updatedAt": "2025-01-20T12:05:44.048Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -456,7 +458,7 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "walletSecret": {
+                                        "walletMnemonic": {
                                             "type": "string"
                                         },
                                         "walletAddress": {
@@ -467,12 +469,12 @@
                                         }
                                     },
                                     "required": [
-                                        "walletSecret",
+                                        "walletMnemonic",
                                         "walletAddress",
                                         "walletVkey"
                                     ],
                                     "example": {
-                                        "walletSecret": "wallet_secret",
+                                        "walletMnemonic": "wallet_mnemonic",
                                         "walletAddress": "wallet_address",
                                         "walletVkey": "wallet_vkey"
                                     }
@@ -554,7 +556,7 @@
                                                             "usageLimited": {
                                                                 "type": "boolean"
                                                             },
-                                                            "remainingUsageCredits": {
+                                                            "RemainingUsageCredits": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "object",
@@ -586,7 +588,7 @@
                                                             "apiKey",
                                                             "permission",
                                                             "usageLimited",
-                                                            "remainingUsageCredits",
+                                                            "RemainingUsageCredits",
                                                             "status"
                                                         ]
                                                     }
@@ -605,10 +607,10 @@
                                         "data": {
                                             "apiKeys": [
                                                 {
-                                                    "apiKey": "masumi-payment-api-key-secret",
+                                                    "apiKey": "masumi_payment_api_key_secret",
                                                     "permission": "ADMIN",
                                                     "usageLimited": true,
-                                                    "remainingUsageCredits": [
+                                                    "RemainingUsageCredits": [
                                                         {
                                                             "unit": "unit",
                                                             "amount": 1000000
@@ -655,9 +657,10 @@
                                 "properties": {
                                     "usageLimited": {
                                         "type": "string",
+                                        "default": "true",
                                         "description": "Whether the API key is usage limited. Meaning only allowed to use the specified credits or can freely spend"
                                     },
-                                    "usageCredits": {
+                                    "UsageCredits": {
                                         "type": "array",
                                         "items": {
                                             "type": "object",
@@ -692,12 +695,11 @@
                                     }
                                 },
                                 "required": [
-                                    "usageLimited",
-                                    "usageCredits"
+                                    "UsageCredits"
                                 ],
                                 "example": {
                                     "usageLimited": "true",
-                                    "usageCredits": [
+                                    "UsageCredits": [
                                         {
                                             "unit": "unit",
                                             "amount": 1000000
@@ -764,8 +766,8 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-of-entry-to-delete",
-                                            "apiKey": "masumi-payment-api-key-secret",
+                                            "id": "unique_cuid_v2_of_entry_to_delete",
+                                            "apiKey": "masumi_payment_api_key_secret",
                                             "permission": "ADMIN",
                                             "usageLimited": true,
                                             "status": "ACTIVE"
@@ -814,7 +816,7 @@
                                         "maxLength": 550,
                                         "description": "The API key to update. Provide either id or apiKey"
                                     },
-                                    "usageCredits": {
+                                    "UsageCredits": {
                                         "type": "array",
                                         "items": {
                                             "type": "object",
@@ -848,9 +850,9 @@
                                     }
                                 },
                                 "example": {
-                                    "id": "id_or_apiKey_unique-cuid-v2-of-entry-to-update",
-                                    "apiKey": "id_or_apiKey_api-key-to-update",
-                                    "usageCredits": [
+                                    "id": "id_or_apiKey_unique_cuid_v2_of_entry_to_update",
+                                    "apiKey": "id_or_apiKey_api_key_to_update",
+                                    "UsageCredits": [
                                         {
                                             "unit": "unit",
                                             "amount": 1000000
@@ -917,8 +919,8 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-of-entry-to-delete",
-                                            "apiKey": "masumi-payment-api-key-secret",
+                                            "id": "unique_cuid_v2_of_entry_to_delete",
+                                            "apiKey": "masumi_payment_api_key_secret",
                                             "permission": "ADMIN",
                                             "usageLimited": true,
                                             "status": "ACTIVE"
@@ -969,8 +971,8 @@
                                     }
                                 },
                                 "example": {
-                                    "id": "id_or_apiKey_unique-cuid-v2-of-entry-to-delete",
-                                    "apiKey": "id_or_apiKey_api-key-to-delete"
+                                    "id": "id_or_apiKey_unique_cuid_v2_of_entry_to_delete",
+                                    "apiKey": "id_or_apiKey_api_key_to_delete"
                                 }
                             }
                         }
@@ -1010,8 +1012,8 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-of-entry-to-delete",
-                                            "apiKey": "masumi-registry-api-key-secret"
+                                            "id": "unique_cuid_v2_of_entry_to_delete",
+                                            "apiKey": "masumi_registry_api_key_secret"
                                         }
                                     }
                                 }
@@ -1090,7 +1092,7 @@
                         },
                         "required": true,
                         "description": "The address of the smart contract where the payments were made to",
-                        "name": "contractAddress",
+                        "name": "paymentContractAddress",
                         "in": "query"
                     }
                 ],
@@ -1163,11 +1165,14 @@
                                                             "identifier": {
                                                                 "type": "string"
                                                             },
-                                                            "smartContractWallet": {
+                                                            "SmartContractWallet": {
                                                                 "type": "object",
                                                                 "nullable": true,
                                                                 "properties": {
                                                                     "id": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "walletAddress": {
                                                                         "type": "string"
                                                                     },
                                                                     "walletVkey": {
@@ -1180,32 +1185,12 @@
                                                                 },
                                                                 "required": [
                                                                     "id",
+                                                                    "walletAddress",
                                                                     "walletVkey",
                                                                     "note"
                                                                 ]
                                                             },
-                                                            "SellingWallet": {
-                                                                "type": "object",
-                                                                "nullable": true,
-                                                                "properties": {
-                                                                    "id": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "walletVkey": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "note": {
-                                                                        "type": "string",
-                                                                        "nullable": true
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "id",
-                                                                    "walletVkey",
-                                                                    "note"
-                                                                ]
-                                                            },
-                                                            "buyerWallet": {
+                                                            "BuyerWallet": {
                                                                 "type": "object",
                                                                 "nullable": true,
                                                                 "properties": {
@@ -1217,7 +1202,7 @@
                                                                     "walletVkey"
                                                                 ]
                                                             },
-                                                            "amounts": {
+                                                            "Amounts": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "object",
@@ -1249,7 +1234,7 @@
                                                                     ]
                                                                 }
                                                             },
-                                                            "checkedBy": {
+                                                            "NetworkHandler": {
                                                                 "type": "object",
                                                                 "properties": {
                                                                     "id": {
@@ -1263,7 +1248,7 @@
                                                                             "MAINNET"
                                                                         ]
                                                                     },
-                                                                    "addressToCheck": {
+                                                                    "paymentContractAddress": {
                                                                         "type": "string"
                                                                     },
                                                                     "paymentType": {
@@ -1276,7 +1261,7 @@
                                                                 "required": [
                                                                     "id",
                                                                     "network",
-                                                                    "addressToCheck",
+                                                                    "paymentContractAddress",
                                                                     "paymentType"
                                                                 ]
                                                             }
@@ -1291,11 +1276,10 @@
                                                             "errorNote",
                                                             "errorRequiresManualReview",
                                                             "identifier",
-                                                            "smartContractWallet",
-                                                            "SellingWallet",
-                                                            "buyerWallet",
-                                                            "amounts",
-                                                            "checkedBy"
+                                                            "SmartContractWallet",
+                                                            "BuyerWallet",
+                                                            "Amounts",
+                                                            "NetworkHandler"
                                                         ]
                                                     }
                                                 }
@@ -1310,11 +1294,12 @@
                                         "data"
                                     ],
                                     "example": {
+                                        "status": "success",
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-18T22:25:11.080Z",
-                                                    "updatedAt": "2025-01-18T22:25:11.080Z",
+                                                    "createdAt": "2025-01-20T12:05:44.048Z",
+                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1322,38 +1307,33 @@
                                                     "errorNote": "error_note",
                                                     "errorRequiresManualReview": false,
                                                     "identifier": "identifier",
-                                                    "SellingWallet": {
-                                                        "id": "unique-cuid-v2-auto-generated",
-                                                        "walletVkey": "wallet_vkey",
-                                                        "note": "note"
-                                                    },
-                                                    "buyerWallet": {
+                                                    "BuyerWallet": {
                                                         "walletVkey": "wallet_vkey"
                                                     },
-                                                    "smartContractWallet": {
-                                                        "id": "unique-cuid-v2-auto-generated",
+                                                    "SmartContractWallet": {
+                                                        "id": "unique_cuid_v2_auto_generated",
+                                                        "walletAddress": "wallet_address",
                                                         "walletVkey": "wallet_vkey",
                                                         "note": "note"
                                                     },
-                                                    "amounts": [
+                                                    "Amounts": [
                                                         {
-                                                            "id": "unique-cuid-v2-auto-generated",
-                                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                                            "id": "unique_cuid_v2_auto_generated",
+                                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
                                                     ],
-                                                    "checkedBy": {
-                                                        "id": "unique-cuid-v2-auto-generated",
+                                                    "NetworkHandler": {
+                                                        "id": "unique_cuid_v2_auto_generated",
                                                         "network": "PREPROD",
-                                                        "addressToCheck": "address_to_check",
+                                                        "paymentContractAddress": "address_to_check",
                                                         "paymentType": "WEB3_CARDANO_V1"
                                                     }
                                                 }
                                             ]
-                                        },
-                                        "status": "success"
+                                        }
                                     }
                                 }
                             }
@@ -1433,7 +1413,7 @@
                                         ],
                                         "description": "The type of payment contract used"
                                     },
-                                    "contractAddress": {
+                                    "paymentContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract where the payment will be made to"
@@ -1495,7 +1475,7 @@
                                     "agentIdentifier",
                                     "amounts",
                                     "paymentType",
-                                    "contractAddress",
+                                    "paymentContractAddress",
                                     "submitResultTime",
                                     "unlockTime",
                                     "refundTime"
@@ -1503,8 +1483,7 @@
                                 "example": {
                                     "agentIdentifier": "agent_identifier",
                                     "network": "PREPROD",
-                                    "sellerVkey": "seller_vkey",
-                                    "contractAddress": "address",
+                                    "paymentContractAddress": "address",
                                     "amounts": [
                                         {
                                             "amount": 1000000,
@@ -1580,10 +1559,10 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated",
-                                            "identifier": "agentIdentifier_unique-cuid-v2-auto-generated",
-                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                            "id": "unique_cuid_v2_auto_generated",
+                                            "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
+                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1629,7 +1608,7 @@
                                         ],
                                         "description": "The network the payment was received on"
                                     },
-                                    "contractAddress": {
+                                    "paymentContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract where the payment was made to"
@@ -1647,14 +1626,13 @@
                                 },
                                 "required": [
                                     "network",
-                                    "contractAddress",
+                                    "paymentContractAddress",
                                     "hash",
                                     "identifier"
                                 ],
                                 "example": {
                                     "network": "PREPROD",
-                                    "sellerVkey": "seller_vkey",
-                                    "contractAddress": "address",
+                                    "paymentContractAddress": "address",
                                     "hash": "hash",
                                     "identifier": "identifier"
                                 }
@@ -1718,9 +1696,9 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated",
-                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                            "id": "unique_cuid_v2_auto_generated",
+                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1813,7 +1791,7 @@
                         },
                         "required": true,
                         "description": "The address of the smart contract where the purchases were made to",
-                        "name": "contractAddress",
+                        "name": "paymentContractAddress",
                         "in": "query"
                     }
                 ],
@@ -1886,11 +1864,14 @@
                                                             "identifier": {
                                                                 "type": "string"
                                                             },
-                                                            "smartContractWallet": {
+                                                            "SmartContractWallet": {
                                                                 "type": "object",
                                                                 "nullable": true,
                                                                 "properties": {
                                                                     "id": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "walletAddress": {
                                                                         "type": "string"
                                                                     },
                                                                     "walletVkey": {
@@ -1903,32 +1884,12 @@
                                                                 },
                                                                 "required": [
                                                                     "id",
+                                                                    "walletAddress",
                                                                     "walletVkey",
                                                                     "note"
                                                                 ]
                                                             },
-                                                            "purchaserWallet": {
-                                                                "type": "object",
-                                                                "nullable": true,
-                                                                "properties": {
-                                                                    "id": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "walletVkey": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "note": {
-                                                                        "type": "string",
-                                                                        "nullable": true
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "id",
-                                                                    "walletVkey",
-                                                                    "note"
-                                                                ]
-                                                            },
-                                                            "sellerWallet": {
+                                                            "SellerWallet": {
                                                                 "type": "object",
                                                                 "nullable": true,
                                                                 "properties": {
@@ -1945,7 +1906,7 @@
                                                                     "note"
                                                                 ]
                                                             },
-                                                            "amounts": {
+                                                            "Amounts": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "object",
@@ -1977,7 +1938,7 @@
                                                                     ]
                                                                 }
                                                             },
-                                                            "networkHandler": {
+                                                            "NetworkHandler": {
                                                                 "type": "object",
                                                                 "nullable": true,
                                                                 "properties": {
@@ -1992,7 +1953,7 @@
                                                                             "MAINNET"
                                                                         ]
                                                                     },
-                                                                    "addressToCheck": {
+                                                                    "paymentContractAddress": {
                                                                         "type": "string"
                                                                     },
                                                                     "paymentType": {
@@ -2005,7 +1966,7 @@
                                                                 "required": [
                                                                     "id",
                                                                     "network",
-                                                                    "addressToCheck",
+                                                                    "paymentContractAddress",
                                                                     "paymentType"
                                                                 ]
                                                             }
@@ -2020,11 +1981,10 @@
                                                             "errorNote",
                                                             "errorRequiresManualReview",
                                                             "identifier",
-                                                            "smartContractWallet",
-                                                            "purchaserWallet",
-                                                            "sellerWallet",
-                                                            "amounts",
-                                                            "networkHandler"
+                                                            "SmartContractWallet",
+                                                            "SellerWallet",
+                                                            "Amounts",
+                                                            "NetworkHandler"
                                                         ]
                                                     }
                                                 }
@@ -2043,8 +2003,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-18T22:25:11.080Z",
-                                                    "updatedAt": "2025-01-18T22:25:11.080Z",
+                                                    "createdAt": "2025-01-20T12:05:44.048Z",
+                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -2052,32 +2012,28 @@
                                                     "errorNote": "error_note",
                                                     "errorRequiresManualReview": false,
                                                     "identifier": "identifier",
-                                                    "smartContractWallet": {
-                                                        "id": "unique-cuid-v2-auto-generated",
+                                                    "SmartContractWallet": {
+                                                        "id": "unique_cuid_v2_auto_generated",
+                                                        "walletAddress": "wallet_address",
                                                         "walletVkey": "wallet_vkey",
                                                         "note": "note"
                                                     },
-                                                    "amounts": [
+                                                    "Amounts": [
                                                         {
-                                                            "id": "unique-cuid-v2-auto-generated",
-                                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                                            "id": "unique_cuid_v2_auto_generated",
+                                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
                                                     ],
-                                                    "networkHandler": {
-                                                        "id": "unique-cuid-v2-auto-generated",
+                                                    "NetworkHandler": {
+                                                        "id": "unique_cuid_v2_auto_generated",
                                                         "network": "PREPROD",
-                                                        "addressToCheck": "address_to_check",
+                                                        "paymentContractAddress": "address_to_check",
                                                         "paymentType": "WEB3_CARDANO_V1"
                                                     },
-                                                    "purchaserWallet": {
-                                                        "id": "unique-cuid-v2-auto-generated",
-                                                        "walletVkey": "wallet_vkey",
-                                                        "note": "note"
-                                                    },
-                                                    "sellerWallet": {
+                                                    "SellerWallet": {
                                                         "walletVkey": "wallet_vkey",
                                                         "note": "note"
                                                     }
@@ -2137,7 +2093,7 @@
                                         "maxLength": 250,
                                         "description": "The verification key of the seller"
                                     },
-                                    "contractAddress": {
+                                    "paymentContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract where the purchase will be made to"
@@ -2228,7 +2184,7 @@
                                     "identifier",
                                     "network",
                                     "sellerVkey",
-                                    "contractAddress",
+                                    "paymentContractAddress",
                                     "amounts",
                                     "paymentType",
                                     "unlockTime",
@@ -2239,7 +2195,7 @@
                                     "identifier": "identifier",
                                     "network": "PREPROD",
                                     "sellerVkey": "seller_vkey",
-                                    "contractAddress": "address",
+                                    "paymentContractAddress": "address",
                                     "amounts": [
                                         {
                                             "amount": 1000000,
@@ -2310,9 +2266,9 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated",
-                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                            "id": "unique_cuid_v2_auto_generated",
+                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2363,7 +2319,7 @@
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
                                     },
-                                    "smartContractAddress": {
+                                    "paymentContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract holding the purchase"
@@ -2372,12 +2328,11 @@
                                 "required": [
                                     "identifier",
                                     "network",
-                                    "smartContractAddress"
+                                    "paymentContractAddress"
                                 ],
                                 "example": {
                                     "network": "PREPROD",
-                                    "sellerVkey": "seller_vkey",
-                                    "smartContractAddress": "address",
+                                    "paymentContractAddress": "address",
                                     "identifier": "identifier"
                                 }
                             }
@@ -2678,11 +2633,11 @@
                         "schema": {
                             "type": "string",
                             "maxLength": 250,
-                            "description": "The address of the wallet holding the registration"
+                            "description": "The smart contract address of the payment contract to which the registration belongs"
                         },
                         "required": true,
-                        "description": "The address of the wallet holding the registration",
-                        "name": "address",
+                        "description": "The smart contract address of the payment contract to which the registration belongs",
+                        "name": "paymentContractAddress",
                         "in": "query"
                     }
                 ],
@@ -2800,7 +2755,7 @@
                                                                     "MAINNET"
                                                                 ]
                                                             },
-                                                            "addressToCheck": {
+                                                            "paymentContractAddress": {
                                                                 "type": "string"
                                                             },
                                                             "paymentType": {
@@ -2809,16 +2764,20 @@
                                                                     "WEB3_CARDANO_V1"
                                                                 ]
                                                             },
-                                                            "blockfrostApiKey": {
+                                                            "rpcProviderApiKey": {
                                                                 "type": "string"
                                                             },
-                                                            "page": {
-                                                                "type": "number"
+                                                            "lastIdentifierChecked": {
+                                                                "type": "string",
+                                                                "nullable": true
                                                             },
                                                             "isSyncing": {
                                                                 "type": "boolean"
                                                             },
-                                                            "latestIdentifier": {
+                                                            "lastPageChecked": {
+                                                                "type": "number"
+                                                            },
+                                                            "lastCheckedAt": {
                                                                 "type": "string",
                                                                 "nullable": true
                                                             },
@@ -2872,6 +2831,9 @@
                                                                         "walletVkey": {
                                                                             "type": "string"
                                                                         },
+                                                                        "walletAddress": {
+                                                                            "type": "string"
+                                                                        },
                                                                         "note": {
                                                                             "type": "string",
                                                                             "nullable": true
@@ -2880,6 +2842,7 @@
                                                                     "required": [
                                                                         "id",
                                                                         "walletVkey",
+                                                                        "walletAddress",
                                                                         "note"
                                                                     ]
                                                                 }
@@ -2895,6 +2858,9 @@
                                                                         "walletVkey": {
                                                                             "type": "string"
                                                                         },
+                                                                        "walletAddress": {
+                                                                            "type": "string"
+                                                                        },
                                                                         "note": {
                                                                             "type": "string",
                                                                             "nullable": true
@@ -2903,6 +2869,7 @@
                                                                     "required": [
                                                                         "id",
                                                                         "walletVkey",
+                                                                        "walletAddress",
                                                                         "note"
                                                                     ]
                                                                 }
@@ -2918,7 +2885,7 @@
                                                                     "walletAddress"
                                                                 ]
                                                             },
-                                                            "FeePermille": {
+                                                            "feePermille": {
                                                                 "type": "number",
                                                                 "minimum": 0,
                                                                 "maximum": 1000
@@ -2929,18 +2896,19 @@
                                                             "createdAt",
                                                             "updatedAt",
                                                             "network",
-                                                            "addressToCheck",
+                                                            "paymentContractAddress",
                                                             "paymentType",
-                                                            "blockfrostApiKey",
-                                                            "page",
+                                                            "rpcProviderApiKey",
+                                                            "lastIdentifierChecked",
                                                             "isSyncing",
-                                                            "latestIdentifier",
+                                                            "lastPageChecked",
+                                                            "lastCheckedAt",
                                                             "AdminWallets",
                                                             "CollectionWallet",
                                                             "PurchasingWallets",
                                                             "SellingWallets",
                                                             "FeeReceiverNetworkWallet",
-                                                            "FeePermille"
+                                                            "feePermille"
                                                         ]
                                                     }
                                                 }
@@ -2959,16 +2927,17 @@
                                         "data": {
                                             "paymentSources": [
                                                 {
-                                                    "id": "unique-cuid-v2-auto-generated",
-                                                    "createdAt": "2025-01-18T22:25:11.080Z",
-                                                    "updatedAt": "2025-01-18T22:25:11.080Z",
+                                                    "id": "unique_cuid_v2_auto_generated",
+                                                    "createdAt": "2025-01-20T12:05:44.048Z",
+                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
-                                                    "addressToCheck": "address_to_check",
-                                                    "blockfrostApiKey": "blockfrost_api_key",
-                                                    "page": 1,
+                                                    "paymentContractAddress": "address_of_the_smart_contract",
+                                                    "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
-                                                    "latestIdentifier": null,
+                                                    "lastPageChecked": 1,
+                                                    "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                                    "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
                                                             "walletAddress": "wallet_address",
@@ -2984,28 +2953,30 @@
                                                         }
                                                     ],
                                                     "CollectionWallet": {
-                                                        "id": "unique-cuid-v2-auto-generated",
+                                                        "id": "unique_cuid_v2_auto_generated",
                                                         "walletAddress": "wallet_address",
                                                         "note": "note"
                                                     },
                                                     "PurchasingWallets": [
                                                         {
-                                                            "id": "unique-cuid-v2-auto-generated",
+                                                            "id": "unique_cuid_v2_auto_generated",
                                                             "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
                                                             "note": "note"
                                                         }
                                                     ],
                                                     "SellingWallets": [
                                                         {
-                                                            "id": "unique-cuid-v2-auto-generated",
+                                                            "id": "unique_cuid_v2_auto_generated",
                                                             "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
                                                             "note": "note"
                                                         }
                                                     ],
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "FeePermille": 50
+                                                    "feePermille": 50
                                                 }
                                             ]
                                         }
@@ -3050,12 +3021,12 @@
                                         ],
                                         "description": "The type of payment contract used"
                                     },
-                                    "blockfrostApiKey": {
+                                    "rpcProviderApiKey": {
                                         "type": "string",
                                         "maxLength": 250,
-                                        "description": "The blockfrost api key to be used for the payment source"
+                                        "description": "The rpc provider (blockfrost) api key to be used for the payment source"
                                     },
-                                    "FeePermille": {
+                                    "feePermille": {
                                         "type": "number",
                                         "nullable": true,
                                         "minimum": 0,
@@ -3161,8 +3132,8 @@
                                 "required": [
                                     "network",
                                     "paymentType",
-                                    "blockfrostApiKey",
-                                    "FeePermille",
+                                    "rpcProviderApiKey",
+                                    "feePermille",
                                     "AdminWallets",
                                     "FeeReceiverNetworkWallet",
                                     "CollectionWallet",
@@ -3172,7 +3143,7 @@
                                 "example": {
                                     "network": "PREPROD",
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "blockfrostApiKey": "blockfrost_api_key",
+                                    "rpcProviderApiKey": "rpc_provider_api_key",
                                     "AdminWallets": [
                                         {
                                             "walletAddress": "wallet_address_1"
@@ -3187,7 +3158,7 @@
                                     "FeeReceiverNetworkWallet": {
                                         "walletAddress": "wallet_address"
                                     },
-                                    "FeePermille": 50,
+                                    "feePermille": 50,
                                     "CollectionWallet": {
                                         "walletAddress": "wallet_address",
                                         "note": "note"
@@ -3240,7 +3211,7 @@
                                                         "MAINNET"
                                                     ]
                                                 },
-                                                "addressToCheck": {
+                                                "paymentContractAddress": {
                                                     "type": "string"
                                                 },
                                                 "paymentType": {
@@ -3249,16 +3220,20 @@
                                                         "WEB3_CARDANO_V1"
                                                     ]
                                                 },
-                                                "blockfrostApiKey": {
+                                                "rpcProviderApiKey": {
                                                     "type": "string"
-                                                },
-                                                "page": {
-                                                    "type": "number"
                                                 },
                                                 "isSyncing": {
                                                     "type": "boolean"
                                                 },
-                                                "latestIdentifier": {
+                                                "lastIdentifierChecked": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "lastPageChecked": {
+                                                    "type": "number"
+                                                },
+                                                "lastCheckedAt": {
                                                     "type": "string",
                                                     "nullable": true
                                                 }
@@ -3268,12 +3243,13 @@
                                                 "createdAt",
                                                 "updatedAt",
                                                 "network",
-                                                "addressToCheck",
+                                                "paymentContractAddress",
                                                 "paymentType",
-                                                "blockfrostApiKey",
-                                                "page",
+                                                "rpcProviderApiKey",
                                                 "isSyncing",
-                                                "latestIdentifier"
+                                                "lastIdentifierChecked",
+                                                "lastPageChecked",
+                                                "lastCheckedAt"
                                             ]
                                         }
                                     },
@@ -3284,16 +3260,17 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated",
-                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                            "id": "unique_cuid_v2_auto_generated",
+                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
-                                            "addressToCheck": "address_to_check",
-                                            "blockfrostApiKey": "blockfrost_api_key",
-                                            "page": 1,
+                                            "paymentContractAddress": "address_of_the_smart_contract",
+                                            "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
-                                            "latestIdentifier": null
+                                            "lastPageChecked": 1,
+                                            "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                            "lastIdentifierChecked": null
                                         }
                                     }
                                 }
@@ -3325,10 +3302,10 @@
                                         "maxLength": 250,
                                         "description": "The id of the payment source to be updated"
                                     },
-                                    "blockfrostApiKey": {
+                                    "rpcProviderApiKey": {
                                         "type": "string",
                                         "maxLength": 250,
-                                        "description": "The blockfrost api key to be used for the payment source"
+                                        "description": "The rpc provider (blockfrost) api key to be used for the payment source"
                                     },
                                     "CollectionWallet": {
                                         "type": "object",
@@ -3368,7 +3345,7 @@
                                             ]
                                         },
                                         "minItems": 1,
-                                        "maxItems": 50,
+                                        "maxItems": 10,
                                         "description": "The mnemonic of the purchasing wallets to be added"
                                     },
                                     "AddSellingWallets": {
@@ -3391,7 +3368,7 @@
                                             ]
                                         },
                                         "minItems": 1,
-                                        "maxItems": 50,
+                                        "maxItems": 10,
                                         "description": "The mnemonic of the selling wallets to be added"
                                     },
                                     "RemovePurchasingWallets": {
@@ -3407,7 +3384,7 @@
                                                 "id"
                                             ]
                                         },
-                                        "maxItems": 50,
+                                        "maxItems": 10,
                                         "description": "The ids of the purchasing wallets to be removed. Please backup the mnemonic of the old wallet before removing it."
                                     },
                                     "RemoveSellingWallets": {
@@ -3423,16 +3400,16 @@
                                                 "id"
                                             ]
                                         },
-                                        "maxItems": 50,
+                                        "maxItems": 10,
                                         "description": "The ids of the selling wallets to be removed. Please backup the mnemonic of the old wallet before removing it."
                                     },
-                                    "page": {
+                                    "lastPageChecked": {
                                         "type": "number",
                                         "minimum": 1,
                                         "maximum": 100000000,
                                         "description": "The page number of the payment source. Usually should not be changed"
                                     },
-                                    "latestIdentifier": {
+                                    "lastIdentifierChecked": {
                                         "type": "string",
                                         "nullable": true,
                                         "maxLength": 250,
@@ -3443,34 +3420,34 @@
                                     "id"
                                 ],
                                 "example": {
-                                    "id": "unique-cuid-v2",
-                                    "latestIdentifier": "optional_identifier",
-                                    "page": 1,
-                                    "blockfrostApiKey": "blockfrost_api_key",
+                                    "id": "unique_cuid_v2",
+                                    "lastIdentifierChecked": "optional_identifier",
+                                    "lastPageChecked": 1,
+                                    "rpcProviderApiKey": "rpc_provider_api_key",
                                     "CollectionWallet": {
                                         "walletAddress": "wallet_address",
                                         "note": "note"
                                     },
                                     "AddPurchasingWallets": [
                                         {
-                                            "walletMnemonic": "wallet mnemonic",
+                                            "walletMnemonic": "wallet_mnemonic",
                                             "note": "note"
                                         }
                                     ],
                                     "AddSellingWallets": [
                                         {
-                                            "walletMnemonic": "wallet mnemonic",
+                                            "walletMnemonic": "wallet_mnemonic",
                                             "note": "note"
                                         }
                                     ],
                                     "RemovePurchasingWallets": [
                                         {
-                                            "id": "unique-cuid-v2"
+                                            "id": "unique_cuid_v2"
                                         }
                                     ],
                                     "RemoveSellingWallets": [
                                         {
-                                            "id": "unique-cuid-v2"
+                                            "id": "unique_cuid_v2"
                                         }
                                     ]
                                 }
@@ -3509,7 +3486,7 @@
                                                         "MAINNET"
                                                     ]
                                                 },
-                                                "addressToCheck": {
+                                                "paymentContractAddress": {
                                                     "type": "string"
                                                 },
                                                 "paymentType": {
@@ -3518,16 +3495,20 @@
                                                         "WEB3_CARDANO_V1"
                                                     ]
                                                 },
-                                                "blockfrostApiKey": {
+                                                "rpcProviderApiKey": {
                                                     "type": "string"
-                                                },
-                                                "page": {
-                                                    "type": "number"
                                                 },
                                                 "isSyncing": {
                                                     "type": "boolean"
                                                 },
-                                                "latestIdentifier": {
+                                                "lastIdentifierChecked": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "lastPageChecked": {
+                                                    "type": "number"
+                                                },
+                                                "lastCheckedAt": {
                                                     "type": "string",
                                                     "nullable": true
                                                 }
@@ -3537,12 +3518,13 @@
                                                 "createdAt",
                                                 "updatedAt",
                                                 "network",
-                                                "addressToCheck",
+                                                "paymentContractAddress",
                                                 "paymentType",
-                                                "blockfrostApiKey",
-                                                "page",
+                                                "rpcProviderApiKey",
                                                 "isSyncing",
-                                                "latestIdentifier"
+                                                "lastIdentifierChecked",
+                                                "lastPageChecked",
+                                                "lastCheckedAt"
                                             ]
                                         }
                                     },
@@ -3553,16 +3535,17 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated",
-                                            "createdAt": "2025-01-18T22:25:11.080Z",
-                                            "updatedAt": "2025-01-18T22:25:11.080Z",
+                                            "paymentContractAddress": "address_of_the_smart_contract",
+                                            "id": "unique_cuid_v2_auto_generated",
+                                            "createdAt": "2025-01-20T12:05:44.048Z",
+                                            "updatedAt": "2025-01-20T12:05:44.048Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
-                                            "addressToCheck": "address_to_check",
-                                            "blockfrostApiKey": "blockfrost_api_key",
-                                            "page": 1,
-                                            "isSyncing": false,
-                                            "latestIdentifier": null
+                                            "rpcProviderApiKey": "rpc_provider_api_key",
+                                            "lastPageChecked": 1,
+                                            "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                            "lastIdentifierChecked": null,
+                                            "isSyncing": false
                                         }
                                     }
                                 }
@@ -3624,7 +3607,7 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "id": "unique-cuid-v2-auto-generated"
+                                            "id": "unique_cuid_v2_auto_generated"
                                         }
                                     }
                                 }

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "APIKeyStatus" AS ENUM ('ACTIVE', 'REVOKED');
+CREATE TYPE "ApiKeyStatus" AS ENUM ('ACTIVE', 'REVOKED');
 
 -- CreateEnum
 CREATE TYPE "Permission" AS ENUM ('READ', 'READ_PAY', 'ADMIN');
@@ -23,16 +23,16 @@ CREATE TYPE "PurchasingRequestStatus" AS ENUM ('PurchaseRequested', 'PurchaseIni
 CREATE TYPE "Network" AS ENUM ('PREVIEW', 'PREPROD', 'MAINNET');
 
 -- CreateTable
-CREATE TABLE "apiKey" (
+CREATE TABLE "ApiKey" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "apiKey" TEXT NOT NULL,
-    "status" "APIKeyStatus" NOT NULL,
+    "status" "ApiKeyStatus" NOT NULL,
     "permission" "Permission" NOT NULL,
     "usageLimited" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "apiKey_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ApiKey_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -54,6 +54,7 @@ CREATE TABLE "SellingWallet" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "walletVkey" TEXT NOT NULL,
     "walletSecretId" TEXT NOT NULL,
+    "walletAddress" TEXT NOT NULL,
     "pendingTransactionId" TEXT,
     "networkHandlerId" TEXT NOT NULL,
     "note" TEXT,
@@ -68,6 +69,7 @@ CREATE TABLE "PurchasingWallet" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "walletVkey" TEXT NOT NULL,
     "walletSecretId" TEXT NOT NULL,
+    "walletAddress" TEXT NOT NULL,
     "pendingTransactionId" TEXT,
     "networkHandlerId" TEXT NOT NULL,
     "note" TEXT,
@@ -138,7 +140,7 @@ CREATE TABLE "PaymentRequest" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "lastCheckedAt" TIMESTAMP(3),
-    "checkedById" TEXT NOT NULL,
+    "networkHandlerId" TEXT NOT NULL,
     "smartContractWalletId" TEXT,
     "buyerWalletId" TEXT,
     "status" "PaymentRequestStatus" NOT NULL,
@@ -154,7 +156,6 @@ CREATE TABLE "PaymentRequest" (
     "errorType" "PaymentRequestErrorType",
     "errorNote" TEXT,
     "errorRequiresManualReview" BOOLEAN,
-    "sellingWalletId" TEXT,
 
     CONSTRAINT "PaymentRequest_pkey" PRIMARY KEY ("id")
 );
@@ -167,7 +168,6 @@ CREATE TABLE "PurchaseRequest" (
     "lastCheckedAt" TIMESTAMP(3),
     "networkHandlerId" TEXT NOT NULL,
     "sellerWalletId" TEXT NOT NULL,
-    "purchasingWalletId" TEXT,
     "smartContractWalletId" TEXT,
     "status" "PurchasingRequestStatus" NOT NULL,
     "identifier" TEXT NOT NULL,
@@ -207,13 +207,13 @@ CREATE TABLE "NetworkHandler" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "network" "Network" NOT NULL,
     "lastCheckedAt" TIMESTAMP(3),
-    "page" INTEGER NOT NULL DEFAULT 1,
-    "blockfrostApiKey" TEXT NOT NULL,
-    "latestIdentifier" TEXT,
-    "addressToCheck" TEXT NOT NULL,
+    "lastPageChecked" INTEGER NOT NULL DEFAULT 1,
+    "rpcProviderApiKey" TEXT NOT NULL,
+    "lastIdentifierChecked" TEXT,
+    "paymentContractAddress" TEXT NOT NULL,
     "isSyncing" BOOLEAN NOT NULL DEFAULT false,
     "adminWalletId" TEXT NOT NULL,
-    "FeePermille" INTEGER NOT NULL DEFAULT 50,
+    "feePermille" INTEGER NOT NULL DEFAULT 50,
     "paymentType" "PaymentType" NOT NULL,
     "maxCollectRefundRetries" INTEGER NOT NULL DEFAULT 3,
     "maxCollectPaymentRetries" INTEGER NOT NULL DEFAULT 3,
@@ -238,10 +238,7 @@ CREATE TABLE "AdminWallet" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "apiKey_apiKey_key" ON "apiKey"("apiKey");
-
--- CreateIndex
-CREATE INDEX "apiKey_apiKey_idx" ON "apiKey"("apiKey");
+CREATE UNIQUE INDEX "ApiKey_apiKey_key" ON "ApiKey"("apiKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SellingWallet_walletVkey_key" ON "SellingWallet"("walletVkey");
@@ -265,16 +262,16 @@ CREATE UNIQUE INDEX "CollectionWallet_networkHandlerId_key" ON "CollectionWallet
 CREATE UNIQUE INDEX "CollectionWallet_networkHandlerId_walletAddress_key" ON "CollectionWallet"("networkHandlerId", "walletAddress");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PaymentRequest_checkedById_identifier_key" ON "PaymentRequest"("checkedById", "identifier");
+CREATE UNIQUE INDEX "PaymentRequest_networkHandlerId_identifier_key" ON "PaymentRequest"("networkHandlerId", "identifier");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PurchaseRequest_networkHandlerId_identifier_sellerWalletId_key" ON "PurchaseRequest"("networkHandlerId", "identifier", "sellerWalletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "NetworkHandler_network_addressToCheck_key" ON "NetworkHandler"("network", "addressToCheck");
+CREATE UNIQUE INDEX "NetworkHandler_network_paymentContractAddress_key" ON "NetworkHandler"("network", "paymentContractAddress");
 
 -- AddForeignKey
-ALTER TABLE "UsageAmount" ADD CONSTRAINT "UsageAmount_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "apiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UsageAmount" ADD CONSTRAINT "UsageAmount_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SellingWallet" ADD CONSTRAINT "SellingWallet_walletSecretId_fkey" FOREIGN KEY ("walletSecretId") REFERENCES "WalletSecret"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -304,16 +301,13 @@ ALTER TABLE "SellerWallet" ADD CONSTRAINT "SellerWallet_networkHandlerId_fkey" F
 ALTER TABLE "CollectionWallet" ADD CONSTRAINT "CollectionWallet_networkHandlerId_fkey" FOREIGN KEY ("networkHandlerId") REFERENCES "NetworkHandler"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_checkedById_fkey" FOREIGN KEY ("checkedById") REFERENCES "NetworkHandler"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_networkHandlerId_fkey" FOREIGN KEY ("networkHandlerId") REFERENCES "NetworkHandler"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "PurchasingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "SellingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_buyerWalletId_fkey" FOREIGN KEY ("buyerWalletId") REFERENCES "BuyerWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_sellingWalletId_fkey" FOREIGN KEY ("sellingWalletId") REFERENCES "SellingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_networkHandlerId_fkey" FOREIGN KEY ("networkHandlerId") REFERENCES "NetworkHandler"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -322,13 +316,10 @@ ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_networkHandlerId_f
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_sellerWalletId_fkey" FOREIGN KEY ("sellerWalletId") REFERENCES "SellerWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_purchasingWalletId_fkey" FOREIGN KEY ("purchasingWalletId") REFERENCES "PurchasingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "PurchasingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "SellingWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_triggeredById_fkey" FOREIGN KEY ("triggeredById") REFERENCES "apiKey"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_triggeredById_fkey" FOREIGN KEY ("triggeredById") REFERENCES "ApiKey"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RequestAmount" ADD CONSTRAINT "RequestAmount_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -19,31 +19,31 @@ export async function updateWalletTransactionHash() {
 
         const lockedPurchaseWallets = await prisma.purchasingWallet.findMany({
             where: {
-                pendingTransaction: {
+                PendingTransaction: {
                     hash: { not: null, },
                     //if the transaction has been checked in the last 30 seconds, we skip it
                     lastCheckedAt: { lte: new Date(Date.now() - 1000 * 30) }
                 }
             },
-            include: { pendingTransaction: true, networkHandler: true },
+            include: { PendingTransaction: true, NetworkHandler: true },
 
         });
 
         await Promise.allSettled(lockedPurchaseWallets.map(async (wallet) => {
             try {
-                const txHash = wallet.pendingTransaction!.hash!;
+                const txHash = wallet.PendingTransaction!.hash!;
 
-                const blockfrostKey = wallet.networkHandler.blockfrostApiKey;
+                const blockfrostKey = wallet.NetworkHandler.rpcProviderApiKey;
                 const provider = new BlockfrostProvider(blockfrostKey);
                 const txInfo = await provider.fetchTxInfo(txHash);
                 if (txInfo) {
                     await prisma.purchasingWallet.update({
                         where: { id: wallet.id },
-                        data: { pendingTransaction: { delete: true } }
+                        data: { PendingTransaction: { delete: true } }
                     });
                 } else {
                     await prisma.transaction.update({
-                        where: { id: wallet.pendingTransaction?.id },
+                        where: { id: wallet.PendingTransaction?.id },
                         data: { lastCheckedAt: new Date() }
                     });
                 }
@@ -55,19 +55,18 @@ export async function updateWalletTransactionHash() {
 
         const timedOutLockedPurchaseWallets = await prisma.purchasingWallet.findMany({
             where: {
-                pendingTransaction: {
-
+                PendingTransaction: {
                     updatedAt: {
                         //wallets that have not been updated in the last 20 minutes
                         lt: new Date(Date.now() - 1000 * 60 * 20)
                     }
                 }
             },
-            include: { pendingTransaction: true }
+            include: { PendingTransaction: true }
         })
         await Promise.allSettled(timedOutLockedPurchaseWallets.map(async (wallet) => {
             try {
-                const txHash = wallet.pendingTransaction?.hash;
+                const txHash = wallet.PendingTransaction?.hash;
                 if (txHash) {
                     await prisma.purchaseRequest.updateMany({
                         where: {
@@ -78,7 +77,7 @@ export async function updateWalletTransactionHash() {
                 }
                 await prisma.purchasingWallet.update({
                     where: { id: wallet.id },
-                    data: { pendingTransaction: { delete: true } }
+                    data: { PendingTransaction: { delete: true } }
                 });
             } catch (error) {
                 logger.error(`Error updating timed out wallet: ${error}`);
@@ -101,27 +100,27 @@ export async function updateWalletTransactionHash() {
 
         const lockedSellingWallets = await prisma.sellingWallet.findMany({
             where: {
-                pendingTransaction: {
+                PendingTransaction: {
                     hash: { not: null },
                     lastCheckedAt: { lt: new Date(Date.now() - 1000 * 60 * 20) }
                 }
             },
-            include: { pendingTransaction: true, networkHandler: true }
+            include: { PendingTransaction: true, NetworkHandler: true }
         })
         await Promise.allSettled(lockedSellingWallets.map(async (wallet) => {
             try {
-                const txHash = wallet.pendingTransaction!.hash!;
-                const blockfrostKey = wallet.networkHandler.blockfrostApiKey;
+                const txHash = wallet.PendingTransaction!.hash!;
+                const blockfrostKey = wallet.NetworkHandler.rpcProviderApiKey;
                 const provider = new BlockfrostProvider(blockfrostKey);
                 const txInfo = await provider.fetchTxInfo(txHash);
                 if (txInfo) {
                     await prisma.sellingWallet.update({
                         where: { id: wallet.id },
-                        data: { pendingTransaction: { delete: true } }
+                        data: { PendingTransaction: { delete: true } }
                     });
                 } else {
                     await prisma.transaction.update({
-                        where: { id: wallet.pendingTransaction?.id },
+                        where: { id: wallet.PendingTransaction?.id },
                         data: { lastCheckedAt: new Date() }
                     });
                 }
@@ -132,15 +131,15 @@ export async function updateWalletTransactionHash() {
 
         const timedOutLockedSellingWallets = await prisma.sellingWallet.findMany({
             where: {
-                pendingTransaction: {
+                PendingTransaction: {
                     updatedAt: { lt: new Date(Date.now() - 1000 * 60 * 20) }
                 }
             },
-            include: { pendingTransaction: true }
+            include: { PendingTransaction: true }
         })
         await Promise.allSettled(timedOutLockedSellingWallets.map(async (wallet) => {
             try {
-                const txHash = wallet.pendingTransaction?.hash;
+                const txHash = wallet.PendingTransaction?.hash;
                 if (txHash) {
                     await prisma.paymentRequest.updateMany({
                         where: { potentialTxHash: txHash }, data: {
@@ -150,7 +149,7 @@ export async function updateWalletTransactionHash() {
                 }
                 await prisma.sellingWallet.update({
                     where: { id: wallet.id },
-                    data: { pendingTransaction: { delete: true } }
+                    data: { PendingTransaction: { delete: true } }
                 });
             } catch (error) {
                 logger.error(`Error updating timed out selling wallet: ${error}`);
