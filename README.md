@@ -4,6 +4,7 @@ The Masumi Payment Service provides an easy-to-use service to handle decentraliz
 
 ## Documentation
 
+Please also refer to the official [Masumi Docs Website](https://docs.masumi.network).
 You can find further documentation in the [docs](docs/) folder.
 
 - [Configuration Guide](docs/CONFIGURATION.md)
