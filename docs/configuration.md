@@ -34,7 +34,7 @@ variables
 
    - **BLOCKFROST_API_KEY**: An API Key from [https://blockfrost.io/](https://blockfrost.io/) for the correct blockchain
      network, you can create this for free
-   - **NETWORK**: Currently supports PREVIEW (not recommended), PREPROD Cardano network or MAINNET
+   - **NETWORK**: Currently supports PREPROD Cardano network or MAINNET
    - **ADMIN_KEY**: The key of the admin user, this key will have all permissions and can create new api_keys
    - **SMART CONTRACT DATA**: You can leave them the same as the example if you are using the default smart contract on
      the PREPROD network. Otherwise please refer to the smart contract documentation to find the correct values.

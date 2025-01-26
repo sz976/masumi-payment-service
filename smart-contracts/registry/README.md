@@ -29,7 +29,7 @@ To generate a testnet wallet.
 
 The address will be found in the `wallet.addr` and `wallet.sk` (private key) file. You can top-up some test ADA (here)[https://docs.cardano.org/cardano-testnets/tools/faucet/]
 
-The following commands will require the `BLOCKFROST_API_KEY` environment variable to be set. Make sure to register an account on [Blockfrost](https://blockfrost.io/) and get your key for either the preview or preprod network and use it consistently (cardano has multiple testnets).
+The following commands will require the `BLOCKFROST_API_KEY` environment variable to be set. Make sure to register an account on [Blockfrost](https://blockfrost.io/) and get your key for either the mainnet (not recommended) or preprod network and use it consistently.
 
 ```sh
 npm run mint

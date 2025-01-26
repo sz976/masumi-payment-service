@@ -18,7 +18,7 @@ BLOCKFROST_API_KEY="preprodGUGCdL87Nwt7eglhJiMNBfAsmuCfrObx"
 REGISTRY_POLICY_ID="c7842ba56912a2df2f2e1b89f8e11751c6ec2318520f4d312423a272"
 ADMIN_KEY="pvmaopmdopwmefpsocmopafd"
 PAYMENT_CONTRACT_SOURCE_ADDRESS_CARDANO="addr_test1wqwryqpm70ldtryqr2fa9y72ex9e6pyq0k5z4p5260wq0zq8yrz6n" 
-NETWORK="preprod" #or "preview" or "mainnet"
+NETWORK="preprod" #or "mainnet"
 #Those are used to solve disputes
 ADMIN_WALLET1_ADDRESS="addr_test1qrgpga399l0r8fg7n0jfshhxsjl26w0uslxf5m02yclur8mremst4rk8xsz9lx78e9sdtjfsyj3c9kll2c4958uhkals2qrm9q" #the wallet address of the admin
 ADMIN_WALLET2_ADDRESS="addr_test1qqturqflellkrv0kcg9guuzkk8wx5yaytpsfcd3mmvemg0v7akaxvzel56ls59kw2fs20ckxhs09365medeen6tyy0pqkx3hku" #the wallet address of the admin

@@ -79,7 +79,7 @@ export function WalletCard({
 
     try {
       setFetchingBalance(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/utxos?address=${address}&count=100&order=asc&page=1&network=${network.toLowerCase() === 'mainnet' ? 'MAINNET' : network.toLowerCase() === 'preprod' ? 'PREPROD' : 'PREVIEW'}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/utxos?address=${address}&count=100&order=asc&page=1&network=${network.toLowerCase() === 'mainnet' ? 'MAINNET' : 'PREPROD'}`, {
         headers: {
           'accept': 'application/json',
           'token': state.apiKey!

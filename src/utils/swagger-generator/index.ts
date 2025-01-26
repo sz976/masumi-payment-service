@@ -24,6 +24,7 @@ export function generateOpenAPI() {
   registry.registerPath({
     method: 'get',
     path: '/health/',
+    tags: ['health',],
     summary: 'Get the status of the API server',
     request: {},
     responses: {
@@ -47,40 +48,7 @@ export function generateOpenAPI() {
     name: 'token',
     description: 'API key authentication via header (token)',
   });
-  /********************* UTXOS *****************************/
-  registry.registerPath({
-    method: 'get',
-    path: '/utxos/',
-    description: 'Gets UTXOs',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
-    tags: ['utxos',],
-    security: [{ [apiKeyAuth.name]: [] }],
-    request: {
-      query: getUTXOSchemaInput.openapi({
-        example: {
-          network: $Enums.Network.PREPROD,
-          address: "addr1qx2ej34k567890",
-          count: 10,
-          page: 1,
-          order: "desc",
-        }
-      })
-    },
-    responses: {
-      200: {
-        description: 'UTXOs',
-        content: {
-          'application/json': {
-            schema: getUTXOSchemaOutput.openapi({
-              example: {
-                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "unit", quantity: 1000000 }], output_index: 1, block: "1" }]
-              }
-            }),
-          },
-        },
-      },
-    },
-  });
+
 
   /********************* KEY STATUS *****************************/
   registry.registerPath({
@@ -623,10 +591,8 @@ export function generateOpenAPI() {
       query: queryPurchaseRequestSchemaInput.openapi({
         example: {
           limit: 10,
-          cursorIdentifier: {
-            identifier: "identifier",
-            sellingWalletVkey: "wallet_vkey"
-          },
+          cursorIdentifier: "identifier",
+          cursorIdentifierSellingWalletVkey: "wallet_vkey",
           network: $Enums.Network.PREPROD,
           paymentContractAddress: "addr_abcd1234567890",
         }
@@ -804,17 +770,15 @@ export function generateOpenAPI() {
                 network: $Enums.Network.PREPROD,
                 paymentContractAddress: "addr_test1...",
                 tags: ["tag1", "tag2"],
-                image: "https://example.com/image.png",
-                //name can be freely chosen
                 name: "Agent Name",
                 api_url: "https://api.example.com",
                 description: "Agent Description",
                 company_name: "Company Name",
+                sellingWalletVkey: "wallet_vkey",
                 capability: { name: "Capability Name", version: "1.0.0" },
                 requests_per_hour: "100",
                 pricing: [{
-                  asset_id: "usdm_asset_id",
-                  policy_id: "usdm_policy_id",
+                  unit: "usdm",
                   quantity: "500000000",
                 }],
               }
@@ -1062,7 +1026,40 @@ export function generateOpenAPI() {
       }
     }
   })
-
+  /********************* UTXOS *****************************/
+  registry.registerPath({
+    method: 'get',
+    path: '/utxos/',
+    description: 'Gets UTXOs (internal)',
+    summary: 'REQUIRES API KEY Authentication (+READ)',
+    tags: ['utxos',],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: getUTXOSchemaInput.openapi({
+        example: {
+          network: $Enums.Network.PREPROD,
+          address: "addr1qx2ej34k567890",
+          count: 10,
+          page: 1,
+          order: "desc",
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: 'UTXOs',
+        content: {
+          'application/json': {
+            schema: getUTXOSchemaOutput.openapi({
+              example: {
+                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "unit", quantity: 1000000 }], output_index: 1, block: "1" }]
+              }
+            }),
+          },
+        },
+      },
+    },
+  });
 
   return new OpenApiGeneratorV3(registry.definitions).generateDocument({
     openapi: '3.0.0',

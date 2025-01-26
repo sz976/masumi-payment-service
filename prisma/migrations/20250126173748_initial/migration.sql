@@ -20,7 +20,7 @@ CREATE TYPE "PaymentRequestStatus" AS ENUM ('PaymentRequested', 'PaymentConfirme
 CREATE TYPE "PurchasingRequestStatus" AS ENUM ('PurchaseRequested', 'PurchaseInitiated', 'PurchaseConfirmed', 'Completed', 'RefundRequestInitiated', 'RefundRequestConfirmed', 'RefundInitiated', 'RefundConfirmed', 'RefundRequestCanceledInitiated', 'Withdrawn', 'DisputedWithdrawn');
 
 -- CreateEnum
-CREATE TYPE "Network" AS ENUM ('PREVIEW', 'PREPROD', 'MAINNET');
+CREATE TYPE "Network" AS ENUM ('PREPROD', 'MAINNET');
 
 -- CreateTable
 CREATE TABLE "ApiKey" (

@@ -12,7 +12,8 @@ import { decrypt } from '@/utils/encryption';
 import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
-    cursorIdentifier: z.object({ identifier: z.string().max(250), sellingWalletVkey: z.string().max(250) }).optional().describe("Used to paginate through the purchases"),
+    cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
+    cursorIdentifier: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"),
     network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
     paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchases were made to"),
 })
@@ -47,12 +48,12 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
             throw createHttpError(404, "Network handler not found")
         }
         let cursor = undefined;
-        if (input.cursorIdentifier) {
-            const sellerWallet = await prisma.sellerWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifier.sellingWalletVkey } } })
+        if (input.cursorIdentifierSellingWalletVkey && input.cursorIdentifier) {
+            const sellerWallet = await prisma.sellerWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifierSellingWalletVkey } } })
             if (sellerWallet == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
-            cursor = { networkHandlerId_identifier_sellerWalletId: { networkHandlerId: networkHandler.id, identifier: input.cursorIdentifier.identifier, sellerWalletId: sellerWallet.id } }
+            cursor = { networkHandlerId_identifier_sellerWalletId: { networkHandlerId: networkHandler.id, identifier: input.cursorIdentifier, sellerWalletId: sellerWallet.id } }
         }
 
         const result = await prisma.purchaseRequest.findMany({
@@ -274,7 +275,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
                 fields: [],
             },
         };
-        const networkType = networkCheckSupported.network == "MAINNET" ? "mainnet" : networkCheckSupported.network == "PREPROD" ? "preprod" : "preview"
+        const networkType = networkCheckSupported.network == "MAINNET" ? "mainnet" : "preprod"
         const invalidBefore =
             unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK[networkType]) - 1;
         const invalidHereafter =

@@ -122,7 +122,7 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
         const sellingWalletsMesh = input.SellingWallets.map(sellingWallet => {
             return {
                 wallet: new MeshWallet({
-                    networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+                    networkId: input.network === "PREPROD" ? 0 : 1,
                     key: {
                         type: "mnemonic",
                         words: sellingWallet.walletMnemonic.split(" ")
@@ -135,7 +135,7 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
         const purchasingWalletsMesh = input.PurchasingWallets.map(purchasingWallet => {
             return {
                 wallet: new MeshWallet({
-                    networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+                    networkId: input.network === "PREPROD" ? 0 : 1,
                     key: {
                         type: "mnemonic",
                         words: purchasingWallet.walletMnemonic.split(" ")
@@ -264,7 +264,7 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
         const sellingWalletsMesh = input.AddSellingWallets?.map(sellingWallet => {
             return {
                 wallet: new MeshWallet({
-                    networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+                    networkId: input.network === "PREPROD" ? 0 : 1,
                     key: {
                         type: "mnemonic",
                         words: sellingWallet.walletMnemonic.split(" ")
@@ -277,7 +277,7 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
         const purchasingWalletsMesh = input.AddPurchasingWallets?.map(purchasingWallet => {
             return {
                 wallet: new MeshWallet({
-                    networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+                    networkId: input.network === "PREPROD" ? 0 : 1,
                     key: {
                         type: "mnemonic",
                         words: purchasingWallet.walletMnemonic.split(" ")

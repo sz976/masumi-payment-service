@@ -57,11 +57,11 @@ export async function collectOutstandingPaymentsV1() {
             if (networkCheck.PaymentRequests.length == 0 || networkCheck.CollectionWallet == null)
                 return;
 
-            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
             if (!network)
                 throw new Error("Invalid network")
 
-            const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : networkCheck.network == "PREVIEW" ? 2 : null;
+            const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
             if (!networkId)
                 throw new Error("Invalid network")
 
@@ -258,11 +258,9 @@ export async function collectOutstandingPaymentsV1() {
 
                     logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
-                  View (after a bit) on https://${network === 'preview'
-                            ? 'preview.'
-                            : network === 'preprod'
-                                ? 'preprod.'
-                                : ''
+                  View (after a bit) on https://${network === 'preprod'
+                            ? 'preprod.'
+                            : ''
                         }cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);

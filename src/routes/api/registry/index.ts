@@ -15,8 +15,6 @@ export const registerAgentSchemaInput = z.object({
     paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
     tags: z.array(z.string().max(250)).max(5).describe("Tags used in the registry metadata"),
-    image: z.string().max(62),
-    //name can be freely chosen
     name: z.string().max(250).describe("Name of the agent"),
     api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
     description: z.string().max(250).describe("Description of the agent"),
@@ -24,9 +22,8 @@ export const registerAgentSchemaInput = z.object({
     capability: z.object({ name: z.string().max(250), version: z.string().max(250) }).describe("Provide information about the used AI model and version"),
     requests_per_hour: z.string().max(250).describe("The request the agent can handle per hour"),
     pricing: z.array(z.object({
-        asset_id: z.string().max(62),
-        policy_id: z.string().max(62),
-        quantity: z.string().max(20),
+        unit: z.string().max(250),
+        quantity: z.string().max(55),
     })).max(5).describe("Price for a default interaction"),
 })
 
@@ -125,12 +122,13 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             .mintingScript(script.code)
             .mintRedeemerValue(redeemer.data, 'Mesh');
 
+
         //setup the metadata
         tx.setMetadata(721, {
             [policyId]: {
                 [assetName]: {
                     tags: [input.tags.map(tag => stringToMetadata(tag))],
-                    image: input.image,
+                    image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
                     name: stringToMetadata(input.name),
                     api_url: stringToMetadata(input.api_url),
                     description: stringToMetadata(input.description),
@@ -138,10 +136,10 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                     capability: { name: stringToMetadata(input.capability.name), version: stringToMetadata(input.capability.version) },
                     requests_per_hour: stringToMetadata(input.requests_per_hour),
                     pricing: input.pricing.map(pricing => ({
-                        asset_id: pricing.asset_id,
-                        policy_id: pricing.policy_id,
+                        unit: stringToMetadata(pricing.unit),
                         quantity: pricing.quantity,
                     })),
+                    metadata_version: "1"
                 },
             },
         });

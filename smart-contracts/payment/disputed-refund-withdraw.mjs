@@ -149,11 +149,7 @@ const txHash = await wallet1.submitTx(signedTx);
 console.log(`Created dispute transaction:
     Tx ID: ${txHash}
     View (after a bit) on https://${
-      network === 'preview'
-        ? 'preview.'
-        : network === 'preprod'
-          ? 'preprod.'
-          : ''
+      network === 'preprod' ? 'preprod.' : ''
     }cardanoscan.io/transaction/${txHash}
     Address: ${resolvePlutusScriptAddress(script, 0)}
 `);

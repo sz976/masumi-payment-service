@@ -118,11 +118,7 @@ const txHash = await wallet.submitTx(signedTx);
 console.log(`Minted 1 asset with the contract at:
     Tx ID: ${txHash}
     View (after a bit) on https://${
-      network === 'preview'
-        ? 'preview.'
-        : network === 'preprod'
-          ? 'preprod.'
-          : ''
+      network === 'preprod' ? 'preprod.' : ''
     }cardanoscan.io/transaction/${txHash}
     AssetName: ${assetName}
     PolicyId: ${policyId}

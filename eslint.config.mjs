@@ -8,6 +8,11 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['**/node_modules/**', 'dist/*', 'smart-contracts/*'],
+    ignores: [
+      '**/node_modules/**',
+      'dist/*',
+      'smart-contracts/*',
+      'frontend/*',
+    ],
   },
 ];
