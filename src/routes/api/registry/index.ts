@@ -30,12 +30,15 @@ export const registerAgentSchemaInput = z.object({
 export const registerAgentSchemaOutput = z.object({
     txHash: z.string(),
 });
-
+function getLovelace(assets: { unit: string; quantity: string }[]) {
+    return parseInt(assets.find(asset => asset.unit === "lovelace" || asset.unit === "")?.quantity ?? "0");
+}
 export const registerAgentPost = payAuthenticatedEndpointFactory.build({
     method: "post",
     input: registerAgentSchemaInput,
     output: registerAgentSchemaOutput,
     handler: async ({ input, logger }) => {
+
         logger.info("Registering Agent", input.paymentTypes);
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
@@ -81,10 +84,12 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         const { script, policyId, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
 
 
-        const utxos = await wallet.getUtxos();
+        let utxos = await wallet.getUtxos();
         if (utxos.length === 0) {
             throw new Error('No UTXOs found for the wallet');
         }
+
+        utxos = utxos.sort((a, b) => getLovelace(b.output.amount) - getLovelace(a.output.amount));
 
         const firstUtxo = utxos[0];
 
@@ -150,18 +155,26 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         //build the transaction
         const unsignedTx = await tx.build();
         const signedTx = await wallet.signTx(unsignedTx, true);
-        //submit the transaction to the blockchain, it can take a bit until the transaction is confirmed and found on the explorer
-        const txHash = await wallet.submitTx(signedTx);
+        try {
 
-        logger.info(`Minted 1 asset with the contract at:
+            //submit the transaction to the blockchain, it can take a bit until the transaction is confirmed and found on the explorer
+            const txHash = await wallet.submitTx(signedTx);
+
+            logger.info(`Minted 1 asset with the contract at:
             Tx ID: ${txHash}
             AssetName: ${assetName}
             PolicyId: ${policyId}
             AssetId: ${policyId + assetName}
             Smart Contract Address: ${smartContractAddress}
         `);
+            return { txHash }
+        } catch (error) {
+            if (error instanceof Error) {
+                throw createHttpError(500, error.message)
+            }
+            throw createHttpError(500, "Failed to register agent")
+        }
 
-        return { txHash }
     },
 });
 
@@ -232,6 +245,8 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         if (utxos.length === 0) {
             throw new Error('No UTXOs found for the wallet');
         }
+
+
 
         //configure the asset to be burned here
         const assetName = input.assetName;
