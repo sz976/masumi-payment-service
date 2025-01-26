@@ -22,9 +22,8 @@ export const registerAgentSchemaInput = z.object({
     capability: z.object({ name: z.string().max(250), version: z.string().max(250) }).describe("Provide information about the used AI model and version"),
     requests_per_hour: z.string().max(250).describe("The request the agent can handle per hour"),
     pricing: z.array(z.object({
-        asset_id: z.string().max(62),
-        policy_id: z.string().max(62),
-        quantity: z.string().max(20),
+        unit: z.string().max(250),
+        quantity: z.string().max(55),
     })).max(5).describe("Price for a default interaction"),
 })
 
@@ -123,6 +122,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             .mintingScript(script.code)
             .mintRedeemerValue(redeemer.data, 'Mesh');
 
+
         //setup the metadata
         tx.setMetadata(721, {
             [policyId]: {
@@ -136,10 +136,10 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                     capability: { name: stringToMetadata(input.capability.name), version: stringToMetadata(input.capability.version) },
                     requests_per_hour: stringToMetadata(input.requests_per_hour),
                     pricing: input.pricing.map(pricing => ({
-                        asset_id: pricing.asset_id,
-                        policy_id: pricing.policy_id,
+                        unit: stringToMetadata(pricing.unit),
                         quantity: pricing.quantity,
                     })),
+                    metadata_version: "1"
                 },
             },
         });

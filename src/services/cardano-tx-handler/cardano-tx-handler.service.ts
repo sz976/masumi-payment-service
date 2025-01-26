@@ -63,7 +63,7 @@ export async function checkLatestTransactions() {
                 let latestIdentifier = networkCheck.lastIdentifierChecked;
                 const blockfrost = new BlockFrostAPI({
                     projectId: networkCheck.rpcProviderApiKey,
-                    network: networkCheck.network == $Enums.Network.MAINNET ? "mainnet" : networkCheck.network == $Enums.Network.PREVIEW ? "preview" : "preprod"
+                    network: networkCheck.network == $Enums.Network.MAINNET ? "mainnet" : "preprod"
                 });
 
                 let latestTx = await blockfrost.addressesTransactions(networkCheck.paymentContractAddress, { count: 25, page: networkCheck.lastPageChecked })

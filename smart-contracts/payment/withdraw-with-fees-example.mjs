@@ -158,11 +158,7 @@ const txHash = await wallet.submitTx(signedTx);
 console.log(`Created withdrawal transaction:
     Tx ID: ${txHash}
     View (after a bit) on https://${
-      network === 'preview'
-        ? 'preview.'
-        : network === 'preprod'
-          ? 'preprod.'
-          : ''
+      network === 'preprod' ? 'preprod.' : ''
     }cardanoscan.io/transaction/${txHash}
     Address: ${resolvePlutusScriptAddress(script, 0)}
 `);

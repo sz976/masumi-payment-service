@@ -65,7 +65,7 @@ export async function batchLatestPaymentEntriesV1() {
         }, { isolationLevel: "Serializable" });
 
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
-            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
             if (!network)
                 throw new Error("Invalid network")
 

@@ -37,7 +37,7 @@ export const seed = async (prisma: PrismaClient) => {
   }
   if (!collectionWalletAddress) {
     const sellingWallet = new MeshWallet({
-      networkId: registryNetwork === "preprod" ? 0 : registryNetwork === "preview" ? 0 : 1,
+      networkId: registryNetwork === "preprod" ? 0 : 1,
       key: {
         type: 'mnemonic',
         words: sellingWalletMnemonic.split(" "),
@@ -100,18 +100,18 @@ export const seed = async (prisma: PrismaClient) => {
       ]),
       version: "V3"
     };
-    const smartContractAddress = resolvePlutusScriptAddress(script, registryNetwork === "preprod" ? 0 : registryNetwork === "preview" ? 0 : 1,)
+    const smartContractAddress = resolvePlutusScriptAddress(script, registryNetwork === "preprod" ? 0 : 1,)
 
     try {
       const purchasingWallet = new MeshWallet({
-        networkId: registryNetwork === "preprod" ? 0 : registryNetwork === "preview" ? 0 : 1,
+        networkId: registryNetwork === "preprod" ? 0 : 1,
         key: {
           type: 'mnemonic',
           words: purchaseWalletMnemonic.split(" "),
         },
       });
       const sellingWallet = new MeshWallet({
-        networkId: registryNetwork === "preprod" ? 0 : registryNetwork === "preview" ? 0 : 1,
+        networkId: registryNetwork === "preprod" ? 0 : 1,
         key: {
           type: 'mnemonic',
           words: sellingWalletMnemonic.split(" "),
@@ -120,7 +120,7 @@ export const seed = async (prisma: PrismaClient) => {
       await prisma.networkHandler.create({
         data: {
           paymentContractAddress: smartContractAddress,
-          network: registryNetwork === "preprod" ? Network.PREPROD : registryNetwork === "preview" ? Network.PREVIEW : Network.MAINNET,
+          network: registryNetwork === "preprod" ? Network.PREPROD : Network.MAINNET,
           rpcProviderApiKey: blockfrostApiKey,
           paymentType: PaymentType.WEB3_CARDANO_V1,
           isSyncing: true,
