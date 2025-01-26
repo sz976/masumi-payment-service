@@ -15,8 +15,6 @@ export const registerAgentSchemaInput = z.object({
     paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
     tags: z.array(z.string().max(250)).max(5).describe("Tags used in the registry metadata"),
-    image: z.string().max(62),
-    //name can be freely chosen
     name: z.string().max(250).describe("Name of the agent"),
     api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
     description: z.string().max(250).describe("Description of the agent"),
@@ -130,7 +128,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             [policyId]: {
                 [assetName]: {
                     tags: [input.tags.map(tag => stringToMetadata(tag))],
-                    image: input.image,
+                    image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
                     name: stringToMetadata(input.name),
                     api_url: stringToMetadata(input.api_url),
                     description: stringToMetadata(input.description),
