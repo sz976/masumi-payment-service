@@ -14,17 +14,27 @@ export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
     paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
-    tags: z.array(z.string().max(250)).max(5).describe("Tags used in the registry metadata"),
+    tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
     name: z.string().max(250).describe("Name of the agent"),
     api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
     description: z.string().max(250).describe("Description of the agent"),
-    company_name: z.string().max(250).describe("The company running the agent"),
     capability: z.object({ name: z.string().max(250), version: z.string().max(250) }).describe("Provide information about the used AI model and version"),
     requests_per_hour: z.string().max(250).describe("The request the agent can handle per hour"),
     pricing: z.array(z.object({
         unit: z.string().max(250),
         quantity: z.string().max(55),
     })).max(5).describe("Price for a default interaction"),
+    legal: z.object({
+        privacy_policy: z.string().max(250),
+        terms: z.string().max(250),
+        other: z.string().max(250),
+    }).optional().describe("Legal information about the agent"),
+    author: z.object({
+        name: z.string().max(250),
+        contact: z.string().max(250).optional(),
+        organization: z.string().max(250).optional(),
+    }).describe("Author information about the agent"),
+
 })
 
 export const registerAgentSchemaOutput = z.object({
@@ -36,6 +46,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
     input: registerAgentSchemaInput,
     output: registerAgentSchemaOutput,
     handler: async ({ input, logger }) => {
+
         logger.info("Registering Agent", input.paymentTypes);
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
@@ -86,7 +97,28 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             throw new Error('No UTXOs found for the wallet');
         }
 
+        /*const filteredUtxos = utxos.findIndex((a) => getLovelace(a.output.amount) > 0 && a.output.amount.length == 1);
+        if (filteredUtxos == -1) {
+            const tx = new Transaction({ initiator: wallet }).setTxInputs(utxos);
+
+            tx.isCollateralNeeded = false;
+
+            tx.sendLovelace(address, "5000000")
+            //sign the transaction with our address
+            tx.setChangeAddress(address).setRequiredSigners([address]);
+            //build the transaction
+            const unsignedTx = await tx.build();
+            const signedTx = await wallet.signTx(unsignedTx, true);
+            try {
+                const txHash = await wallet.submitTx(signedTx);
+                throw createHttpError(429, "Defrag error, try again later. Defrag via : " + txHash);
+            } catch (error: unknown) {
+                logger.error("Defrag failed with error", error)
+                throw createHttpError(429, "Defrag error, try again later. Defrag failed with error");
+            }
+        }*/
         const firstUtxo = utxos[0];
+        //utxos = utxos.filter((_, index) => index !== filteredUtxos);
 
         const txId = firstUtxo.input.txHash;
         const txIndex = firstUtxo.input.outputIndex;
@@ -127,45 +159,79 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         tx.setMetadata(721, {
             [policyId]: {
                 [assetName]: {
-                    tags: [input.tags.map(tag => stringToMetadata(tag))],
-                    image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
+
                     name: stringToMetadata(input.name),
-                    api_url: stringToMetadata(input.api_url),
                     description: stringToMetadata(input.description),
-                    company_name: stringToMetadata(input.company_name),
-                    capability: { name: stringToMetadata(input.capability.name), version: stringToMetadata(input.capability.version) },
+                    api_url: stringToMetadata(input.api_url),
+                    example_output: stringToMetadata(input.example_output),
+                    capability: input.capability ? {
+                        name: stringToMetadata(input.capability.name),
+                        version: stringToMetadata(input.capability.version)
+                    } : undefined,
                     requests_per_hour: stringToMetadata(input.requests_per_hour),
+                    author: {
+                        name: stringToMetadata(input.author.name),
+                        contact: input.author.contact ? stringToMetadata(input.author.contact) : undefined,
+                        organization: input.author.organization ? stringToMetadata(input.author.organization) : undefined
+                    },
+                    legal: input.legal ? {
+                        privacy_policy: input.legal?.privacy_policy ? stringToMetadata(input.legal.privacy_policy) : undefined,
+                        terms: input.legal?.terms ? stringToMetadata(input.legal.terms) : undefined,
+                        other: input.legal?.other ? stringToMetadata(input.legal.other) : undefined
+                    } : undefined,
+                    tags: input.tags,
                     pricing: input.pricing.map(pricing => ({
                         unit: stringToMetadata(pricing.unit),
                         quantity: pricing.quantity,
                     })),
+                    image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
                     metadata_version: "1"
+
                 },
             },
         });
         //send the minted asset to the address where we want to receive payments
         tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
+        tx.sendLovelace(address, "5000000")
         //sign the transaction with our address
         tx.setChangeAddress(address).setRequiredSigners([address]);
         //build the transaction
         const unsignedTx = await tx.build();
         const signedTx = await wallet.signTx(unsignedTx, true);
-        //submit the transaction to the blockchain, it can take a bit until the transaction is confirmed and found on the explorer
-        const txHash = await wallet.submitTx(signedTx);
+        try {
 
-        logger.info(`Minted 1 asset with the contract at:
+            //submit the transaction to the blockchain, it can take a bit until the transaction is confirmed and found on the explorer
+            const txHash = await wallet.submitTx(signedTx);
+            logger.info(`Minted 1 asset with the contract at:
             Tx ID: ${txHash}
             AssetName: ${assetName}
             PolicyId: ${policyId}
             AssetId: ${policyId + assetName}
             Smart Contract Address: ${smartContractAddress}
         `);
+            return { txHash }
+        } catch (error: unknown) {
+            if (extractErrorMessage(error).includes("ValueNotConservedUTxO")) {
+                // too many requests
+                throw createHttpError(429, "Too many requests");
+            }
 
-        return { txHash }
+            throw createHttpError(500, "Failed to register agent");
+        }
+
     },
 });
+function extractErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return String(error);
+}
 
-function stringToMetadata(s: string) {
+function stringToMetadata(s: string | undefined) {
+    if (s == undefined) {
+        return undefined
+    }
     //split every 50 characters
     const arr = []
     for (let i = 0; i < s.length; i += 50) {
@@ -232,6 +298,8 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         if (utxos.length === 0) {
             throw new Error('No UTXOs found for the wallet');
         }
+
+
 
         //configure the asset to be burned here
         const assetName = input.assetName;

@@ -25,6 +25,9 @@
     "paths": {
         "/health/": {
             "get": {
+                "tags": [
+                    "health"
+                ],
                 "summary": "Get the status of the API server",
                 "responses": {
                     "200": {
@@ -222,7 +225,6 @@
                                                     "network": {
                                                         "type": "string",
                                                         "enum": [
-                                                            "PREVIEW",
                                                             "PREPROD",
                                                             "MAINNET"
                                                         ]
@@ -247,8 +249,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-20T12:05:44.048Z",
-                                                "updatedAt": "2025-01-20T12:05:44.048Z"
+                                                "createdAt": "2025-01-26T23:20:24.453Z",
+                                                "updatedAt": "2025-01-26T23:20:24.453Z"
                                             }
                                         ]
                                     }
@@ -400,8 +402,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-01-20T12:05:44.048Z",
-                                                "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                "createdAt": "2025-01-26T23:20:24.453Z",
+                                                "updatedAt": "2025-01-26T23:20:24.453Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -433,7 +435,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -1073,7 +1074,6 @@
                         "schema": {
                             "type": "string",
                             "enum": [
-                                "PREVIEW",
                                 "PREPROD",
                                 "MAINNET"
                             ],
@@ -1243,7 +1243,6 @@
                                                                     "network": {
                                                                         "type": "string",
                                                                         "enum": [
-                                                                            "PREVIEW",
                                                                             "PREPROD",
                                                                             "MAINNET"
                                                                         ]
@@ -1298,8 +1297,8 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-20T12:05:44.048Z",
-                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                    "createdAt": "2025-01-26T23:20:24.454Z",
+                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1319,8 +1318,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1371,7 +1370,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -1561,8 +1559,8 @@
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
                                             "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1602,7 +1600,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -1697,8 +1694,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1746,25 +1743,23 @@
                     },
                     {
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "identifier": {
-                                    "type": "string",
-                                    "maxLength": 250
-                                },
-                                "sellingWalletVkey": {
-                                    "type": "string",
-                                    "maxLength": 250
-                                }
-                            },
-                            "required": [
-                                "identifier",
-                                "sellingWalletVkey"
-                            ],
-                            "description": "Used to paginate through the purchases"
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "Used to paginate through the purchases. If this is provided, cursorIdentifier is required"
                         },
                         "required": false,
-                        "description": "Used to paginate through the purchases",
+                        "description": "Used to paginate through the purchases. If this is provided, cursorIdentifier is required",
+                        "name": "cursorIdentifierSellingWalletVkey",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"
+                        },
+                        "required": false,
+                        "description": "Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required",
                         "name": "cursorIdentifier",
                         "in": "query"
                     },
@@ -1772,7 +1767,6 @@
                         "schema": {
                             "type": "string",
                             "enum": [
-                                "PREVIEW",
                                 "PREPROD",
                                 "MAINNET"
                             ],
@@ -1948,7 +1942,6 @@
                                                                     "network": {
                                                                         "type": "string",
                                                                         "enum": [
-                                                                            "PREVIEW",
                                                                             "PREPROD",
                                                                             "MAINNET"
                                                                         ]
@@ -2003,8 +1996,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-20T12:05:44.048Z",
-                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                    "createdAt": "2025-01-26T23:20:24.454Z",
+                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -2021,8 +2014,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -2082,7 +2075,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -2267,8 +2259,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2313,7 +2305,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -2410,7 +2401,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -2430,14 +2420,11 @@
                                         "type": "array",
                                         "items": {
                                             "type": "string",
-                                            "maxLength": 250
+                                            "maxLength": 63
                                         },
-                                        "maxItems": 5,
+                                        "minItems": 1,
+                                        "maxItems": 15,
                                         "description": "Tags used in the registry metadata"
-                                    },
-                                    "image": {
-                                        "type": "string",
-                                        "maxLength": 62
                                     },
                                     "name": {
                                         "type": "string",
@@ -2453,11 +2440,6 @@
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "Description of the agent"
-                                    },
-                                    "company_name": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The company running the agent"
                                     },
                                     "capability": {
                                         "type": "object",
@@ -2487,41 +2469,79 @@
                                         "items": {
                                             "type": "object",
                                             "properties": {
-                                                "asset_id": {
+                                                "unit": {
                                                     "type": "string",
-                                                    "maxLength": 62
-                                                },
-                                                "policy_id": {
-                                                    "type": "string",
-                                                    "maxLength": 62
+                                                    "maxLength": 250
                                                 },
                                                 "quantity": {
                                                     "type": "string",
-                                                    "maxLength": 20
+                                                    "maxLength": 55
                                                 }
                                             },
                                             "required": [
-                                                "asset_id",
-                                                "policy_id",
+                                                "unit",
                                                 "quantity"
                                             ]
                                         },
                                         "maxItems": 5,
                                         "description": "Price for a default interaction"
+                                    },
+                                    "legal": {
+                                        "type": "object",
+                                        "properties": {
+                                            "privacy_policy": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            },
+                                            "terms": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            },
+                                            "other": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            }
+                                        },
+                                        "required": [
+                                            "privacy_policy",
+                                            "terms",
+                                            "other"
+                                        ],
+                                        "description": "Legal information about the agent"
+                                    },
+                                    "author": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            },
+                                            "contact": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            },
+                                            "organization": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            }
+                                        },
+                                        "required": [
+                                            "name"
+                                        ],
+                                        "description": "Author information about the agent"
                                     }
                                 },
                                 "required": [
                                     "network",
                                     "paymentContractAddress",
                                     "tags",
-                                    "image",
                                     "name",
                                     "api_url",
                                     "description",
-                                    "company_name",
                                     "capability",
                                     "requests_per_hour",
-                                    "pricing"
+                                    "pricing",
+                                    "author"
                                 ],
                                 "example": {
                                     "network": "PREPROD",
@@ -2530,11 +2550,20 @@
                                         "tag1",
                                         "tag2"
                                     ],
-                                    "image": "https://example.com/image.png",
                                     "name": "Agent Name",
                                     "api_url": "https://api.example.com",
                                     "description": "Agent Description",
-                                    "company_name": "Company Name",
+                                    "author": {
+                                        "name": "Author Name",
+                                        "contact": "author@example.com",
+                                        "organization": "Author Organization"
+                                    },
+                                    "legal": {
+                                        "privacy_policy": "Privacy Policy URL",
+                                        "terms": "Terms of Service URL",
+                                        "other": "Other Legal Information URL"
+                                    },
+                                    "sellingWalletVkey": "wallet_vkey",
                                     "capability": {
                                         "name": "Capability Name",
                                         "version": "1.0.0"
@@ -2542,8 +2571,7 @@
                                     "requests_per_hour": "100",
                                     "pricing": [
                                         {
-                                            "asset_id": "usdm_asset_id",
-                                            "policy_id": "usdm_policy_id",
+                                            "unit": "usdm",
                                             "quantity": "500000000"
                                         }
                                     ]
@@ -2618,7 +2646,6 @@
                         "schema": {
                             "type": "string",
                             "enum": [
-                                "PREVIEW",
                                 "PREPROD",
                                 "MAINNET"
                             ],
@@ -2750,7 +2777,6 @@
                                                             "network": {
                                                                 "type": "string",
                                                                 "enum": [
-                                                                    "PREVIEW",
                                                                     "PREPROD",
                                                                     "MAINNET"
                                                                 ]
@@ -2928,15 +2954,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-20T12:05:44.048Z",
-                                                    "updatedAt": "2025-01-20T12:05:44.048Z",
+                                                    "createdAt": "2025-01-26T23:20:24.454Z",
+                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                                    "lastCheckedAt": "2025-01-26T23:20:24.454Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3008,7 +3034,6 @@
                                     "network": {
                                         "type": "string",
                                         "enum": [
-                                            "PREVIEW",
                                             "PREPROD",
                                             "MAINNET"
                                         ],
@@ -3206,7 +3231,6 @@
                                                 "network": {
                                                     "type": "string",
                                                     "enum": [
-                                                        "PREVIEW",
                                                         "PREPROD",
                                                         "MAINNET"
                                                     ]
@@ -3261,15 +3285,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                            "lastCheckedAt": "2025-01-26T23:20:24.454Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -3481,7 +3505,6 @@
                                                 "network": {
                                                     "type": "string",
                                                     "enum": [
-                                                        "PREVIEW",
                                                         "PREPROD",
                                                         "MAINNET"
                                                     ]
@@ -3537,13 +3560,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-20T12:05:44.048Z",
-                                            "updatedAt": "2025-01-20T12:05:44.048Z",
+                                            "createdAt": "2025-01-26T23:20:24.454Z",
+                                            "updatedAt": "2025-01-26T23:20:24.454Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-20T12:05:44.048Z",
+                                            "lastCheckedAt": "2025-01-26T23:20:24.454Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -3609,6 +3632,179 @@
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated"
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/utxos/": {
+            "get": {
+                "description": "Gets UTXOs (internal)",
+                "summary": "REQUIRES API KEY Authentication (+READ)",
+                "tags": [
+                    "utxos"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 150,
+                            "description": "The address to get the UTXOs for"
+                        },
+                        "required": true,
+                        "description": "The address to get the UTXOs for",
+                        "name": "address",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PREPROD",
+                                "MAINNET"
+                            ]
+                        },
+                        "required": true,
+                        "name": "network",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 10,
+                            "description": "The number of UTXOs to get"
+                        },
+                        "required": false,
+                        "description": "The number of UTXOs to get",
+                        "name": "count",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 1,
+                            "description": "The page number to get"
+                        },
+                        "required": false,
+                        "description": "The page number to get",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "default": "desc",
+                            "description": "The order to get the UTXOs in"
+                        },
+                        "required": false,
+                        "description": "The order to get the UTXOs in",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "UTXOs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "utxos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "txHash": {
+                                                        "type": "string"
+                                                    },
+                                                    "address": {
+                                                        "type": "string"
+                                                    },
+                                                    "amount": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "unit": {
+                                                                    "type": "string"
+                                                                },
+                                                                "quantity": {
+                                                                    "type": "integer",
+                                                                    "nullable": true,
+                                                                    "minimum": 0,
+                                                                    "maximum": 10000000000
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "unit",
+                                                                "quantity"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "data_hash": {
+                                                        "type": "string"
+                                                    },
+                                                    "inline_datum": {
+                                                        "type": "string"
+                                                    },
+                                                    "reference_script_hash": {
+                                                        "type": "string"
+                                                    },
+                                                    "output_index": {
+                                                        "type": "integer",
+                                                        "nullable": true,
+                                                        "minimum": 0,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    "block": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "txHash",
+                                                    "address",
+                                                    "amount",
+                                                    "output_index",
+                                                    "block"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "utxos"
+                                    ],
+                                    "example": {
+                                        "utxos": [
+                                            {
+                                                "txHash": "tx_hash",
+                                                "address": "addr1qx2ej34k567890",
+                                                "amount": [
+                                                    {
+                                                        "unit": "unit",
+                                                        "quantity": 1000000
+                                                    }
+                                                ],
+                                                "output_index": 1,
+                                                "block": "1"
+                                            }
+                                        ]
                                     }
                                 }
                             }
