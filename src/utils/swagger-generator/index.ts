@@ -768,12 +768,21 @@ export function generateOpenAPI() {
             schema: registerAgentSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                paymentContractAddress: "addr_test1...",
+                paymentContractAddress: "addr_test1",
                 tags: ["tag1", "tag2"],
                 name: "Agent Name",
                 api_url: "https://api.example.com",
                 description: "Agent Description",
-                company_name: "Company Name",
+                author: {
+                  name: "Author Name",
+                  contact: "author@example.com",
+                  organization: "Author Organization"
+                },
+                legal: {
+                  privacy_policy: "Privacy Policy URL",
+                  terms: "Terms of Service URL",
+                  other: "Other Legal Information URL"
+                },
                 sellingWalletVkey: "wallet_vkey",
                 capability: { name: "Capability Name", version: "1.0.0" },
                 requests_per_hour: "100",
