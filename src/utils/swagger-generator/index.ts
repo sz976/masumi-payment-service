@@ -71,7 +71,7 @@ export function generateOpenAPI() {
                   apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  RemainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
+                  RemainingUsageCredits: [{ unit: "lovelcae", amount: 1000000 }],
                 }
               }
             }),
@@ -191,7 +191,7 @@ export function generateOpenAPI() {
                     apiKey: "masumi_payment_api_key_secret",
                     permission: "ADMIN",
                     usageLimited: true,
-                    RemainingUsageCredits: [{ unit: "unit", amount: 1000000 }],
+                    RemainingUsageCredits: [{ unit: "lovelace", amount: 1000000 }],
                     status: "ACTIVE"
                   }]
                 }, status: "success"
@@ -226,7 +226,7 @@ export function generateOpenAPI() {
             schema: addAPIKeySchemaInput.openapi({
               example: {
                 usageLimited: "true",
-                UsageCredits: [{ unit: "unit", amount: 1000000 }],
+                UsageCredits: [{ unit: "lovelace", amount: 1000000 }],
                 permission: $Enums.Permission.ADMIN
               }
             })
@@ -282,7 +282,7 @@ export function generateOpenAPI() {
               example: {
                 id: "id_or_apiKey_unique_cuid_v2_of_entry_to_update",
                 apiKey: "id_or_apiKey_api_key_to_update",
-                UsageCredits: [{ unit: "unit", amount: 1000000 }],
+                UsageCredits: [{ unit: "lovelace", amount: 1000000 }],
                 status: $Enums.ApiKeyStatus.ACTIVE
               }
             })
@@ -450,11 +450,9 @@ export function generateOpenAPI() {
                 agentIdentifier: "agent_identifier",
                 network: $Enums.Network.PREPROD,
                 paymentContractAddress: "address",
-                amounts: [{ amount: 1000000, unit: "unit" }],
+                amounts: [{ amount: 1000000, unit: "lovelace" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                unlockTime: "2024-12-01T23:00:00.000Z",
-                submitResultTime: "2024-12-01T22:00:00.000Z",
-                refundTime: "2024-12-02T23:00:00.000Z",
+                submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
               }
             })
           }
@@ -589,7 +587,7 @@ export function generateOpenAPI() {
                     errorRequiresManualReview: false,
                     identifier: "identifier",
                     SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
-                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
+                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "lovelace" }],
                     NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
                     SellerWallet: { walletVkey: "wallet_vkey", note: "note" },
                   }],
@@ -628,11 +626,11 @@ export function generateOpenAPI() {
                 network: $Enums.Network.PREPROD,
                 sellerVkey: "seller_vkey",
                 paymentContractAddress: "address",
-                amounts: [{ amount: 1000000, unit: "unit" }],
+                amounts: [{ amount: 1000000, unit: "lovelace" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                unlockTime: "2024-12-01T23:00:00.000Z",
-                refundTime: "2024-12-02T23:00:00.000Z",
-                submitResultTime: "2024-12-01T22:00:00.000Z",
+                submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+                unlockTime: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+                refundTime: new Date(Date.now() + 1000 * 60 * 60 * 36).toISOString(),
               }
             })
           }
@@ -1031,7 +1029,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: getUTXOSchemaOutput.openapi({
               example: {
-                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "unit", quantity: 1000000 }], output_index: 1, block: "1" }]
+                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "lovelace", quantity: 1000000 }], output_index: 1, block: "1" }]
               }
             }),
           },
