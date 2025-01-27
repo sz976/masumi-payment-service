@@ -92,7 +92,6 @@ export const createPaymentsSchemaInput = z.object({
 })
 
 export const createPaymentSchemaOutput = z.object({
-    id: z.string(),
     identifier: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),

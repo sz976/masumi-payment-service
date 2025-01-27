@@ -15,6 +15,7 @@ import { getAPIKeyStatusSchemaOutput, } from '@/routes/api/api-key-status';
 import { getWalletSchemaInput, getWalletSchemaOutput, postWalletSchemaInput, postWalletSchemaOutput } from '@/routes/api/wallet';
 import { getRpcProviderKeysSchemaInput, getRpcProviderKeysSchemaOutput } from '@/routes/api/rpc-api-keys';
 import { getUTXOSchemaInput, getUTXOSchemaOutput } from '@/routes/api/utxos';
+import { paymentContractSchemaInput, paymentContractSchemaOutput } from '@/routes/api/payment-contract';
 
 extendZodWithOpenApi(z);
 
@@ -469,7 +470,6 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique_cuid_v2_auto_generated",
                   identifier: "agent_identifier_unique_cuid_v2_auto_generated",
                   createdAt: new Date(),
                   updatedAt: new Date(),
@@ -802,6 +802,57 @@ export function generateOpenAPI() {
           'application/json': {
             schema: z.object({ status: z.string(), data: unregisterAgentSchemaOutput }).openapi({
               example: { status: "success", data: { txHash: "tx_hash" } }
+            })
+          }
+        }
+      }
+    }
+  })
+
+  /********************* PAYMENT CONTRACT *****************************/
+  registry.registerPath({
+    method: 'get',
+    path: '/payment-contract/',
+    description: 'Gets the payment contract.',
+    summary: 'REQUIRES API KEY Authentication (+READ)',
+    tags: ['payment-contract',],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: paymentContractSchemaInput.openapi({
+        example: {
+          take: 10,
+          cursorId: "cursor_id"
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: 'Payment source status',
+        content: {
+          'application/json': {
+            schema: z.object({ status: z.string(), data: paymentContractSchemaOutput }).openapi({
+              example: {
+                status: "success",
+                data: {
+                  paymentSources: [{
+                    id: "unique_cuid_v2_auto_generated",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    network: $Enums.Network.PREPROD,
+                    paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
+                    paymentContractAddress: "address_of_the_smart_contract",
+                    lastPageChecked: 1,
+                    lastCheckedAt: new Date(),
+                    lastIdentifierChecked: null,
+                    AdminWallets: [{ walletAddress: "wallet_address", order: 0 }, { walletAddress: "wallet_address", order: 1 }, { walletAddress: "wallet_address", order: 2 }],
+                    CollectionWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", note: "note" },
+                    PurchasingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    SellingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
+                    feePermille: 50
+                  }]
+                }
+              }
             })
           }
         }

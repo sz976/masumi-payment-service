@@ -9,6 +9,7 @@ import { queryAPIKeyStatusEndpointGet } from "./api-key-status";
 import { postWalletEndpointPost, queryWalletEndpointGet } from "./wallet";
 import { queryRpcProviderKeysEndpointGet } from "./rpc-api-keys";
 import { queryUTXOEndpointGet } from "./utxos";
+import { paymentContractEndpointGet } from "./payment-contract";
 
 export const apiRouter: Routing = {
     v1: {
@@ -51,6 +52,9 @@ export const apiRouter: Routing = {
         }),
         "utxos": new DependsOnMethod({
             get: queryUTXOEndpointGet,
+        }),
+        "payment-contract": new DependsOnMethod({
+            get: paymentContractEndpointGet,
         }),
     }
 }
