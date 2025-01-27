@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import express from 'express';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
 import cron from 'node-cron';
@@ -18,7 +19,7 @@ import cuid2, { createId } from '@paralleldrive/cuid2';
 import { blake2b } from 'ethereum-cryptography/blake2b.js';
 import ui from 'swagger-ui-express';
 import { extendZodWithOpenApi, OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
-import { getBlockfrostKeysSchemaInput, getBlockfrostKeysSchemaOutput as getBlockfrostKeysSchemaOutput$1 } from '@/routes/api/blockfrost-keys';
+import path from 'path';
 
 dotenv.config();
 if (process.env.DATABASE_URL == null)
@@ -129,7 +130,7 @@ async function checkLatestTransactions() {
         let latestIdentifier = networkCheck.lastIdentifierChecked;
         const blockfrost = new BlockFrostAPI({
           projectId: networkCheck.rpcProviderApiKey,
-          network: networkCheck.network == $Enums.Network.MAINNET ? "mainnet" : networkCheck.network == $Enums.Network.PREVIEW ? "preview" : "preprod"
+          network: networkCheck.network == $Enums.Network.MAINNET ? "mainnet" : "preprod"
         });
         let latestTx = await blockfrost.addressesTransactions(networkCheck.paymentContractAddress, { count: 25, page: networkCheck.lastPageChecked });
         while (latestTx.length > 0) {
@@ -527,7 +528,7 @@ function decrypt(secretEncrypted) {
   const key = scryptSync(password, salt, 32);
   const encryptedData = secret.subarray(32);
   const decryptionCipher = createDecipheriv("aes-256-cbc", key, iv);
-  return decryptionCipher.update(encryptedData, undefined, "utf8") + decryptionCipher.final("utf8");
+  return decryptionCipher.update(encryptedData, void 0, "utf8") + decryptionCipher.final("utf8");
 }
 function encrypt(secret) {
   const salt = randomBytes(16);
@@ -590,7 +591,7 @@ async function batchLatestPaymentEntriesV1() {
       return networkChecks;
     }, { isolationLevel: "Serializable" });
     await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
-      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
       if (!network)
         throw new Error("Invalid network");
       const blockchainHandler = new BlockfrostProvider(networkCheck.rpcProviderApiKey, 0);
@@ -1302,10 +1303,10 @@ async function collectOutstandingPaymentsV1() {
     await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
       if (networkCheck.PaymentRequests.length == 0 || networkCheck.CollectionWallet == null)
         return;
-      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
       if (!network)
         throw new Error("Invalid network");
-      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : networkCheck.network == "PREVIEW" ? 2 : null;
+      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
       if (!networkId)
         throw new Error("Invalid network");
       const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, void 0);
@@ -1461,7 +1462,7 @@ async function collectOutstandingPaymentsV1() {
           });
           logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
-                  View (after a bit) on https://${network === "preview" ? "preview." : network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
+                  View (after a bit) on https://${network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);
         } catch (error) {
@@ -1541,10 +1542,10 @@ async function collectRefundV1() {
     await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
       if (networkCheck.PurchaseRequests.length == 0 || networkCheck.CollectionWallet == null)
         return;
-      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
       if (!network)
         throw new Error("Invalid network");
-      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : networkCheck.network == "PREVIEW" ? 2 : null;
+      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
       if (!networkId)
         throw new Error("Invalid network");
       const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, void 0);
@@ -1628,7 +1629,7 @@ async function collectRefundV1() {
           });
           logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
-                  View (after a bit) on https://${network === "preview" ? "preview." : network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
+                  View (after a bit) on https://${network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);
         } catch (error) {
@@ -1701,10 +1702,10 @@ async function submitResultV1() {
     await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
       if (networkCheck.PaymentRequests.length == 0 || networkCheck.CollectionWallet == null)
         return;
-      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
       if (!network)
         throw new Error("Invalid network");
-      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : networkCheck.network == "PREVIEW" ? 2 : null;
+      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
       if (!networkId)
         throw new Error("Invalid network");
       const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, void 0);
@@ -1813,7 +1814,7 @@ async function submitResultV1() {
           });
           logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
-                  View (after a bit) on https://${network === "preview" ? "preview." : network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
+                  View (after a bit) on https://${network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);
         } catch (error) {
@@ -2042,10 +2043,10 @@ async function collectTimeoutRefundsV1() {
     await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
       if (networkCheck.PurchaseRequests.length == 0 || networkCheck.CollectionWallet == null)
         return;
-      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : networkCheck.network == "PREVIEW" ? "preview" : null;
+      const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
       if (!network)
         throw new Error("Invalid network");
-      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : networkCheck.network == "PREVIEW" ? 2 : null;
+      const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
       if (!networkId)
         throw new Error("Invalid network");
       const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, void 0);
@@ -2130,7 +2131,7 @@ async function collectTimeoutRefundsV1() {
           });
           logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
-                  View (after a bit) on https://${network === "preview" ? "preview." : network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
+                  View (after a bit) on https://${network === "preprod" ? "preprod." : ""}cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);
         } catch (error) {
@@ -2249,7 +2250,7 @@ const authMiddleware = (minPermission) => new Middleware({
     if (!apiKey) {
       throw createHttpError(401, "Invalid token");
     }
-    if (apiKey.status !== $Enums.APIKeyStatus.ACTIVE) {
+    if (apiKey.status !== $Enums.ApiKeyStatus.ACTIVE) {
       throw createHttpError(401, "API key is revoked");
     }
     if (minPermission == $Enums.Permission.ADMIN && apiKey.permission != $Enums.Permission.ADMIN) {
@@ -2285,7 +2286,7 @@ const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
   input: getAPIKeySchemaInput,
   output: getAPIKeySchemaOutput,
   handler: async ({ input }) => {
-    const result = await prisma.apiKey.findMany({ where: {}, cursor: input.cursorApiKey ? { apiKey: input.cursorApiKey } : undefined, take: input.limit, include: { RemainingUsageCredits: true } });
+    const result = await prisma.apiKey.findMany({ where: {}, cursor: input.cursorApiKey ? { apiKey: input.cursorApiKey } : void 0, take: input.limit, include: { RemainingUsageCredits: true } });
     return { apiKeys: result.map((data) => {
       return { ...data, RemainingUsageCredits: data.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) };
     }) };
@@ -2493,7 +2494,8 @@ const tokenCreditService = { handlePurchaseCreditInit };
 
 const queryPurchaseRequestSchemaInput = z.object({
   limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
-  cursorIdentifier: z.object({ identifier: z.string().max(250), sellingWalletVkey: z.string().max(250) }).optional().describe("Used to paginate through the purchases"),
+  cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
+  cursorIdentifier: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"),
   network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
   paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchases were made to")
 });
@@ -2520,17 +2522,17 @@ const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
   output: queryPurchaseRequestSchemaOutput,
   handler: async ({ input, logger }) => {
     logger.info("Querying registry");
-    const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.contractAddress } } });
+    const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } } });
     if (networkHandler == null) {
       throw createHttpError(404, "Network handler not found");
     }
-    let cursor = undefined;
-    if (input.cursorIdentifier) {
-      const sellerWallet = await prisma.sellerWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifier.sellingWalletVkey } } });
+    let cursor = void 0;
+    if (input.cursorIdentifierSellingWalletVkey && input.cursorIdentifier) {
+      const sellerWallet = await prisma.sellerWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifierSellingWalletVkey } } });
       if (sellerWallet == null) {
         throw createHttpError(404, "Selling wallet not found");
       }
-      cursor = { networkHandlerId_identifier_sellerWalletId: { networkHandlerId: networkHandler.id, identifier: input.cursorIdentifier.identifier, sellerWalletId: sellerWallet.id } };
+      cursor = { networkHandlerId_identifier_sellerWalletId: { networkHandlerId: networkHandler.id, identifier: input.cursorIdentifier, sellerWalletId: sellerWallet.id } };
     }
     const result = await prisma.purchaseRequest.findMany({
       where: { networkHandlerId: networkHandler.id },
@@ -2591,14 +2593,14 @@ const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     if (input.submitResultTime > new Date(input.unlockTime.getTime() + offset)) {
       throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference");
     }
-    const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map((amount) => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.contractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
+    const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map((amount) => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
     return initial;
   }
 });
 const refundPurchaseSchemaInput = z.object({
   identifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
   network: z.nativeEnum($Enums.Network).describe("The network the Cardano wallet will be used on"),
-  smartContractAddress: z.string().max(250).describe("The address of the smart contract holding the purchase")
+  paymentContractAddress: z.string().max(250).describe("The address of the smart contract holding the purchase")
 });
 const refundPurchaseSchemaOutput = z.object({
   txHash: z.string()
@@ -2611,7 +2613,7 @@ const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
     logger.info("Creating purchase", input.paymentTypes);
     const networkCheckSupported = await prisma.networkHandler.findUnique({
       where: {
-        network_paymentContractAddress: { network: input.network, paymentContractAddress: input.smartContractAddress }
+        network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress }
       },
       include: {
         FeeReceiverNetworkWallet: true,
@@ -2722,7 +2724,7 @@ const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
         fields: []
       }
     };
-    const networkType = networkCheckSupported.network == "MAINNET" ? "mainnet" : networkCheckSupported.network == "PREPROD" ? "preprod" : "preview";
+    const networkType = networkCheckSupported.network == "MAINNET" ? "mainnet" : "preprod";
     const invalidBefore = unixTimeToEnclosingSlot(Date.now() - 15e4, SLOT_CONFIG_NETWORK[networkType]) - 1;
     const invalidHereafter = unixTimeToEnclosingSlot(Date.now() + 15e4, SLOT_CONFIG_NETWORK[networkType]) + 1;
     const unsignedTx = new Transaction$1({ initiator: wallet }).setMetadata(674, {
@@ -2753,7 +2755,7 @@ const queryPaymentsSchemaInput = z.object({
   network: z.nativeEnum($Enums.Network).describe("The network the payments were made on"),
   paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the payments were made to")
 });
-const queryRegistrySchemaOutput = z.object({
+const queryPaymentsSchemaOutput = z.object({
   payments: z.array(z.object({
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -2773,7 +2775,7 @@ const queryRegistrySchemaOutput = z.object({
 const queryPaymentEntryGet = authenticatedEndpointFactory.build({
   method: "get",
   input: queryPaymentsSchemaInput,
-  output: queryRegistrySchemaOutput,
+  output: queryPaymentsSchemaOutput,
   handler: async ({ input, logger }) => {
     logger.info("Querying db");
     const networkHandler = await prisma.networkHandler.findUnique({
@@ -2796,7 +2798,7 @@ const queryPaymentEntryGet = authenticatedEndpointFactory.build({
           networkHandlerId: networkHandler.id,
           identifier: input.cursorIdentifier
         }
-      } : undefined,
+      } : void 0,
       take: input.limit,
       include: {
         BuyerWallet: true,
@@ -2816,13 +2818,12 @@ const createPaymentsSchemaInput = z.object({
   agentIdentifier: z.string().min(15).max(250).describe("The identifier of the agent that will be paid"),
   amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the payment"),
   paymentType: z.nativeEnum($Enums.PaymentType).describe("The type of payment contract used"),
-  contractAddress: z.string().max(250).describe("The address of the smart contract where the payment will be made to"),
-  submitResultTime: ez.dateIn().describe("The time after which the payment has to be submitted to the smart contract"),
-  unlockTime: ez.dateIn().describe("The time after which the payment will be unlocked"),
-  refundTime: ez.dateIn().describe("The time after which a refund will be approved")
+  paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the payment will be made to"),
+  submitResultTime: ez.dateIn().default(new Date(Date.now() + 1e3 * 60 * 60 * 12).toISOString()).describe("The time after which the payment has to be submitted to the smart contract"),
+  unlockTime: ez.dateIn().optional().describe("The time after which the payment will be unlocked"),
+  refundTime: ez.dateIn().optional().describe("The time after which a refund will be approved")
 });
 const createPaymentSchemaOutput = z.object({
-  id: z.string(),
   identifier: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -2846,10 +2847,12 @@ const paymentInitPost = authenticatedEndpointFactory.build({
     if (networkCheckSupported == null) {
       throw createHttpError(404, "Network and Address combination not supported");
     }
+    const unlockTime = input.unlockTime != void 0 ? input.unlockTime.getTime() : new Date(Date.now() + 1e3 * 60 * 60 * 12).getTime();
+    const refundTime = input.refundTime != void 0 ? input.refundTime.getTime() : new Date(Date.now() + 1e3 * 60 * 60 * 24).getTime();
     const provider = new BlockFrostAPI({
       projectId: networkCheckSupported.rpcProviderApiKey
     });
-    const { policyId } = await getRegistryScriptV1(input.contractAddress, input.network);
+    const { policyId } = await getRegistryScriptV1(input.paymentContractAddress, input.network);
     const assetInWallet = await provider.assetsAddresses(policyId + input.agentIdentifier, { order: "desc", count: 1 });
     if (assetInWallet.length == 0) {
       throw createHttpError(404, "Agent identifier not found");
@@ -2865,8 +2868,8 @@ const paymentInitPost = authenticatedEndpointFactory.build({
         Amounts: { createMany: { data: input.amounts.map((amount) => ({ amount: amount.amount, unit: amount.unit })) } },
         status: $Enums.PaymentRequestStatus.PaymentRequested,
         submitResultTime: input.submitResultTime.getTime(),
-        unlockTime: input.unlockTime.getTime(),
-        refundTime: input.refundTime.getTime()
+        unlockTime,
+        refundTime
       }
     });
     return payment;
@@ -2922,20 +2925,26 @@ const registerAgentSchemaInput = z.object({
   network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
   paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to be registered for"),
   sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
-  tags: z.array(z.string().max(250)).max(5).describe("Tags used in the registry metadata"),
-  image: z.string().max(62),
-  //name can be freely chosen
+  tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
   name: z.string().max(250).describe("Name of the agent"),
   api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
   description: z.string().max(250).describe("Description of the agent"),
-  company_name: z.string().max(250).describe("The company running the agent"),
   capability: z.object({ name: z.string().max(250), version: z.string().max(250) }).describe("Provide information about the used AI model and version"),
   requests_per_hour: z.string().max(250).describe("The request the agent can handle per hour"),
   pricing: z.array(z.object({
-    asset_id: z.string().max(62),
-    policy_id: z.string().max(62),
-    quantity: z.string().max(20)
-  })).max(5).describe("Price for a default interaction")
+    unit: z.string().max(250),
+    quantity: z.string().max(55)
+  })).max(5).describe("Price for a default interaction"),
+  legal: z.object({
+    privacy_policy: z.string().max(250),
+    terms: z.string().max(250),
+    other: z.string().max(250)
+  }).optional().describe("Legal information about the agent"),
+  author: z.object({
+    name: z.string().max(250),
+    contact: z.string().max(250).optional(),
+    organization: z.string().max(250).optional()
+  }).describe("Author information about the agent")
 });
 const registerAgentSchemaOutput = z.object({
   txHash: z.string()
@@ -3012,38 +3021,68 @@ const registerAgentPost = payAuthenticatedEndpointFactory.build({
     tx.setMetadata(721, {
       [policyId]: {
         [assetName]: {
-          tags: [input.tags.map((tag) => stringToMetadata(tag))],
-          image: input.image,
           name: stringToMetadata(input.name),
-          api_url: stringToMetadata(input.api_url),
           description: stringToMetadata(input.description),
-          company_name: stringToMetadata(input.company_name),
-          capability: { name: stringToMetadata(input.capability.name), version: stringToMetadata(input.capability.version) },
+          api_url: stringToMetadata(input.api_url),
+          example_output: stringToMetadata(input.example_output),
+          capability: input.capability ? {
+            name: stringToMetadata(input.capability.name),
+            version: stringToMetadata(input.capability.version)
+          } : void 0,
           requests_per_hour: stringToMetadata(input.requests_per_hour),
+          author: {
+            name: stringToMetadata(input.author.name),
+            contact: input.author.contact ? stringToMetadata(input.author.contact) : void 0,
+            organization: input.author.organization ? stringToMetadata(input.author.organization) : void 0
+          },
+          legal: input.legal ? {
+            privacy_policy: input.legal?.privacy_policy ? stringToMetadata(input.legal.privacy_policy) : void 0,
+            terms: input.legal?.terms ? stringToMetadata(input.legal.terms) : void 0,
+            other: input.legal?.other ? stringToMetadata(input.legal.other) : void 0
+          } : void 0,
+          tags: input.tags,
           pricing: input.pricing.map((pricing) => ({
-            asset_id: pricing.asset_id,
-            policy_id: pricing.policy_id,
+            unit: stringToMetadata(pricing.unit),
             quantity: pricing.quantity
-          }))
+          })),
+          image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
+          metadata_version: "1"
         }
       }
     });
-    tx.sendAssets(address, [{ unit: policyId + assetName, quantity: "1" }]).sendLovelace(address, "3000000");
+    tx.sendAssets(address, [{ unit: policyId + assetName, quantity: "1" }]);
+    tx.sendLovelace(address, "5000000");
     tx.setChangeAddress(address).setRequiredSigners([address]);
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx, true);
-    const txHash = await wallet.submitTx(signedTx);
-    logger.info(`Minted 1 asset with the contract at:
+    try {
+      const txHash = await wallet.submitTx(signedTx);
+      logger.info(`Minted 1 asset with the contract at:
             Tx ID: ${txHash}
             AssetName: ${assetName}
             PolicyId: ${policyId}
             AssetId: ${policyId + assetName}
             Smart Contract Address: ${smartContractAddress}
         `);
-    return { txHash };
+      return { txHash };
+    } catch (error) {
+      if (extractErrorMessage(error).includes("ValueNotConservedUTxO")) {
+        throw createHttpError(429, "Too many requests");
+      }
+      throw createHttpError(500, "Failed to register agent");
+    }
   }
 });
+function extractErrorMessage(error) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
 function stringToMetadata(s) {
+  if (s == void 0) {
+    return void 0;
+  }
   const arr = [];
   for (let i = 0; i < s.length; i += 50) {
     arr.push(s.slice(i, i + 50));
@@ -3110,8 +3149,7 @@ const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     }).setTxInputs(utxos);
     tx.isCollateralNeeded = true;
     tx.txBuilder.mintPlutusScript(script.version).mint("-1", policyId, assetName).mintingScript(script.code).mintRedeemerValue(redeemer.data, "Mesh");
-    tx.sendLovelace(address, "120000000");
-    tx.setRequiredSigners([address]).setChangeAddress(address);
+    tx.setChangeAddress(address).setRequiredSigners([address]);
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx, true);
     const txHash = await wallet.submitTx(signedTx);
@@ -3179,7 +3217,7 @@ const paymentSourceEndpointGet = adminAuthenticatedEndpointFactory.build({
       orderBy: {
         createdAt: "desc"
       },
-      cursor: input.cursorId ? { id: input.cursorId } : undefined,
+      cursor: input.cursorId ? { id: input.cursorId } : void 0,
       include: {
         AdminWallets: { orderBy: { order: "asc" } },
         CollectionWallet: true,
@@ -3236,7 +3274,7 @@ const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build({
     const sellingWalletsMesh = input.SellingWallets.map((sellingWallet) => {
       return {
         wallet: new MeshWallet({
-          networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+          networkId: input.network === "PREPROD" ? 0 : 1,
           key: {
             type: "mnemonic",
             words: sellingWallet.walletMnemonic.split(" ")
@@ -3249,7 +3287,7 @@ const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build({
     const purchasingWalletsMesh = input.PurchasingWallets.map((purchasingWallet) => {
       return {
         wallet: new MeshWallet({
-          networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+          networkId: input.network === "PREPROD" ? 0 : 1,
           key: {
             type: "mnemonic",
             words: purchasingWallet.walletMnemonic.split(" ")
@@ -3338,7 +3376,7 @@ const paymentSourceUpdateSchemaInput = z.object({
   RemoveSellingWallets: z.array(z.object({
     id: z.string()
   })).max(10).optional().describe("The ids of the selling wallets to be removed. Please backup the mnemonic of the old wallet before removing it."),
-  page: z.number({ coerce: true }).min(1).max(1e8).optional().describe("The page number of the payment source. Usually should not be changed"),
+  lastPageChecked: z.number({ coerce: true }).min(1).max(1e8).optional().describe("The page number of the payment source. Usually should not be changed"),
   lastIdentifierChecked: z.string().max(250).nullable().optional().describe("The latest identifier of the payment source. Usually should not be changed")
 });
 const paymentSourceUpdateSchemaOutput = z.object({
@@ -3372,7 +3410,7 @@ const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
     const sellingWalletsMesh = input.AddSellingWallets?.map((sellingWallet) => {
       return {
         wallet: new MeshWallet({
-          networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+          networkId: input.network === "PREPROD" ? 0 : 1,
           key: {
             type: "mnemonic",
             words: sellingWallet.walletMnemonic.split(" ")
@@ -3385,7 +3423,7 @@ const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
     const purchasingWalletsMesh = input.AddPurchasingWallets?.map((purchasingWallet) => {
       return {
         wallet: new MeshWallet({
-          networkId: input.network === "PREVIEW" ? 0 : input.network === "PREPROD" ? 0 : 1,
+          networkId: input.network === "PREPROD" ? 0 : 1,
           key: {
             type: "mnemonic",
             words: purchasingWallet.walletMnemonic.split(" ")
@@ -3421,14 +3459,14 @@ const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
                 id: {
                   in: input.RemoveSellingWallets?.map((rw) => rw.id)
                 }
-              } : undefined
+              } : void 0
             },
             PurchasingWallets: {
               deleteMany: input.RemovePurchasingWallets != null && input.RemovePurchasingWallets.length > 0 ? {
                 id: {
                   in: input.RemovePurchasingWallets?.map((rw) => rw.id)
                 }
-              } : undefined
+              } : void 0
             }
           }
         });
@@ -3437,11 +3475,11 @@ const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
         where: { id: input.id },
         data: {
           lastIdentifierChecked: input.lastIdentifierChecked,
-          lastPageChecked: input.page,
+          lastPageChecked: input.lastPageChecked,
           rpcProviderApiKey: input.rpcProviderApiKey,
-          CollectionWallet: input.CollectionWallet != undefined ? {
+          CollectionWallet: input.CollectionWallet != void 0 ? {
             update: { walletAddress: input.CollectionWallet.walletAddress, note: input.CollectionWallet.note }
-          } : undefined,
+          } : void 0,
           SellingWallets: {
             createMany: {
               data: sellingWallets
@@ -3539,7 +3577,7 @@ const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
           }
         };
       }
-      return { ...result, WalletSecret: undefined };
+      return { ...result, WalletSecret: void 0 };
     } else if (input.walletType == "Purchasing") {
       const result = await prisma.purchasingWallet.findFirst({ where: { id: input.id }, include: { WalletSecret: true, PendingTransaction: true, NetworkHandler: true } });
       if (result == null) {
@@ -3555,7 +3593,7 @@ const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
           }
         };
       }
-      return { ...result, walletSecret: undefined };
+      return { ...result, walletSecret: void 0 };
     }
     throw createHttpError(400, "Invalid wallet type");
   }
@@ -3596,7 +3634,7 @@ const getRpcProviderKeysSchemaInput = z.object({
   cursorId: z.string().min(1).max(250).optional().describe("Used to paginate through the rpc provider keys"),
   limit: z.number({ coerce: true }).min(1).max(100).default(100).describe("The number of rpc provider keys to return")
 });
-const getBlockfrostKeysSchemaOutput = z.object({
+const getRpcProviderKeysSchemaOutput = z.object({
   rpcProviderKeys: z.array(z.object({
     id: z.string(),
     rpcProviderApiKey: z.string(),
@@ -3608,10 +3646,112 @@ const getBlockfrostKeysSchemaOutput = z.object({
 const queryRpcProviderKeysEndpointGet = adminAuthenticatedEndpointFactory.build({
   method: "get",
   input: getRpcProviderKeysSchemaInput,
-  output: getBlockfrostKeysSchemaOutput,
+  output: getRpcProviderKeysSchemaOutput,
   handler: async ({ input }) => {
-    const rpcProviderKeys = await prisma.networkHandler.findMany({ cursor: input.cursorId ? { id: input.cursorId } : undefined, orderBy: { createdAt: "asc" }, take: input.limit });
+    const rpcProviderKeys = await prisma.networkHandler.findMany({ cursor: input.cursorId ? { id: input.cursorId } : void 0, orderBy: { createdAt: "asc" }, take: input.limit });
     return { rpcProviderKeys };
+  }
+});
+
+const getUTXOSchemaInput = z.object({
+  address: z.string().max(150).describe("The address to get the UTXOs for"),
+  network: z.nativeEnum(Network),
+  count: z.number({ coerce: true }).int().min(1).max(100).default(10).optional().describe("The number of UTXOs to get"),
+  page: z.number({ coerce: true }).int().min(1).max(100).default(1).optional().describe("The page number to get"),
+  order: z.enum(["asc", "desc"]).default("desc").optional().describe("The order to get the UTXOs in")
+});
+const getUTXOSchemaOutput = z.object({
+  utxos: z.array(z.object({
+    txHash: z.string(),
+    address: z.string(),
+    amount: z.array(z.object({
+      unit: z.string(),
+      quantity: z.number({ coerce: true }).int().min(0).max(1e10)
+    })),
+    data_hash: z.string().optional(),
+    inline_datum: z.string().optional(),
+    reference_script_hash: z.string().optional(),
+    output_index: z.number({ coerce: true }).int().min(0).max(1e9),
+    block: z.string()
+  }))
+});
+const queryUTXOEndpointGet = authenticatedEndpointFactory.build({
+  method: "get",
+  input: getUTXOSchemaInput,
+  output: getUTXOSchemaOutput,
+  handler: async ({ input }) => {
+    const result = await prisma.networkHandler.findFirst({ where: { network: input.network } });
+    if (result == null) {
+      throw createHttpError(404, "Network not found");
+    }
+    const blockfrost = new BlockFrostAPI({ projectId: result.rpcProviderApiKey });
+    const utxos = await blockfrost.addressesUtxos(input.address, { count: input.count, page: input.page, order: input.order });
+    return { utxos: utxos.map((utxo) => ({ txHash: utxo.tx_hash, address: utxo.address, amount: utxo.amount.map((amount) => ({ unit: amount.unit, quantity: parseInt(amount.quantity) })), output_index: utxo.output_index, block: utxo.block })) };
+  }
+});
+
+const paymentContractSchemaInput = z.object({
+  take: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of payment sources to return"),
+  cursorId: z.string().max(250).optional().describe("Used to paginate through the payment sources")
+});
+const paymentContractSchemaOutput = z.object({
+  paymentSources: z.array(z.object({
+    id: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+    network: z.nativeEnum($Enums.Network),
+    paymentContractAddress: z.string(),
+    paymentType: z.nativeEnum($Enums.PaymentType),
+    lastIdentifierChecked: z.string().nullable(),
+    lastPageChecked: z.number(),
+    lastCheckedAt: z.date().nullable(),
+    AdminWallets: z.array(z.object({
+      walletAddress: z.string(),
+      order: z.number()
+    })),
+    CollectionWallet: z.object({
+      id: z.string(),
+      walletAddress: z.string(),
+      note: z.string().nullable()
+    }).nullable(),
+    PurchasingWallets: z.array(z.object({
+      id: z.string(),
+      walletVkey: z.string(),
+      walletAddress: z.string(),
+      note: z.string().nullable()
+    })),
+    SellingWallets: z.array(z.object({
+      id: z.string(),
+      walletVkey: z.string(),
+      walletAddress: z.string(),
+      note: z.string().nullable()
+    })),
+    FeeReceiverNetworkWallet: z.object({
+      walletAddress: z.string()
+    }),
+    feePermille: z.number().min(0).max(1e3)
+  }))
+});
+const paymentContractEndpointGet = authenticatedEndpointFactory.build({
+  method: "get",
+  input: paymentContractSchemaInput,
+  output: paymentContractSchemaOutput,
+  handler: async ({ input }) => {
+    const paymentSources = await prisma.networkHandler.findMany({
+      take: input.take,
+      orderBy: {
+        createdAt: "desc"
+      },
+      cursor: input.cursorId ? { id: input.cursorId } : void 0,
+      include: {
+        AdminWallets: { orderBy: { order: "asc" } },
+        CollectionWallet: true,
+        PurchasingWallets: true,
+        SellingWallets: true,
+        FeeReceiverNetworkWallet: true
+      }
+    });
+    return { paymentSources };
   }
 });
 
@@ -3651,8 +3791,14 @@ const apiRouter = {
       patch: paymentSourceEndpointPatch,
       delete: paymentSourceEndpointDelete
     }),
-    "blockfrost-keys": new DependsOnMethod({
+    "rpc-api-keys": new DependsOnMethod({
       get: queryRpcProviderKeysEndpointGet
+    }),
+    "utxos": new DependsOnMethod({
+      get: queryUTXOEndpointGet
+    }),
+    "payment-contract": new DependsOnMethod({
+      get: paymentContractEndpointGet
     })
   }
 };
@@ -3667,6 +3813,7 @@ function generateOpenAPI() {
   registry.registerPath({
     method: "get",
     path: "/health/",
+    tags: ["health"],
     summary: "Get the status of the API server",
     request: {},
     responses: {
@@ -3703,41 +3850,11 @@ function generateOpenAPI() {
                 status: "success",
                 data: {
                   status: "ACTIVE",
-                  apiKey: "masumi-payment-api-key-secret",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  remainingUsageCredits: [{ unit: "unit", amount: 1e6 }]
+                  RemainingUsageCredits: [{ unit: "lovelcae", amount: 1e6 }]
                 }
-              }
-            })
-          }
-        }
-      }
-    }
-  });
-  registry.registerPath({
-    method: "get",
-    path: "/blockfrost-keys/",
-    description: "Gets blockfrost keys",
-    summary: "REQUIRES API KEY Authentication (+ADMIN)",
-    tags: ["blockfrost-keys"],
-    security: [{ [apiKeyAuth.name]: [] }],
-    request: {
-      query: getBlockfrostKeysSchemaInput.openapi({
-        example: {
-          cursorId: "unique-cuid-v2",
-          limit: 50
-        }
-      })
-    },
-    responses: {
-      200: {
-        description: "Blockfrost keys",
-        content: {
-          "application/json": {
-            schema: getBlockfrostKeysSchemaOutput$1.openapi({
-              example: {
-                blockfrostKeys: [{ network: $Enums.Network.PREPROD, id: "unique-cuid-v2", blockfrostApiKey: "blockfrost_api_key", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }]
               }
             })
           }
@@ -3755,7 +3872,7 @@ function generateOpenAPI() {
     request: {
       query: getWalletSchemaInput.openapi({
         example: {
-          id: "unique-cuid-v2-of-entry-to-delete",
+          id: "unique_cuid_v2_of_entry_to_delete",
           includeSecret: "true",
           walletType: "Selling"
         }
@@ -3770,11 +3887,11 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  walletVkey: "walletVkey",
+                  walletVkey: "wallet_vkey",
                   note: "note",
-                  pendingTransaction: null,
-                  address: "addr1_testabcd",
-                  walletSecret: {
+                  PendingTransaction: null,
+                  walletAddress: "wallet_address",
+                  WalletSecret: {
                     createdAt: /* @__PURE__ */ new Date(),
                     updatedAt: /* @__PURE__ */ new Date(),
                     secret: "decoded_secret"
@@ -3815,7 +3932,7 @@ function generateOpenAPI() {
           "application/json": {
             schema: postWalletSchemaOutput.openapi({
               example: {
-                walletSecret: "wallet_secret",
+                walletMnemonic: "wallet_mnemonic",
                 walletAddress: "wallet_address",
                 walletVkey: "wallet_vkey"
               }
@@ -3849,10 +3966,10 @@ function generateOpenAPI() {
               example: {
                 data: {
                   apiKeys: [{
-                    apiKey: "masumi-payment-api-key-secret",
+                    apiKey: "masumi_payment_api_key_secret",
                     permission: "ADMIN",
                     usageLimited: true,
-                    remainingUsageCredits: [{ unit: "unit", amount: 1e6 }],
+                    RemainingUsageCredits: [{ unit: "lovelace", amount: 1e6 }],
                     status: "ACTIVE"
                   }]
                 },
@@ -3887,7 +4004,7 @@ function generateOpenAPI() {
             schema: addAPIKeySchemaInput.openapi({
               example: {
                 usageLimited: "true",
-                usageCredits: [{ unit: "unit", amount: 1e6 }],
+                UsageCredits: [{ unit: "lovelace", amount: 1e6 }],
                 permission: $Enums.Permission.ADMIN
               }
             })
@@ -3905,11 +4022,11 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-payment-api-key-secret",
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  status: $Enums.APIKeyStatus.ACTIVE
+                  status: $Enums.ApiKeyStatus.ACTIVE
                 }
               }
             })
@@ -3940,10 +4057,10 @@ function generateOpenAPI() {
           "application/json": {
             schema: updateAPIKeySchemaInput.openapi({
               example: {
-                id: "id_or_apiKey_unique-cuid-v2-of-entry-to-update",
-                apiKey: "id_or_apiKey_api-key-to-update",
-                usageCredits: [{ unit: "unit", amount: 1e6 }],
-                status: $Enums.APIKeyStatus.ACTIVE
+                id: "id_or_apiKey_unique_cuid_v2_of_entry_to_update",
+                apiKey: "id_or_apiKey_api_key_to_update",
+                UsageCredits: [{ unit: "lovelace", amount: 1e6 }],
+                status: $Enums.ApiKeyStatus.ACTIVE
               }
             })
           }
@@ -3960,11 +4077,11 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-payment-api-key-secret",
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  status: $Enums.APIKeyStatus.ACTIVE
+                  status: $Enums.ApiKeyStatus.ACTIVE
                 }
               }
             })
@@ -3995,8 +4112,8 @@ function generateOpenAPI() {
           "application/json": {
             schema: deleteAPIKeySchemaInput.openapi({
               example: {
-                id: "id_or_apiKey_unique-cuid-v2-of-entry-to-delete",
-                apiKey: "id_or_apiKey_api-key-to-delete"
+                id: "id_or_apiKey_unique_cuid_v2_of_entry_to_delete",
+                apiKey: "id_or_apiKey_api_key_to_delete"
               }
             })
           }
@@ -4013,8 +4130,8 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-of-entry-to-delete",
-                  apiKey: "masumi-registry-api-key-secret"
+                  id: "unique_cuid_v2_of_entry_to_delete",
+                  apiKey: "masumi_registry_api_key_secret"
                 }
               }
             })
@@ -4044,7 +4161,7 @@ function generateOpenAPI() {
           limit: 10,
           cursorIdentifier: "identifier",
           network: $Enums.Network.PREPROD,
-          contractAddress: "addr_abcd1234567890"
+          paymentContractAddress: "addr_abcd1234567890"
         }
       })
     },
@@ -4054,8 +4171,9 @@ function generateOpenAPI() {
         description: "Payment status",
         content: {
           "application/json": {
-            schema: z.object({ status: z.string(), data: queryRegistrySchemaOutput }).openapi({
+            schema: z.object({ status: z.string(), data: queryPaymentsSchemaOutput }).openapi({
               example: {
+                status: "success",
                 data: {
                   payments: [{
                     createdAt: /* @__PURE__ */ new Date(),
@@ -4067,14 +4185,12 @@ function generateOpenAPI() {
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
                     identifier: "identifier",
-                    SellingWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    buyerWallet: { walletVkey: "wallet_vkey" },
-                    smartContractWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    amounts: [{ id: "unique-cuid-v2-auto-generated", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date(), amount: 1e6, unit: "unit" }],
-                    checkedBy: { id: "unique-cuid-v2-auto-generated", network: $Enums.Network.PREPROD, addressToCheck: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 }
+                    BuyerWallet: { walletVkey: "wallet_vkey" },
+                    SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
+                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date(), amount: 1e6, unit: "unit" }],
+                    NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 }
                   }]
-                },
-                status: "success"
+                }
               }
             })
           }
@@ -4106,13 +4222,10 @@ function generateOpenAPI() {
               example: {
                 agentIdentifier: "agent_identifier",
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                contractAddress: "address",
-                amounts: [{ amount: 1e6, unit: "unit" }],
+                paymentContractAddress: "address",
+                amounts: [{ amount: 1e6, unit: "lovelace" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                unlockTime: "2024-12-01T23:00:00.000Z",
-                submitResultTime: "2024-12-01T22:00:00.000Z",
-                refundTime: "2024-12-02T23:00:00.000Z"
+                submitResultTime: new Date(Date.now() + 1e3 * 60 * 60 * 12).toISOString()
               }
             })
           }
@@ -4129,8 +4242,7 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
-                  identifier: "agentIdentifier_unique-cuid-v2-auto-generated",
+                  identifier: "agent_identifier_unique_cuid_v2_auto_generated",
                   createdAt: /* @__PURE__ */ new Date(),
                   updatedAt: /* @__PURE__ */ new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested
@@ -4165,8 +4277,7 @@ function generateOpenAPI() {
             schema: updatePaymentsSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                contractAddress: "address",
+                paymentContractAddress: "address",
                 hash: "hash",
                 identifier: "identifier"
               }
@@ -4185,7 +4296,7 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: /* @__PURE__ */ new Date(),
                   updatedAt: /* @__PURE__ */ new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested
@@ -4216,9 +4327,10 @@ function generateOpenAPI() {
       query: queryPurchaseRequestSchemaInput.openapi({
         example: {
           limit: 10,
-          cursorIdentifier: { identifier: "identifier", sellingWalletVkey: "wallet_vkey" },
+          cursorIdentifier: "identifier",
+          cursorIdentifierSellingWalletVkey: "wallet_vkey",
           network: $Enums.Network.PREPROD,
-          contractAddress: "addr_abcd1234567890"
+          paymentContractAddress: "addr_abcd1234567890"
         }
       })
     },
@@ -4242,11 +4354,10 @@ function generateOpenAPI() {
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
                     identifier: "identifier",
-                    smartContractWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    amounts: [{ id: "unique-cuid-v2-auto-generated", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date(), amount: 1e6, unit: "unit" }],
-                    networkHandler: { id: "unique-cuid-v2-auto-generated", network: $Enums.Network.PREPROD, addressToCheck: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
-                    purchaserWallet: { id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" },
-                    sellerWallet: { walletVkey: "wallet_vkey", note: "note" }
+                    SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
+                    Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date(), amount: 1e6, unit: "lovelace" }],
+                    NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
+                    SellerWallet: { walletVkey: "wallet_vkey", note: "note" }
                   }]
                 }
               }
@@ -4281,12 +4392,12 @@ function generateOpenAPI() {
                 identifier: "identifier",
                 network: $Enums.Network.PREPROD,
                 sellerVkey: "seller_vkey",
-                contractAddress: "address",
-                amounts: [{ amount: 1e6, unit: "unit" }],
+                paymentContractAddress: "address",
+                amounts: [{ amount: 1e6, unit: "lovelace" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                unlockTime: "2024-12-01T23:00:00.000Z",
-                refundTime: "2024-12-02T23:00:00.000Z",
-                submitResultTime: "2024-12-01T22:00:00.000Z"
+                submitResultTime: new Date(Date.now() + 1e3 * 60 * 60 * 12).toISOString(),
+                unlockTime: new Date(Date.now() + 1e3 * 60 * 60 * 24).toISOString(),
+                refundTime: new Date(Date.now() + 1e3 * 60 * 60 * 36).toISOString()
               }
             })
           }
@@ -4303,7 +4414,7 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: /* @__PURE__ */ new Date(),
                   updatedAt: /* @__PURE__ */ new Date(),
                   status: $Enums.PurchasingRequestStatus.PurchaseRequested
@@ -4338,8 +4449,7 @@ function generateOpenAPI() {
             schema: refundPurchaseSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                sellerVkey: "seller_vkey",
-                smartContractAddress: "address",
+                paymentContractAddress: "address",
                 identifier: "identifier"
               }
             })
@@ -4390,19 +4500,26 @@ function generateOpenAPI() {
             schema: registerAgentSchemaInput.openapi({
               example: {
                 network: $Enums.Network.PREPROD,
-                paymentContractAddress: "addr_test1...",
+                paymentContractAddress: "addr_test1",
                 tags: ["tag1", "tag2"],
-                image: "https://example.com/image.png",
-                //name can be freely chosen
                 name: "Agent Name",
                 api_url: "https://api.example.com",
                 description: "Agent Description",
-                company_name: "Company Name",
+                author: {
+                  name: "Author Name",
+                  contact: "author@example.com",
+                  organization: "Author Organization"
+                },
+                legal: {
+                  privacy_policy: "Privacy Policy URL",
+                  terms: "Terms of Service URL",
+                  other: "Other Legal Information URL"
+                },
+                sellingWalletVkey: "wallet_vkey",
                 capability: { name: "Capability Name", version: "1.0.0" },
                 requests_per_hour: "100",
                 pricing: [{
-                  asset_id: "usdm_asset_id",
-                  policy_id: "usdm_policy_id",
+                  unit: "usdm",
                   quantity: "500000000"
                 }]
               }
@@ -4438,7 +4555,7 @@ function generateOpenAPI() {
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: unregisterAgentSchemaInput.openapi({
-        example: { assetName: "asset_name", network: $Enums.Network.PREPROD, address: "address" }
+        example: { assetName: "asset_name", network: $Enums.Network.PREPROD, paymentContractAddress: "address" }
       })
     },
     responses: {
@@ -4448,6 +4565,57 @@ function generateOpenAPI() {
           "application/json": {
             schema: z.object({ status: z.string(), data: unregisterAgentSchemaOutput }).openapi({
               example: { status: "success", data: { txHash: "tx_hash" } }
+            })
+          }
+        }
+      }
+    }
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/payment-contract/",
+    description: "Gets the payment contract.",
+    summary: "REQUIRES API KEY Authentication (+READ)",
+    tags: ["payment-contract"],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: paymentSourceSchemaInput.openapi({
+        example: {
+          take: 10,
+          cursorId: "cursor_id"
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: "Payment source status",
+        content: {
+          "application/json": {
+            schema: z.object({ status: z.string(), data: paymentSourceSchemaOutput }).openapi({
+              example: {
+                status: "success",
+                data: {
+                  paymentSources: [{
+                    id: "unique_cuid_v2_auto_generated",
+                    createdAt: /* @__PURE__ */ new Date(),
+                    updatedAt: /* @__PURE__ */ new Date(),
+                    network: $Enums.Network.PREPROD,
+                    paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
+                    paymentContractAddress: "address_of_the_smart_contract",
+                    rpcProviderApiKey: "rpc_provider_api_key",
+                    isSyncing: false,
+                    lastPageChecked: 1,
+                    lastCheckedAt: /* @__PURE__ */ new Date(),
+                    lastIdentifierChecked: null,
+                    AdminWallets: [{ walletAddress: "wallet_address", order: 0 }, { walletAddress: "wallet_address", order: 1 }, { walletAddress: "wallet_address", order: 2 }],
+                    CollectionWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", note: "note" },
+                    PurchasingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    SellingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
+                    feePermille: 50
+                  }]
+                }
+              }
             })
           }
         }
@@ -4479,22 +4647,23 @@ function generateOpenAPI() {
                 status: "success",
                 data: {
                   paymentSources: [{
-                    id: "unique-cuid-v2-auto-generated",
+                    id: "unique_cuid_v2_auto_generated",
                     createdAt: /* @__PURE__ */ new Date(),
                     updatedAt: /* @__PURE__ */ new Date(),
                     network: $Enums.Network.PREPROD,
                     paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                    addressToCheck: "address_to_check",
-                    blockfrostApiKey: "blockfrost_api_key",
-                    page: 1,
+                    paymentContractAddress: "address_of_the_smart_contract",
+                    rpcProviderApiKey: "rpc_provider_api_key",
                     isSyncing: false,
-                    latestIdentifier: null,
+                    lastPageChecked: 1,
+                    lastCheckedAt: /* @__PURE__ */ new Date(),
+                    lastIdentifierChecked: null,
                     AdminWallets: [{ walletAddress: "wallet_address", order: 0 }, { walletAddress: "wallet_address", order: 1 }, { walletAddress: "wallet_address", order: 2 }],
-                    CollectionWallet: { id: "unique-cuid-v2-auto-generated", walletAddress: "wallet_address", note: "note" },
-                    PurchasingWallets: [{ id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" }],
-                    SellingWallets: [{ id: "unique-cuid-v2-auto-generated", walletVkey: "wallet_vkey", note: "note" }],
+                    CollectionWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", note: "note" },
+                    PurchasingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
+                    SellingWallets: [{ id: "unique_cuid_v2_auto_generated", walletVkey: "wallet_vkey", walletAddress: "wallet_address", note: "note" }],
                     FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
-                    FeePermille: 50
+                    feePermille: 50
                   }]
                 }
               }
@@ -4520,10 +4689,10 @@ function generateOpenAPI() {
               example: {
                 network: $Enums.Network.PREPROD,
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                blockfrostApiKey: "blockfrost_api_key",
+                rpcProviderApiKey: "rpc_provider_api_key",
                 AdminWallets: [{ walletAddress: "wallet_address_1" }, { walletAddress: "wallet_address_2" }, { walletAddress: "wallet_address_3" }],
                 FeeReceiverNetworkWallet: { walletAddress: "wallet_address" },
-                FeePermille: 50,
+                feePermille: 50,
                 CollectionWallet: { walletAddress: "wallet_address", note: "note" },
                 PurchasingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
                 SellingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }]
@@ -4542,16 +4711,17 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: /* @__PURE__ */ new Date(),
                   updatedAt: /* @__PURE__ */ new Date(),
                   network: $Enums.Network.PREPROD,
                   paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                  addressToCheck: "address_to_check",
-                  blockfrostApiKey: "blockfrost_api_key",
-                  page: 1,
+                  paymentContractAddress: "address_of_the_smart_contract",
+                  rpcProviderApiKey: "rpc_provider_api_key",
                   isSyncing: false,
-                  latestIdentifier: null
+                  lastPageChecked: 1,
+                  lastCheckedAt: /* @__PURE__ */ new Date(),
+                  lastIdentifierChecked: null
                 }
               }
             })
@@ -4574,15 +4744,15 @@ function generateOpenAPI() {
           "application/json": {
             schema: paymentSourceUpdateSchemaInput.openapi({
               example: {
-                id: "unique-cuid-v2",
-                latestIdentifier: "optional_identifier",
-                page: 1,
-                blockfrostApiKey: "blockfrost_api_key",
+                id: "unique_cuid_v2",
+                lastIdentifierChecked: "optional_identifier",
+                lastPageChecked: 1,
+                rpcProviderApiKey: "rpc_provider_api_key",
                 CollectionWallet: { walletAddress: "wallet_address", note: "note" },
-                AddPurchasingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
-                AddSellingWallets: [{ walletMnemonic: "wallet mnemonic", note: "note" }],
-                RemovePurchasingWallets: [{ id: "unique-cuid-v2" }],
-                RemoveSellingWallets: [{ id: "unique-cuid-v2" }]
+                AddPurchasingWallets: [{ walletMnemonic: "wallet_mnemonic", note: "note" }],
+                AddSellingWallets: [{ walletMnemonic: "wallet_mnemonic", note: "note" }],
+                RemovePurchasingWallets: [{ id: "unique_cuid_v2" }],
+                RemoveSellingWallets: [{ id: "unique_cuid_v2" }]
               }
             })
           }
@@ -4598,16 +4768,17 @@ function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  id: "unique-cuid-v2-auto-generated",
+                  paymentContractAddress: "address_of_the_smart_contract",
+                  id: "unique_cuid_v2_auto_generated",
                   createdAt: /* @__PURE__ */ new Date(),
                   updatedAt: /* @__PURE__ */ new Date(),
                   network: $Enums.Network.PREPROD,
                   paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                  addressToCheck: "address_to_check",
-                  blockfrostApiKey: "blockfrost_api_key",
-                  page: 1,
-                  isSyncing: false,
-                  latestIdentifier: null
+                  rpcProviderApiKey: "rpc_provider_api_key",
+                  lastPageChecked: 1,
+                  lastCheckedAt: /* @__PURE__ */ new Date(),
+                  lastIdentifierChecked: null,
+                  isSyncing: false
                 }
               }
             })
@@ -4625,7 +4796,7 @@ function generateOpenAPI() {
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: paymentSourceDeleteSchemaInput.openapi({
-        example: { id: "unique-cuid-v2-auto-generated" }
+        example: { id: "unique_cuid_v2_auto_generated" }
       })
     },
     responses: {
@@ -4634,7 +4805,70 @@ function generateOpenAPI() {
         content: {
           "application/json": {
             schema: z.object({ status: z.string(), data: paymentSourceDeleteSchemaOutput }).openapi({
-              example: { status: "success", data: { id: "unique-cuid-v2-auto-generated" } }
+              example: { status: "success", data: { id: "unique_cuid_v2_auto_generated" } }
+            })
+          }
+        }
+      }
+    }
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/utxos/",
+    description: "Gets UTXOs (internal)",
+    summary: "REQUIRES API KEY Authentication (+READ)",
+    tags: ["utxos"],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: getUTXOSchemaInput.openapi({
+        example: {
+          network: $Enums.Network.PREPROD,
+          address: "addr1qx2ej34k567890",
+          count: 10,
+          page: 1,
+          order: "desc"
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: "UTXOs",
+        content: {
+          "application/json": {
+            schema: getUTXOSchemaOutput.openapi({
+              example: {
+                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "lovelace", quantity: 1e6 }], output_index: 1, block: "1" }]
+              }
+            })
+          }
+        }
+      }
+    }
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/rpc-api-keys/",
+    description: "Gets rpc api keys, currently only blockfrost is supported (internal)",
+    summary: "REQUIRES API KEY Authentication (+ADMIN)",
+    tags: ["rpc-api-keys"],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: getRpcProviderKeysSchemaInput.openapi({
+        example: {
+          cursorId: "unique_cuid_v2",
+          limit: 50
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: "Blockfrost keys",
+        content: {
+          "application/json": {
+            schema: getRpcProviderKeysSchemaOutput.openapi({
+              example: {
+                rpcProviderKeys: [{ network: $Enums.Network.PREPROD, id: "unique_cuid_v2", rpcProviderApiKey: "blockfrost_api_key", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }]
+              }
             })
           }
         }
@@ -4652,6 +4886,7 @@ function generateOpenAPI() {
   });
 }
 
+const __dirname = path.resolve();
 async function initialize() {
   await initDB();
   await init();
@@ -4677,6 +4912,11 @@ initialize().then(async () => {
           tryItOutEnabled: true
         }
       }));
+      app.use("/admin", express.static("frontend/dist"));
+      app.use("/_next", express.static("frontend/dist/_next"));
+      app.get("/admin/*name", (req, res) => {
+        res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
+      });
     },
     http: {
       listen: PORT
