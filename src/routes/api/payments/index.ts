@@ -86,9 +86,9 @@ export const createPaymentsSchemaInput = z.object({
     amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the payment"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The type of payment contract used"),
     paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the payment will be made to"),
-    submitResultTime: ez.dateIn().describe("The time after which the payment has to be submitted to the smart contract"),
-    unlockTime: ez.dateIn().describe("The time after which the payment will be unlocked"),
-    refundTime: ez.dateIn().describe("The time after which a refund will be approved"),
+    submitResultTime: ez.dateIn().default(new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString()).describe("The time after which the payment has to be submitted to the smart contract"),
+    unlockTime: ez.dateIn().optional().describe("The time after which the payment will be unlocked"),
+    refundTime: ez.dateIn().optional().describe("The time after which a refund will be approved"),
 })
 
 export const createPaymentSchemaOutput = z.object({
@@ -116,6 +116,8 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
+        const unlockTime = input.unlockTime != undefined ? input.unlockTime.getTime() : new Date(Date.now() + 1000 * 60 * 60 * 12).getTime() // 12h
+        const refundTime = input.refundTime != undefined ? input.refundTime.getTime() : new Date(Date.now() + 1000 * 60 * 60 * 24).getTime() // 24 h
 
         const provider = new BlockFrostAPI({
             projectId: networkCheckSupported.rpcProviderApiKey
@@ -139,8 +141,8 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
                 Amounts: { createMany: { data: input.amounts.map(amount => ({ amount: amount.amount, unit: amount.unit })) } },
                 status: $Enums.PaymentRequestStatus.PaymentRequested,
                 submitResultTime: input.submitResultTime.getTime(),
-                unlockTime: input.unlockTime.getTime(),
-                refundTime: input.refundTime.getTime(),
+                unlockTime: unlockTime,
+                refundTime: refundTime,
             }
         })
         return payment
