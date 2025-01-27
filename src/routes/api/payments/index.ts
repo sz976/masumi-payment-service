@@ -92,10 +92,19 @@ export const createPaymentsSchemaInput = z.object({
 })
 
 export const createPaymentSchemaOutput = z.object({
-    identifier: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),
     status: z.nativeEnum($Enums.PaymentRequestStatus),
+    txHash: z.string().nullable(),
+    utxo: z.string().nullable(),
+    errorType: z.nativeEnum($Enums.PaymentRequestErrorType).nullable(),
+    errorNote: z.string().nullable(),
+    errorRequiresManualReview: z.boolean().nullable(),
+    identifier: z.string(),
+    Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
+    SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }),
+    BuyerWallet: z.object({ walletVkey: z.string(), }).nullable(),
+    NetworkHandler: z.object({ id: z.string(), network: z.nativeEnum($Enums.Network), paymentContractAddress: z.string(), paymentType: z.nativeEnum($Enums.PaymentType) }),
 });
 
 export const paymentInitPost = authenticatedEndpointFactory.build({
@@ -129,7 +138,8 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
         const vKey = resolvePaymentKeyHash(assetInWallet[0].address)
 
 
-        if (networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == vKey) == null) {
+        const sellingWallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == vKey)
+        if (sellingWallet == null) {
             throw createHttpError(404, "Agent identifier not found in wallet")
         }
 
@@ -140,11 +150,16 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
                 Amounts: { createMany: { data: input.amounts.map(amount => ({ amount: amount.amount, unit: amount.unit })) } },
                 status: $Enums.PaymentRequestStatus.PaymentRequested,
                 submitResultTime: input.submitResultTime.getTime(),
+                SmartContractWallet: { connect: { id: sellingWallet.id } },
                 unlockTime: unlockTime,
                 refundTime: refundTime,
-            }
+            },
+            include: { Amounts: true, BuyerWallet: true, SmartContractWallet: true, NetworkHandler: true }
         })
-        return payment
+        if (payment.SmartContractWallet == null) {
+            throw createHttpError(500, "Smart contract wallet not connected")
+        }
+        return { ...payment, SmartContractWallet: payment.SmartContractWallet!, Amounts: payment.Amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) }
     },
 });
 

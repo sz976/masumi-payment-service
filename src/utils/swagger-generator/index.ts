@@ -72,7 +72,7 @@ export function generateOpenAPI() {
                   apiKey: "masumi_payment_api_key_secret",
                   permission: $Enums.Permission.ADMIN,
                   usageLimited: true,
-                  RemainingUsageCredits: [{ unit: "lovelcae", amount: 1000000 }],
+                  RemainingUsageCredits: [{ unit: "lovelace", amount: 1000000 }],
                 }
               }
             }),
@@ -474,6 +474,15 @@ export function generateOpenAPI() {
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested,
+                  txHash: "tx_hash",
+                  utxo: "utxo",
+                  errorType: $Enums.PaymentRequestErrorType.NETWORK_ERROR,
+                  errorNote: "error_note",
+                  errorRequiresManualReview: false,
+                  Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "lovelace" }],
+                  SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
+                  BuyerWallet: null,
+                  NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
                 }
               }
             }),

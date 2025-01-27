@@ -145,7 +145,7 @@
                                             "usageLimited": true,
                                             "RemainingUsageCredits": [
                                                 {
-                                                    "unit": "lovelcae",
+                                                    "unit": "lovelace",
                                                     "amount": 1000000
                                                 }
                                             ]
@@ -299,8 +299,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-01-27T12:37:13.857Z",
-                                                "updatedAt": "2025-01-27T12:37:13.857Z",
+                                                "createdAt": "2025-01-27T12:52:49.831Z",
+                                                "updatedAt": "2025-01-27T12:52:49.831Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -1194,8 +1194,8 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-27T12:37:13.857Z",
-                                                    "updatedAt": "2025-01-27T12:37:13.857Z",
+                                                    "createdAt": "2025-01-27T12:52:49.831Z",
+                                                    "updatedAt": "2025-01-27T12:52:49.831Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1215,8 +1215,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T12:37:13.857Z",
-                                                            "updatedAt": "2025-01-27T12:37:13.857Z",
+                                                            "createdAt": "2025-01-27T12:52:49.831Z",
+                                                            "updatedAt": "2025-01-27T12:52:49.831Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1328,7 +1328,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-01-28T00:37:13.537Z",
+                                        "default": "2025-01-28T00:52:49.488Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1384,7 +1384,7 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T00:37:13.857Z"
+                                    "submitResultTime": "2025-01-28T00:52:49.831Z"
                                 }
                             }
                         }
@@ -1401,9 +1401,6 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
-                                                "identifier": {
-                                                    "type": "string"
-                                                },
                                                 "createdAt": {
                                                     "type": "string"
                                                 },
@@ -1426,13 +1423,147 @@
                                                         "WithdrawnConfirmed",
                                                         "DisputedWithdrawn"
                                                     ]
+                                                },
+                                                "txHash": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "utxo": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "errorType": {
+                                                    "type": "string",
+                                                    "nullable": true,
+                                                    "enum": [
+                                                        "NETWORK_ERROR",
+                                                        "UNKNOWN"
+                                                    ]
+                                                },
+                                                "errorNote": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "errorRequiresManualReview": {
+                                                    "type": "boolean",
+                                                    "nullable": true
+                                                },
+                                                "identifier": {
+                                                    "type": "string"
+                                                },
+                                                "Amounts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "updatedAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "amount": {
+                                                                "type": "number",
+                                                                "nullable": true,
+                                                                "minimum": 0
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "createdAt",
+                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "SmartContractWallet": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "walletAddress": {
+                                                            "type": "string"
+                                                        },
+                                                        "walletVkey": {
+                                                            "type": "string"
+                                                        },
+                                                        "note": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "walletAddress",
+                                                        "walletVkey",
+                                                        "note"
+                                                    ]
+                                                },
+                                                "BuyerWallet": {
+                                                    "type": "object",
+                                                    "nullable": true,
+                                                    "properties": {
+                                                        "walletVkey": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "walletVkey"
+                                                    ]
+                                                },
+                                                "NetworkHandler": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "network": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "PREPROD",
+                                                                "MAINNET"
+                                                            ]
+                                                        },
+                                                        "paymentContractAddress": {
+                                                            "type": "string"
+                                                        },
+                                                        "paymentType": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "WEB3_CARDANO_V1"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "network",
+                                                        "paymentContractAddress",
+                                                        "paymentType"
+                                                    ]
                                                 }
                                             },
                                             "required": [
-                                                "identifier",
                                                 "createdAt",
                                                 "updatedAt",
-                                                "status"
+                                                "status",
+                                                "txHash",
+                                                "utxo",
+                                                "errorType",
+                                                "errorNote",
+                                                "errorRequiresManualReview",
+                                                "identifier",
+                                                "Amounts",
+                                                "SmartContractWallet",
+                                                "BuyerWallet",
+                                                "NetworkHandler"
                                             ]
                                         },
                                         "status": {
@@ -1447,9 +1578,36 @@
                                         "status": "success",
                                         "data": {
                                             "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:37:13.857Z",
-                                            "updatedAt": "2025-01-27T12:37:13.857Z",
-                                            "status": "PaymentRequested"
+                                            "createdAt": "2025-01-27T12:52:49.831Z",
+                                            "updatedAt": "2025-01-27T12:52:49.831Z",
+                                            "status": "PaymentRequested",
+                                            "txHash": "tx_hash",
+                                            "utxo": "utxo",
+                                            "errorType": "NETWORK_ERROR",
+                                            "errorNote": "error_note",
+                                            "errorRequiresManualReview": false,
+                                            "Amounts": [
+                                                {
+                                                    "id": "unique_cuid_v2_auto_generated",
+                                                    "createdAt": "2025-01-27T12:52:49.831Z",
+                                                    "updatedAt": "2025-01-27T12:52:49.831Z",
+                                                    "amount": 1000000,
+                                                    "unit": "lovelace"
+                                                }
+                                            ],
+                                            "SmartContractWallet": {
+                                                "id": "unique_cuid_v2_auto_generated",
+                                                "walletAddress": "wallet_address",
+                                                "walletVkey": "wallet_vkey",
+                                                "note": "note"
+                                            },
+                                            "BuyerWallet": null,
+                                            "NetworkHandler": {
+                                                "id": "unique_cuid_v2_auto_generated",
+                                                "network": "PREPROD",
+                                                "paymentContractAddress": "address",
+                                                "paymentType": "WEB3_CARDANO_V1"
+                                            }
                                         }
                                     }
                                 }
@@ -1582,8 +1740,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:37:13.857Z",
-                                            "updatedAt": "2025-01-27T12:37:13.857Z",
+                                            "createdAt": "2025-01-27T12:52:49.832Z",
+                                            "updatedAt": "2025-01-27T12:52:49.832Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1884,8 +2042,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-27T12:37:13.857Z",
-                                                    "updatedAt": "2025-01-27T12:37:13.857Z",
+                                                    "createdAt": "2025-01-27T12:52:49.832Z",
+                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1902,8 +2060,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T12:37:13.857Z",
-                                                            "updatedAt": "2025-01-27T12:37:13.857Z",
+                                                            "createdAt": "2025-01-27T12:52:49.832Z",
+                                                            "updatedAt": "2025-01-27T12:52:49.832Z",
                                                             "amount": 1000000,
                                                             "unit": "lovelace"
                                                         }
@@ -2083,9 +2241,9 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T00:37:13.857Z",
-                                    "unlockTime": "2025-01-28T12:37:13.857Z",
-                                    "refundTime": "2025-01-29T00:37:13.857Z"
+                                    "submitResultTime": "2025-01-28T00:52:49.832Z",
+                                    "unlockTime": "2025-01-28T12:52:49.832Z",
+                                    "refundTime": "2025-01-29T00:52:49.832Z"
                                 }
                             }
                         }
@@ -2147,8 +2305,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:37:13.857Z",
-                                            "updatedAt": "2025-01-27T12:37:13.857Z",
+                                            "createdAt": "2025-01-27T12:52:49.832Z",
+                                            "updatedAt": "2025-01-27T12:52:49.832Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2834,13 +2992,13 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T12:37:13.858Z",
-                                                    "updatedAt": "2025-01-27T12:37:13.858Z",
+                                                    "createdAt": "2025-01-27T12:52:49.832Z",
+                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T12:37:13.858Z",
+                                                    "lastCheckedAt": "2025-01-27T12:52:49.832Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3138,15 +3296,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T12:37:13.858Z",
-                                                    "updatedAt": "2025-01-27T12:37:13.858Z",
+                                                    "createdAt": "2025-01-27T12:52:49.832Z",
+                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T12:37:13.858Z",
+                                                    "lastCheckedAt": "2025-01-27T12:52:49.832Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3469,15 +3627,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:37:13.858Z",
-                                            "updatedAt": "2025-01-27T12:37:13.858Z",
+                                            "createdAt": "2025-01-27T12:52:49.832Z",
+                                            "updatedAt": "2025-01-27T12:52:49.832Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T12:37:13.858Z",
+                                            "lastCheckedAt": "2025-01-27T12:52:49.832Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -3744,13 +3902,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:37:13.858Z",
-                                            "updatedAt": "2025-01-27T12:37:13.858Z",
+                                            "createdAt": "2025-01-27T12:52:49.832Z",
+                                            "updatedAt": "2025-01-27T12:52:49.832Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T12:37:13.858Z",
+                                            "lastCheckedAt": "2025-01-27T12:52:49.832Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -4088,8 +4246,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-27T12:37:13.858Z",
-                                                "updatedAt": "2025-01-27T12:37:13.858Z"
+                                                "createdAt": "2025-01-27T12:52:49.832Z",
+                                                "updatedAt": "2025-01-27T12:52:49.832Z"
                                             }
                                         ]
                                     }
