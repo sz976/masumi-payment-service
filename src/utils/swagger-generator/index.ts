@@ -10,7 +10,7 @@ import { $Enums } from '@prisma/client';
 import { createPaymentSchemaOutput, createPaymentsSchemaInput, queryPaymentsSchemaInput, queryPaymentsSchemaOutput, updatePaymentSchemaOutput, updatePaymentsSchemaInput } from '@/routes/api/payments';
 import { createPurchaseInitSchemaInput, createPurchaseInitSchemaOutput, queryPurchaseRequestSchemaInput, queryPurchaseRequestSchemaOutput, refundPurchaseSchemaInput, refundPurchaseSchemaOutput } from '@/routes/api/purchases';
 import { paymentSourceCreateSchemaInput, paymentSourceCreateSchemaOutput, paymentSourceDeleteSchemaInput, paymentSourceDeleteSchemaOutput, paymentSourceSchemaInput, paymentSourceSchemaOutput, paymentSourceUpdateSchemaInput, paymentSourceUpdateSchemaOutput } from '@/routes/api/payment-source';
-import { registerAgentSchemaInput, registerAgentSchemaOutput, unregisterAgentSchemaInput, unregisterAgentSchemaOutput } from '@/routes/api/registry';
+import { queryAgentSchemaInput, queryAgentSchemaOutput, registerAgentSchemaInput, registerAgentSchemaOutput, unregisterAgentSchemaInput, unregisterAgentSchemaOutput } from '@/routes/api/registry';
 import { getAPIKeyStatusSchemaOutput, } from '@/routes/api/api-key-status';
 import { getWalletSchemaInput, getWalletSchemaOutput, postWalletSchemaInput, postWalletSchemaOutput } from '@/routes/api/wallet';
 import { getRpcProviderKeysSchemaInput, getRpcProviderKeysSchemaOutput } from '@/routes/api/rpc-api-keys';
@@ -730,6 +730,73 @@ export function generateOpenAPI() {
   });
 
   /********************* REGISTRY *****************************/
+
+  registry.registerPath({
+    method: 'get',
+    path: '/registry/',
+    description: 'Gets the agent metadata.',
+    summary: 'REQUIRES API KEY Authentication (+READ)',
+    tags: ['registry',],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: queryAgentSchemaInput.openapi({
+        example: {
+          walletVKey: "wallet_vkey",
+          network: $Enums.Network.PREPROD,
+          paymentContractAddress: "address",
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: 'Agent metadata',
+        content: {
+          'application/json': {
+            schema: z.object({ status: z.string(), data: queryAgentSchemaOutput }).openapi({
+              example: {
+                status: "success", data: {
+                  assets: [
+                    {
+                      unit: "unit",
+                      metadata: {
+                        name: "name",
+                        description: "description",
+                        api_url: "api_url",
+                        example_output: "example_output",
+                        tags: ["tag1", "tag2"],
+                        capability: {
+                          name: "capability_name",
+                          version: "capability_version",
+                        },
+                        author: {
+                          name: "author_name",
+                          contact: "author_contact",
+                          organization: "author_organization",
+                        },
+                        legal: {
+                          privacy_policy: "privacy_policy",
+                          terms: "terms",
+                          other: "other",
+                        },
+                        image: "image",
+                        pricing: [{
+                          quantity: 1000000,
+                          unit: "unit",
+                        }],
+                        metadata_version: 1
+                      }
+                    }
+                  ]
+                }
+              }
+            })
+          }
+        }
+      }
+    }
+  });
+
+
   registry.registerPath({
     method: 'post',
     path: '/registry/',

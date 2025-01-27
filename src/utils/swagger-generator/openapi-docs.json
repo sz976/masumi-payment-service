@@ -299,8 +299,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-01-27T12:52:49.831Z",
-                                                "updatedAt": "2025-01-27T12:52:49.831Z",
+                                                "createdAt": "2025-01-27T18:23:29.067Z",
+                                                "updatedAt": "2025-01-27T18:23:29.067Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -1194,8 +1194,8 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-27T12:52:49.831Z",
-                                                    "updatedAt": "2025-01-27T12:52:49.831Z",
+                                                    "createdAt": "2025-01-27T18:23:29.067Z",
+                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1215,8 +1215,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T12:52:49.831Z",
-                                                            "updatedAt": "2025-01-27T12:52:49.831Z",
+                                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1328,7 +1328,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-01-28T00:52:49.488Z",
+                                        "default": "2025-01-28T06:23:28.733Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1384,7 +1384,7 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T00:52:49.831Z"
+                                    "submitResultTime": "2025-01-28T06:23:29.067Z"
                                 }
                             }
                         }
@@ -1578,8 +1578,8 @@
                                         "status": "success",
                                         "data": {
                                             "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:52:49.831Z",
-                                            "updatedAt": "2025-01-27T12:52:49.831Z",
+                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                             "status": "PaymentRequested",
                                             "txHash": "tx_hash",
                                             "utxo": "utxo",
@@ -1589,8 +1589,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T12:52:49.831Z",
-                                                    "updatedAt": "2025-01-27T12:52:49.831Z",
+                                                    "createdAt": "2025-01-27T18:23:29.067Z",
+                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
                                                     "amount": 1000000,
                                                     "unit": "lovelace"
                                                 }
@@ -1740,8 +1740,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:52:49.832Z",
-                                            "updatedAt": "2025-01-27T12:52:49.832Z",
+                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -2042,8 +2042,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-27T12:52:49.832Z",
-                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
+                                                    "createdAt": "2025-01-27T18:23:29.067Z",
+                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -2060,8 +2060,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T12:52:49.832Z",
-                                                            "updatedAt": "2025-01-27T12:52:49.832Z",
+                                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                                             "amount": 1000000,
                                                             "unit": "lovelace"
                                                         }
@@ -2241,9 +2241,9 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T00:52:49.832Z",
-                                    "unlockTime": "2025-01-28T12:52:49.832Z",
-                                    "refundTime": "2025-01-29T00:52:49.832Z"
+                                    "submitResultTime": "2025-01-28T06:23:29.067Z",
+                                    "unlockTime": "2025-01-28T18:23:29.067Z",
+                                    "refundTime": "2025-01-29T06:23:29.067Z"
                                 }
                             }
                         }
@@ -2305,8 +2305,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:52:49.832Z",
-                                            "updatedAt": "2025-01-27T12:52:49.832Z",
+                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2426,6 +2426,278 @@
             }
         },
         "/registry/": {
+            "get": {
+                "description": "Gets the agent metadata.",
+                "summary": "REQUIRES API KEY Authentication (+READ)",
+                "tags": [
+                    "registry"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "The payment key of the wallet to be queried"
+                        },
+                        "required": true,
+                        "description": "The payment key of the wallet to be queried",
+                        "name": "walletVKey",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PREPROD",
+                                "MAINNET"
+                            ],
+                            "description": "The Cardano network used to register the agent on"
+                        },
+                        "required": true,
+                        "description": "The Cardano network used to register the agent on",
+                        "name": "network",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "The smart contract address of the payment contract to which the registration belongs"
+                        },
+                        "required": true,
+                        "description": "The smart contract address of the payment contract to which the registration belongs",
+                        "name": "paymentContractAddress",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Agent metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "assets": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "unit": {
+                                                                "type": "string",
+                                                                "maxLength": 250
+                                                            },
+                                                            "metadata": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "nullable": true,
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "api_url": {
+                                                                        "type": "string",
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "example_output": {
+                                                                        "type": "string",
+                                                                        "nullable": true,
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "tags": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string",
+                                                                            "maxLength": 250
+                                                                        }
+                                                                    },
+                                                                    "requests_per_hour": {
+                                                                        "type": "string",
+                                                                        "nullable": true,
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "capability": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "version": {
+                                                                                "type": "string",
+                                                                                "maxLength": 250
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "name",
+                                                                            "version"
+                                                                        ]
+                                                                    },
+                                                                    "author": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "contact": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "organization": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "name"
+                                                                        ]
+                                                                    },
+                                                                    "legal": {
+                                                                        "type": "object",
+                                                                        "nullable": true,
+                                                                        "properties": {
+                                                                            "privacy_policy": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "terms": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "other": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "pricing": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "quantity": {
+                                                                                    "type": "integer",
+                                                                                    "minimum": 1
+                                                                                },
+                                                                                "unit": {
+                                                                                    "type": "string",
+                                                                                    "maxLength": 250
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "quantity",
+                                                                                "unit"
+                                                                            ]
+                                                                        },
+                                                                        "minItems": 1
+                                                                    },
+                                                                    "image": {
+                                                                        "type": "string",
+                                                                        "maxLength": 250
+                                                                    },
+                                                                    "metadata_version": {
+                                                                        "type": "integer",
+                                                                        "minimum": 1,
+                                                                        "maximum": 1
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "name",
+                                                                    "api_url",
+                                                                    "tags",
+                                                                    "capability",
+                                                                    "author",
+                                                                    "pricing",
+                                                                    "image",
+                                                                    "metadata_version"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "unit",
+                                                            "metadata"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "assets"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "data"
+                                    ],
+                                    "example": {
+                                        "status": "success",
+                                        "data": {
+                                            "assets": [
+                                                {
+                                                    "unit": "unit",
+                                                    "metadata": {
+                                                        "name": "name",
+                                                        "description": "description",
+                                                        "api_url": "api_url",
+                                                        "example_output": "example_output",
+                                                        "tags": [
+                                                            "tag1",
+                                                            "tag2"
+                                                        ],
+                                                        "capability": {
+                                                            "name": "capability_name",
+                                                            "version": "capability_version"
+                                                        },
+                                                        "author": {
+                                                            "name": "author_name",
+                                                            "contact": "author_contact",
+                                                            "organization": "author_organization"
+                                                        },
+                                                        "legal": {
+                                                            "privacy_policy": "privacy_policy",
+                                                            "terms": "terms",
+                                                            "other": "other"
+                                                        },
+                                                        "image": "image",
+                                                        "pricing": [
+                                                            {
+                                                                "quantity": 1000000,
+                                                                "unit": "unit"
+                                                            }
+                                                        ],
+                                                        "metadata_version": 1
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Registers an agent to the registry.",
                 "summary": "REQUIRES API KEY Authentication (+PAY)",
@@ -2548,11 +2820,6 @@
                                                 "maxLength": 250
                                             }
                                         },
-                                        "required": [
-                                            "privacy_policy",
-                                            "terms",
-                                            "other"
-                                        ],
                                         "description": "Legal information about the agent"
                                     },
                                     "author": {
@@ -2992,13 +3259,13 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T12:52:49.832Z",
-                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
+                                                    "createdAt": "2025-01-27T18:23:29.067Z",
+                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T12:52:49.832Z",
+                                                    "lastCheckedAt": "2025-01-27T18:23:29.067Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3296,15 +3563,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T12:52:49.832Z",
-                                                    "updatedAt": "2025-01-27T12:52:49.832Z",
+                                                    "createdAt": "2025-01-27T18:23:29.067Z",
+                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T12:52:49.832Z",
+                                                    "lastCheckedAt": "2025-01-27T18:23:29.067Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3627,15 +3894,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:52:49.832Z",
-                                            "updatedAt": "2025-01-27T12:52:49.832Z",
+                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T12:52:49.832Z",
+                                            "lastCheckedAt": "2025-01-27T18:23:29.067Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -3902,13 +4169,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T12:52:49.832Z",
-                                            "updatedAt": "2025-01-27T12:52:49.832Z",
+                                            "createdAt": "2025-01-27T18:23:29.067Z",
+                                            "updatedAt": "2025-01-27T18:23:29.067Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T12:52:49.832Z",
+                                            "lastCheckedAt": "2025-01-27T18:23:29.067Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -4246,8 +4513,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-27T12:52:49.832Z",
-                                                "updatedAt": "2025-01-27T12:52:49.832Z"
+                                                "createdAt": "2025-01-27T18:23:29.067Z",
+                                                "updatedAt": "2025-01-27T18:23:29.067Z"
                                             }
                                         ]
                                     }

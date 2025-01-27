@@ -3,7 +3,7 @@ import { healthEndpointGet } from '@/routes/api/health';
 import { queryAPIKeyEndpointGet as queryCentralizedRegistrySourceGet, addAPIKeyEndpointPost as addCentralizedRegistrySourceEndpointPost, updateAPIKeyEndpointPatch, deleteAPIKeyEndpointDelete as deleteCentralizedRegistrySourceEndpointDelete } from "./api-key";
 import { createPurchaseInitPost, queryPurchaseRequestGet, refundPurchasePatch } from "./purchases";
 import { paymentInitPost, paymentUpdatePatch, queryPaymentEntryGet } from "./payments";
-import { registerAgentPost, unregisterAgentDelete } from "./registry";
+import { queryAgentGet, registerAgentPost, unregisterAgentDelete } from "./registry";
 import { paymentSourceEndpointDelete, paymentSourceEndpointGet, paymentSourceEndpointPatch, paymentSourceEndpointPost } from "./payment-source";
 import { queryAPIKeyStatusEndpointGet } from "./api-key-status";
 import { postWalletEndpointPost, queryWalletEndpointGet } from "./wallet";
@@ -25,6 +25,7 @@ export const apiRouter: Routing = {
             patch: paymentUpdatePatch,
         }),
         "registry": new DependsOnMethod({
+            get: queryAgentGet,
             post: registerAgentPost,
             delete: unregisterAgentDelete
         }),
