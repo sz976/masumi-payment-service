@@ -9,6 +9,151 @@ import { blake2b } from 'ethereum-cryptography/blake2b.js';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
+import { metadataStringConvert } from '@/utils/metadata-string-convert';
+
+const metadataSchema = z.object({
+    name: z.string().min(1).or(z.array(z.string().min(1))),
+    description: z.string().or(z.array(z.string())).optional(),
+    api_url: z.string().min(1).url().or(z.array(z.string().min(1))),
+    example_output: z.string().or(z.array(z.string())).optional(),
+    capability: z.object({
+        name: z.string().or(z.array(z.string())),
+        version: z.string().or(z.array(z.string())),
+    }),
+    requests_per_hour: z.string().or(z.array(z.string())).optional(),
+    author: z.object({
+        name: z.string().min(1).or(z.array(z.string().min(1))),
+        contact: z.string().or(z.array(z.string())).optional(),
+        organization: z.string().or(z.array(z.string())).optional()
+    }),
+    legal: z.object({
+        privacy_policy: z.string().or(z.array(z.string())).optional(),
+        terms: z.string().or(z.array(z.string())).optional(),
+        other: z.string().or(z.array(z.string())).optional()
+    }).optional(),
+    tags: z.array(z.string().min(1)).min(1),
+    pricing: z.array(z.object({
+        quantity: z.number({ coerce: true }).int().min(1),
+        unit: z.string().min(1).or(z.array(z.string().min(1)))
+    })).min(1),
+    image: z.string().or(z.array(z.string())),
+    metadata_version: z.number({ coerce: true }).int().min(1).max(1)
+})
+
+export const queryAgentSchemaInput = z.object({
+    walletVKey: z.string().max(250).describe("The payment key of the wallet to be queried"),
+    network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
+    paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to which the registration belongs"),
+})
+
+export const queryAgentSchemaOutput = z.object({
+    assets: z.array(z.object({
+        unit: z.string().max(250),
+        metadata: z.object({
+            name: z.string().max(250),
+            description: z.string().max(250).nullable().optional(),
+            api_url: z.string().max(250),
+            example_output: z.string().max(250).nullable().optional(),
+            tags: z.array(z.string().max(250)),
+            requests_per_hour: z.string().max(250).nullable().optional(),
+            capability: z.object({
+                name: z.string().max(250),
+                version: z.string().max(250),
+            }),
+            author: z.object({
+                name: z.string().max(250),
+                contact: z.string().max(250).nullable().optional(),
+                organization: z.string().max(250).nullable().optional(),
+            }),
+            legal: z.object({
+                privacy_policy: z.string().max(250).nullable().optional(),
+                terms: z.string().max(250).nullable().optional(),
+                other: z.string().max(250).nullable().optional(),
+            }).nullable().optional(),
+            pricing: z.array(z.object({
+                quantity: z.number({ coerce: true }).int().min(1),
+                unit: z.string().max(250),
+            })).min(1),
+            image: z.string().max(250),
+            metadata_version: z.number({ coerce: true }).int().min(1).max(1)
+        }),
+    })),
+})
+export const queryAgentGet = payAuthenticatedEndpointFactory.build({
+    method: "get",
+    input: queryAgentSchemaInput,
+    output: queryAgentSchemaOutput,
+    handler: async ({ input }) => {
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
+        if (networkCheckSupported == null) {
+            throw createHttpError(404, "Network and Address combination not supported")
+        }
+        const blockfrost = new BlockFrostAPI({
+            projectId: networkCheckSupported.rpcProviderApiKey,
+        })
+        const wallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == input.walletVKey)
+        if (wallet == null) {
+            throw createHttpError(404, "Wallet not found")
+        }
+        const { policyId, } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
+
+        const addressInfo = await blockfrost.addresses(wallet.walletAddress)
+        if (addressInfo.stake_address == null) {
+            throw createHttpError(404, "Stake address not found")
+        }
+        const stakeAddress = addressInfo.stake_address
+
+        const holderWallet = await blockfrost.accountsAddressesAssetsAll(stakeAddress)
+        if (!holderWallet || holderWallet.length == 0) {
+            throw createHttpError(404, "Asset not found")
+        }
+        const assets = holderWallet.filter(asset => asset.unit.startsWith(policyId))
+        const detailedAssets: { unit: string, metadata: z.infer<typeof queryAgentSchemaOutput>["assets"][0]["metadata"] }[] = []
+
+        await Promise.all(assets.map(async (asset) => {
+            const assetInfo = await blockfrost.assetsById(asset.unit)
+            const parsedMetadata = metadataSchema.safeParse(assetInfo.onchain_metadata)
+            if (!parsedMetadata.success) {
+                return
+            }
+            detailedAssets.push({
+                unit: asset.unit,
+                metadata:
+                {
+                    name: metadataStringConvert(parsedMetadata.data.name!)!,
+                    description: metadataStringConvert(parsedMetadata.data.description),
+                    api_url: metadataStringConvert(parsedMetadata.data.api_url)!,
+                    example_output: metadataStringConvert(parsedMetadata.data.example_output),
+                    capability: {
+                        name: metadataStringConvert(parsedMetadata.data.capability.name)!,
+                        version: metadataStringConvert(parsedMetadata.data.capability.version)!,
+                    },
+                    author: {
+                        name: metadataStringConvert(parsedMetadata.data.author.name)!,
+                        contact: metadataStringConvert(parsedMetadata.data.author.contact),
+                        organization: metadataStringConvert(parsedMetadata.data.author.organization),
+                    },
+                    legal: parsedMetadata.data.legal ? {
+                        privacy_policy: metadataStringConvert(parsedMetadata.data.legal.privacy_policy),
+                        terms: metadataStringConvert(parsedMetadata.data.legal.terms),
+                        other: metadataStringConvert(parsedMetadata.data.legal.other),
+                    } : undefined,
+                    tags: parsedMetadata.data.tags.map(tag => metadataStringConvert(tag)!),
+                    pricing: parsedMetadata.data.pricing.map(price => ({
+                        quantity: price.quantity,
+                        unit: metadataStringConvert(price.unit)!,
+                    })),
+                    image: metadataStringConvert(parsedMetadata.data.image)!,
+                    metadata_version: parsedMetadata.data.metadata_version,
+                }
+            })
+        }))
+
+        return { assets: detailedAssets }
+    },
+});
+
+
 
 export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
@@ -25,16 +170,15 @@ export const registerAgentSchemaInput = z.object({
         quantity: z.string().max(55),
     })).max(5).describe("Price for a default interaction"),
     legal: z.object({
-        privacy_policy: z.string().max(250),
-        terms: z.string().max(250),
-        other: z.string().max(250),
+        privacy_policy: z.string().max(250).optional(),
+        terms: z.string().max(250).optional(),
+        other: z.string().max(250).optional(),
     }).optional().describe("Legal information about the agent"),
     author: z.object({
         name: z.string().max(250),
         contact: z.string().max(250).optional(),
         organization: z.string().max(250).optional(),
     }).describe("Author information about the agent"),
-
 })
 
 export const registerAgentSchemaOutput = z.object({
@@ -271,7 +415,12 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             projectId: networkCheckSupported.rpcProviderApiKey,
         })
         const { policyId, script, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
-        const holderWallet = await blockfrost.assetsAddresses(policyId + input.assetName, { order: "desc", count: 1 })
+
+        let assetName = input.assetName
+        if (assetName.startsWith(policyId)) {
+            assetName = assetName.slice(policyId.length)
+        }
+        const holderWallet = await blockfrost.assetsAddresses(policyId + assetName, { order: "desc", count: 1 })
         if (holderWallet.length == 0) {
             throw createHttpError(404, "Asset not found")
         }
@@ -300,10 +449,6 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         }
 
 
-
-        //configure the asset to be burned here
-        const assetName = input.assetName;
-
         const redeemer = {
             data: { alternative: 1, fields: [] },
         };
@@ -320,6 +465,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
             .mint('-1', policyId, assetName)
             .mintingScript(script.code)
             .mintRedeemerValue(redeemer.data, 'Mesh');
+        tx.sendLovelace(address, "5000000")
         //send the minted asset to the address where we want to receive payments
         //used to defrag for further transactions
         //sign the transaction with our address
