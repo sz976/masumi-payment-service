@@ -158,109 +158,6 @@
                 }
             }
         },
-        "/rpc-api-keys/": {
-            "get": {
-                "description": "Gets rpc api keys (blockfrost)",
-                "summary": "REQUIRES API KEY Authentication (+ADMIN)",
-                "tags": [
-                    "rpc-api-keys"
-                ],
-                "security": [
-                    {
-                        "API-Key": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 250,
-                            "description": "Used to paginate through the rpc provider keys"
-                        },
-                        "required": false,
-                        "description": "Used to paginate through the rpc provider keys",
-                        "name": "cursorId",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "number",
-                            "minimum": 1,
-                            "maximum": 100,
-                            "default": 100,
-                            "description": "The number of rpc provider keys to return"
-                        },
-                        "required": false,
-                        "description": "The number of rpc provider keys to return",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Blockfrost keys",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "rpcProviderKeys": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "rpcProviderApiKey": {
-                                                        "type": "string"
-                                                    },
-                                                    "createdAt": {
-                                                        "type": "string"
-                                                    },
-                                                    "updatedAt": {
-                                                        "type": "string"
-                                                    },
-                                                    "network": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "PREPROD",
-                                                            "MAINNET"
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "id",
-                                                    "rpcProviderApiKey",
-                                                    "createdAt",
-                                                    "updatedAt",
-                                                    "network"
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "rpcProviderKeys"
-                                    ],
-                                    "example": {
-                                        "rpcProviderKeys": [
-                                            {
-                                                "network": "PREPROD",
-                                                "id": "unique_cuid_v2",
-                                                "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-26T23:20:24.453Z",
-                                                "updatedAt": "2025-01-26T23:20:24.453Z"
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/wallet/": {
             "get": {
                 "description": "Gets wallet status",
@@ -402,8 +299,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-01-26T23:20:24.453Z",
-                                                "updatedAt": "2025-01-26T23:20:24.453Z",
+                                                "createdAt": "2025-01-27T10:42:50.409Z",
+                                                "updatedAt": "2025-01-27T10:42:50.409Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -1297,8 +1194,8 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-26T23:20:24.454Z",
-                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
+                                                    "createdAt": "2025-01-27T10:42:50.409Z",
+                                                    "updatedAt": "2025-01-27T10:42:50.409Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1318,8 +1215,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1559,8 +1456,8 @@
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
                                             "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1694,8 +1591,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1996,8 +1893,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-26T23:20:24.454Z",
-                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
+                                                    "createdAt": "2025-01-27T10:42:50.409Z",
+                                                    "updatedAt": "2025-01-27T10:42:50.409Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -2014,8 +1911,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -2259,8 +2156,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2545,7 +2442,7 @@
                                 ],
                                 "example": {
                                     "network": "PREPROD",
-                                    "paymentContractAddress": "addr_test1...",
+                                    "paymentContractAddress": "addr_test1",
                                     "tags": [
                                         "tag1",
                                         "tag2"
@@ -2954,15 +2851,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-26T23:20:24.454Z",
-                                                    "updatedAt": "2025-01-26T23:20:24.454Z",
+                                                    "createdAt": "2025-01-27T10:42:50.409Z",
+                                                    "updatedAt": "2025-01-27T10:42:50.409Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-26T23:20:24.454Z",
+                                                    "lastCheckedAt": "2025-01-27T10:42:50.409Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3285,15 +3182,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-26T23:20:24.454Z",
+                                            "lastCheckedAt": "2025-01-27T10:42:50.409Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -3560,13 +3457,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-26T23:20:24.454Z",
-                                            "updatedAt": "2025-01-26T23:20:24.454Z",
+                                            "createdAt": "2025-01-27T10:42:50.409Z",
+                                            "updatedAt": "2025-01-27T10:42:50.409Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-26T23:20:24.454Z",
+                                            "lastCheckedAt": "2025-01-27T10:42:50.409Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -3803,6 +3700,109 @@
                                                 ],
                                                 "output_index": 1,
                                                 "block": "1"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rpc-api-keys/": {
+            "get": {
+                "description": "Gets rpc api keys, currently only blockfrost is supported (internal)",
+                "summary": "REQUIRES API KEY Authentication (+ADMIN)",
+                "tags": [
+                    "rpc-api-keys"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 250,
+                            "description": "Used to paginate through the rpc provider keys"
+                        },
+                        "required": false,
+                        "description": "Used to paginate through the rpc provider keys",
+                        "name": "cursorId",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 100,
+                            "description": "The number of rpc provider keys to return"
+                        },
+                        "required": false,
+                        "description": "The number of rpc provider keys to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Blockfrost keys",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "rpcProviderKeys": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "rpcProviderApiKey": {
+                                                        "type": "string"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "updatedAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "network": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "PREPROD",
+                                                            "MAINNET"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "rpcProviderApiKey",
+                                                    "createdAt",
+                                                    "updatedAt",
+                                                    "network"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "rpcProviderKeys"
+                                    ],
+                                    "example": {
+                                        "rpcProviderKeys": [
+                                            {
+                                                "network": "PREPROD",
+                                                "id": "unique_cuid_v2",
+                                                "rpcProviderApiKey": "blockfrost_api_key",
+                                                "createdAt": "2025-01-27T10:42:50.410Z",
+                                                "updatedAt": "2025-01-27T10:42:50.410Z"
                                             }
                                         ]
                                     }

@@ -80,37 +80,7 @@ export function generateOpenAPI() {
       },
     },
   });
-  /********************* BLOCKFROST KEYS *****************************/
-  registry.registerPath({
-    method: 'get',
-    path: '/rpc-api-keys/',
-    description: 'Gets rpc api keys (blockfrost)',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['rpc-api-keys',],
-    security: [{ [apiKeyAuth.name]: [] }],
-    request: {
-      query: getRpcProviderKeysSchemaInput.openapi({
-        example: {
-          cursorId: "unique_cuid_v2",
-          limit: 50,
-        }
-      })
-    },
-    responses: {
-      200: {
-        description: 'Blockfrost keys',
-        content: {
-          'application/json': {
-            schema: getRpcProviderKeysSchemaOutput.openapi({
-              example: {
-                rpcProviderKeys: [{ network: $Enums.Network.PREPROD, id: "unique_cuid_v2", rpcProviderApiKey: "blockfrost_api_key", createdAt: new Date(), updatedAt: new Date() }]
-              }
-            }),
-          },
-        },
-      },
-    },
-  });
+
 
   /********************* WALLET *****************************/
   registry.registerPath({
@@ -1062,6 +1032,37 @@ export function generateOpenAPI() {
             schema: getUTXOSchemaOutput.openapi({
               example: {
                 utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "unit", quantity: 1000000 }], output_index: 1, block: "1" }]
+              }
+            }),
+          },
+        },
+      },
+    },
+  });
+  /********************* RPC API KEYS *****************************/
+  registry.registerPath({
+    method: 'get',
+    path: '/rpc-api-keys/',
+    description: 'Gets rpc api keys, currently only blockfrost is supported (internal)',
+    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    tags: ['rpc-api-keys',],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: getRpcProviderKeysSchemaInput.openapi({
+        example: {
+          cursorId: "unique_cuid_v2",
+          limit: 50,
+        }
+      })
+    },
+    responses: {
+      200: {
+        description: 'Blockfrost keys',
+        content: {
+          'application/json': {
+            schema: getRpcProviderKeysSchemaOutput.openapi({
+              example: {
+                rpcProviderKeys: [{ network: $Enums.Network.PREPROD, id: "unique_cuid_v2", rpcProviderApiKey: "blockfrost_api_key", createdAt: new Date(), updatedAt: new Date() }]
               }
             }),
           },
