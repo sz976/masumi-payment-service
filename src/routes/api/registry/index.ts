@@ -301,6 +301,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             .mintRedeemerValue(redeemer.data, 'Mesh');
 
 
+
         //setup the metadata
         tx.setMetadata(721, {
             [policyId]: {
@@ -367,7 +368,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
 
     },
 });
-function extractErrorMessage(error: unknown): string {
+export function extractErrorMessage(error: unknown): string {
     if (error instanceof Error) {
         return error.message;
     }

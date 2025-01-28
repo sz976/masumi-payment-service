@@ -4,6 +4,7 @@ import { Network } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
+import { extractErrorMessage } from '../registry';
 
 
 
@@ -41,8 +42,17 @@ export const queryUTXOEndpointGet = authenticatedEndpointFactory.build({
         if (result == null) {
             throw createHttpError(404, "Network not found")
         }
-        const blockfrost = new BlockFrostAPI({ projectId: result.rpcProviderApiKey })
-        const utxos = await blockfrost.addressesUtxos(input.address, { count: input.count, page: input.page, order: input.order })
-        return { utxos: utxos.map((utxo) => ({ txHash: utxo.tx_hash, address: utxo.address, amount: utxo.amount.map((amount) => ({ unit: amount.unit, quantity: parseInt(amount.quantity) })), output_index: utxo.output_index, block: utxo.block })) }
+        try {
+
+
+            const blockfrost = new BlockFrostAPI({ projectId: result.rpcProviderApiKey })
+            const utxos = await blockfrost.addressesUtxos(input.address, { count: input.count, page: input.page, order: input.order })
+            return { utxos: utxos.map((utxo) => ({ txHash: utxo.tx_hash, address: utxo.address, amount: utxo.amount.map((amount) => ({ unit: amount.unit, quantity: parseInt(amount.quantity) })), output_index: utxo.output_index, block: utxo.block })) }
+        } catch (error) {
+            if (extractErrorMessage(error).includes("ValueNotConservedUTxO")) {
+                throw createHttpError(404, "Wallet not found");
+            }
+            throw createHttpError(500, "Failed to get UTXOs")
+        }
     },
 });
