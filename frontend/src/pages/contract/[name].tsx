@@ -23,7 +23,7 @@ interface ContractPageProps {
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [], // No pre-rendered paths
-    fallback: true // Generate pages on-demand
+    fallback: false // Generate pages on-demand
   };
 };
 
