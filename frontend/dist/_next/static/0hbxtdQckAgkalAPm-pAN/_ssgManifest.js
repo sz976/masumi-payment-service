@@ -1,1 +1,0 @@
-self.__SSG_MANIFEST=new Set(["\u002F","\u002Fcontract\u002F[name]","\u002Fsettings","\u002Fwallets"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
