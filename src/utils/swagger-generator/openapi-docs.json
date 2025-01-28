@@ -299,8 +299,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-01-27T18:23:29.067Z",
-                                                "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                "createdAt": "2025-01-28T12:20:29.019Z",
+                                                "updatedAt": "2025-01-28T12:20:29.019Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -987,7 +987,7 @@
                             "maxLength": 250,
                             "description": "The address of the smart contract where the payments were made to"
                         },
-                        "required": true,
+                        "required": false,
                         "description": "The address of the smart contract where the payments were made to",
                         "name": "paymentContractAddress",
                         "in": "query"
@@ -1194,8 +1194,8 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-01-27T18:23:29.067Z",
-                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                    "createdAt": "2025-01-28T12:20:29.019Z",
+                                                    "updatedAt": "2025-01-28T12:20:29.019Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -1215,8 +1215,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                            "createdAt": "2025-01-28T12:20:29.019Z",
+                                                            "updatedAt": "2025-01-28T12:20:29.019Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1328,7 +1328,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-01-28T06:23:28.733Z",
+                                        "default": "2025-01-29T00:20:28.695Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1370,8 +1370,7 @@
                                     "network",
                                     "agentIdentifier",
                                     "amounts",
-                                    "paymentType",
-                                    "paymentContractAddress"
+                                    "paymentType"
                                 ],
                                 "example": {
                                     "agentIdentifier": "agent_identifier",
@@ -1384,7 +1383,7 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T06:23:29.067Z"
+                                    "submitResultTime": "2025-01-29T00:20:29.019Z"
                                 }
                             }
                         }
@@ -1578,8 +1577,8 @@
                                         "status": "success",
                                         "data": {
                                             "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                            "createdAt": "2025-01-28T12:20:29.019Z",
+                                            "updatedAt": "2025-01-28T12:20:29.019Z",
                                             "status": "PaymentRequested",
                                             "txHash": "tx_hash",
                                             "utxo": "utxo",
@@ -1589,8 +1588,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T18:23:29.067Z",
-                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                    "createdAt": "2025-01-28T12:20:29.019Z",
+                                                    "updatedAt": "2025-01-28T12:20:29.019Z",
                                                     "amount": 1000000,
                                                     "unit": "lovelace"
                                                 }
@@ -1669,7 +1668,6 @@
                                 },
                                 "required": [
                                     "network",
-                                    "paymentContractAddress",
                                     "hash",
                                     "identifier"
                                 ],
@@ -1740,8 +1738,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                            "createdAt": "2025-01-28T12:20:29.019Z",
+                                            "updatedAt": "2025-01-28T12:20:29.019Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1829,7 +1827,7 @@
                             "maxLength": 250,
                             "description": "The address of the smart contract where the purchases were made to"
                         },
-                        "required": true,
+                        "required": false,
                         "description": "The address of the smart contract where the purchases were made to",
                         "name": "paymentContractAddress",
                         "in": "query"
@@ -2042,8 +2040,8 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-01-27T18:23:29.067Z",
-                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                    "createdAt": "2025-01-28T12:20:29.019Z",
+                                                    "updatedAt": "2025-01-28T12:20:29.019Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
@@ -2060,8 +2058,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                            "createdAt": "2025-01-28T12:20:29.019Z",
+                                                            "updatedAt": "2025-01-28T12:20:29.019Z",
                                                             "amount": 1000000,
                                                             "unit": "lovelace"
                                                         }
@@ -2222,7 +2220,6 @@
                                     "identifier",
                                     "network",
                                     "sellerVkey",
-                                    "paymentContractAddress",
                                     "amounts",
                                     "paymentType",
                                     "unlockTime",
@@ -2241,9 +2238,9 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-01-28T06:23:29.067Z",
-                                    "unlockTime": "2025-01-28T18:23:29.067Z",
-                                    "refundTime": "2025-01-29T06:23:29.067Z"
+                                    "submitResultTime": "2025-01-29T00:20:29.019Z",
+                                    "unlockTime": "2025-01-29T12:20:29.019Z",
+                                    "refundTime": "2025-01-30T00:20:29.019Z"
                                 }
                             }
                         }
@@ -2305,8 +2302,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                            "createdAt": "2025-01-28T12:20:29.019Z",
+                                            "updatedAt": "2025-01-28T12:20:29.019Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2364,8 +2361,7 @@
                                 },
                                 "required": [
                                     "identifier",
-                                    "network",
-                                    "paymentContractAddress"
+                                    "network"
                                 ],
                                 "example": {
                                     "network": "PREPROD",
@@ -2469,7 +2465,7 @@
                             "maxLength": 250,
                             "description": "The smart contract address of the payment contract to which the registration belongs"
                         },
-                        "required": true,
+                        "required": false,
                         "description": "The smart contract address of the payment contract to which the registration belongs",
                         "name": "paymentContractAddress",
                         "in": "query"
@@ -2846,7 +2842,6 @@
                                 },
                                 "required": [
                                     "network",
-                                    "paymentContractAddress",
                                     "tags",
                                     "name",
                                     "api_url",
@@ -2975,7 +2970,7 @@
                             "maxLength": 250,
                             "description": "The smart contract address of the payment contract to which the registration belongs"
                         },
-                        "required": true,
+                        "required": false,
                         "description": "The smart contract address of the payment contract to which the registration belongs",
                         "name": "paymentContractAddress",
                         "in": "query"
@@ -3259,13 +3254,13 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T18:23:29.067Z",
-                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                    "createdAt": "2025-01-28T12:20:29.020Z",
+                                                    "updatedAt": "2025-01-28T12:20:29.020Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T18:23:29.067Z",
+                                                    "lastCheckedAt": "2025-01-28T12:20:29.020Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3563,15 +3558,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-01-27T18:23:29.067Z",
-                                                    "updatedAt": "2025-01-27T18:23:29.067Z",
+                                                    "createdAt": "2025-01-28T12:20:29.020Z",
+                                                    "updatedAt": "2025-01-28T12:20:29.020Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-01-27T18:23:29.067Z",
+                                                    "lastCheckedAt": "2025-01-28T12:20:29.020Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3894,15 +3889,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                            "createdAt": "2025-01-28T12:20:29.020Z",
+                                            "updatedAt": "2025-01-28T12:20:29.020Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T18:23:29.067Z",
+                                            "lastCheckedAt": "2025-01-28T12:20:29.020Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -4169,13 +4164,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-01-27T18:23:29.067Z",
-                                            "updatedAt": "2025-01-27T18:23:29.067Z",
+                                            "createdAt": "2025-01-28T12:20:29.020Z",
+                                            "updatedAt": "2025-01-28T12:20:29.020Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-01-27T18:23:29.067Z",
+                                            "lastCheckedAt": "2025-01-28T12:20:29.020Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -4513,8 +4508,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-01-27T18:23:29.067Z",
-                                                "updatedAt": "2025-01-27T18:23:29.067Z"
+                                                "createdAt": "2025-01-28T12:20:29.020Z",
+                                                "updatedAt": "2025-01-28T12:20:29.020Z"
                                             }
                                         ]
                                     }
