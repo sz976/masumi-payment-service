@@ -10,12 +10,13 @@ import { ez } from 'express-zod-api';
 import { BlockfrostProvider, mBool, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from '@meshsdk/core';
 import { decrypt } from '@/utils/encryption';
 import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
+import { DEFAULTS } from '@/utils/config';
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
     cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
     cursorIdentifier: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"),
     network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
-    paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchases were made to"),
+    paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchases were made to"),
 })
 
 export const queryPurchaseRequestSchemaOutput = z.object({
@@ -42,8 +43,8 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     output: queryPurchaseRequestSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Querying registry");
-
-        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } } })
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } } })
         if (networkHandler == null) {
             throw createHttpError(404, "Network handler not found")
         }
@@ -78,7 +79,7 @@ export const createPurchaseInitSchemaInput = z.object({
     identifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum($Enums.Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
-    paymentContractAddress: z.string().max(250).describe("The address of the smart contract where the purchase will be made to"),
+    paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchase will be made to"),
     amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The payment type of smart contract used"),
     unlockTime: ez.dateIn().describe("The time after which the purchase will be unlocked"),
@@ -99,7 +100,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     output: createPurchaseInitSchemaOutput,
     handler: async ({ input, options, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } } })
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
@@ -120,7 +122,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
             throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference")
         }
 
-        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, input.paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
+        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
         return initial
     },
 });
@@ -129,7 +131,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 export const refundPurchaseSchemaInput = z.object({
     identifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
     network: z.nativeEnum($Enums.Network).describe("The network the Cardano wallet will be used on"),
-    paymentContractAddress: z.string().max(250).describe("The address of the smart contract holding the purchase"),
+    paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract holding the purchase"),
 })
 
 export const refundPurchaseSchemaOutput = z.object({
@@ -142,9 +144,10 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
     output: refundPurchaseSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
-                network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress }
+                network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress }
             }, include: {
                 FeeReceiverNetworkWallet: true,
                 AdminWallets: true,

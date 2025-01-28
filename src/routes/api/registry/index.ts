@@ -10,6 +10,7 @@ import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
 import { metadataStringConvert } from '@/utils/metadata-string-convert';
+import { DEFAULTS } from '@/utils/config';
 
 const metadataSchema = z.object({
     name: z.string().min(1).or(z.array(z.string().min(1))),
@@ -43,7 +44,7 @@ const metadataSchema = z.object({
 export const queryAgentSchemaInput = z.object({
     walletVKey: z.string().max(250).describe("The payment key of the wallet to be queried"),
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
-    paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to which the registration belongs"),
+    paymentContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to which the registration belongs"),
 })
 
 export const queryAgentSchemaOutput = z.object({
@@ -84,7 +85,8 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
     input: queryAgentSchemaInput,
     output: queryAgentSchemaOutput,
     handler: async ({ input }) => {
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
@@ -157,7 +159,7 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
 
 export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
-    paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to be registered for"),
+    paymentContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
     tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
     name: z.string().max(250).describe("Name of the agent"),
@@ -190,13 +192,13 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
     input: registerAgentSchemaInput,
     output: registerAgentSchemaOutput,
     handler: async ({ input, logger }) => {
-
         logger.info("Registering Agent", input.paymentTypes);
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
                 network_paymentContractAddress: {
                     network: input.network,
-                    paymentContractAddress: input.paymentContractAddress
+                    paymentContractAddress: paymentContractAddress
                 }
             }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } }
         })
@@ -388,7 +390,7 @@ function stringToMetadata(s: string | undefined) {
 export const unregisterAgentSchemaInput = z.object({
     assetName: z.string().max(250).describe("The identifier of the registration (asset) to be deregistered"),
     network: z.nativeEnum($Enums.Network).describe("The network the registration was made on"),
-    paymentContractAddress: z.string().max(250).describe("The smart contract address of the payment contract to which the registration belongs"),
+    paymentContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to which the registration belongs"),
 })
 
 export const unregisterAgentSchemaOutput = z.object({
@@ -401,7 +403,8 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     output: unregisterAgentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Deregister Agent", input.paymentTypes);
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: input.paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
+        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
