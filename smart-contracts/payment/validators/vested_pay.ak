@@ -174,8 +174,15 @@ validator vested_pay(
         expect refund_requested == True
         expect refund_denied == True
         expect bytearray.is_empty(resultHash) == False
+
+        expect must_start_after(validity_range, refund_time) == True
+
+
         let countOfAdmins = list.length(admin_vks)
         expect countOfAdmins == 3
+
+
+
         let signedBy =
           list.filter(admin_vks, fn(vk) { must_be_signed_by(self, vk) })
         list.length(signedBy) >= 2
@@ -190,7 +197,14 @@ validator vested_pay(
         expect new_datum: Datum = maybe_new_datum
 
         expect must_be_signed_by(self, seller)
-        expect must_end_before(validity_range, submit_result_time)
+
+        expect or {
+          must_end_before(validity_range, submit_result_time) == True,
+          and {
+            must_end_before(validity_range, refund_time) == True,
+            bytearray.is_empty(resultHash) == False,
+          },
+        }
 
         expect refund_denied == False
 

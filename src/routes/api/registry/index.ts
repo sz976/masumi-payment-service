@@ -342,6 +342,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         tx.sendLovelace(address, "5000000")
         //sign the transaction with our address
         tx.setChangeAddress(address).setRequiredSigners([address]);
+
         //build the transaction
         const unsignedTx = await tx.build();
         const signedTx = await wallet.signTx(unsignedTx, true);
