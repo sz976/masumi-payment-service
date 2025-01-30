@@ -53,6 +53,8 @@ const admin2 = fs.readFileSync('wallet_4.addr').toString();
 const admin3 = fs.readFileSync('wallet_5.addr').toString();
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
+    2,
+    2,
     [
       resolvePaymentKeyHash(admin1),
       resolvePaymentKeyHash(admin2),

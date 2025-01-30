@@ -30,6 +30,7 @@ export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalle
 
     const script: PlutusScript = {
         code: applyParamsToScript(paymentPlutus.validators[0].compiledCode, [
+            2,
             [
                 resolvePaymentKeyHash(adminWalletAddress1),
                 resolvePaymentKeyHash(adminWalletAddress2),

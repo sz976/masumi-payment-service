@@ -95,6 +95,7 @@ export const seed = async (prisma: PrismaClient) => {
 
     const script: PlutusScript = {
       code: applyParamsToScript(blueprint.validators[0].compiledCode, [
+        2,
         [
           resolvePaymentKeyHash(adminWallet1AddressPreprod),
           resolvePaymentKeyHash(adminWallet2AddressPreprod),
@@ -216,6 +217,7 @@ export const seed = async (prisma: PrismaClient) => {
 
     const script: PlutusScript = {
       code: applyParamsToScript(blueprint.validators[0].compiledCode, [
+        2,
         [
           resolvePaymentKeyHash(adminWallet1AddressMainnet),
           resolvePaymentKeyHash(adminWallet2AddressMainnet),
