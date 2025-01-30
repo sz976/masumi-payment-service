@@ -46,6 +46,7 @@ console.log(resolvePaymentKeyHash(admin2));
 console.log(resolvePaymentKeyHash(admin3));
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
+    2,
     [
       resolvePaymentKeyHash(admin1),
       resolvePaymentKeyHash(admin2),
