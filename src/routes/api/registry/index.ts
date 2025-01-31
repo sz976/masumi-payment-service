@@ -85,7 +85,7 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
     input: queryAgentSchemaInput,
     output: queryAgentSchemaOutput,
     handler: async ({ input }) => {
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
@@ -193,7 +193,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
     output: registerAgentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Registering Agent", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
                 network_paymentContractAddress: {
@@ -405,7 +405,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     output: unregisterAgentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Deregister Agent", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")

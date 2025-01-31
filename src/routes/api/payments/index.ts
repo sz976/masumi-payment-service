@@ -42,8 +42,7 @@ export const queryPaymentEntryGet = authenticatedEndpointFactory.build({
     output: queryPaymentsSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Querying db");
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
-
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
 
         const networkHandler = await prisma.networkHandler.findUnique({
             where: {
@@ -116,7 +115,7 @@ export const paymentInitPost = authenticatedEndpointFactory.build({
     output: createPaymentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
                 network_paymentContractAddress: {
@@ -187,7 +186,7 @@ export const paymentUpdatePatch = authenticatedEndpointFactory.build({
     output: updatePaymentSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
                 network_paymentContractAddress: {

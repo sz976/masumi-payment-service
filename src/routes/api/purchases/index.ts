@@ -43,7 +43,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     output: queryPurchaseRequestSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Querying registry");
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } } })
         if (networkHandler == null) {
             throw createHttpError(404, "Network handler not found")
@@ -100,7 +100,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     output: createPurchaseInitSchemaOutput,
     handler: async ({ input, options, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
@@ -144,7 +144,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
     output: refundPurchaseSchemaOutput,
     handler: async ({ input, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
-        const paymentContractAddress = input.paymentContractAddress ?? input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD
+        const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
                 network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress }
