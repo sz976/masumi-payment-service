@@ -62,7 +62,9 @@ BLOCKFROST_API_KEY="your_blockfrost_api_key"
 ```
 
 If you dont' know how to setup a PostgreSQL database - [learn more below](#installing-postgresql).
+
 Get a free Blockfrost API Key from blockfrost.io - [learn more below](#obtaining-a-blockfrost-api-key).
+
 Set the Encryption and Admin Keys yourself.
 
 ### Step 4: Configure and Seed the PostgreSQL Database
