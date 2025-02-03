@@ -71,7 +71,6 @@ Set the Encryption and Admin Keys yourself.
 
 ```sh
 npm run prisma:migrate
-npm run prisma:seed
 ```
 
 ## Running the Node
