@@ -12,9 +12,10 @@ import { AddWalletModal } from "@/components/wallet/AddWalletModal";
 import { Input } from "@/components/ui/input";
 import { toast } from 'react-toastify';
 import BlinkingUnderscore from '@/components/BlinkingUnderscore';
-import { updatePaymentSource } from '@/lib/query/api/update-payment-source';
-import { getPaymentSources } from '@/lib/query/api/payment-source';
+import { updatePaymentSource } from '@/lib/api/update-payment-source';
+import { getPaymentSources } from '@/lib/api/payment-source';
 import { GetStaticProps, GetStaticPaths } from 'next';
+import { deletePaymentSource } from '@/lib/api/delete-payment-source';
 
 interface ContractPageProps {
   initialContract: any | null;
@@ -124,16 +125,7 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
       setIsDeleting(true);
       setDeleteError(null);
       console.log('delete-contract id', contract.id)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/payment-source?id=${contract.id}`, {
-        method: 'DELETE',
-        headers: {
-          "token": state.apiKey!
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete contract');
-      }
+      await deletePaymentSource(state.apiKey!, contract.id);
 
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
@@ -228,7 +220,6 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
                 address={wallet.walletAddress}
                 contractName={name as string}
                 contract={contract}
-                network={contract.network}
               />
             ))}
           </CardContent>
@@ -253,7 +244,7 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
                 address={contract.CollectionWallet.walletAddress}
                 contractName={name as string}
                 contract={contract}
-                network={contract.network}
+
               />
             ) : (
               <div className="text-sm text-muted-foreground">No collection wallet configured</div>
@@ -282,7 +273,6 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
                     address={wallet.walletAddress}
                     contractName={name as string}
                     walletId={wallet.id}
-                    network={contract.network}
                     onRemove={() => handleRemoveWallet('purchasing', wallet.id)}
                   />
                 ))}
@@ -314,7 +304,6 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
                     address={wallet.walletAddress}
                     contractName={name as string}
                     walletId={wallet.id}
-                    network={contract.network}
                     onRemove={() => handleRemoveWallet('selling', wallet.id)}
                   />
                 ))}
@@ -328,7 +317,6 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
         <ContractTransactionList
           contractAddress={contract.addressToCheck || contract.paymentContractAddress}
           network={contract.network}
-          contract={contract}
           paymentType={contract.paymentType || "WEB3_CARDANO_V1"}
         />
       </div> : <BlinkingUnderscore />}

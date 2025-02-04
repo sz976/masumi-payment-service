@@ -18,7 +18,7 @@ interface TransactionsResponse {
 
 const PAYMENT_API_BASE_URL = process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL
 
-export async function fetchTransactions(
+export async function getTransactions(
   token: string,
   params: PurchasesQuery
 ): Promise<TransactionsResponse> {

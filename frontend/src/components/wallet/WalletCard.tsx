@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useCallback } from "react";
@@ -9,30 +8,50 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BlinkingUnderscore from "../BlinkingUnderscore";
+import { getWallet } from "@/lib/api/wallet";
+import { getWalletBalance } from "@/lib/api/balance/get";
 
 export function WalletCard({
   type,
   address,
   walletId,
   onRemove,
-  contract,
-  network
+  contract
 }: {
   type: string;
   address: string;
   contractName: string;
   walletId?: string;
   onRemove?: () => void;
-  contract: any;
-  network: string;
+  contract: {
+    id: string;
+    paymentContractAddress: string;
+    network: string;
+    paymentType: string;
+    blockfrostApiKey: string;
+    adminWallets: {
+      walletAddress: string;
+    }[];
+    collectionWallet: {
+      walletAddress: string;
+      note?: string;
+    };
+    purchasingWallets: {
+      walletMnemonic: string;
+      note?: string;
+    }[];
+    sellingWallets: {
+      walletMnemonic: string;
+      note?: string;
+    }[];
+  };
 }) {
   const [adaBalance, setAdaBalance] = useState<number | null>(null);
   const [usdmBalance, setUsdmBalance] = useState<number | null>(null);
   const [fetchingBalance, setFetchingBalance] = useState<boolean>(true);
-  const [, setBalanceError] = useState<any>(null);
-  const [isUpdating,] = useState(false);
+  const [balanceError, setBalanceError] = useState<unknown>(null);
   const [localAddress, setLocalAddress] = useState<string | null>(address || null);
-  const [, setIsFetchingAddress] = useState(false);
+  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
   const { state } = useAppContext();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -44,26 +63,22 @@ export function WalletCard({
   const fetchWalletAddress = useCallback(async () => {
     try {
       setIsFetchingAddress(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/wallet?walletType=${walletType}&id=${walletId}`, {
-        headers: {
-          'accept': 'application/json',
-          'token': state.apiKey!
-        }
+      const response = await getWallet(state.apiKey!, {
+        walletType,
+        id: walletId!,
+        includeSecret: true
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch wallet address');
-      }
 
-      const data = await response.json();
-      return data.data.address;
+      const data = response.data?.wallet;
+      return data?.walletAddress;
     } catch (error) {
       console.error('Error fetching wallet address:', error);
       return null;
     } finally {
       setIsFetchingAddress(false);
     }
-  }, [state.apiKey, walletType, walletId]);
+  }, [walletId, state.apiKey, walletType]);
 
   useEffect(() => {
     if (!localAddress && walletId) {
@@ -73,47 +88,28 @@ export function WalletCard({
         }
       });
     }
-  }, [localAddress, walletId, fetchWalletAddress]);
+  }, [fetchWalletAddress, localAddress, walletId]);
 
   const fetchBalancePreprod = useCallback(async (address: string) => {
 
     try {
       setFetchingBalance(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/utxos?address=${address}&count=100&order=asc&page=1&network=${network.toLowerCase() === 'mainnet' ? 'MAINNET' : 'PREPROD'}`, {
-        headers: {
-          'accept': 'application/json',
-          'token': state.apiKey!
-        }
+      const data = await getWalletBalance(state.apiKey!, {
+        walletAddress: address,
+        network: 'preprod',
+        count: 1,
+        page: 1
       });
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-
-      const utxos = await response.json();
-      console.log("u", utxos)
-      const usdmPolicyId = "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad";
-      //const usdmHex = "0014df105553444d"
-
-      const balanceAda = utxos.data.utxos.reduce((total: any, utxo: any) => {
-        const value = utxo.amount.find((amt: any) => amt.unit === "lovelace");
-        return total + (value ? value.quantity : 0);
-      }, 0);
-
-      const balanceUsdm = utxos.data.utxos.reduce((total: any, utxo: any) => {
-        const value = utxo.amount.find((amt: any) => amt.unit?.startsWith(usdmPolicyId));
-        return total + (value ? value.quantity : 0);
-      }, 0);
-
-      return {
-        ada: (balanceAda / 1000000).toFixed(1),
-        usdm: (balanceUsdm).toFixed(1)
-      };
-    } catch (error: any) {
-      console.error("Error fetching balance:", error.message);
+      setAdaBalance(data?.ada || 0);
+      setUsdmBalance(data?.usdm || 0);
+      setFetchingBalance(false);
+      return data;
+    } catch (error: unknown) {
+      console.error("Error fetching balance:", error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
-  }, [state.apiKey, network,]);
+  }, [state.apiKey]);
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -128,9 +124,9 @@ export function WalletCard({
       try {
         setFetchingBalance(true);
         setBalanceError(null);
-        const data: any = await fetchBalancePreprod(localAddress || '');
-        setAdaBalance(data?.ada || "0");
-        setUsdmBalance(data?.usdm || "0");
+        const data = await fetchBalancePreprod(localAddress || '');
+        setAdaBalance(data?.ada || 0);
+        setUsdmBalance(data?.usdm || 0);
         setFetchingBalance(false);
       } catch (error) {
         console.error('Error fetching wallet balances:', error);
@@ -142,16 +138,15 @@ export function WalletCard({
     if (localAddress) {
       fetchBalances();
     }
-  }, [localAddress, state.paymentSources, state.apiKey, fetchBalancePreprod]);
+  }, [fetchBalancePreprod, localAddress, state.paymentSources]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const refreshBalance = async () => {
     try {
       setBalanceError(null)
       setFetchingBalance(true)
-      const data: any = await fetchBalancePreprod(localAddress || '')
-      setAdaBalance(data?.ada || "0")
-      setUsdmBalance(data?.usdm || "0")
+      const data = await fetchBalancePreprod(localAddress || '')
+      setAdaBalance(data?.ada || 0)
+      setUsdmBalance(data?.usdm || 0)
       setFetchingBalance(false)
     } catch (error) {
       console.error('Error fetching wallet balances:', error);
@@ -160,7 +155,7 @@ export function WalletCard({
     }
   }
 
-  const handleTopUp = (e: any) => {
+  const handleTopUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     const network = contract.network?.toLowerCase();
 
@@ -169,9 +164,9 @@ export function WalletCard({
       return;
     }
 
-    const transak = new (Transak as any)({
-      apiKey: process.env.NEXT_PUBLIC_TRANSAK_API_KEY,
-      environment: process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'STAGING',
+    const transak = new (Transak)({
+      apiKey: process.env.NEXT_PUBLIC_TRANSAK_API_KEY!,
+      environment: process.env.NODE_ENV === 'production' ? Transak.ENVIRONMENTS.PRODUCTION : Transak.ENVIRONMENTS.STAGING,
       defaultCryptoCurrency: 'ADA',
       walletAddress: localAddress || '',
       defaultNetwork: type === 'mainnet' ? 'cardano' : 'cardano_preprod',
@@ -180,41 +175,37 @@ export function WalletCard({
       exchangeScreenTitle: 'Top up your wallet',
       hideMenu: true,
       themeColor: '#000000',
-      hostURL: window.location.origin,
+      containerId: 'transak-widget',
       widgetHeight: '650px',
       widgetWidth: '450px'
     });
 
     transak.init();
 
-    transak.on(transak.EVENTS.TRANSAK_WIDGET_CLOSE, () => {
+
+    Transak.on(Transak.EVENTS.TRANSAK_WIDGET_CLOSE, () => {
       transak.close();
     });
 
-    transak.on(transak.EVENTS.TRANSAK_ORDER_SUCCESSFUL, (orderData: any) => {
+    Transak.on(Transak.EVENTS.TRANSAK_ORDER_SUCCESSFUL, (orderData) => {
       console.log('Order successful:', orderData);
       transak.close();
     });
   };
 
-  const handleExport = async (e: any) => {
+  const handleExport = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsExporting(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/wallet?walletType=${walletType}&id=${walletId}&includeSecret=true`, {
-        headers: {
-          'accept': 'application/json',
-          'token': state.apiKey!
-        }
+      const response = await getWallet(state.apiKey!, {
+        walletType,
+        id: walletId!,
+        includeSecret: true
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to export wallet');
-      }
-
-      const data = await response.json();
-      setWalletSecret(data.data.WalletSecret.secret);
+      const data = response.data?.wallet;
+      setWalletSecret(data?.WalletSecret?.secret || '');
       setShowExportDialog(true);
     } catch (error) {
       console.error('Error exporting wallet:', error);
@@ -224,16 +215,6 @@ export function WalletCard({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleViewExplorer = (e: any) => {
-    e.stopPropagation();
-    window.open(`https://masumi.network/explorer/?address=${localAddress}`, '_blank');
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDeregister = (e: any) => {
-    e.stopPropagation();
-  };
 
   const shortenAddress = (addr: string) => {
     return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
@@ -246,46 +227,52 @@ export function WalletCard({
   };
 
   const getDisplayContent = () => {
-    // if (isFetchingAddress) {
-    //   return <div className="text-sm">Fetching wallet address...</div>;
-    // }
-
-    // if (!localAddress) {
-    //   switch (type) {
-    //     case 'receiver':
-    //       return "No receiver address added";
-    //     case 'payment':
-    //       return "No payment address added";
-    //     case 'collection':
-    //       return "No collection address added";
-    //     default:
-    //       return "No address added";
-    //   }
-    // }
 
     return (
       <>
         <div className="flex justify-between items-center">
           <div className="text-sm truncate flex-1">
-            Address: {localAddress ? shortenAddress(localAddress) : <BlinkingUnderscore />}
-            {localAddress && <Button
-              variant="ghost"
-              size="icon"
-              className="h-4 w-4 ml-2"
-              onClick={(e) => handleCopyAddress(e, localAddress || '')}
-            >
-              <Copy className="h-3 w-3" />
-            </Button>}
+            {isFetchingAddress ? (
+              <span className="text-muted-foreground">Fetching address...</span>
+            ) : (
+              <>
+                Address: {localAddress ? shortenAddress(localAddress) : <BlinkingUnderscore />}
+                {localAddress && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 ml-2"
+                    onClick={(e) => handleCopyAddress(e, localAddress || '')}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         <div className="grid gap-2">
-          {!fetchingBalance ? <>
-            <div className="text-sm">ADA Balance: {adaBalance?.toLocaleString() || "..."} ₳</div>
-            <div className="text-sm">USDM Balance: {usdmBalance?.toLocaleString() || "..."} USDM</div>
-          </> : <div className="text-sm">
-            fetching balance...
-          </div>}
+          {balanceError ? (
+            <div className="text-sm text-destructive">Error fetching balance. Please try again.</div>
+          ) : !fetchingBalance ? (
+            <>
+              <div className="text-sm">ADA Balance: {adaBalance?.toLocaleString() || "..."} ₳</div>
+              <div className="text-sm">USDM Balance: {usdmBalance?.toLocaleString() || "..."} USDM</div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshBalance}
+                className="w-fit px-2 py-1 h-auto text-xs"
+              >
+                Refresh Balance
+              </Button>
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              fetching balance...
+            </div>
+          )}
         </div>
 
         <div className="flex gap-1 justify-start mt-1">
@@ -300,6 +287,21 @@ export function WalletCard({
             </>
           )}
         </div>
+
+        {(type === 'purchasing' || type === 'selling') && walletId && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
+
+            style={{ maxWidth: '100px' }}
+          >
+            Remove Wallet
+          </Button>
+        )}
       </>
     );
   };
@@ -309,20 +311,6 @@ export function WalletCard({
       <Card className="bg-[#ffffff03] hover:bg-[#ffffff06]">
         <CardContent className="space-y-1 py-4 px-3 flex flex-col gap-3">
           {getDisplayContent()}
-          {(type === 'purchasing' || type === 'selling') && walletId && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDeleteDialog(true);
-              }}
-              disabled={isUpdating}
-              style={{ maxWidth: '100px' }}
-            >
-              Remove Wallet
-            </Button>
-          )}
         </CardContent>
       </Card>
 
@@ -338,7 +326,6 @@ export function WalletCard({
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
-              disabled={isUpdating}
             >
               Cancel
             </Button>
@@ -349,7 +336,6 @@ export function WalletCard({
                 onRemove?.();
                 setShowDeleteDialog(false);
               }}
-              disabled={isUpdating}
             >
               Remove Wallet
             </Button>

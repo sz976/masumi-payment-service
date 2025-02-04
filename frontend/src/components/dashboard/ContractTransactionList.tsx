@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Copy } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAppContext } from "@/lib/contexts/AppContext";
+import { getTransactions } from "@/lib/api/transactions";
 
 type TransactionType = string;
 
@@ -23,18 +23,35 @@ type Transaction = {
   errorNote?: string;
   errorRequiresManualReview?: boolean;
   identifier: string;
-  sellingWallet: any;
-  collectionWallet: any;
-  buyerWallet: any;
-  amounts: any[];
-  checkedBy: any;
+  sellingWallet: {
+    walletAddress: string;
+    note?: string;
+  };
+  collectionWallet: {
+    walletAddress: string;
+    note?: string;
+  };
+  buyerWallet: {
+    walletAddress: string;
+    note?: string;
+  };
+  amounts: {
+    amount: number;
+  }[];
+  checkedBy: {
+    network: string;
+    paymentType: string;
+  };
+  networkHandler: {
+    network: string;
+    paymentType: string;
+  };
 }
 
 type TransactionListProps = {
   contractAddress?: string;
   network?: string;
   paymentType?: string;
-  contract?: any;
   walletAddress?: string;
 }
 
@@ -54,57 +71,52 @@ const formatStatus = (status: string) => {
   return status;
 };
 
-export function ContractTransactionList({ contractAddress: paymentContractAddress, network, paymentType }: TransactionListProps) {
+export function ContractTransactionList({ contractAddress, network, paymentType }: TransactionListProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [cursorIdentifier, setCursorIdentifier] = useState<string | null>(null);
   const [filter, setFilter] = useState<TransactionType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const { state } = useAppContext();
 
+  const fetchTransactions = useCallback(async (cursor?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await getTransactions(state.apiKey!, {
+        ...(contractAddress && { contractAddress }),
+        ...(network && { network }),
+        ...(paymentType && { paymentType }),
+        ...(cursor && { cursorIdentifier: cursor }),
+        limit: 10
+      });
+
+      const data = response.data
+      const newTransactions = (data?.transactions || []) as unknown as Transaction[];
+
+      setTransactions(cursor ? [...transactions, ...newTransactions] : newTransactions);
+      setHasMore(newTransactions.length === 10);
+      setCursorIdentifier(newTransactions[newTransactions.length - 1]?.identifier ?? null);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contractAddress, network, paymentType, state.apiKey, transactions]);
+
   useEffect(() => {
-    const fetchTransactions = async () => {
-      setIsLoading(true);
-      try {
-        console.log("contractAddress", paymentContractAddress)
-        const queryParams = new URLSearchParams({
-          ...(paymentContractAddress && { paymentContractAddress: paymentContractAddress }),
-          ...(network && { network }),
-          limit: '100'
-        }).toString();
-
-        const responsePayment = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/payment?${queryParams}`, {
-          headers: {
-            'token': state.apiKey!
-          }
-        });
-        if (!responsePayment.ok) {
-          throw new Error('Failed to fetch transactions');
-        }
-        const responsePurchase = await fetch(`${process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL}/api/v1/purchase?${queryParams}`, {
-          headers: {
-            'token': state.apiKey!
-          }
-        });
-        if (!responsePurchase.ok) {
-          throw new Error('Failed to fetch transactions');
-        }
-
-        const dataPayment = await responsePayment.json();
-        const dataPurchase = await responsePurchase.json();
-        const data = [...dataPayment?.data?.transactions, ...dataPurchase?.data?.transactions];
-        setTransactions(data);
-      } catch (error) {
-        console.error('Failed to fetch transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (paymentContractAddress || network || paymentType) {
+    if (contractAddress || network || paymentType) {
       fetchTransactions();
     }
-  }, [paymentContractAddress, network, paymentType, state.apiKey]);
+  }, [contractAddress, fetchTransactions, network, paymentType]);
+
+  const handleLoadMore = () => {
+    if (cursorIdentifier && !isLoading) {
+      fetchTransactions(cursorIdentifier);
+    }
+  };
+
   const filteredTransactions = transactions.filter((tx: Transaction) => {
     const matchesFilter =
       filter === 'all' ||
@@ -205,7 +217,7 @@ export function ContractTransactionList({ contractAddress: paymentContractAddres
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((tx: any) => (
+                  {filteredTransactions.map((tx: Transaction) => (
                     <TableRow
                       key={tx.identifier}
                       className={`cursor-pointer ${tx.errorType
@@ -234,6 +246,13 @@ export function ContractTransactionList({ contractAddress: paymentContractAddres
                       <TableCell>{new Date(tx.createdAt).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
+                  {hasMore && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center">
+                        <Button onClick={handleLoadMore}>Load More</Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>

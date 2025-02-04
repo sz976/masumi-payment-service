@@ -211,23 +211,27 @@ export function MainLayout({ children }: MainLayoutProps) {
             className="fixed top-0 right-0 h-16 border-b border-border backdrop-blur-[10px] bg-[#0008] z-20 transition-all duration-300 ease-in-out"
             style={{ width: `calc(100% - ${isCollapsed ? "100px" : "300px"})` }}
           >
-            <div className="flex justify-between items-center h-full px-8">
-              <h1 className="text-2xl font-semibold">
-                {getPageTitle()}
-              </h1>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 bg-[#fff1] px-4 py-1.5 rounded-md border border-border">
-                  <RiRobot2Line className="h-4 w-4 text-[#ff0050]" />
-                  <span className="text-sm text-muted-foreground">
-                    Admin Interface
-                  </span>
+            <div className="max-w-7xl mx-auto w-full h-full px-8">
+              <div className="flex justify-between items-center h-full">
+                <h1 className="text-2xl font-semibold">
+                  {getPageTitle()}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-[#fff1] px-4 py-1.5 rounded-md border border-border">
+                    <RiRobot2Line className="h-4 w-4 text-[#ff0050]" />
+                    <span className="text-sm text-muted-foreground">
+                      Admin Interface
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 p-8 mt-16 relative z-10 w-full">
-            {children}
+          <main className="flex-1 relative z-10 w-full">
+            <div className="max-w-7xl mx-auto p-8 mt-16">
+              {children}
+            </div>
           </main>
         </div>
       </div>

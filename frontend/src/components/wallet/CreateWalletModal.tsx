@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { createWallet } from "@/lib/query/api/wallet";
+import { createWallet } from "@/lib/api/wallet";
 
 type CreateWalletModalProps = {
   type: string;
@@ -16,7 +15,6 @@ export function CreateWalletModal({ type, onClose, contractId }: CreateWalletMod
   const [error, setError] = useState<string>('');
   const { state, dispatch } = useAppContext();
 
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -24,24 +22,22 @@ export function CreateWalletModal({ type, onClose, contractId }: CreateWalletMod
 
     try {
       const response = await createWallet(state.apiKey!, {
-        id: contractId,
         walletType: type,
-        includeSecret: true,
+        // Add other wallet creation data here
       });
 
-      const { data } = response;
+      const data = response?.data?.wallet;
 
-      // Update global state with new wallet
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
-        payload: state.paymentSources.map((c: any) =>
+        payload: state.paymentSources.map((c) =>
           c.id === contractId ? data : c
         ),
       });
 
       onClose();
-    } catch (error: any) {
-      setError(error.message || 'Failed to create wallet');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Failed to create wallet');
     } finally {
       setIsLoading(false);
     }
