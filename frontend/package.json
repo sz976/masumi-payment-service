@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-api": "swagger-typescript-api -p http://localhost:3001/api-docs -o ./src/lib/api/generated -n api.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.4",
@@ -38,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15.1.5",
     "postcss": "^8",
+    "swagger-typescript-api": "^13.0.23",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3"
   }
