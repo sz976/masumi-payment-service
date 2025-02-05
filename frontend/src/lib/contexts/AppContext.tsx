@@ -2,9 +2,40 @@
 import { createContext, useContext, useReducer } from 'react';
 
 interface AppState {
-  paymentSources: any[];
-  contracts: any[];
-  wallets: any[];
+  paymentSources: {
+    id: string;
+    name: string;
+    paymentContractAddress: string;
+    network: string;
+    paymentType: string;
+    rpcProviderApiKey: string;
+    adminWallets: {
+      walletAddress: string;
+    }[];
+    collectionWallet: {
+      walletAddress: string;
+      note?: string;
+    };
+    purchasingWallets: {
+      walletMnemonic: string;
+      note?: string;
+    }[];
+    sellingWallets: {
+      walletMnemonic: string;
+      note?: string;
+    }[];
+  }[];
+  contracts: {
+    id: string;
+    paymentContractAddress: string;
+    network: string;
+    paymentType: string;
+  }[];
+  wallets: {
+    id: string;
+    walletAddress: string;
+    note?: string;
+  }[];
   apiKey: string | null;
 }
 

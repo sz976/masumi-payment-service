@@ -9,8 +9,8 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/router';
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
-import { getPaymentSources } from "@/lib/query/api/payment-source";
-import { checkHealth } from "@/lib/query/api/health";
+import { getPaymentSources } from "@/lib/api/payment-source";
+import { checkHealth } from "@/lib/api/health";
 
 function InitializeApp() {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);

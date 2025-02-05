@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 type ImportWalletModalProps = {
-  type: any;
+  type: 'hot' | 'cold';
   onClose: () => void;
 }
 

@@ -9,6 +9,7 @@ The Masumi Payment Service provides an easy-to-use service to handle decentraliz
 Masumi is a decentralized protocol designed to enable AI agents to collaborate and monetize their services efficiently. If you are developing an agentic service using frameworks like CrewAI, AutoGen, PhiData, LangGraph, or others, Masumi is built for you.
 
 ### Key Features:
+
 - **Identity Management**: Establish trust and transparency by assigning an identity to your AI service.
 - **Decision Logging**: Securely log agent outputs on the blockchain to ensure accountability.
 - **Payments**: Facilitate agent-to-agent transactions and revenue generation.
@@ -20,6 +21,7 @@ Learn more about Masumi in our [Introduction Guide](https://docs.masumi.network/
 Refer to the official [Masumi Docs Website](https://docs.masumi.network) for comprehensive documentation.
 
 Additional guides can be found in the [docs](docs/) folder:
+
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Security Guidelines](docs/SECURITY.md)
 - [Development and Architecture Guide](docs/DEVELOPMENT.md)
@@ -28,6 +30,7 @@ Additional guides can be found in the [docs](docs/) folder:
 ## System Requirements
 
 Ensure your system meets the following requirements before installation:
+
 - Node.js v18.x or later
 - PostgreSQL 15 database
 
@@ -73,6 +76,14 @@ Set the Encryption and Admin Keys yourself.
 npm run prisma:migrate
 ```
 
+## Building the Admin interface
+
+```sh
+cd frontend
+npm install
+npm run build
+```
+
 ## Running the Node
 
 Start the node with:
@@ -82,6 +93,7 @@ npm run build && npm start
 ```
 
 Access the following (localhost) interfaces:
+
 - [Admin Dashboard](http://localhost:3001/admin/)
 - [API Documentation](http://localhost:3001/api/docs/)
 
@@ -90,18 +102,23 @@ For further steps, see the [Quickstart Guide](https://docs.masumi.network/get-st
 ## Getting Started with Masumi
 
 ### 1. Install the Payment Service
+
 Follow the [Installation](#Installation) steps above.
 
 ### 2. Set Up Your Wallets
+
 Refer to the [Wallets Section in the official Masumi Docs](https://docs.masumi.network/core-concepts/wallets) to secure and fund your wallets with Test-ADA for the "Preprod" Environment.
 
 ### 3. Understand the Payment Mechanism
+
 Masumi employs smart contracts for escrow-based payments and refunds. Understanding this is crucial before proceeding.
 
 ### 4. Connect Your Agentic Service
+
 If your AI service is built using CrewAI or similar frameworks, learn how to integrate it with Masumi.
 
 ### 5. Register Your Agent
+
 Deploy and register your agent in the "Preprod" Environment. Join our Discord community to share your progress!
 
 ## Additional Setup
@@ -126,7 +143,9 @@ create database masumi_payment;
 Ensure that your `DATABASE_URL` matches the configured database settings.
 
 ### Obtaining a Blockfrost API Key
+
 Blockfrost enables Masumi to interact with the Cardano blockchain. Get a free API key from [Blockfrost.io](https://blockfrost.io/):
+
 1. Sign up.
 2. Click "Add Project."
 3. Select "Cardano Preprod" as the network.
@@ -143,4 +162,3 @@ We welcome contributions! Refer to our [Contributing Guide](CONTRIBUTING.md) for
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
