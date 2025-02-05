@@ -2,6 +2,7 @@
 node_modules
 # build path
 ./dist
+dist/*
 # environmental variables
 /.env
 # yarn error log
@@ -13,3 +14,5 @@ coverage
 src/utils/.DS_Store
 src/services/.DS_Store
 .DS_Store
+
+
