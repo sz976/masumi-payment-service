@@ -11,6 +11,7 @@ import { BlockfrostProvider, mBool, MeshWallet, SLOT_CONFIG_NETWORK, Transaction
 import { decrypt } from '@/utils/encryption';
 import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
 import { DEFAULTS } from '@/utils/config';
+import { convertNetwork } from '@/utils/networkConverter';
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
     cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
@@ -278,7 +279,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
                 fields: [],
             },
         };
-        const networkType = networkCheckSupported.network == "MAINNET" ? "mainnet" : "preprod"
+        const networkType = convertNetwork(networkCheckSupported.network)
         const invalidBefore =
             unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK[networkType]) - 1;
         const invalidHereafter =

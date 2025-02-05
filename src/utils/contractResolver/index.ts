@@ -5,6 +5,7 @@ import paymentPlutus from "@smart-contracts/payment/plutus.json"
 import registryPlutus from "@smart-contracts/registry/plutus.json"
 import { Network, NetworkHandler } from "@prisma/client";
 import { applyParamsToScript } from "@meshsdk/core";
+import { convertNetworkToId } from "../networkConverter";
 
 export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler & { AdminWallets: { walletAddress: string, order: number }[], FeeReceiverNetworkWallet: { walletAddress: string, order: number } }) {
     const adminWallets = networkCheckSupported.AdminWallets;
@@ -64,7 +65,8 @@ export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalle
         ]),
         version: "V3"
     };
-    const smartContractAddress = resolvePlutusScriptAddress(script, network == "MAINNET" ? 1 : 0)
+    const networkId = convertNetworkToId(network)
+    const smartContractAddress = resolvePlutusScriptAddress(script, networkId)
     return { script, smartContractAddress }
 }
 
@@ -81,6 +83,8 @@ export async function getRegistryScriptV1(contractAddress: string, network: Netw
         .hash()
         .toString();
 
-    const smartContractAddress = resolvePlutusScriptAddress(script, network == "MAINNET" ? 1 : 0)
+    const networkId = convertNetworkToId(network)
+
+    const smartContractAddress = resolvePlutusScriptAddress(script, networkId)
     return { script, policyId, smartContractAddress }
 }

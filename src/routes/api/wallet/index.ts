@@ -6,6 +6,7 @@ import { decrypt } from '@/utils/encryption';
 import { Network } from '@prisma/client';
 import { MeshWallet } from '@meshsdk/core';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
+import { convertNetworkToId } from '@/utils/networkConverter';
 
 
 
@@ -98,9 +99,10 @@ export const postWalletEndpointPost = adminAuthenticatedEndpointFactory.build({
         const secretKey = MeshWallet.brew(false);
         const secretWords = typeof secretKey == "string" ? secretKey.split(" ") : secretKey
 
+        const networkId = convertNetworkToId(input.network)
 
         const wallet = new MeshWallet({
-            networkId: input.network == "MAINNET" ? 1 : 0,
+            networkId: networkId,
             key: {
                 type: 'mnemonic',
                 words: secretWords
