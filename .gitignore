@@ -1,7 +1,6 @@
 # node modules
 node_modules
 # build path
-./dist
 dist/*
 # environmental variables
 /.env
