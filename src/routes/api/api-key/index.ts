@@ -1,4 +1,4 @@
-import { adminAuthenticatedEndpointFactory } from '@/utils/endpoint-factory/admin-authenticated';
+import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 import { z } from 'zod';
 import { $Enums, ApiKeyStatus, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';

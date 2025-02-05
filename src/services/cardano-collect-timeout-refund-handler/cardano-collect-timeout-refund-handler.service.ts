@@ -2,11 +2,11 @@ import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
-import { decrypt } from "@/utils/encryption";
+import { decrypt } from '@/utils/security/encryption';
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/contractResolver";
-import { convertNetwork, convertNetworkToId } from "@/utils/networkConverter";
+import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
+import { convertNetwork, convertNetworkToId } from "@/utils/converter/network-convert";
 
 const updateMutex = new Sema(1);
 

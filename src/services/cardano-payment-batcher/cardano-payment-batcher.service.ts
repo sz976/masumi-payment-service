@@ -2,9 +2,9 @@ import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, MeshWallet, Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
-import { decrypt } from "@/utils/encryption";
+import { decrypt } from '@/utils/security/encryption';
 import { logger } from "@/utils/logger";
-import { convertNetworkToId } from "@/utils/networkConverter";
+import { convertNetworkToId } from "@/utils/converter/network-convert";
 
 
 const updateMutex = new Sema(1);

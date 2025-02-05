@@ -1,4 +1,4 @@
-import { authenticatedEndpointFactory } from '@/utils/endpoint-factory/authenticated';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import { ApiKeyStatus, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
@@ -21,14 +21,14 @@ export const getAPIKeyStatusSchemaOutput = z.object({
     status: z.nativeEnum(ApiKeyStatus),
 });
 
-export const queryAPIKeyStatusEndpointGet = authenticatedEndpointFactory.build({
+export const queryAPIKeyStatusEndpointGet = readAuthenticatedEndpointFactory.build({
     method: "get",
     input: getAPIKeyStatusSchemaInput,
     output: getAPIKeyStatusSchemaOutput,
     handler: async ({ options }) => {
         const result = await prisma.apiKey.findFirst({ where: { id: options.id }, include: { RemainingUsageCredits: true } })
         if (!result) {
-            throw createHttpError(500, "API key not found");
+            throw createHttpError(404, "API key not found");
         }
         return { ...result, RemainingUsageCredits: result?.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) }
     },

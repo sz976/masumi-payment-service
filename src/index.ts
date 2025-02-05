@@ -6,7 +6,7 @@ import InitSchedules from "@/services/schedules";
 import { createConfig, createServer } from "express-zod-api";
 import { router } from "@/routes/index";
 import ui from "swagger-ui-express";
-import { generateOpenAPI } from "@/utils/swagger-generator";
+import { generateOpenAPI } from "@/utils/generator/swagger-generator";
 import { cleanupDB, initDB } from "@/utils/db";
 import path from "path";
 

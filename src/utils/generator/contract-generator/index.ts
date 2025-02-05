@@ -5,7 +5,7 @@ import paymentPlutus from "@smart-contracts/payment/plutus.json"
 import registryPlutus from "@smart-contracts/registry/plutus.json"
 import { Network, NetworkHandler } from "@prisma/client";
 import { applyParamsToScript } from "@meshsdk/core";
-import { convertNetworkToId } from "../networkConverter";
+import { convertNetworkToId } from "../../converter/network-convert";
 
 export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler & { AdminWallets: { walletAddress: string, order: number }[], FeeReceiverNetworkWallet: { walletAddress: string, order: number } }) {
     const adminWallets = networkCheckSupported.AdminWallets;

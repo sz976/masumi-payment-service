@@ -1,4 +1,4 @@
-import { authenticatedEndpointFactory } from '@/utils/endpoint-factory/authenticated';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import { Network } from '@prisma/client';
 import { prisma } from '@/utils/db';
@@ -33,7 +33,7 @@ export const getUTXOSchemaOutput = z.object({
     }))
 });
 
-export const queryUTXOEndpointGet = authenticatedEndpointFactory.build({
+export const queryUTXOEndpointGet = readAuthenticatedEndpointFactory.build({
     method: "get",
     input: getUTXOSchemaInput,
     output: getUTXOSchemaOutput,

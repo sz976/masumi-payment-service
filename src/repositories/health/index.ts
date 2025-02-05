@@ -1,1 +1,0 @@
-export { healthRepository } from "./health.repository"
