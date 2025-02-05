@@ -9,7 +9,7 @@ export function metadataToString(value: string | string[] | undefined) {
 }
 export function stringToMetadata(s: string | undefined, forceArray: boolean = true) {
     if (s == undefined) {
-        return undefined
+        return ""
     }
     if (s.length <= 60 && forceArray == false) {
         return s

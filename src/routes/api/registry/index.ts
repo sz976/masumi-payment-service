@@ -161,6 +161,7 @@ export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
     paymentContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
+    example_output: z.string().max(250).optional().describe("Link to a example output of the agent"),
     tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
     name: z.string().max(250).describe("Name of the agent"),
     api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
@@ -311,31 +312,32 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                     description: stringToMetadata(input.description),
                     api_url: stringToMetadata(input.api_url),
                     example_output: stringToMetadata(input.example_output),
-                    capability: input.capability ? {
-                        name: stringToMetadata(input.capability.name),
-                        version: stringToMetadata(input.capability.version)
-                    } : undefined,
+                    capability: {
+                        name: stringToMetadata(input.capability?.name),
+                        version: stringToMetadata(input.capability?.version)
+                    },
                     requests_per_hour: stringToMetadata(input.requests_per_hour),
                     author: {
-                        name: stringToMetadata(input.author.name),
-                        contact: input.author.contact ? stringToMetadata(input.author.contact) : undefined,
-                        organization: input.author.organization ? stringToMetadata(input.author.organization) : undefined
+                        name: stringToMetadata(input.author?.name),
+                        contact: stringToMetadata(input.author?.contact),
+                        organization: stringToMetadata(input.author.organization)
                     },
-                    legal: input.legal ? {
-                        privacy_policy: input.legal?.privacy_policy ? stringToMetadata(input.legal.privacy_policy) : undefined,
-                        terms: input.legal?.terms ? stringToMetadata(input.legal.terms) : undefined,
-                        other: input.legal?.other ? stringToMetadata(input.legal.other) : undefined
-                    } : undefined,
+                    legal: {
+                        privacy_policy: stringToMetadata(input.legal?.privacy_policy),
+                        terms: stringToMetadata(input.legal?.terms),
+                        other: stringToMetadata(input.legal?.other)
+                    },
                     tags: input.tags,
                     pricing: input.pricing.map(pricing => ({
                         unit: stringToMetadata(pricing.unit),
                         quantity: pricing.quantity,
                     })),
-                    image: DEFAULTS.DEFAULT_IMAGE,
-                    metadata_version: DEFAULTS.DEFAULT_METADATA_VERSION
+                    image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
+                    metadata_version: stringToMetadata(DEFAULTS.DEFAULT_METADATA_VERSION)
 
                 },
             },
+            version: "1"
         });
         //send the minted asset to the address where we want to receive payments
         tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
