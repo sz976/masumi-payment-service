@@ -57,8 +57,8 @@ export async function updateWalletTransactionHash() {
             where: {
                 PendingTransaction: {
                     updatedAt: {
-                        //wallets that have not been updated in the last 20 minutes
-                        lt: new Date(Date.now() - 1000 * 60 * 20)
+                        //wallets that have not been updated in the last 5 minutes
+                        lt: new Date(Date.now() - 1000 * 60 * 5)
                     }
                 }
             },
@@ -132,7 +132,7 @@ export async function updateWalletTransactionHash() {
         const timedOutLockedSellingWallets = await prisma.sellingWallet.findMany({
             where: {
                 PendingTransaction: {
-                    updatedAt: { lt: new Date(Date.now() - 1000 * 60 * 20) }
+                    updatedAt: { lt: new Date(Date.now() - 1000 * 60 * 5) }
                 }
             },
             include: { PendingTransaction: true }
@@ -158,6 +158,7 @@ export async function updateWalletTransactionHash() {
 
         if (timedOutLockedSellingWallets.length > 0 || lockedSellingWallets.length > 0) {
             //TODO run all possible services that can profit from a wallet unlock
+
         }
     } finally {
         //library is strange as we can release from any non-acquired semaphore

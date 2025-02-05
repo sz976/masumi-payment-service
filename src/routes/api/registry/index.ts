@@ -1,15 +1,15 @@
-import { payAuthenticatedEndpointFactory } from '@/utils/endpoint-factory/pay-authenticated';
+import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
 import { $Enums } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockfrostProvider, MeshWallet, Transaction } from '@meshsdk/core';
-import { decrypt } from '@/utils/encryption';
+import { decrypt } from '@/utils/security/encryption';
 import { blake2b } from 'ethereum-cryptography/blake2b.js';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
-import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/contractResolver';
-import { metadataStringConvert } from '@/utils/metadata-string-convert';
+import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
+import { metadataToString, stringToMetadata } from '@/utils/converter/metadata-string-convert';
 import { DEFAULTS } from '@/utils/config';
 
 const metadataSchema = z.object({
@@ -122,30 +122,30 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
                 unit: asset.unit,
                 metadata:
                 {
-                    name: metadataStringConvert(parsedMetadata.data.name!)!,
-                    description: metadataStringConvert(parsedMetadata.data.description),
-                    api_url: metadataStringConvert(parsedMetadata.data.api_url)!,
-                    example_output: metadataStringConvert(parsedMetadata.data.example_output),
+                    name: metadataToString(parsedMetadata.data.name!)!,
+                    description: metadataToString(parsedMetadata.data.description),
+                    api_url: metadataToString(parsedMetadata.data.api_url)!,
+                    example_output: metadataToString(parsedMetadata.data.example_output),
                     capability: {
-                        name: metadataStringConvert(parsedMetadata.data.capability.name)!,
-                        version: metadataStringConvert(parsedMetadata.data.capability.version)!,
+                        name: metadataToString(parsedMetadata.data.capability.name)!,
+                        version: metadataToString(parsedMetadata.data.capability.version)!,
                     },
                     author: {
-                        name: metadataStringConvert(parsedMetadata.data.author.name)!,
-                        contact: metadataStringConvert(parsedMetadata.data.author.contact),
-                        organization: metadataStringConvert(parsedMetadata.data.author.organization),
+                        name: metadataToString(parsedMetadata.data.author.name)!,
+                        contact: metadataToString(parsedMetadata.data.author.contact),
+                        organization: metadataToString(parsedMetadata.data.author.organization),
                     },
                     legal: parsedMetadata.data.legal ? {
-                        privacy_policy: metadataStringConvert(parsedMetadata.data.legal.privacy_policy),
-                        terms: metadataStringConvert(parsedMetadata.data.legal.terms),
-                        other: metadataStringConvert(parsedMetadata.data.legal.other),
+                        privacy_policy: metadataToString(parsedMetadata.data.legal.privacy_policy),
+                        terms: metadataToString(parsedMetadata.data.legal.terms),
+                        other: metadataToString(parsedMetadata.data.legal.other),
                     } : undefined,
-                    tags: parsedMetadata.data.tags.map(tag => metadataStringConvert(tag)!),
+                    tags: parsedMetadata.data.tags.map(tag => metadataToString(tag)!),
                     pricing: parsedMetadata.data.pricing.map(price => ({
                         quantity: price.quantity,
-                        unit: metadataStringConvert(price.unit)!,
+                        unit: metadataToString(price.unit)!,
                     })),
-                    image: metadataStringConvert(parsedMetadata.data.image)!,
+                    image: metadataToString(parsedMetadata.data.image)!,
                     metadata_version: parsedMetadata.data.metadata_version,
                 }
             })
@@ -161,6 +161,7 @@ export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The Cardano network used to register the agent on"),
     paymentContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to be registered for"),
     sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
+    example_output: z.string().max(250).optional().describe("Link to a example output of the agent"),
     tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
     name: z.string().max(250).describe("Name of the agent"),
     api_url: z.string().max(250).describe("Base URL of the agent, to request interactions"),
@@ -263,6 +264,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                 throw createHttpError(429, "Defrag error, try again later. Defrag failed with error");
             }
         }*/
+
         const firstUtxo = utxos[0];
         //utxos = utxos.filter((_, index) => index !== filteredUtxos);
 
@@ -306,36 +308,36 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         tx.setMetadata(721, {
             [policyId]: {
                 [assetName]: {
-
                     name: stringToMetadata(input.name),
                     description: stringToMetadata(input.description),
                     api_url: stringToMetadata(input.api_url),
                     example_output: stringToMetadata(input.example_output),
-                    capability: input.capability ? {
-                        name: stringToMetadata(input.capability.name),
-                        version: stringToMetadata(input.capability.version)
-                    } : undefined,
+                    capability: {
+                        name: stringToMetadata(input.capability?.name),
+                        version: stringToMetadata(input.capability?.version)
+                    },
                     requests_per_hour: stringToMetadata(input.requests_per_hour),
                     author: {
-                        name: stringToMetadata(input.author.name),
-                        contact: input.author.contact ? stringToMetadata(input.author.contact) : undefined,
-                        organization: input.author.organization ? stringToMetadata(input.author.organization) : undefined
+                        name: stringToMetadata(input.author?.name),
+                        contact: stringToMetadata(input.author?.contact),
+                        organization: stringToMetadata(input.author.organization)
                     },
-                    legal: input.legal ? {
-                        privacy_policy: input.legal?.privacy_policy ? stringToMetadata(input.legal.privacy_policy) : undefined,
-                        terms: input.legal?.terms ? stringToMetadata(input.legal.terms) : undefined,
-                        other: input.legal?.other ? stringToMetadata(input.legal.other) : undefined
-                    } : undefined,
+                    legal: {
+                        privacy_policy: stringToMetadata(input.legal?.privacy_policy),
+                        terms: stringToMetadata(input.legal?.terms),
+                        other: stringToMetadata(input.legal?.other)
+                    },
                     tags: input.tags,
                     pricing: input.pricing.map(pricing => ({
                         unit: stringToMetadata(pricing.unit),
                         quantity: pricing.quantity,
                     })),
-                    image: "ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f",
-                    metadata_version: "1"
+                    image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
+                    metadata_version: stringToMetadata(DEFAULTS.DEFAULT_METADATA_VERSION)
 
                 },
             },
+            version: "1"
         });
         //send the minted asset to the address where we want to receive payments
         tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
@@ -376,17 +378,7 @@ export function extractErrorMessage(error: unknown): string {
     return String(error);
 }
 
-function stringToMetadata(s: string | undefined) {
-    if (s == undefined) {
-        return undefined
-    }
-    //split every 50 characters
-    const arr = []
-    for (let i = 0; i < s.length; i += 50) {
-        arr.push(s.slice(i, i + 50))
-    }
-    return arr
-}
+
 
 
 export const unregisterAgentSchemaInput = z.object({

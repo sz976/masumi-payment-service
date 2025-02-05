@@ -1,7 +1,7 @@
-import { getPaymentScriptV1 } from '@/utils/contractResolver';
+import { getPaymentScriptV1 } from '@/utils/generator/contract-generator';
 import { prisma } from '@/utils/db';
-import { encrypt } from '@/utils/encryption';
-import { adminAuthenticatedEndpointFactory } from '@/utils/endpoint-factory/admin-authenticated';
+import { encrypt } from '@/utils/security/encryption';
+import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 import { MeshWallet } from '@meshsdk/core';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import { $Enums } from '@prisma/client';

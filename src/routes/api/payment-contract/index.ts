@@ -1,5 +1,5 @@
 import { prisma } from '@/utils/db';
-import { authenticatedEndpointFactory } from '@/utils/endpoint-factory/authenticated';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { $Enums } from '@prisma/client';
 import { z } from 'zod';
 
@@ -46,7 +46,7 @@ export const paymentContractSchemaOutput = z.object({
     })),
 });
 
-export const paymentContractEndpointGet = authenticatedEndpointFactory.build({
+export const paymentContractEndpointGet = readAuthenticatedEndpointFactory.build({
     method: "get",
     input: paymentContractSchemaInput,
     output: paymentContractSchemaOutput,

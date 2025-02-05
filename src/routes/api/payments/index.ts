@@ -1,4 +1,4 @@
-import { authenticatedEndpointFactory } from '@/utils/endpoint-factory/authenticated';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import { $Enums, } from '@prisma/client';
 import { prisma } from '@/utils/db';
@@ -7,7 +7,7 @@ import { ez } from 'express-zod-api';
 import cuid2 from '@paralleldrive/cuid2';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { resolvePaymentKeyHash } from '@meshsdk/core';
-import { getRegistryScriptV1 } from '@/utils/contractResolver';
+import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';
 
 
@@ -36,7 +36,7 @@ export const queryPaymentsSchemaOutput = z.object({
     }))
 });
 
-export const queryPaymentEntryGet = authenticatedEndpointFactory.build({
+export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
     method: "get",
     input: queryPaymentsSchemaInput,
     output: queryPaymentsSchemaOutput,
@@ -109,7 +109,7 @@ export const createPaymentSchemaOutput = z.object({
     NetworkHandler: z.object({ id: z.string(), network: z.nativeEnum($Enums.Network), paymentContractAddress: z.string(), paymentType: z.nativeEnum($Enums.PaymentType) }),
 });
 
-export const paymentInitPost = authenticatedEndpointFactory.build({
+export const paymentInitPost = readAuthenticatedEndpointFactory.build({
     method: "post",
     input: createPaymentsSchemaInput,
     output: createPaymentSchemaOutput,
@@ -180,7 +180,7 @@ export const updatePaymentSchemaOutput = z.object({
     status: z.nativeEnum($Enums.PaymentRequestStatus),
 });
 
-export const paymentUpdatePatch = authenticatedEndpointFactory.build({
+export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
     method: "patch",
     input: updatePaymentsSchemaInput,
     output: updatePaymentSchemaOutput,

@@ -1,5 +1,4 @@
-import { healthService } from '@/services/health';
-import { unauthenticatedEndpointFactory } from '@/utils/endpoint-factory/unauthenticated';
+import { unauthenticatedEndpointFactory } from '@/utils/security/auth/not-authenticated';
 import { z } from 'zod';
 
 export const healthResponseSchema = z.object({
@@ -12,7 +11,8 @@ export const healthEndpointGet = unauthenticatedEndpointFactory.build({
     }),
     output: healthResponseSchema,
     handler: async () => {
-        const healthConfiguration = await healthService.getHealthConfiguration();
-        return healthConfiguration;
+        return {
+            status: "ok"
+        }
     },
 });

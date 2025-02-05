@@ -30,10 +30,10 @@ export function generateOpenAPI() {
     request: {},
     responses: {
       200: {
-        description: 'Object with user data.',
+        description: 'Object with status ok, if the server is running',
         content: {
           'application/json': {
-            schema: healthResponseSchema.openapi({ example: { status: 'up' } }),
+            schema: healthResponseSchema.openapi({ example: { status: 'ok' } }),
           },
         },
       },

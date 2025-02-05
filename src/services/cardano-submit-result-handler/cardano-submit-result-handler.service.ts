@@ -2,16 +2,15 @@ import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Data, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, mBool, unixTimeToEnclosingSlot } from "@meshsdk/core";
-import { decrypt } from "@/utils/encryption";
+import { decrypt } from '@/utils/security/encryption';
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/contractResolver";
+import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
+import { convertNetwork, convertNetworkToId } from "@/utils/converter/network-convert";
 
 const updateMutex = new Sema(1);
 
 export async function submitResultV1() {
-
-    //const maxBatchSize = 10;
 
     const acquiredMutex = await updateMutex.tryAcquire();
     //if we are already performing an update, we wait for it to finish and return
@@ -56,13 +55,9 @@ export async function submitResultV1() {
             if (networkCheck.PaymentRequests.length == 0 || networkCheck.CollectionWallet == null)
                 return;
 
-            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
-            if (!network)
-                throw new Error("Invalid network")
+            const network = convertNetwork(networkCheck.network)
 
-            const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
-            if (!networkId)
-                throw new Error("Invalid network")
+            const networkId = convertNetworkToId(networkCheck.network)
 
             const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, undefined);
 
@@ -98,7 +93,7 @@ export async function submitResultV1() {
                     const encryptedSecret = sellingWallet.WalletSecret.secret;
 
                     const wallet = new MeshWallet({
-                        networkId: 0,
+                        networkId: networkId,
                         fetcher: blockchainProvider,
                         submitter: blockchainProvider,
                         key: {

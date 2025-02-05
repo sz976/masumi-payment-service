@@ -2,10 +2,11 @@ import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
-import { decrypt } from "@/utils/encryption";
+import { decrypt } from '@/utils/security/encryption';
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/contractResolver";
+import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
+import { convertNetwork, convertNetworkToId } from "@/utils/converter/network-convert";
 
 const updateMutex = new Sema(1);
 
@@ -62,13 +63,11 @@ export async function collectTimeoutRefundsV1() {
             if (networkCheck.PurchaseRequests.length == 0 || networkCheck.CollectionWallet == null)
                 return;
 
-            const network = networkCheck.network == "MAINNET" ? "mainnet" : networkCheck.network == "PREPROD" ? "preprod" : null;
-            if (!network)
-                throw new Error("Invalid network")
+            const network = convertNetwork(networkCheck.network)
 
-            const networkId = networkCheck.network == "MAINNET" ? 0 : networkCheck.network == "PREPROD" ? 1 : null;
-            if (!networkId)
-                throw new Error("Invalid network")
+
+            const networkId = convertNetworkToId(networkCheck.network)
+
 
             const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, undefined);
 
@@ -119,7 +118,7 @@ export async function collectTimeoutRefundsV1() {
                     const encryptedSecret = purchasingWallet.WalletSecret.secret;
 
                     const wallet = new MeshWallet({
-                        networkId: 0,
+                        networkId: networkId,
                         fetcher: blockchainProvider,
                         submitter: blockchainProvider,
                         key: {
