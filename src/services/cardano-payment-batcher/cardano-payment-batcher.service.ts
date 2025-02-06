@@ -1,10 +1,9 @@
 import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
-import { BlockfrostProvider, MeshWallet, Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
-import { decrypt } from '@/utils/security/encryption';
+import { MeshWallet, Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
-import { convertNetworkToId } from "@/utils/converter/network-convert";
+import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 
 
 const updateMutex = new Sema(1);
@@ -66,9 +65,6 @@ export async function batchLatestPaymentEntriesV1() {
         }, { isolationLevel: "Serializable" });
 
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
-            const networkId = convertNetworkToId(networkCheck.network)
-
-            const blockchainHandler = new BlockfrostProvider(networkCheck.rpcProviderApiKey, 0);
             const paymentRequests = networkCheck.PurchaseRequests;
             if (paymentRequests.length == 0) {
                 logger.info("no payment requests found for network " + networkCheck.network + " " + networkCheck.paymentContractAddress)
@@ -78,17 +74,7 @@ export async function batchLatestPaymentEntriesV1() {
             const potentialWallets = networkCheck.PurchasingWallets;
 
             const walletAmounts = await Promise.all(potentialWallets.map(async (wallet) => {
-                const secretEncrypted = wallet.WalletSecret.secret;
-                const secretDecrypted = decrypt(secretEncrypted);
-                const meshWallet = new MeshWallet({
-                    networkId: networkId,
-                    fetcher: blockchainHandler,
-                    submitter: blockchainHandler,
-                    key: {
-                        type: 'mnemonic',
-                        words: secretDecrypted.split(' '),
-                    },
-                });
+                const { wallet: meshWallet, } = await generateWalletExtended(networkCheck.network, networkCheck.rpcProviderApiKey, wallet.WalletSecret.secret!)
                 const amounts = await meshWallet.getBalance();
 
                 //TODO check if conversion to float fails

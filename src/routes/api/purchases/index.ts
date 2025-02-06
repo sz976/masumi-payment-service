@@ -7,11 +7,11 @@ import * as cbor from "cbor"
 import { cardanoTxHandlerService } from "@/services/cardano-tx-handler"
 import { tokenCreditService } from '@/services/token-credit';
 import { ez } from 'express-zod-api';
-import { BlockfrostProvider, mBool, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from '@meshsdk/core';
-import { decrypt } from '@/utils/security/encryption';
+import { BlockfrostProvider, mBool, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from '@meshsdk/core';
 import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';
 import { convertNetwork } from '@/utils/converter/network-convert';
+import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
     cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
@@ -182,24 +182,17 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
 
 
 
-        const wallet = new MeshWallet({
-            networkId: 0,
-            fetcher: blockchainProvider,
-            submitter: blockchainProvider,
-            key: {
-                type: 'mnemonic',
-                words: decrypt(purchase.SmartContractWallet!.WalletSecret.secret!).split(" "),
-            },
-        });
+        const { wallet, utxos, address } = await generateWalletExtended(networkCheckSupported.network, networkCheckSupported.rpcProviderApiKey, purchase.SmartContractWallet!.WalletSecret.secret!)
 
-        const address = (await wallet.getUnusedAddresses())[0];
-        const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheckSupported)
-
-        const utxos = await wallet.getUtxos();
         if (utxos.length === 0) {
             //this is if the buyer wallet is empty
             throw new Error('No UTXOs found in the wallet. Wallet is empty.');
         }
+
+        const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheckSupported)
+
+
+
 
         const utxoByHash = await blockchainProvider.fetchUTxOs(
             purchase.txHash!,
