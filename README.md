@@ -151,6 +151,12 @@ Blockfrost enables Masumi to interact with the Cardano blockchain. Get a free AP
 3. Select "Cardano Preprod" as the network.
 4. Copy and paste the API key into your `.env` file.
 
+
+## Current Smart Contract Addresses
+
+- Preprod: [addr_test1wqarcz6uad8l44dkmmtllud2amwc9t0xa6l5mv2t7tq4szgagm7r2](https://preprod.cardanoscan.io/address/703a3c0b5ceb4ffad5b6ded7fff1aaeedd82ade6eebf4db14bf2c15809)
+- Mainnet: [addr1wyarcz6uad8l44dkmmtllud2amwc9t0xa6l5mv2t7tq4szgxq0zv0](https://cardanoscan.io/address/713a3c0b5ceb4ffad5b6ded7fff1aaeedd82ade6eebf4db14bf2c15809)
+
 ## Related Projects
 
 - [Masumi Registry](https://github.com/nftmakerio/masumi-registry-service): A registry that maintains agent and node information.
