@@ -27,9 +27,9 @@ pub type Action {
   //this will only work after the unlock time
   Withdraw
   //this will set the refund_requested to True and auto approved after the refund time, can only be called before the unlock_time
-  RequestRefund
+  SetRefundRequested
   //this will cancel any refund request and unlock the funds (immediately if the unlock time is over)
-  CancelRefundRequest
+  UnSetRefundRequested
   //is implicitly allowed if the refund was requested and the refund time is over (and not denied)
   WithdrawRefund
   //multi sig 2/3
@@ -108,7 +108,7 @@ validator vested_pay(
         refund_requested == False
       }
 
-      RequestRefund -> {
+      SetRefundRequested -> {
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
@@ -118,7 +118,7 @@ validator vested_pay(
         expect must_be_signed_by(self, buyer)
         expect output_value_is_preserved(input.output.value, output.value)
 
-        expect refund_requested == False
+        //expect refund_requested == False
 
         expect must_end_before(validity_range, unlock_time)
 
@@ -142,7 +142,7 @@ validator vested_pay(
         }
       }
       //The buyer can cancel the refund request, if the vesting period is over, this will immediately give the seller the option to withdraw any funds
-      CancelRefundRequest -> {
+      UnSetRefundRequested -> {
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
@@ -155,7 +155,7 @@ validator vested_pay(
         expect output_value_is_preserved(input.output.value, output.value)
 
         //we always allow to cancel the refund request
-        expect refund_requested
+        //expect refund_requested
 
         and {
           new_datum.buyer == buyer,
@@ -175,6 +175,7 @@ validator vested_pay(
 
         expect must_start_after(validity_range, refund_time)
 
+        //this allows to add one admin multiple times, giving them more voting power
         let countOfAdmins = list.length(admin_vks)
         //safety check to require at least one admin and disallow misconfigured contracts
         expect countOfAdmins >=1
@@ -183,6 +184,8 @@ validator vested_pay(
 
         let signedBy =
           list.filter(admin_vks, fn(vk) { must_be_signed_by(self, vk) })
+          
+        //this allows to add one admin multiple times, giving them more voting power
         list.length(signedBy) >= required_admins_multi_sig
       }
       SubmitResult -> {
@@ -264,7 +267,7 @@ fn output_value_is_preserved(input_value: Value, output_value: Value) {
     |> list.all(
         fn(asset) {
           let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
-          out_value == asset.3rd
+          out_value >= asset.3rd
         },
       )
 }
