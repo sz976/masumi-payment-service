@@ -69,6 +69,8 @@ function InitializeApp() {
   useEffect(() => {
     if (isHealthy && router.pathname === '/' && state.apiKey) {
       fetchPaymentSources();
+    } else if(isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length){
+      fetchPaymentSources();
     }
   }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey]);
 

@@ -94,7 +94,7 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
 
       const newTransactions = response.data as Transaction[];
 
-      setTransactions(cursor ? [...transactions, ...newTransactions] : newTransactions);
+      setTransactions(prev => cursor ? [...prev, ...newTransactions] : newTransactions);
       setHasMore(newTransactions.length === 10);
       setCursorIdentifier(newTransactions[newTransactions.length - 1]?.identifier ?? null);
     } catch (error) {
@@ -102,7 +102,7 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
     } finally {
       setIsLoading(false);
     }
-  }, [contractAddress, network, paymentType, state.apiKey, transactions]);
+  }, [contractAddress, network, paymentType, state.apiKey]);
 
   useEffect(() => {
     if (contractAddress || network || paymentType) {
