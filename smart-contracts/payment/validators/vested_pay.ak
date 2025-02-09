@@ -5,7 +5,8 @@ use aiken/primitive/bytearray
 use cardano/address.{Address}
 use cardano/assets.{Value}
 use cardano/transaction.{
-  InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange, find_input,
+  InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange,
+  find_input,
 }
 
 type POSIXTime =
@@ -21,6 +22,8 @@ pub type Datum {
   unlock_time: POSIXTime,
   refund_time: POSIXTime,
   refund_requested: Bool,
+  seller_cooldown_time: POSIXTime,
+  buyer_cooldown_time: POSIXTime,
 }
 
 pub type Action {
@@ -40,15 +43,13 @@ pub type Action {
   AuthorizeRefund
 }
 
-
-
-
 validator vested_pay(
   //TODO: add required number of admins for the multi sig
   required_admins_multi_sig: Int,
   admin_vks: List<VerificationKeyHash>,
   fee_address: Address,
   fee_permille: Int,
+  cooldown_period: Int,
 ) {
   spend(
     datum: Option<Datum>,
@@ -65,8 +66,13 @@ validator vested_pay(
       unlock_time,
       refund_time,
       refund_requested,
+      seller_cooldown_time,
+      buyer_cooldown_time,
     }) = datum
     let Transaction { validity_range, .. } = self
+    expect Finite(tx_latest_time) = validity_range.upper_bound.bound_type
+    let current_time = tx_latest_time
+    let cooldown_time = current_time + cooldown_period //requires 15 min cooldown
 
     expect Some(input) =
       self.inputs
@@ -86,8 +92,16 @@ validator vested_pay(
 
     expect list.length(outputs) <= 1
 
-    expect self.outputs
-      |> list.all(fn(output) { validate_no_reference_script_attacked_to_script(output, count_script_address) })
+    expect
+      self.outputs
+        |> list.all(
+            fn(output) {
+              validate_no_reference_script_attacked_to_script(
+                output,
+                count_script_address,
+              )
+            },
+          )
 
     when redeemer is {
       // Seller can withdraw after unlock_time if no refund was requested
@@ -101,7 +115,12 @@ validator vested_pay(
             |> list.filter(fn(output) { output.address == fee_address })
             |> list.head()
 
-        expect fee_value_is_preserved(input.output.value, fee_output.value, fee_permille)
+        expect
+          fee_value_is_preserved(
+            input.output.value,
+            fee_output.value,
+            fee_permille,
+          )
 
         expect bytearray.is_empty(result_hash) == False
 
@@ -119,8 +138,8 @@ validator vested_pay(
         expect output_value_is_preserved(input.output.value, output.value)
 
         //expect refund_requested == False
-
         expect must_end_before(validity_range, unlock_time)
+        expect must_start_after(validity_range, buyer_cooldown_time)
 
         and {
           new_datum.buyer == buyer,
@@ -131,6 +150,8 @@ validator vested_pay(
           new_datum.submit_result_time == submit_result_time,
           new_datum.refund_time == refund_time,
           new_datum.refund_requested,
+          new_datum.seller_cooldown_time == 0,
+          new_datum.buyer_cooldown_time >= cooldown_time,
         }
       }
       // Seller can approve the refund request by letting it run into the refund time
@@ -153,10 +174,10 @@ validator vested_pay(
 
         //expect the locked value to be preserved
         expect output_value_is_preserved(input.output.value, output.value)
+        expect must_start_after(validity_range, buyer_cooldown_time)
 
         //we always allow to cancel the refund request
         //expect refund_requested
-
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
@@ -166,6 +187,8 @@ validator vested_pay(
           new_datum.unlock_time == unlock_time,
           new_datum.refund_time == refund_time,
           new_datum.refund_requested == False,
+          new_datum.seller_cooldown_time == 0,
+          new_datum.buyer_cooldown_time >= cooldown_time,
         }
       }
       //multi sig 2/X to withdraw the disputed funds via network admins
@@ -178,13 +201,12 @@ validator vested_pay(
         //this allows to add one admin multiple times, giving them more voting power
         let countOfAdmins = list.length(admin_vks)
         //safety check to require at least one admin and disallow misconfigured contracts
-        expect countOfAdmins >=1
+        expect countOfAdmins >= 1
         //safety check to disallow anyone to withdraw from a misconfigured contract
-        expect required_admins_multi_sig>0
+        expect required_admins_multi_sig > 0
 
         let signedBy =
           list.filter(admin_vks, fn(vk) { must_be_signed_by(self, vk) })
-          
         //this allows to add one admin multiple times, giving them more voting power
         list.length(signedBy) >= required_admins_multi_sig
       }
@@ -199,14 +221,15 @@ validator vested_pay(
         expect must_be_signed_by(self, seller)
 
         expect or {
-          must_end_before(validity_range, submit_result_time),
-          and {
-            must_end_before(validity_range, refund_time),
-            bytearray.is_empty(result_hash) == False
+            must_end_before(validity_range, submit_result_time),
+            and {
+              must_end_before(validity_range, refund_time),
+              bytearray.is_empty(result_hash) == False,
+            },
           }
-        }
 
         expect output_value_is_preserved(input.output.value, output.value)
+        expect must_start_after(validity_range, seller_cooldown_time)
         expect bytearray.is_empty(new_datum.result_hash) == False
 
         and {
@@ -217,8 +240,12 @@ validator vested_pay(
           new_datum.submit_result_time == submit_result_time,
           new_datum.refund_time == refund_time,
           new_datum.refund_requested == refund_requested,
+          new_datum.seller_cooldown_time >= cooldown_time,
+          new_datum.buyer_cooldown_time == 0,
         }
       }
+
+
       AuthorizeRefund -> {
         expect Some(output) =
           self.outputs
@@ -232,7 +259,7 @@ validator vested_pay(
         expect output_value_is_preserved(input.output.value, output.value)
 
         expect bytearray.is_empty(new_datum.result_hash)
-
+        expect must_start_after(validity_range, buyer_cooldown_time)
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
@@ -241,6 +268,8 @@ validator vested_pay(
           new_datum.unlock_time == unlock_time,
           new_datum.refund_time == refund_time,
           new_datum.refund_requested == refund_requested,
+          new_datum.seller_cooldown_time >= cooldown_time,
+          new_datum.buyer_cooldown_time == 0,
         }
       }
     }
@@ -251,15 +280,15 @@ validator vested_pay(
   }
 }
 
-
-
-fn validate_no_reference_script_attacked_to_script(output: Output, script_address: Address) -> Bool {
-    if output.address == script_address {
-        output.reference_script == None
-    } 
-    else {
-        True
-    }
+fn validate_no_reference_script_attacked_to_script(
+  output: Output,
+  script_address: Address,
+) -> Bool {
+  if output.address == script_address {
+    output.reference_script == None
+  } else {
+    True
+  }
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {

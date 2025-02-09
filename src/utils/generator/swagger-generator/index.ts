@@ -386,7 +386,7 @@ export function generateOpenAPI() {
       query: queryPaymentsSchemaInput.openapi({
         example: {
           limit: 10,
-          cursorIdentifier: "identifier",
+          cursorId: "cuid_v2_of_last_cursor_entry",
           network: $Enums.Network.PREPROD,
           paymentContractAddress: "addr_abcd1234567890"
         }
@@ -411,8 +411,9 @@ export function generateOpenAPI() {
                     errorType: $Enums.PaymentRequestErrorType.NETWORK_ERROR,
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
-                    identifier: "identifier",
+                    id: "unique_cuid_v2_auto_generated",
                     BuyerWallet: { walletVkey: "wallet_vkey" },
+                    blockchainIdentifier: "blockchain_identifier",
                     SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
                     Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "unit" }],
                     NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
@@ -470,7 +471,11 @@ export function generateOpenAPI() {
               example: {
                 status: "success",
                 data: {
-                  identifier: "agent_identifier_unique_cuid_v2_auto_generated",
+                  id: "cuid_v2_auto_generated",
+                  blockchainIdentifier: "blockchain_identifier",
+                  refundTime: new Date(Date.now() + 1000 * 60 * 60 * 36).getTime(),
+                  unlockTime: new Date(Date.now() + 1000 * 60 * 60 * 24).getTime(),
+                  submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).getTime(),
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   status: $Enums.PaymentRequestStatus.PaymentRequested,
@@ -568,8 +573,7 @@ export function generateOpenAPI() {
       query: queryPurchaseRequestSchemaInput.openapi({
         example: {
           limit: 10,
-          cursorIdentifier: "identifier",
-          cursorIdentifierSellingWalletVkey: "wallet_vkey",
+          cursorId: "cuid_v2_of_last_cursor_entry",
           network: $Enums.Network.PREPROD,
           paymentContractAddress: "addr_abcd1234567890",
         }
@@ -586,6 +590,8 @@ export function generateOpenAPI() {
                 status: "success",
                 data: {
                   purchases: [{
+                    id: "unique_cuid_v2_auto_generated",
+                    blockchainIdentifier: "blockchain_identifier",
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     status: $Enums.PurchasingRequestStatus.PurchaseRequested,
@@ -594,7 +600,6 @@ export function generateOpenAPI() {
                     errorType: $Enums.PurchaseRequestErrorType.NETWORK_ERROR,
                     errorNote: "error_note",
                     errorRequiresManualReview: false,
-                    identifier: "identifier",
                     SmartContractWallet: { id: "unique_cuid_v2_auto_generated", walletAddress: "wallet_address", walletVkey: "wallet_vkey", note: "note" },
                     Amounts: [{ id: "unique_cuid_v2_auto_generated", createdAt: new Date(), updatedAt: new Date(), amount: 1000000, unit: "lovelace" }],
                     NetworkHandler: { id: "unique_cuid_v2_auto_generated", network: $Enums.Network.PREPROD, paymentContractAddress: "address_to_check", paymentType: $Enums.PaymentType.WEB3_CARDANO_V1 },
@@ -631,15 +636,16 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
-                identifier: "identifier",
+                id: "unique_cuid_v2_auto_generated",
+                blockchainIdentifier: "blockchain_identifier",
                 network: $Enums.Network.PREPROD,
                 sellerVkey: "seller_vkey",
                 paymentContractAddress: "address",
                 amounts: [{ amount: 1000000, unit: "lovelace" }],
                 paymentType: $Enums.PaymentType.WEB3_CARDANO_V1,
-                submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
-                unlockTime: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-                refundTime: new Date(Date.now() + 1000 * 60 * 60 * 36).toISOString(),
+                submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).getTime(),
+                unlockTime: new Date(Date.now() + 1000 * 60 * 60 * 24).getTime(),
+                refundTime: new Date(Date.now() + 1000 * 60 * 60 * 36).getTime(),
               }
             })
           }
@@ -691,9 +697,10 @@ export function generateOpenAPI() {
           'application/json': {
             schema: refundPurchaseSchemaInput.openapi({
               example: {
+                id: "unique_cuid_v2_auto_generated",
                 network: $Enums.Network.PREPROD,
                 paymentContractAddress: "address",
-                identifier: "identifier",
+                blockchainIdentifier: "blockchain_identifier",
               }
             })
           }

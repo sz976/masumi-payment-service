@@ -136,7 +136,7 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
 
         return await prisma.$transaction(async (prisma) => {
 
-            const { smartContractAddress } = await getPaymentScriptV1(input.AdminWallets[0].walletAddress, input.AdminWallets[1].walletAddress, input.AdminWallets[2].walletAddress, input.FeeReceiverNetworkWallet.walletAddress, input.FeePermille, input.network)
+            const { smartContractAddress } = await getPaymentScriptV1(input.AdminWallets[0].walletAddress, input.AdminWallets[1].walletAddress, input.AdminWallets[2].walletAddress, input.FeeReceiverNetworkWallet.walletAddress, input.FeePermille, 1000 * 60 * 15, input.network)
 
             const sellingWallets = await Promise.all(sellingWalletsMesh.map(async (sw) => {
                 return {

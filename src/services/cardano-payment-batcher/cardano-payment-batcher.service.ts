@@ -173,14 +173,6 @@ export async function batchLatestPaymentEntriesV1() {
                         const submitResultTime = paymentRequest.submitResultTime
                         const unlockTime = paymentRequest.unlockTime
                         const refundTime = paymentRequest.refundTime
-                        const correctedPaymentAmounts = paymentRequest.Amounts;
-                        //const lovelaceIndex = correctedPaymentAmounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
-                        /*if (lovelaceIndex != -1) {
-                            const removedLovelace = correctedPaymentAmounts.splice(lovelaceIndex, 1);
-                            if (removedLovelace[0].amount > minTransactionCalculation) {
-                                correctedPaymentAmounts.push({ unit: "lovelace", amount: removedLovelace[0].amount - minTransactionCalculation })
-                            }
-                        }*/
 
                         const datum = {
                             value: {
@@ -195,6 +187,8 @@ export async function batchLatestPaymentEntriesV1() {
                                     refundTime,
                                     //is converted to false
                                     mBool(false),
+                                    0,
+                                    0,
                                 ],
                             },
                             inline: true,

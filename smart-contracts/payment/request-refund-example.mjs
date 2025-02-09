@@ -70,6 +70,7 @@ const script = {
       ],
     },
     50,
+    1000 * 60 * 15,
   ]),
   version: 'V3',
 };
@@ -87,8 +88,9 @@ async function fetchUtxo(txHash) {
     return utxo.input.txHash == txHash;
   });
 }
+
 const utxo = await fetchUtxo(
-  'c99851e2c0cb728f334c3645678ac84ace56fc47218262dda07b52aacc6266a7',
+  '71140e56780f327a6ebf1c365ad72ae908a4f586aeee33840797ca48db466820',
 );
 
 if (!utxo) {
@@ -119,6 +121,8 @@ const hash = decodedDatum.value[3];
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
 const refundTime = decodedDatum.value[6];
+const sellerCooldownTime = decodedDatum.value[8];
+const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
 const datum = {
   value: {
     alternative: 0,
@@ -133,6 +137,8 @@ const datum = {
       //is converted to true
       mBool(true),
       //is converted to false
+      0,
+      buyerCooldownTime,
     ],
   },
   inline: true,

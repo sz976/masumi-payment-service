@@ -77,6 +77,7 @@ const script = {
       ],
     },
     50,
+    1000 * 60 * 15,
   ]),
   version: 'V3',
 };
@@ -107,13 +108,15 @@ const submitResultTime = Date.now() + 1000 * 60 * 60 * 24 * 30;
 const unlockTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 2; // * 30;
 //1 hour refund dispute period
 const refundTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 3; //* 60; //* 24 * 30;
+const sellerCooldownTime = Date.now() + 1000 * 15;
+const buyerCooldownTime = Date.now() + 1000 * 15;
 const datum = {
   value: {
     alternative: 0,
     fields: [
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
-      'test_1238091298389124991297247921793h214bfubasfjklnasvjnsacoinasoidnoiadsnoaiusfniuasdnbiuanwdiu12312ono1i2u4niou12n4iuon21oi4n213321io123n123',
+      'test',
       '',
       submitResultTime,
       //unlock time after specified time
@@ -122,6 +125,8 @@ const datum = {
       refundTime,
       //is converted to false
       mBool(false),
+      0,
+      0,
     ],
   },
   inline: true,

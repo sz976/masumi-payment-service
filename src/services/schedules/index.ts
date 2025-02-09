@@ -19,14 +19,12 @@ async function init() {
         await checkLatestTransactions()
         logger.info("finished updating cardano payment entries in " + (new Date().getTime() - start.getTime()) / 1000 + "s")
     });
-    //await batchLatestPaymentEntriesV1()
     cron.schedule(CONFIG.BATCH_PAYMENT_INTERVAL, async () => {
         logger.info("batching payments")
         const start = new Date()
         await batchLatestPaymentEntriesV1()
         logger.info("finished batching payments in " + (new Date().getTime() - start.getTime()) / 1000 + "s")
     })
-
     cron.schedule(CONFIG.CHECK_COLLECTION_INTERVAL, async () => {
         logger.info("checking for payments to collect")
         const start = new Date()
@@ -39,7 +37,6 @@ async function init() {
         await collectRefundV1()
         logger.info("finished checking payments to collect in " + (new Date().getTime() - start.getTime()) / 1000 + "s")
     })
-
     cron.schedule(CONFIG.CHECK_REFUND_INTERVAL, async () => {
         logger.info("checking for payments to refund")
         const start = new Date()
@@ -47,7 +44,6 @@ async function init() {
         await collectTimeoutRefundsV1()
         logger.info("finished checking payments to refund in " + (new Date().getTime() - start.getTime()) / 1000 + "s")
     })
-
     cron.schedule(CONFIG.CHECK_WALLET_TRANSACTION_HASH_INTERVAL, async () => {
         logger.info("checking for wallet transaction hash")
         const start = new Date()
