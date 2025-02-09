@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useRouter } from 'next/router';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/router';
 export function AdminWalletSection({ contractId }: { contractId: string }) {
   const { state } = useAppContext();
   const router = useRouter();
-  const contract = state.paymentSources?.find(c => c.id === contractId || c.name === contractId);
+  const contract = state.paymentSources?.find((c) => c.id === contractId || c.name === contractId);
 
   if (!contract) return null;
 
@@ -21,7 +20,7 @@ export function AdminWalletSection({ contractId }: { contractId: string }) {
           <CardTitle>Admin Wallets</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {contract.AdminWallets.map((wallet: any, index: any) => (
+          {contract.adminWallets.map((wallet: { walletAddress: string }, index: number) => (
             <Card
               key={wallet.walletAddress}
               className="bg-[#fff1] hover:bg-[#fff2] cursor-pointer transition-colors"
@@ -43,12 +42,12 @@ export function AdminWalletSection({ contractId }: { contractId: string }) {
         <CardContent>
           <Card
             className="bg-[#fff1] hover:bg-[#fff2] cursor-pointer transition-colors"
-            onClick={() => handleWalletClick(contract.CollectionWallet.walletAddress)}
+            onClick={() => handleWalletClick(contract.collectionWallet.walletAddress)}
           >
             <CardContent className="pt-6">
-              <div className="text-sm">Address: {contract.CollectionWallet.walletAddress}</div>
-              {contract.CollectionWallet.note && (
-                <div className="text-sm text-muted-foreground">{contract.CollectionWallet.note}</div>
+              <div className="text-sm">Address: {contract.collectionWallet.walletAddress}</div>
+              {contract.collectionWallet.note && (
+                <div className="text-sm text-muted-foreground">{contract.collectionWallet.note}</div>
               )}
             </CardContent>
           </Card>

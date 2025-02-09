@@ -35,9 +35,14 @@ initialize()
                 app.use("/docs", ui.serve, ui.setup(generateOpenAPI(), {
                     explorer: false, swaggerOptions: {
                         persistAuthorization: true,
-                        tryItOutEnabled: true
+                        tryItOutEnabled: true,
+
                     }
                 }));
+                app.get("/api-docs", (_, res) => {
+                    res.json(generateOpenAPI());
+                });
+
                 //serve the static admin files
                 app.use("/admin", express.static("frontend/dist"));
                 app.use("/_next", express.static("frontend/dist/_next"));

@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { X } from "lucide-react";
-import { createPaymentSource } from "@/lib/query/api/create-payment-source";
-import { getPaymentSources } from "@/lib/query/api/payment-source";
+import { createPaymentSource } from "@/lib/api/create-payment-source";
+import { getPaymentSources } from "@/lib/api/payment-source";
 
 type CreateContractModalProps = {
   onClose: () => void;
@@ -45,7 +45,7 @@ const initialFormData: FormData = {
 
 export function CreateContractModal({ onClose }: CreateContractModalProps) {
   const { state } = useAppContext();
-  const defaultBlockfrostApiKey = state.paymentSources?.[0]?.blockfrostApiKey || '';
+  const defaultBlockfrostApiKey = state.paymentSources?.[0]?.rpcProviderApiKey || '';
 
   const [formData, setFormData] = useState<FormData>({
     ...initialFormData,
@@ -92,13 +92,11 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
         SellingWallets: formData.sellingWallets.filter(w => w.walletMnemonic.trim())
       };
 
-
       await createPaymentSource(payload, state.apiKey!);
 
 
 
       const sourcesData = await getPaymentSources(state.apiKey!);
-
 
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
@@ -177,7 +175,7 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                   value={formData.blockfrostApiKey}
                   onChange={(e) => setFormData({ ...formData, blockfrostApiKey: e.target.value })}
                   placeholder="Using default Blockfrost API key"
-                  disabled={state.paymentSources?.[0]?.blockfrostApiKey}
+                  disabled={state.paymentSources?.[0]?.rpcProviderApiKey == undefined}
                 />
               </div>
 

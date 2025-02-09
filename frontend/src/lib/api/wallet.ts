@@ -1,7 +1,11 @@
 export interface Wallet {
+  id: string;
   walletAddress: string;
   note?: string;
   type?: string;
+  WalletSecret?: {
+    secret: string;
+  };
 }
 
 export interface WalletResponse {

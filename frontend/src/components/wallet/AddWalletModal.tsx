@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { updatePaymentSource } from "@/lib/query/api/update-payment-source";
-import { getPaymentSources } from "@/lib/query/api/payment-source";
+import { updatePaymentSource } from "@/lib/api/update-payment-source";
+import { getPaymentSources } from "@/lib/api/payment-source";
 
 type AddWalletModalProps = {
   type: 'purchasing' | 'selling';
@@ -36,25 +35,25 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
         ]
       }, state.apiKey!);
 
-      const sourcesResponse = await getPaymentSources(state.apiKey!);
+      const sourceData = await getPaymentSources(state.apiKey!);
 
-      const sources = sourcesResponse?.data?.paymentSources || [];
+      const sources = sourceData?.data?.paymentSources || [];
 
-      const updatedContract = sources.find((c: any) => c.id === contractId);
+      const updatedContract = sources.find((c: { id: string }) => c.id === contractId);
       if (!updatedContract) {
         throw new Error('Updated contract not found in response');
       }
 
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
-        payload: state.paymentSources.map((c: any) =>
+        payload: state.paymentSources.map((c) =>
           c.id === contractId ? updatedContract : c
         )
       });
 
       onClose();
-    } catch (error: any) {
-      setError(error.message || 'Failed to add wallet');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Failed to add wallet');
     } finally {
       setIsLoading(false);
     }
