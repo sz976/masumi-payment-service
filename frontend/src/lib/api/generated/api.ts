@@ -611,11 +611,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @default 10
          */
         limit?: number;
-        /**
-         * Used to paginate through the payments
-         * @maxLength 250
-         */
-        cursorIdentifier?: string;
+        /** Used to paginate through the payments. If this is provided, cursorId is required */
+        cursorId?: string;
         /** The network the payments were made on */
         network: 'PREPROD' | 'MAINNET';
         /**
@@ -631,6 +628,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           status: string;
           data: {
             payments: {
+              id: string;
               createdAt: string;
               updatedAt: string;
               status:
@@ -651,7 +649,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               errorType: 'NETWORK_ERROR' | 'UNKNOWN' | null;
               errorNote: string | null;
               errorRequiresManualReview: boolean | null;
-              identifier: string;
+              blockchainIdentifier: string;
               SmartContractWallet: {
                 id: string;
                 walletAddress: string;
@@ -728,7 +726,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         paymentContractAddress?: string;
         /**
          * The time after which the payment has to be submitted to the smart contract
-         * @default "2025-02-05T04:07:36.198Z"
+         * @default "2025-02-09T14:57:08.497Z"
          */
         submitResultTime?: string;
         /** The time after which the payment will be unlocked */
@@ -741,6 +739,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       this.request<
         {
           data: {
+            id: string;
             createdAt: string;
             updatedAt: string;
             status:
@@ -761,7 +760,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             errorType: 'NETWORK_ERROR' | 'UNKNOWN' | null;
             errorNote: string | null;
             errorRequiresManualReview: boolean | null;
-            identifier: string;
+            blockchainIdentifier: string;
+            unlockTime: number;
+            refundTime: number;
+            submitResultTime: number;
             Amounts: {
               id: string;
               createdAt: string;
@@ -882,16 +884,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @default 10
          */
         limit?: number;
-        /**
-         * Used to paginate through the purchases. If this is provided, cursorIdentifier is required
-         * @maxLength 250
-         */
-        cursorIdentifierSellingWalletVkey?: string;
-        /**
-         * Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required
-         * @maxLength 250
-         */
-        cursorIdentifier?: string;
+        /** Used to paginate through the purchases. If this is provided, cursorId is required */
+        cursorId?: string;
         /** The network the purchases were made on */
         network: 'PREPROD' | 'MAINNET';
         /**
@@ -907,6 +901,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           status: string;
           data: {
             purchases: {
+              id: string;
               createdAt: string;
               updatedAt: string;
               status:
@@ -926,7 +921,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               errorType: 'NETWORK_ERROR' | 'INSUFFICIENT_FUNDS' | 'UNKNOWN' | null;
               errorNote: string | null;
               errorRequiresManualReview: boolean | null;
-              identifier: string;
+              blockchainIdentifier: string;
               SmartContractWallet: {
                 id: string;
                 walletAddress: string;
@@ -975,11 +970,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      */
     purchaseCreate: (
       data: {
+        id: string;
         /**
          * The identifier of the purchase. Is provided by the seller
          * @maxLength 250
          */
-        identifier: string;
+        blockchainIdentifier: string;
         /** The network the transaction will be made on */
         network: 'PREPROD' | 'MAINNET';
         /**
@@ -1006,12 +1002,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         }[];
         /** The payment type of smart contract used */
         paymentType: 'WEB3_CARDANO_V1';
-        /** The time after which the purchase will be unlocked */
-        unlockTime: string;
-        /** The time after which a refund will be approved */
-        refundTime: string;
-        /** The time by which the result has to be submitted */
-        submitResultTime: string;
+        /** The time after which the purchase will be unlocked. In unix time (number) */
+        unlockTime: number | null;
+        /** The time after which a refund will be approved. In unix time (number) */
+        refundTime: number | null;
+        /** The time by which the result has to be submitted. In unix time (number) */
+        submitResultTime: number | null;
       },
       params: RequestParams = {},
     ) =>
@@ -1058,11 +1054,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      */
     purchasePartialUpdate: (
       data: {
+        id: string;
         /**
          * The identifier of the purchase to be refunded
          * @maxLength 250
          */
-        identifier: string;
+        blockchainIdentifier: string;
         /** The network the Cardano wallet will be used on */
         network: 'PREPROD' | 'MAINNET';
         /**
@@ -1210,6 +1207,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @maxLength 250
          */
         sellingWalletVkey?: string;
+        /**
+         * Link to a example output of the agent
+         * @maxLength 250
+         */
+        example_output?: string;
         /**
          * Tags used in the registry metadata
          * @maxItems 15
