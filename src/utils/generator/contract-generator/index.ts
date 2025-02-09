@@ -17,14 +17,14 @@ export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported
     const admin2 = sortedAdminWallets[1];
     const admin3 = sortedAdminWallets[2];
     const feeWallet = networkCheckSupported.FeeReceiverNetworkWallet
-    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, networkCheckSupported.feePermille, networkCheckSupported.network)
+    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, networkCheckSupported.feePermille, 1000 * 60 * 15, networkCheckSupported.network)
 }
 
 export async function getRegistryScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler) {
     return await getRegistryScriptV1(networkCheckSupported.paymentContractAddress, networkCheckSupported.network)
 }
 
-export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalletAddress2: string, adminWalletAddress3: string, feeWalletAddress: string, feePermille: number, network: Network) {
+export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalletAddress2: string, adminWalletAddress3: string, feeWalletAddress: string, feePermille: number, cooldownPeriod: number, network: Network) {
 
     if (feePermille < 0 || feePermille > 1000)
         throw new Error("Fee permille must be between 0 and 1000")
@@ -62,6 +62,7 @@ export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalle
                 ],
             },
             feePermille,
+            cooldownPeriod,
         ]),
         version: "V3"
     };

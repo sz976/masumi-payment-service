@@ -7,6 +7,7 @@ import * as cbor from "cbor";
 import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
+import { decodeV1ContractDatum } from "../cardano-tx-handler/cardano-tx-handler.service";
 
 const updateMutex = new Sema(1);
 
@@ -120,15 +121,10 @@ export async function submitResultV1() {
                     }
 
                     const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-                    if (typeof decodedDatum.value[4] !== 'number') {
-                        throw new Error('Invalid datum at position 4');
+                    const decodedContract = decodeV1ContractDatum(decodedDatum)
+                    if (decodedContract == null) {
+                        throw new Error('Invalid datum');
                     }
-                    if (typeof decodedDatum.value[5] !== 'number') {
-                        throw new Error('Invalid datum at position 5');
-                    }
-                    const submitResultTime = decodedDatum.value[4];
-                    const unlockTime = decodedDatum.value[5];
-                    const refundTime = decodedDatum.value[6];
 
                     const datum = {
                         value: {
@@ -138,11 +134,13 @@ export async function submitResultV1() {
                                 sellerVerificationKeyHash,
                                 request.blockchainIdentifier,
                                 request.resultHash,
-                                submitResultTime,
-                                unlockTime,
-                                refundTime,
+                                decodedContract.resultTime,
+                                decodedContract.unlockTime,
+                                decodedContract.refundTime,
                                 //is converted to false
-                                mBool(false),
+                                mBool(decodedContract.refundRequested),
+                                decodedContract.newCooldownTime,
+                                0,
                             ],
                         } as Data,
                         inline: true,

@@ -130,6 +130,7 @@ export async function checkLatestTransactions() {
                                     //invalid transaction
                                     continue;
                                 }
+
                                 await prisma.$transaction(async (prisma) => {
 
                                     const databaseEntry = await prisma.purchaseRequest.findMany({
@@ -165,6 +166,39 @@ export async function checkLatestTransactions() {
                                     const sender = tx.utxos.inputs.filter(x => resolvePaymentKeyHash(x.address) == senderDb)[0].address;
                                     if (sender == null) {
                                         logger.error("Sender does not match buyer", { purchaseRequest: databaseEntry[0], sender: sender, senderDb: senderDb })
+                                        return;
+                                    }
+                                    const dbEntry = databaseEntry[0];
+                                    if (decodedNewContract.seller != dbEntry.SmartContractWallet?.walletVkey) {
+                                        logger.error("Seller does not match seller in db", { paymentRequest: dbEntry, seller: decodedNewContract.seller, sellerDb: dbEntry.SmartContractWallet?.walletVkey })
+                                        return;
+                                    }
+                                    if (decodedNewContract.refundRequested != false) {
+                                        logger.error("Refund was requested", { paymentRequest: dbEntry, refundRequested: decodedNewContract.refundRequested })
+                                        return;
+                                    }
+                                    if (decodedNewContract.resultHash != null) {
+                                        logger.error("Result hash was set", { paymentRequest: dbEntry, resultHash: decodedNewContract.resultHash })
+                                        return;
+                                    }
+                                    if (decodedNewContract.resultTime != dbEntry.submitResultTime) {
+                                        logger.error("Result time is not the agreed upon time", { paymentRequest: dbEntry, resultTime: decodedNewContract.resultTime, resultTimeDb: dbEntry.submitResultTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.unlockTime < dbEntry.unlockTime) {
+                                        logger.error("Unlock time is before the agreed upon time", { paymentRequest: dbEntry, unlockTime: decodedNewContract.unlockTime, unlockTimeDb: dbEntry.unlockTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.refundTime != dbEntry.refundTime) {
+                                        logger.error("Refund time is not the agreed upon time", { paymentRequest: dbEntry, refundTime: decodedNewContract.refundTime, refundTimeDb: dbEntry.refundTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.buyerCooldownTime != 0) {
+                                        logger.error("Buyer cooldown time is not 0", { paymentRequest: dbEntry, buyerCooldownTime: decodedNewContract.buyerCooldownTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.sellerCooldownTime != 0) {
+                                        logger.error("Seller cooldown time is not 0", { paymentRequest: dbEntry, sellerCooldownTime: decodedNewContract.sellerCooldownTime })
                                         return;
                                     }
                                     await prisma.purchaseRequest.update({
@@ -237,20 +271,18 @@ export async function checkLatestTransactions() {
                                         logger.error("Refund time is not the agreed upon time", { paymentRequest: dbEntry, refundTime: decodedNewContract.refundTime, refundTimeDb: dbEntry.refundTime })
                                         return;
                                     }
+                                    if (decodedNewContract.buyerCooldownTime != 0) {
+                                        logger.error("Buyer cooldown time is not 0", { paymentRequest: dbEntry, buyerCooldownTime: decodedNewContract.buyerCooldownTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.sellerCooldownTime != 0) {
+                                        logger.error("Seller cooldown time is not 0", { paymentRequest: dbEntry, sellerCooldownTime: decodedNewContract.sellerCooldownTime })
+                                        return;
+                                    }
 
-                                    const valueMatches = databaseEntry[0].Amounts.every((x) => {
-                                        const existingAmount = output.amount.find((y) => y.unit == x.unit)
-                                        if (existingAmount == null)
-                                            return false;
-                                        //allow for some overpayment to handle min lovelace requirements
-                                        if (x.unit == "lovelace") {
-                                            return x.amount <= BigInt(existingAmount.quantity)
-                                        }
-                                        //require exact match for non-lovelace amounts
-                                        return x.amount == BigInt(existingAmount.quantity)
-                                    })
+                                    const valueMatches = checkPaymentAmountsMatch(dbEntry.Amounts, output.amount)
 
-                                    const paymentCountMatches = databaseEntry[0].Amounts.filter(x => x.unit != "lovelace").length == output.amount.filter(x => x.unit != "lovelace").length
+                                    const paymentCountMatches = dbEntry.Amounts.filter(x => x.unit != "lovelace").length == output.amount.filter(x => x.unit != "lovelace").length
                                     let newStatus: $Enums.PaymentRequestStatus = $Enums.PaymentRequestStatus.PaymentInvalid;
 
                                     if (valueMatches == true && paymentCountMatches == true) {
@@ -397,16 +429,7 @@ export async function checkLatestTransactions() {
                                     newPurchasingStatus = $Enums.PurchasingRequestStatus.Completed
                                 } else {
                                     //Ensure the amounts match, to prevent state change attacks
-                                    const valueMatches = paymentRequest?.Amounts.every((x) => {
-                                        const existingAmount = valueOutputs[0].amount.find((y) => y.unit == x.unit)
-                                        if (existingAmount == null)
-                                            return false;
-                                        //allow for some overpayment to handle min lovelace requirements
-                                        if (x.unit == "lovelace") {
-                                            return x.amount <= BigInt(existingAmount.quantity)
-                                        }
-                                        return x.amount == BigInt(existingAmount.quantity)
-                                    })
+                                    const valueMatches = checkPaymentAmountsMatch(paymentRequest?.Amounts || [], valueOutputs[0].amount)
                                     newStatus = valueMatches == true ? $Enums.PaymentRequestStatus.PaymentConfirmed : $Enums.PaymentRequestStatus.PaymentInvalid;
                                     newPurchasingStatus = $Enums.PurchasingRequestStatus.PurchaseConfirmed
                                 }
@@ -567,7 +590,7 @@ async function handlePurchasingTransactionCardanoV1(tx_hash: string, utxo_hash: 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function decodeV1ContractDatum(decodedDatum: any) {
+export function decodeV1ContractDatum(decodedDatum: any) {
     /*
         buyer: VerificationKeyHash,
         seller: VerificationKeyHash,
@@ -577,60 +600,82 @@ function decodeV1ContractDatum(decodedDatum: any) {
         unlock_time: POSIXTime,
         refund_time: POSIXTime,
         refund_requested: Bool,
+        seller_cooldown_time: POSIXTime,
+        buyer_cooldown_time: POSIXTime,
+
     */
     if (decodedDatum == null) {
         //invalid transaction
         return null;
     }
+    let fields = decodedDatum.fields
+    let values = decodedDatum.value
 
-    if (decodedDatum.fields.length != 8) {
+    if (fields.length != 10 && values.length != 10) {
+        //invalid transaction
+        return null;
+    }
+    fields = fields.length == 10 ? fields : values
+
+    if (typeof fields[0] !== "string") {
+        //invalid transaction
+        return null;
+    }
+    const buyer = fields[0]
+    if (typeof fields[1] !== "string") {
+        //invalid transaction
+        return null;
+    }
+    const seller = fields[1]
+    if (typeof fields[2] !== "string") {
+        //invalid transaction
+        return null;
+    }
+    const blockchainIdentifier = Buffer.from(fields[2], "hex").toString("utf-8")
+    if (typeof fields[3] !== "string") {
+        //invalid transaction
+        return null;
+    }
+    const resultHash = Buffer.from(fields[3], "hex").toString("utf-8")
+
+    if (typeof fields[4] !== "number" && typeof fields[4] !== "bigint") {
+        //invalid transaction
+        return null;
+    }
+    if (typeof fields[5] !== "number" && typeof fields[5] !== "bigint") {
+        //invalid transaction
+        return null;
+    }
+    if (typeof fields[6] !== "number" && typeof fields[6] !== "bigint") {
+        //invalid transaction
+        return null;
+    }
+    const resultTime = fields[4]
+    const unlockTime = fields[5]
+    const refundTime = fields[6]
+
+
+    const refundRequested = mBoolToBool(fields[7])
+    if (refundRequested == null) {
         //invalid transaction
         return null;
     }
 
-    if (typeof decodedDatum.fields[0] !== "string") {
+    if (typeof fields[8] !== "number" && typeof fields[8] !== "bigint") {
         //invalid transaction
         return null;
     }
-    const buyer = decodedDatum.fields[0]
-    if (typeof decodedDatum.fields[1] !== "string") {
-        //invalid transaction
-        return null;
-    }
-    const seller = decodedDatum.fields[1]
-    if (typeof decodedDatum.fields[2] !== "string") {
-        //invalid transaction
-        return null;
-    }
-    const blockchainIdentifier = Buffer.from(decodedDatum.fields[2], "hex").toString("utf-8")
-    if (typeof decodedDatum.fields[3] !== "string") {
-        //invalid transaction
-        return null;
-    }
-    const resultHash = Buffer.from(decodedDatum.fields[3], "hex").toString("utf-8")
+    const buyerCooldownTime = fields[8]
 
-    if (typeof decodedDatum.fields[4] !== "number" && typeof decodedDatum.fields[4] !== "bigint") {
+    if (typeof fields[9] !== "number" && typeof fields[9] !== "bigint") {
         //invalid transaction
         return null;
     }
-    if (typeof decodedDatum.fields[5] !== "number" && typeof decodedDatum.fields[5] !== "bigint") {
-        //invalid transaction
-        return null;
-    }
-    if (typeof decodedDatum.fields[6] !== "number" && typeof decodedDatum.fields[6] !== "bigint") {
-        //invalid transaction
-        return null;
-    }
-    const resultTime = decodedDatum.fields[4]
-    const unlockTime = decodedDatum.fields[5]
-    const refundTime = decodedDatum.fields[6]
+    const sellerCooldownTime = fields[9]
 
+    const newCooldownTime = Date.now() + 1000 * 60 * 20;
 
-    const refundRequested = mBoolToBool(decodedDatum.fields[7])
-
-
-
-    return { buyer, seller, blockchainIdentifier, resultHash, resultTime, unlockTime, refundTime, refundRequested }
+    return { buyer, seller, blockchainIdentifier, resultHash, resultTime, unlockTime, refundTime, refundRequested, buyerCooldownTime, sellerCooldownTime, newCooldownTime }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -654,4 +699,18 @@ function mBoolToBool(value: any) {
     return null;
 }
 
-export const cardanoTxHandlerService = { checkLatestTransactions, decodeV1ContractDatum, mBoolToBool }
+function checkPaymentAmountsMatch(expectedAmounts: { unit: string; amount: bigint }[], actualAmounts: { unit: string; quantity: string }[]) {
+    return expectedAmounts.every((x) => {
+        const existingAmount = actualAmounts.find((y) => y.unit == x.unit)
+        if (existingAmount == null)
+            return false;
+        //allow for some overpayment to handle min lovelace requirements
+        if (x.unit == "lovelace") {
+            return x.amount <= BigInt(existingAmount.quantity)
+        }
+        //require exact match for non-lovelace amounts
+        return x.amount == BigInt(existingAmount.quantity)
+    })
+}
+
+export const cardanoTxHandlerService = { checkLatestTransactions, decodeV1ContractDatum, mBoolToBool, checkPaymentAmountsMatch }

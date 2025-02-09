@@ -48,7 +48,7 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
                 const decodedSecret = decrypt(result.WalletSecret.secret)
                 return {
                     ...result,
-                    walletSecret: {
+                    WalletSecret: {
                         ...result.WalletSecret,
                         secret: decodedSecret
                     },

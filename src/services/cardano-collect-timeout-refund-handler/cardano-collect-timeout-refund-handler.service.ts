@@ -7,6 +7,7 @@ import * as cbor from "cbor";
 import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
+import { decodeV1ContractDatum } from "../cardano-tx-handler/cardano-tx-handler.service";
 
 const updateMutex = new Sema(1);
 
@@ -140,11 +141,9 @@ export async function collectTimeoutRefundsV1() {
                     }
 
                     const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-                    if (typeof decodedDatum.value[4] !== 'number') {
-                        throw new Error('Invalid datum at position 4');
-                    }
-                    if (typeof decodedDatum.value[5] !== 'number') {
-                        throw new Error('Invalid datum at position 5');
+                    const decodedContract = decodeV1ContractDatum(decodedDatum)
+                    if (decodedContract == null) {
+                        throw new Error('Invalid datum');
                     }
 
                     const redeemer = {

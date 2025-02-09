@@ -7,6 +7,7 @@ import * as cbor from "cbor";
 import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
+import { decodeV1ContractDatum } from "../cardano-tx-handler/cardano-tx-handler.service";
 
 const updateMutex = new Sema(1);
 
@@ -109,44 +110,16 @@ export async function collectOutstandingPaymentsV1() {
                         throw new Error('UTXO not found');
                     }
 
-
-                    const buyerVerificationKeyHash = request.BuyerWallet?.walletVkey;
-                    const sellerVerificationKeyHash = request.SmartContractWallet!.walletVkey;
-
                     const utxoDatum = utxo.output.plutusData;
                     if (!utxoDatum) {
                         throw new Error('No datum found in UTXO');
                     }
 
                     const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-                    if (typeof decodedDatum.value[4] !== 'number') {
-                        throw new Error('Invalid datum at position 4');
+                    const decodedContract = decodeV1ContractDatum(decodedDatum)
+                    if (decodedContract == null) {
+                        throw new Error('Invalid datum');
                     }
-                    if (typeof decodedDatum.value[5] !== 'number') {
-                        throw new Error('Invalid datum at position 5');
-                    }
-                    const submitResultTime = decodedDatum.value[4];
-                    const unlockTime = decodedDatum.value[5];
-                    const refundTime = decodedDatum.value[6];
-
-                    const hashedValue = request.resultHash;
-                    const datum = {
-                        value: {
-                            alternative: 0,
-                            fields: [
-                                buyerVerificationKeyHash,
-                                sellerVerificationKeyHash,
-                                request.blockchainIdentifier,
-                                hashedValue,
-                                submitResultTime,
-                                unlockTime,
-                                refundTime,
-                                //is converted to false
-                                mBool(false),
-                            ],
-                        } as Data,
-                        inline: true,
-                    };
 
                     const redeemer = {
                         data: {
@@ -209,14 +182,12 @@ export async function collectOutstandingPaymentsV1() {
                         .sendAssets(
                             {
                                 address: networkCheck.CollectionWallet.walletAddress,
-                                datum: datum,
                             },
                             Object.values(remainingAssets)
                         )
                         .sendAssets(
                             {
                                 address: networkCheck.FeeReceiverNetworkWallet.walletAddress,
-                                datum: datum,
                             },
                             Object.values(feeAssets)
                         )
