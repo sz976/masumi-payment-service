@@ -97,7 +97,7 @@ export async function collectTimeoutRefundsV1() {
                 resultHash: string | null; errorType: $Enums.PurchaseRequestErrorType | null;
                 networkHandlerId: string;
                 sellerWalletId: string;
-                smartContractWalletId: string | null; identifier: string; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; triggeredById: string;
+                smartContractWalletId: string | null; blockchainIdentifier: string; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; triggeredById: string;
             })[] = []
             for (const request of purchaseRequests) {
                 if (request.smartContractWalletId == null)
