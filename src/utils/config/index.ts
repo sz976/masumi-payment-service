@@ -26,14 +26,16 @@ export const DEFAULTS = {
     ADMIN_WALLET3_PREPROD: "addr_test1qzy7a702snswullyjg06j04jsulldc6yw0m4r4w49jm44f30pgqg0ez34lrdj7dy7ndp2lgv8e35e6jzazun8gekdlsq99mm6w",
     FEE_WALLET_PREPROD: "addr_test1qqfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqt4u496",
     FEE_PERMILLE_PREPROD: 50, //equals simulated 5% fee for the network
-    PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD: "addr_test1wrz0yvn3xhel6kuf8kqkvyj8mzqg792nmv6uxak6myy4kgqllr7jv",
-    REGISTRY_POLICY_ID_PREPROD: "af6e5b46fdbabd15cc41ae449f1ec2fd461591a47f7c7372263a912e",
+    PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD: "addr_test1wqwmd4vt6eymlqf53rlpzcjm9k424tz39fjwstfnyz96raq53l3x2",
+    REGISTRY_POLICY_ID_PREPROD: "60d44b00e5a4f34867196160c22aa0308e710f13f9754d98f6ed6ad9",
+    COOLDOWN_TIME_PREPROD: 600000,
 
     ADMIN_WALLET1_MAINNET: "addr1q87pdg0u7vy6a5p7cx9my9m0t63f4n48pwmez30t4laguawge7xugp6m5qgr6nnp6wazurtagjva8l9fc3a5a4scx0rqfjxhnw",
     ADMIN_WALLET2_MAINNET: "addr1q9lhs9snd92fmr3tzw87uujvn7nqd4ss0fn8yz7mf3y2mf3a3806uqngr7hvksqvtkmetcjcluu6xeguagwyaxevdhmslj9lcz",
     ADMIN_WALLET3_MAINNET: "addr1qxy7a702snswullyjg06j04jsulldc6yw0m4r4w49jm44f30pgqg0ez34lrdj7dy7ndp2lgv8e35e6jzazun8gekdlsqxnxmk3",
     FEE_WALLET_MAINNET: "addr1qyfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqgrp4f9",
     FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
-    PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET: "addr1w8z0yvn3xhel6kuf8kqkvyj8mzqg792nmv6uxak6myy4kgqyhhzaf",
-    REGISTRY_POLICY_ID_MAINNET: "f0eaeae2e42c021edadf628e2095fcad7d5322ab0aa51a395b4da025",
+    PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET: "addr1wywmd4vt6eymlqf53rlpzcjm9k424tz39fjwstfnyz96raq0etdf0",
+    REGISTRY_POLICY_ID_MAINNET: "0e7a68c99492c0e228b49cd733451ebee49e2670effc26c6031c6aa9",
+    COOLDOWN_TIME_MAINNET: 600000,
 }

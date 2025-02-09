@@ -81,6 +81,8 @@ export const seed = async (prisma: PrismaClient) => {
 
   const feeWalletAddressPreprod = DEFAULTS.FEE_WALLET_PREPROD;
   const feePermillePreprod = DEFAULTS.FEE_PERMILLE_PREPROD;
+  const cooldownTimePreprod = DEFAULTS.COOLDOWN_TIME_PREPROD;
+  const cooldownTimeMainnet = DEFAULTS.COOLDOWN_TIME_MAINNET;
 
 
   const scriptJSON = readFileSync('./smart-contracts/payment/plutus.json', 'utf-8');
@@ -125,6 +127,7 @@ export const seed = async (prisma: PrismaClient) => {
           ],
         },
         fee,
+        cooldownTimePreprod
       ]),
       version: "V3"
     };
@@ -182,6 +185,7 @@ export const seed = async (prisma: PrismaClient) => {
               WalletSecret: { create: { secret: encrypt(sellingWalletPreprodMnemonic) } }
             }
           },
+          cooldownTime: cooldownTimePreprod,
           CollectionWallet: {
             create: {
               walletAddress: collectionWalletPreprodAddress,
@@ -247,6 +251,7 @@ export const seed = async (prisma: PrismaClient) => {
           ],
         },
         fee,
+        cooldownTimeMainnet
       ]),
       version: "V3"
     };
@@ -305,6 +310,7 @@ export const seed = async (prisma: PrismaClient) => {
               WalletSecret: { create: { secret: encrypt(sellingWalletMainnetMnemonic) } }
             }
           },
+          cooldownTime: cooldownTimeMainnet,
           CollectionWallet: {
             create: {
               walletAddress: collectionWalletMainnetAddress,
