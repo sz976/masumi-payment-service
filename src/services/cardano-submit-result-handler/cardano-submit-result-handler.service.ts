@@ -7,7 +7,7 @@ import * as cbor from "cbor";
 import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
-import { decodeV1ContractDatum } from "../cardano-tx-handler/cardano-tx-handler.service";
+import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
 
 const updateMutex = new Sema(1);
 

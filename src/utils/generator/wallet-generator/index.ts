@@ -23,7 +23,6 @@ export async function generateWalletExtended(network: Network, rpcProviderApiKey
     const blockchainProvider = new BlockfrostProvider(
         rpcProviderApiKey
     )
-
     const wallet = new MeshWallet({
         networkId: networkId,
         fetcher: blockchainProvider,

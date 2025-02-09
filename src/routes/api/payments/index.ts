@@ -92,6 +92,7 @@ export const createPaymentsSchemaInput = z.object({
 })
 
 export const createPaymentSchemaOutput = z.object({
+    id: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),
     status: z.nativeEnum($Enums.PaymentRequestStatus),
