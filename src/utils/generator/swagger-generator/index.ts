@@ -807,7 +807,7 @@ export function generateOpenAPI() {
   registry.registerPath({
     method: 'post',
     path: '/registry/',
-    description: 'Registers an agent to the registry.',
+    description: 'Registers an agent to the registry (Please note that while it it is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
     summary: 'REQUIRES API KEY Authentication (+PAY)',
     tags: ['registry',],
     security: [{ [apiKeyAuth.name]: [] }],
@@ -857,6 +857,9 @@ export function generateOpenAPI() {
                 status: "success",
                 data: {
                   txHash: "tx_hash",
+                  policyId: "policy_id",
+                  assetName: "asset_name",
+                  agentIdentifier: "agent_identifier",
                 }
               }
             })
@@ -869,7 +872,7 @@ export function generateOpenAPI() {
   registry.registerPath({
     method: 'delete',
     path: '/registry/',
-    description: 'Deregisters a agent from the specified registry.',
+    description: 'Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
     summary: 'REQUIRES API KEY Authentication (+PAY)',
     tags: ['registry',],
     security: [{ [apiKeyAuth.name]: [] }],

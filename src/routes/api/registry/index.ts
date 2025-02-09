@@ -187,6 +187,9 @@ export const registerAgentSchemaInput = z.object({
 
 export const registerAgentSchemaOutput = z.object({
     txHash: z.string(),
+    policyId: z.string(),
+    assetName: z.string(),
+    agentIdentifier: z.string(),
 });
 
 export const registerAgentPost = payAuthenticatedEndpointFactory.build({
@@ -350,7 +353,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             AssetId: ${policyId + assetName}
             Smart Contract Address: ${smartContractAddress}
         `);
-                return { txHash }
+                return { txHash, policyId, assetName, agentIdentifier: policyId + assetName }
 
             },
             throwOnUnrecoveredError: true,
