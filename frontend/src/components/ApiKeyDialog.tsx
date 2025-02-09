@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { toast } from 'react-toastify';
 import { getPaymentSources } from "@/lib/api/payment-source";
+import { setAuthToken } from "@/lib/api/client";
 
 export function ApiKeyDialog() {
   const [apiKey, setApiKey] = useState("");
@@ -17,6 +18,7 @@ export function ApiKeyDialog() {
     setIsLoading(true);
 
     try {
+      setAuthToken(key);
       await getPaymentSources(key);
 
       const hexKey = Buffer.from(key).toString('hex');
