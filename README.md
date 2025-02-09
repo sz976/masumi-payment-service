@@ -41,6 +41,7 @@ The node consists of two different repositories. We start with the Payment Servi
 We are focusing on setting everything up for the **Preprod** Environment of Masumi. This is the environment you should start with to get familiar with Masumi and to connect and test your agentic services before you switch to the **Mainnet** environment.
 
 ### Step 1: Clone the Repository and Install Dependencies
+
 ```sh
 git clone https://github.com/masumi-network/masumi-payment-service
 cd masumi-payment-service/
@@ -48,19 +49,23 @@ npm install
 ```
 
 ### Step 2: Checkout the Latest Stable Version
+
 ```sh
 git fetch --tags
 git checkout $(git tag -l | sort -V | tail -n 1)
 ```
 
 ### Step 3: Configure Environment Variables
+
 Copy the `.env.example` file to `.env` and update the following variables:
+
 ```sh
 DATABASE_URL="postgresql://johndoe:randompassword@localhost:5432/masumi_payment?schema=public"
 ENCRYPTION_KEY="abcdef_this_should_be_very_secure_and_32_characters_long"
 ADMIN_KEY="abcdef_this_should_be_very_secure"
 BLOCKFROST_API_KEY="your_blockfrost_api_key"
 ```
+
 If you don't know how to set up a PostgreSQL database - [learn more below](#installing-postgresql-database).
 
 Get a free Blockfrost API Key from [blockfrost.io](https://blockfrost.io) - [learn more below](#getting-the-blockfrost-api-key).
@@ -68,19 +73,35 @@ Get a free Blockfrost API Key from [blockfrost.io](https://blockfrost.io) - [lea
 Set the Encryption and Admin Keys yourself.
 
 ### Step 4: Configure and Seed the PostgreSQL Database
+
 ```sh
 npm run prisma:migrate
+npm run prisma:seed
 ```
 
-### Step 5: Installing the Admin Interface
+### Run in Docker
+
+```sh
+docker compose up -d
+```
+
+Congratulations! You have successfully run the Masumi Payment Service in Docker.
+
+### Run in Development Mode instead
+
+### Step 1: Building the Admin Interface
+
 ```sh
 cd frontend
 npm install
+npm run build
 cd ..
 ```
 
-## Step 6: Running the Node
+## Step 2: Running the Node
+
 Start the node with:
+
 ```sh
 npm run build && npm start
 ```
@@ -99,6 +120,7 @@ As long as you are on **Preprod**, there is nothing to worry about!
 ## Getting the Blockfrost API Key
 
 Blockfrost is an API Service that allows the Masumi node to interact with the Cardano blockchain without running a full Cardano Node ourselves. It is free and easy to get:
+
 1. Sign up on [blockfrost.io](https://blockfrost.io)
 2. Click "Add Project"
 3. Make sure to choose "Cardano Preprod" as Network
@@ -109,17 +131,20 @@ Blockfrost is free for one project and for **50,000 Requests a Day**, which is s
 ## Installing PostgreSQL Database
 
 If PostgreSQL is not installed, follow these steps (for MacOS):
+
 ```sh
 brew install postgresql@15
 brew services start postgresql@15
 ```
 
 To create a database:
+
 ```sh
 psql postgres
 create database masumi_payment;
 \q
 ```
+
 Ensure that your `DATABASE_URL` matches the configured database settings.
 
 ## Masumi Registry Service
