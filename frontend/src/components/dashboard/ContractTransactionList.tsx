@@ -13,7 +13,7 @@ import { getTransactions } from "@/lib/api/transactions";
 type TransactionType = string;
 
 type Transaction = {
-  type: 'payment' | 'purchase';
+  type: string;
   createdAt: string;
   updatedAt: string;
   status: string;
@@ -31,14 +31,14 @@ type Transaction = {
     walletAddress: string;
     note?: string;
   };
-  buyerWallet: {
+  buyerWallet?: {
     walletAddress: string;
     note?: string;
   };
   amounts: {
     amount: number;
   }[];
-  checkedBy: {
+  checkedBy?: {
     network: string;
     paymentType: string;
   };
@@ -92,10 +92,9 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
         limit: 10
       });
 
-      const data = response.data
-      const newTransactions = (data?.transactions || []) as unknown as Transaction[];
+      const newTransactions = response.data as Transaction[];
 
-      setTransactions(cursor ? [...transactions, ...newTransactions] : newTransactions);
+      setTransactions(prev => cursor ? [...prev, ...newTransactions] : newTransactions);
       setHasMore(newTransactions.length === 10);
       setCursorIdentifier(newTransactions[newTransactions.length - 1]?.identifier ?? null);
     } catch (error) {
@@ -103,7 +102,7 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
     } finally {
       setIsLoading(false);
     }
-  }, [contractAddress, network, paymentType, state.apiKey, transactions]);
+  }, [contractAddress, network, paymentType, state.apiKey]);
 
   useEffect(() => {
     if (contractAddress || network || paymentType) {

@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { getPaymentSources } from "@/lib/api/payment-source";
 import { checkHealth } from "@/lib/api/health";
+import { setAuthToken } from '@/lib/api/client';
 
 function InitializeApp() {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
@@ -52,6 +53,7 @@ function InitializeApp() {
         }
 
         const storedApiKey = Buffer.from(hexedKey, 'hex').toString('utf-8');
+        setAuthToken(storedApiKey);
         dispatch({ type: 'SET_API_KEY', payload: storedApiKey });
         setIsHealthy(true);
 
@@ -65,10 +67,12 @@ function InitializeApp() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (isHealthy && router.pathname === '/') {
+    if (isHealthy && router.pathname === '/' && state.apiKey) {
+      fetchPaymentSources();
+    } else if(isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length){
       fetchPaymentSources();
     }
-  }, [router.pathname, isHealthy, fetchPaymentSources]);
+  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey]);
 
   if (isHealthy === null) {
     return <div className="flex items-center justify-center bg-[#000] fixed top-0 left-0 w-full h-full z-50">
