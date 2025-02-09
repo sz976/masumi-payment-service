@@ -28,7 +28,7 @@ export function WalletCard({
     paymentContractAddress: string;
     network: string;
     paymentType: string;
-    blockfrostApiKey: string;
+    rpcProviderApiKey: string;
     adminWallets: {
       walletAddress: string;
     }[];
@@ -97,8 +97,7 @@ export function WalletCard({
       const data = await getWalletBalance(state.apiKey!, {
         walletAddress: address,
         network: 'preprod',
-        count: 1,
-        page: 1
+        blockfrostApiKey: contract.rpcProviderApiKey
       });
 
       setAdaBalance(data?.ada || 0);
@@ -109,7 +108,7 @@ export function WalletCard({
       console.error("Error fetching balance:", error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
-  }, [state.apiKey]);
+  }, [contract.rpcProviderApiKey, state.apiKey]);
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -260,7 +259,7 @@ export function WalletCard({
               <div className="text-sm">ADA Balance: {adaBalance?.toLocaleString() || "..."} ₳</div>
               <div className="text-sm">USDM Balance: {usdmBalance?.toLocaleString() || "..."} USDM</div>
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={refreshBalance}
                 className="w-fit px-2 py-1 h-auto text-xs"
