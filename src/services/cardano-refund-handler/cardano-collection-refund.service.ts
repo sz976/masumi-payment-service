@@ -1,12 +1,12 @@
 import { $Enums } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
-import { BlockfrostProvider, MeshWallet, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
-import { decrypt } from '@/utils/security/encryption';
+import { BlockfrostProvider, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
 import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
-import { convertNetwork, convertNetworkToId } from "@/utils/converter/network-convert";
+import { convertNetwork, } from "@/utils/converter/network-convert";
+import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 
 const updateMutex = new Sema(1);
 
@@ -68,8 +68,6 @@ export async function collectRefundV1() {
 
             const network = convertNetwork(networkCheck.network)
 
-            const networkId = convertNetworkToId(networkCheck.network)
-
 
             const blockchainProvider = new BlockfrostProvider(networkCheck.rpcProviderApiKey, undefined);
 
@@ -114,30 +112,16 @@ export async function collectRefundV1() {
 
             await Promise.allSettled(deDuplicatedRequests.map(async (request) => {
                 try {
-                    const purchasingWallet = request.SmartContractWallet!;
-                    const encryptedSecret = purchasingWallet.WalletSecret.secret;
+                    const { wallet, utxos, address } = await generateWalletExtended(networkCheck.network, networkCheck.rpcProviderApiKey, request.SmartContractWallet!.WalletSecret.secret!)
 
-                    const wallet = new MeshWallet({
-                        networkId: networkId,
-                        fetcher: blockchainProvider,
-                        submitter: blockchainProvider,
-                        key: {
-                            type: 'mnemonic',
-                            words: decrypt(encryptedSecret).split(" "),
-                        },
-                    });
-
-                    const address = (await wallet.getUnusedAddresses())[0];
-                    console.log(address);
-
-
-                    const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
-
-                    const utxos = await wallet.getUtxos();
                     if (utxos.length === 0) {
                         //this is if the seller wallet is empty
                         throw new Error('No UTXOs found in the wallet. Wallet is empty.');
                     }
+
+                    const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
+
+
 
 
                     const utxoByHash = await blockchainProvider.fetchUTxOs(

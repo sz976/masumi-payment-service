@@ -2,9 +2,9 @@ import { Network, PaymentType, PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { MeshWallet, resolvePaymentKeyHash, resolvePlutusScriptAddress, resolveStakeKeyHash, PlutusScript, applyParamsToScript } from '@meshsdk/core'
-import { encrypt } from './../src/utils/encryption';
+import { encrypt } from './../src/utils/security/encryption';
 import { DEFAULTS } from './../src/utils/config';
-import { getRegistryScriptV1 } from './../src/utils/contractResolver';
+import { getRegistryScriptV1 } from './../src/utils/generator/contract-generator';
 
 dotenv.config();
 const prisma = new PrismaClient();

@@ -4,9 +4,8 @@ import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { decrypt } from '@/utils/security/encryption';
 import { Network } from '@prisma/client';
-import { MeshWallet } from '@meshsdk/core';
-import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
-import { convertNetworkToId } from '@/utils/converter/network-convert';
+import { MeshWallet, resolvePaymentKeyHash } from '@meshsdk/core';
+import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
 
 
 
@@ -99,17 +98,9 @@ export const postWalletEndpointPost = adminAuthenticatedEndpointFactory.build({
         const secretKey = MeshWallet.brew(false);
         const secretWords = typeof secretKey == "string" ? secretKey.split(" ") : secretKey
 
-        const networkId = convertNetworkToId(input.network)
+        const wallet = generateOfflineWallet(input.network, secretWords)
 
-        const wallet = new MeshWallet({
-            networkId: networkId,
-            key: {
-                type: 'mnemonic',
-                words: secretWords
-            },
-        });
-
-        const address = await (await wallet.getUnusedAddresses())[0]
+        const address = (await wallet.getUnusedAddresses())[0]
         const vKey = resolvePaymentKeyHash(address)
 
         return {

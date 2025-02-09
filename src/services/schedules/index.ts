@@ -13,7 +13,6 @@ async function init() {
         level: "info",
         message: "initialized cron events",
     });
-
     cron.schedule(CONFIG.CHECK_TX_INTERVAL, async () => {
         logger.info("updating cardano payment entries")
         const start = new Date()

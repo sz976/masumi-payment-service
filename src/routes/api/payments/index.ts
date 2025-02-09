@@ -13,13 +13,14 @@ import { DEFAULTS } from '@/utils/config';
 
 export const queryPaymentsSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of payments to return"),
-    cursorIdentifier: z.string().max(250).optional().describe("Used to paginate through the payments"),
+    cursorId: z.string().optional().describe("Used to paginate through the payments. If this is provided, cursorId is required"),
     network: z.nativeEnum($Enums.Network).describe("The network the payments were made on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the payments were made to"),
 })
 
 export const queryPaymentsSchemaOutput = z.object({
     payments: z.array(z.object({
+        id: z.string(),
         createdAt: z.date(),
         updatedAt: z.date(),
         status: z.nativeEnum($Enums.PaymentRequestStatus),
@@ -28,7 +29,7 @@ export const queryPaymentsSchemaOutput = z.object({
         errorType: z.nativeEnum($Enums.PaymentRequestErrorType).nullable(),
         errorNote: z.string().nullable(),
         errorRequiresManualReview: z.boolean().nullable(),
-        identifier: z.string(),
+        blockchainIdentifier: z.string(),
         SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
         BuyerWallet: z.object({ walletVkey: z.string(), }).nullable(),
         Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
@@ -59,11 +60,8 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         const result = await prisma.paymentRequest.findMany({
             where: { networkHandlerId: networkHandler.id },
             orderBy: { createdAt: "desc" },
-            cursor: input.cursorIdentifier ? {
-                networkHandlerId_identifier: {
-                    networkHandlerId: networkHandler.id,
-                    identifier: input.cursorIdentifier
-                }
+            cursor: input.cursorId ? {
+                id: input.cursorId
             } : undefined,
             take: input.limit,
             include: {
@@ -102,7 +100,10 @@ export const createPaymentSchemaOutput = z.object({
     errorType: z.nativeEnum($Enums.PaymentRequestErrorType).nullable(),
     errorNote: z.string().nullable(),
     errorRequiresManualReview: z.boolean().nullable(),
-    identifier: z.string(),
+    blockchainIdentifier: z.string(),
+    unlockTime: z.number(),
+    refundTime: z.number(),
+    submitResultTime: z.number(),
     Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
     SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }),
     BuyerWallet: z.object({ walletVkey: z.string(), }).nullable(),
@@ -134,7 +135,9 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
             projectId: networkCheckSupported.rpcProviderApiKey
         })
         const { policyId } = await getRegistryScriptV1(paymentContractAddress, input.network)
-        const assetInWallet = await provider.assetsAddresses(policyId + input.agentIdentifier, { order: "desc", count: 1 })
+        const assetId = input.agentIdentifier;
+        const policyAsset = assetId.startsWith(policyId) ? assetId : policyId + assetId;
+        const assetInWallet = await provider.assetsAddresses(policyAsset, { order: "desc", count: 1 })
         if (assetInWallet.length == 0) {
             throw createHttpError(404, "Agent identifier not found")
         }
@@ -148,9 +151,19 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
 
         const payment = await prisma.paymentRequest.create({
             data: {
-                identifier: input.agentIdentifier + "_" + cuid2.createId(),
+                blockchainIdentifier: input.agentIdentifier + "_" + cuid2.createId(),
                 NetworkHandler: { connect: { id: networkCheckSupported.id } },
-                Amounts: { createMany: { data: input.amounts.map(amount => ({ amount: amount.amount, unit: amount.unit })) } },
+                Amounts: {
+                    createMany: {
+                        data: input.amounts.map(amount => {
+                            if (amount.unit == "") {
+                                return { amount: amount.amount, unit: "lovelace" }
+                            } else {
+                                return { amount: amount.amount, unit: amount.unit }
+                            }
+                        })
+                    }
+                },
                 status: $Enums.PaymentRequestStatus.PaymentRequested,
                 submitResultTime: input.submitResultTime.getTime(),
                 SmartContractWallet: { connect: { id: sellingWallet.id } },
@@ -162,7 +175,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         if (payment.SmartContractWallet == null) {
             throw createHttpError(500, "Smart contract wallet not connected")
         }
-        return { ...payment, SmartContractWallet: payment.SmartContractWallet!, Amounts: payment.Amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) }
+        return { ...payment, unlockTime: parseInt(payment.unlockTime.toString()), refundTime: parseInt(payment.refundTime.toString()), submitResultTime: parseInt(payment.submitResultTime.toString()), SmartContractWallet: payment.SmartContractWallet!, Amounts: payment.Amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) }
     },
 });
 
@@ -192,7 +205,7 @@ export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
                 network_paymentContractAddress: {
                     network: input.network, paymentContractAddress: paymentContractAddress
                 }
-            }, include: { SellingWallets: true, CollectionWallet: true, PaymentRequests: { where: { identifier: input.identifier } } }
+            }, include: { SellingWallets: true, CollectionWallet: true, PaymentRequests: { where: { blockchainIdentifier: input.blockchainIdentifier } } }
         })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")

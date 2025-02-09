@@ -159,23 +159,23 @@ model PaymentRequest {
   BuyerWallet   BuyerWallet? @relation(fields: [buyerWalletId], references: [id], onDelete: SetNull)
   buyerWalletId String?
 
-  Amounts          RequestAmount[]
-  status           PaymentRequestStatus
-  identifier       String
-  resultHash       String?
-  submitResultTime BigInt
-  unlockTime       BigInt
-  refundTime       BigInt
-  utxo             String?
-  txHash           String?
-  potentialTxHash  String?
+  Amounts              RequestAmount[]
+  status               PaymentRequestStatus
+  blockchainIdentifier String
+  resultHash           String?
+  submitResultTime     BigInt
+  unlockTime           BigInt
+  refundTime           BigInt
+  utxo                 String?
+  txHash               String?
+  potentialTxHash      String?
 
   errorRetries              Int                      @default(0)
   errorType                 PaymentRequestErrorType?
   errorNote                 String?
   errorRequiresManualReview Boolean?
 
-  @@unique([networkHandlerId, identifier])
+  @@unique([networkHandlerId, blockchainIdentifier])
 }
 
 model PurchaseRequest {
@@ -193,13 +193,13 @@ model PurchaseRequest {
   SmartContractWallet   PurchasingWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
   smartContractWalletId String?
 
-  Amounts          RequestAmount[]
-  status           PurchasingRequestStatus
-  identifier       String
-  resultHash       String?
-  submitResultTime BigInt
-  unlockTime       BigInt
-  refundTime       BigInt
+  Amounts              RequestAmount[]
+  status               PurchasingRequestStatus
+  blockchainIdentifier String
+  resultHash           String?
+  submitResultTime     BigInt
+  unlockTime           BigInt
+  refundTime           BigInt
 
   utxo            String?
   txHash          String?
@@ -213,7 +213,7 @@ model PurchaseRequest {
   triggeredBy   ApiKey @relation(fields: [triggeredById], references: [id])
   triggeredById String
 
-  @@unique([networkHandlerId, identifier, sellerWalletId])
+  @@unique([networkHandlerId, blockchainIdentifier, sellerWalletId])
 }
 
 model RequestAmount {

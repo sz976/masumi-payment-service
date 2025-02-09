@@ -3,7 +3,7 @@ import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { logger } from "@/utils/logger";
 import { BlockFrostAPI } from "@blockfrost/blockfrost-js";
-import { mBool } from "@meshsdk/core";
+import { mBool, resolvePaymentKeyHash } from "@meshsdk/core";
 import { PlutusDatumSchema, Transaction } from "@emurgo/cardano-serialization-lib-nodejs";
 import { Data } from 'lucid-cardano';
 
@@ -27,7 +27,8 @@ export async function checkLatestTransactions() {
                     OR: [
                         { isSyncing: false },
                         {
-                            isSyncing: true, updatedAt: {
+                            isSyncing: true,
+                            updatedAt: {
                                 lte: new Date(Date.now() -
                                     //3 minutes
                                     1000 * 60 * 3
@@ -54,7 +55,7 @@ export async function checkLatestTransactions() {
                 data: { isSyncing: true }
             })
             return networkChecks.map((x) => { return { ...x, isSyncing: true } });
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 10000, maxWait: 10000 })
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 100000, maxWait: 10000 })
         if (networkChecks == null)
             return;
         try {
@@ -103,6 +104,9 @@ export async function checkLatestTransactions() {
 
                         const redeemers = tx.transaction.witness_set().redeemers();
 
+
+
+
                         if (redeemers == null) {
                             //payment transaction
                             if (valueInputs.length != 0) {
@@ -111,6 +115,10 @@ export async function checkLatestTransactions() {
                             }
 
                             for (const output of valueOutputs) {
+                                if (output.reference_script_hash != null) {
+                                    //no reference script allowed
+                                    continue
+                                }
                                 const outputDatum = output.inline_datum
                                 if (outputDatum == null) {
                                     //invalid transaction
@@ -126,10 +134,13 @@ export async function checkLatestTransactions() {
 
                                     const databaseEntry = await prisma.purchaseRequest.findMany({
                                         where: {
-                                            identifier: decodedNewContract.referenceId,
+                                            blockchainIdentifier: decodedNewContract.blockchainIdentifier,
                                             networkHandlerId: networkCheck.id,
                                             status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
                                         },
+                                        include: {
+                                            SmartContractWallet: true
+                                        }
 
                                     })
                                     if (databaseEntry.length == 0) {
@@ -146,6 +157,16 @@ export async function checkLatestTransactions() {
                                         }
                                         return;
                                     }
+                                    const senderDb = databaseEntry[0].SmartContractWallet?.walletVkey;
+                                    if (senderDb == null) {
+                                        logger.error("No sender set for purchase request", { purchaseRequest: databaseEntry[0] })
+                                        return;
+                                    }
+                                    const sender = tx.utxos.inputs.filter(x => resolvePaymentKeyHash(x.address) == senderDb)[0].address;
+                                    if (sender == null) {
+                                        logger.error("Sender does not match buyer", { purchaseRequest: databaseEntry[0], sender: sender, senderDb: senderDb })
+                                        return;
+                                    }
                                     await prisma.purchaseRequest.update({
                                         where: { id: databaseEntry[0].id },
                                         data: { status: $Enums.PurchasingRequestStatus.PurchaseConfirmed, txHash: tx.tx.tx_hash, utxo: tx.utxos.hash, potentialTxHash: null }
@@ -156,13 +177,15 @@ export async function checkLatestTransactions() {
 
                                     const databaseEntry = await prisma.paymentRequest.findMany({
                                         where: {
-                                            identifier: decodedNewContract.referenceId,
+                                            blockchainIdentifier: decodedNewContract.blockchainIdentifier,
                                             networkHandlerId: networkCheck.id,
                                             status: $Enums.PaymentRequestStatus.PaymentRequested,
 
                                         },
                                         include: {
-                                            Amounts: true
+                                            Amounts: true,
+                                            BuyerWallet: true,
+                                            SmartContractWallet: true
                                         }
                                     })
                                     if (databaseEntry.length == 0) {
@@ -185,17 +208,52 @@ export async function checkLatestTransactions() {
                                         }
                                         return;
                                     }
+                                    const dbEntry = databaseEntry[0];
+                                    if (decodedNewContract.buyer == dbEntry.BuyerWallet?.walletVkey) {
+                                        logger.error("Buyer does not match buyer in db", { paymentRequest: dbEntry, buyer: decodedNewContract.buyer, buyerDb: dbEntry.BuyerWallet?.walletVkey })
+                                        return;
+                                    }
+                                    if (decodedNewContract.seller == dbEntry.SmartContractWallet?.walletVkey) {
+                                        logger.error("Seller does not match seller in db", { paymentRequest: dbEntry, seller: decodedNewContract.seller, sellerDb: dbEntry.SmartContractWallet?.walletVkey })
+                                        return;
+                                    }
+                                    if (decodedNewContract.refundRequested != false) {
+                                        logger.error("Refund was requested", { paymentRequest: dbEntry, refundRequested: decodedNewContract.refundRequested })
+                                        return;
+                                    }
+                                    if (decodedNewContract.resultHash != null) {
+                                        logger.error("Result hash was set", { paymentRequest: dbEntry, resultHash: decodedNewContract.resultHash })
+                                        return;
+                                    }
+                                    if (decodedNewContract.resultTime != dbEntry.submitResultTime) {
+                                        logger.error("Result time is not the agreed upon time", { paymentRequest: dbEntry, resultTime: decodedNewContract.resultTime, resultTimeDb: dbEntry.submitResultTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.unlockTime < dbEntry.unlockTime) {
+                                        logger.error("Unlock time is before the agreed upon time", { paymentRequest: dbEntry, unlockTime: decodedNewContract.unlockTime, unlockTimeDb: dbEntry.unlockTime })
+                                        return;
+                                    }
+                                    if (decodedNewContract.refundTime != dbEntry.refundTime) {
+                                        logger.error("Refund time is not the agreed upon time", { paymentRequest: dbEntry, refundTime: decodedNewContract.refundTime, refundTimeDb: dbEntry.refundTime })
+                                        return;
+                                    }
 
                                     const valueMatches = databaseEntry[0].Amounts.every((x) => {
                                         const existingAmount = output.amount.find((y) => y.unit == x.unit)
                                         if (existingAmount == null)
                                             return false;
-                                        //convert to string to avoid large number issues
-                                        return x.amount.toString() == existingAmount.quantity
+                                        //allow for some overpayment to handle min lovelace requirements
+                                        if (x.unit == "lovelace") {
+                                            return x.amount <= BigInt(existingAmount.quantity)
+                                        }
+                                        //require exact match for non-lovelace amounts
+                                        return x.amount == BigInt(existingAmount.quantity)
                                     })
 
+                                    const paymentCountMatches = databaseEntry[0].Amounts.filter(x => x.unit != "lovelace").length == output.amount.filter(x => x.unit != "lovelace").length
                                     let newStatus: $Enums.PaymentRequestStatus = $Enums.PaymentRequestStatus.PaymentInvalid;
-                                    if (valueMatches == true) {
+
+                                    if (valueMatches == true && paymentCountMatches == true) {
                                         newStatus = $Enums.PaymentRequestStatus.PaymentConfirmed
                                     }
 
@@ -224,6 +282,7 @@ export async function checkLatestTransactions() {
                             })
                             latestIdentifier = tx.tx.tx_hash;
                         } else {
+                            //TODO validate the contract was the one from the db
 
                             if (redeemers.len() != 1) {
                                 //invalid transaction
@@ -233,8 +292,14 @@ export async function checkLatestTransactions() {
                             if (valueInputs.length != 1) {
                                 continue;
                             }
+                            const valueInput = valueInputs[0];
+                            if (valueInput.reference_script_hash != null) {
+                                logger.error("Reference script hash is not null, this should not be allowed on a contract level", { tx: tx.tx.tx_hash })
+                                //invalid transaction
+                                continue;
+                            }
 
-                            const inputDatum = valueInputs[0].inline_datum
+                            const inputDatum = valueInput.inline_datum
                             if (inputDatum == null) {
                                 //invalid transaction
                                 continue;
@@ -255,13 +320,58 @@ export async function checkLatestTransactions() {
                             const decodedOutputDatum = outputDatum != null ? Data.from(outputDatum) : null
                             const decodedNewContract = decodeV1ContractDatum(decodedOutputDatum)
 
+                            const paymentRequest = await prisma.paymentRequest.findUnique({
+                                where: {
+                                    networkHandlerId_blockchainIdentifier: { networkHandlerId: networkCheck.id, blockchainIdentifier: decodedOldContract.blockchainIdentifier }
+                                },
+                                include: {
+                                    BuyerWallet: true,
+                                    SmartContractWallet: true,
+                                    Amounts: true
+                                }
+                            })
+                            const purchasingRequest = await prisma.purchaseRequest.findUnique({
+                                where: {
+                                    networkHandlerId_blockchainIdentifier_sellerWalletId: { networkHandlerId: networkCheck.id, blockchainIdentifier: decodedOldContract.blockchainIdentifier, sellerWalletId: decodedOldContract.seller }
+                                },
+                                include: {
+                                    SmartContractWallet: true,
+                                    SellerWallet: true
+                                }
+                            })
+
+                            if (paymentRequest == null && purchasingRequest == null) {
+                                //transaction is not registered with us or duplicated (therefore invalid)
+                                continue;
+                            }
+
+                            let inputTxHashMatchPaymentRequest = paymentRequest?.txHash == valueInput.tx_hash
+                            if (paymentRequest != null && inputTxHashMatchPaymentRequest == false) {
+                                const utxoChain = await findPreviousUtxosForContract(valueInput.tx_hash, networkCheck.paymentContractAddress, blockfrost)
+                                if (utxoChain != null) {
+                                    //TODO maybe add in between tx states into the db
+                                    inputTxHashMatchPaymentRequest = true;
+                                }
+                            }
+                            let inputTxHashMatchPurchasingRequest = purchasingRequest?.txHash == valueInput.tx_hash
+                            if (purchasingRequest != null && inputTxHashMatchPurchasingRequest == false) {
+                                const utxoChain = await findPreviousUtxosForContract(valueInput.tx_hash, networkCheck.paymentContractAddress, blockfrost)
+                                if (utxoChain != null) {
+                                    //TODO maybe add in between tx states into the db
+                                    inputTxHashMatchPurchasingRequest = true;
+                                }
+                            }
+                            if (inputTxHashMatchPaymentRequest == false && inputTxHashMatchPurchasingRequest == false) {
+                                logger.error("Input tx hash does not match payment request tx hash or purchasing request tx hash. This likely is a spoofing attempt", { paymentRequest: paymentRequest, purchasingRequest: purchasingRequest, txHash: valueInput.tx_hash })
+                                continue;
+                            }
                             const redeemer = redeemers.get(0)
 
                             const redeemerVersion = JSON.parse(redeemer.data().to_json(PlutusDatumSchema.BasicConversions))[
                                 "constructor"
                             ]
 
-                            if (redeemerVersion != 0 && redeemerVersion != 3 && decodedNewContract == null) {
+                            if (redeemerVersion != 0 && redeemerVersion != 3 && redeemerVersion != 4 && decodedNewContract == null) {
                                 //this should not be possible
                                 logger.error("Possible invalid state in smart contract detected. tx_hash: " + tx.tx.tx_hash)
                                 continue
@@ -286,77 +396,20 @@ export async function checkLatestTransactions() {
                                     newStatus = $Enums.PaymentRequestStatus.CompletedConfirmed
                                     newPurchasingStatus = $Enums.PurchasingRequestStatus.Completed
                                 } else {
-                                    //TODO cleanup
-                                    newStatus = await prisma.$transaction(async (prisma) => {
-
-                                        const databaseEntry = await prisma.paymentRequest.findMany({
-                                            where: {
-                                                identifier: decodedNewContract!.referenceId,
-                                                networkHandlerId: networkCheck.id,
-                                                status: $Enums.PaymentRequestStatus.PaymentRequested,
-
-                                            },
-                                            include: {
-                                                Amounts: true
-                                            }
-                                        })
-                                        if (databaseEntry.length == 0) {
-                                            //transaction is not registered with us or duplicated (therefore invalid)
-                                            return $Enums.PaymentRequestStatus.PaymentInvalid;
+                                    //Ensure the amounts match, to prevent state change attacks
+                                    const valueMatches = paymentRequest?.Amounts.every((x) => {
+                                        const existingAmount = valueOutputs[0].amount.find((y) => y.unit == x.unit)
+                                        if (existingAmount == null)
+                                            return false;
+                                        //allow for some overpayment to handle min lovelace requirements
+                                        if (x.unit == "lovelace") {
+                                            return x.amount <= BigInt(existingAmount.quantity)
                                         }
-
-                                        if (databaseEntry.length > 1) {
-                                            //this should not be possible as uniqueness constraints are present on the database
-                                            for (const entry of databaseEntry) {
-
-                                                await prisma.paymentRequest.update({
-                                                    where: { id: entry.id },
-                                                    data: {
-                                                        errorRequiresManualReview: true,
-                                                        errorNote: "Duplicate payment transaction",
-                                                        errorType: $Enums.PaymentRequestErrorType.UNKNOWN
-                                                    }
-                                                })
-                                            }
-                                            return $Enums.PaymentRequestStatus.PaymentInvalid;
-                                        }
-
-                                        const valueMatches = databaseEntry[0].Amounts.every((x) => {
-                                            const existingAmount = valueOutputs[0].amount.find((y) => y.unit == x.unit)
-                                            if (existingAmount == null)
-                                                return false;
-                                            //convert to string to avoid large number issues
-                                            return x.amount.toString() == existingAmount.quantity
-                                        })
-
-                                        let newStatus: $Enums.PaymentRequestStatus = $Enums.PaymentRequestStatus.PaymentInvalid;
-                                        if (valueMatches == true) {
-                                            newStatus = $Enums.PaymentRequestStatus.PaymentConfirmed
-                                        }
-                                        //this is a duplicate update but should not be a problem
-                                        await prisma.paymentRequest.update({
-                                            where: { id: databaseEntry[0].id },
-                                            data: {
-                                                status: newStatus,
-                                                txHash: tx.tx.tx_hash,
-                                                utxo: tx.utxos.hash,
-                                                potentialTxHash: null,
-                                                BuyerWallet: {
-                                                    connectOrCreate: {
-                                                        where: { networkHandlerId_walletVkey: { networkHandlerId: networkCheck.id, walletVkey: decodedNewContract!.buyer } },
-                                                        create: { walletVkey: decodedNewContract!.buyer, NetworkHandler: { connect: { id: networkCheck.id } } }
-                                                    }
-                                                }
-                                            }
-                                        })
-                                        return newStatus
-                                    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 100000, maxWait: 10000 }
-                                    )
-
-
+                                        return x.amount == BigInt(existingAmount.quantity)
+                                    })
+                                    newStatus = valueMatches == true ? $Enums.PaymentRequestStatus.PaymentConfirmed : $Enums.PaymentRequestStatus.PaymentInvalid;
                                     newPurchasingStatus = $Enums.PurchasingRequestStatus.PurchaseConfirmed
                                 }
-
                             }
                             else if (redeemerVersion == 3) {
                                 //WithdrawRefund
@@ -369,45 +422,26 @@ export async function checkLatestTransactions() {
                                 newPurchasingStatus = $Enums.PurchasingRequestStatus.DisputedWithdrawn
                             }
                             else if (redeemerVersion == 5) {
-
+                                //SubmitResult
                                 newStatus = $Enums.PaymentRequestStatus.CompletedConfirmed
                                 newPurchasingStatus = $Enums.PurchasingRequestStatus.Completed
-
                             }
                             else if (redeemerVersion == 6) {
-                                //Deny refund canceled
+                                //AllowRefund
                                 newStatus = $Enums.PaymentRequestStatus.RefundRequested
-                                await prisma.$transaction(async (prisma) => {
-                                    //we dont need to do sanity checks as the tx hash is unique
-                                    const paymentRequest = await prisma.paymentRequest.findUnique({
-                                        where: { networkHandlerId_identifier: { networkHandlerId: networkCheck.id, identifier: decodedOldContract.referenceId } },
-                                    })
-
-                                    if (paymentRequest == null) {
-                                        //transaction is not registered with us or a payment transaction
-                                        return;
-                                    }
-                                    //TODO cleanup
-                                    //we force the duplicate update to handle the removing of the result hash
-                                    await prisma.paymentRequest.update({
-                                        where: { id: paymentRequest.id },
-                                        data: { status: newStatus, resultHash: null, txHash: tx.tx.tx_hash, utxo: tx.utxos.hash, potentialTxHash: null }
-                                    })
-                                }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 10000, maxWait: 10000 })
                                 newPurchasingStatus = $Enums.PurchasingRequestStatus.RefundRequestConfirmed
                             }
                             else {
                                 //invalid transaction  
-                                //TODO handle unknown redeemer 
+                                logger.error("Possible invalid state in smart contract detected. tx_hash: " + tx.tx.tx_hash)
                                 continue;
                             }
 
 
                             await Promise.allSettled([
-                                handlePaymentTransactionCardanoV1(tx.tx.tx_hash, tx.utxos.hash, newStatus, networkCheck.id, decodedOldContract.seller, decodedOldContract.referenceId),
-                                handlePurchasingTransactionCardanoV1(tx.tx.tx_hash, tx.utxos.hash, newPurchasingStatus, networkCheck.id, decodedOldContract.seller, decodedOldContract.referenceId)
+                                inputTxHashMatchPaymentRequest ? handlePaymentTransactionCardanoV1(tx.tx.tx_hash, tx.utxos.hash, newStatus, networkCheck.id, decodedOldContract.seller, decodedOldContract.blockchainIdentifier, redeemerVersion) : Promise.resolve(),
+                                inputTxHashMatchPurchasingRequest ? handlePurchasingTransactionCardanoV1(tx.tx.tx_hash, tx.utxos.hash, newPurchasingStatus, networkCheck.id, decodedOldContract.seller, decodedOldContract.blockchainIdentifier, redeemerVersion) : Promise.resolve()
                             ])
-
                         }
                         await prisma.networkHandler.update({
                             where: { id: networkCheck.id },
@@ -461,41 +495,73 @@ export async function checkLatestTransactions() {
     }
 }
 
-async function handlePaymentTransactionCardanoV1(tx_hash: string, utxo_hash: string, newStatus: $Enums.PaymentRequestStatus, networkCheckId: string, sellerVkey: string, referenceId: string) {
+async function handlePaymentTransactionCardanoV1(tx_hash: string, utxo_hash: string, newStatus: $Enums.PaymentRequestStatus, networkCheckId: string, sellerVkey: string, blockchainIdentifier: string, redeemerVersion: number,) {
     await prisma.$transaction(async (prisma) => {
         //we dont need to do sanity checks as the tx hash is unique
         const paymentRequest = await prisma.paymentRequest.findUnique({
-            where: { networkHandlerId_identifier: { networkHandlerId: networkCheckId, identifier: referenceId } },
+            where: { networkHandlerId_blockchainIdentifier: { networkHandlerId: networkCheckId, blockchainIdentifier: blockchainIdentifier } },
         })
 
         if (paymentRequest == null) {
             //transaction is not registered with us or a payment transaction
             return;
         }
+        const newTxHash = redeemerVersion == 0 || redeemerVersion == 3 || redeemerVersion == 4 ? null : tx_hash;
 
 
         await prisma.paymentRequest.update({
             where: { id: paymentRequest.id },
-            data: { status: newStatus, txHash: tx_hash, utxo: utxo_hash, potentialTxHash: null }
+            data: { status: newStatus, txHash: newTxHash, utxo: utxo_hash, potentialTxHash: null }
         })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 10000, maxWait: 10000 })
 }
 
-async function handlePurchasingTransactionCardanoV1(tx_hash: string, utxo_hash: string, newStatus: $Enums.PurchasingRequestStatus, networkCheckId: string, sellerVkey: string, referenceId: string) {
+async function findPreviousUtxosForContract(tx_hash: string, contractAddress: string, blockfrost: BlockFrostAPI, maxDepth: number = 100) {
+    const utxoChain = []
+    while (tx_hash != null && maxDepth > 0) {
+
+        //find previous utxos
+        const previousUtxos = await blockfrost.txsUtxos(tx_hash)
+        const previousInput = previousUtxos.inputs.filter(x => x.address == contractAddress)
+        if (previousInput == null) {
+            return null;
+        }
+        if (previousInput.length > 1) {
+            const found = previousInput.find(x => x.tx_hash == tx_hash)
+            if (found == null) {
+                //this can only be the initial payment.Therefore we can break here
+                return null;
+            }
+            utxoChain.push(found)
+            return utxoChain;
+        }
+        const previousInputTxHash = previousInput[0].tx_hash
+        if (tx_hash == previousInputTxHash) {
+            return utxoChain;
+        }
+        utxoChain.push(previousInputTxHash)
+        tx_hash = previousInputTxHash
+        maxDepth--;
+    }
+    throw new Error("Max depth reached");
+}
+
+async function handlePurchasingTransactionCardanoV1(tx_hash: string, utxo_hash: string, newStatus: $Enums.PurchasingRequestStatus, networkCheckId: string, sellerVkey: string, blockchainIdentifier: string, redeemerVersion: number) {
     await prisma.$transaction(async (prisma) => {
         //we dont need to do sanity checks as the tx hash is unique
         const purchasingRequest = await prisma.paymentRequest.findUnique({
-            where: { networkHandlerId_identifier: { networkHandlerId: networkCheckId, identifier: referenceId } },
+            where: { networkHandlerId_blockchainIdentifier: { networkHandlerId: networkCheckId, blockchainIdentifier: blockchainIdentifier } },
         })
 
         if (purchasingRequest == null) {
             //transaction is not registered with us as a purchasing transaction
             return;
         }
+        const newTxHash = redeemerVersion == 0 || redeemerVersion == 3 || redeemerVersion == 4 ? null : tx_hash;
 
         await prisma.purchaseRequest.update({
             where: { id: purchasingRequest.id },
-            data: { status: newStatus, txHash: tx_hash, utxo: utxo_hash, potentialTxHash: null }
+            data: { status: newStatus, txHash: newTxHash, utxo: utxo_hash, potentialTxHash: null }
         })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 10000, maxWait: 10000 })
 }
@@ -511,17 +577,17 @@ function decodeV1ContractDatum(decodedDatum: any) {
         unlock_time: POSIXTime,
         refund_time: POSIXTime,
         refund_requested: Bool,
-        refund_denied: Bool,
     */
     if (decodedDatum == null) {
         //invalid transaction
         return null;
     }
 
-    if (decodedDatum.fields?.length != 9) {
+    if (decodedDatum.fields.length != 8) {
         //invalid transaction
         return null;
     }
+
     if (typeof decodedDatum.fields[0] !== "string") {
         //invalid transaction
         return null;
@@ -536,7 +602,7 @@ function decodeV1ContractDatum(decodedDatum: any) {
         //invalid transaction
         return null;
     }
-    const referenceId = Buffer.from(decodedDatum.fields[2], "hex").toString("utf-8")
+    const blockchainIdentifier = Buffer.from(decodedDatum.fields[2], "hex").toString("utf-8")
     if (typeof decodedDatum.fields[3] !== "string") {
         //invalid transaction
         return null;
@@ -562,14 +628,9 @@ function decodeV1ContractDatum(decodedDatum: any) {
 
     const refundRequested = mBoolToBool(decodedDatum.fields[7])
 
-    const refundDenied = mBoolToBool(decodedDatum.fields[8])
 
-    if (refundRequested == null || refundDenied == null) {
-        //invalid transaction
-        return null;
-    }
 
-    return { buyer, seller, referenceId, resultHash, resultTime, unlockTime, refundTime, refundRequested, refundDenied }
+    return { buyer, seller, blockchainIdentifier, resultHash, resultTime, unlockTime, refundTime, refundRequested }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

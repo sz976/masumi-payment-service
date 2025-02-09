@@ -1,29 +1,29 @@
-import { metadataStringConvert } from "./index";
+import { metadataToString } from "./index";
 
-describe("metadataStringConvert", () => {
+describe("metadataToString", () => {
     it("should return undefined when input is undefined", () => {
-        expect(metadataStringConvert(undefined)).toBeUndefined();
+        expect(metadataToString(undefined)).toBeUndefined();
     });
 
     it("should return the same string when input is a string", () => {
         const input = "test string";
-        expect(metadataStringConvert(input)).toBe(input);
+        expect(metadataToString(input)).toBe(input);
     });
 
     it("should join array of strings", () => {
         const input = ["this is ", "a test ", "string"];
-        expect(metadataStringConvert(input)).toBe("this is a test string");
+        expect(metadataToString(input)).toBe("this is a test string");
     });
 
     it("should handle empty array", () => {
-        expect(metadataStringConvert([])).toBe("");
+        expect(metadataToString([])).toBe("");
     });
 
     it("should handle array with empty strings", () => {
-        expect(metadataStringConvert(["", "", ""])).toBe("");
+        expect(metadataToString(["", "", ""])).toBe("");
     });
 
     it("should handle array with single string", () => {
-        expect(metadataStringConvert(["single"])).toBe("single");
+        expect(metadataToString(["single"])).toBe("single");
     });
 });

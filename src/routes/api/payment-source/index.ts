@@ -2,11 +2,11 @@ import { getPaymentScriptV1 } from '@/utils/generator/contract-generator';
 import { prisma } from '@/utils/db';
 import { encrypt } from '@/utils/security/encryption';
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
-import { MeshWallet } from '@meshsdk/core';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import { $Enums } from '@prisma/client';
 import createHttpError from 'http-errors';
 import { z } from 'zod';
+import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
 
 export const paymentSourceSchemaInput = z.object({
     take: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of payment sources to return"),
@@ -121,26 +121,15 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
     handler: async ({ input }) => {
         const sellingWalletsMesh = input.SellingWallets.map(sellingWallet => {
             return {
-                wallet: new MeshWallet({
-                    networkId: input.network === "PREPROD" ? 0 : 1,
-                    key: {
-                        type: "mnemonic",
-                        words: sellingWallet.walletMnemonic.split(" ")
-                    }
-                }),
+                wallet: generateOfflineWallet(input.network, sellingWallet.walletMnemonic.split(" ")),
                 note: sellingWallet.note,
                 secret: encrypt(sellingWallet.walletMnemonic)
             };
         });
         const purchasingWalletsMesh = input.PurchasingWallets.map(purchasingWallet => {
             return {
-                wallet: new MeshWallet({
-                    networkId: input.network === "PREPROD" ? 0 : 1,
-                    key: {
-                        type: "mnemonic",
-                        words: purchasingWallet.walletMnemonic.split(" ")
-                    }
-                }), note: purchasingWallet.note,
+                wallet: generateOfflineWallet(input.network, purchasingWallet.walletMnemonic.split(" ")),
+                note: purchasingWallet.note,
                 secret: encrypt(purchasingWallet.walletMnemonic)
             };
         });
@@ -263,26 +252,14 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
         }
         const sellingWalletsMesh = input.AddSellingWallets?.map(sellingWallet => {
             return {
-                wallet: new MeshWallet({
-                    networkId: input.network === "PREPROD" ? 0 : 1,
-                    key: {
-                        type: "mnemonic",
-                        words: sellingWallet.walletMnemonic.split(" ")
-                    }
-                }),
+                wallet: generateOfflineWallet(input.network, sellingWallet.walletMnemonic.split(" ")),
                 note: sellingWallet.note,
                 secret: encrypt(sellingWallet.walletMnemonic)
             };
         });
         const purchasingWalletsMesh = input.AddPurchasingWallets?.map(purchasingWallet => {
             return {
-                wallet: new MeshWallet({
-                    networkId: input.network === "PREPROD" ? 0 : 1,
-                    key: {
-                        type: "mnemonic",
-                        words: purchasingWallet.walletMnemonic.split(" ")
-                    }
-                }), note: purchasingWallet.note,
+                wallet: generateOfflineWallet(input.network, purchasingWallet.walletMnemonic.split(" ")), note: purchasingWallet.note,
                 secret: encrypt(purchasingWallet.walletMnemonic)
             };
         });
