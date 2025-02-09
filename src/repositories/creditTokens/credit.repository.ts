@@ -2,7 +2,7 @@ import { prisma } from '@/utils/db';
 import { InsufficientFundsError } from '@/utils/errors/insufficient-funds-error';
 import { $Enums } from '@prisma/client';
 
-async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit: string }[], network: $Enums.Network, identifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: Date, refundTime: Date, unlockTime: Date) {
+async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit: string }[], network: $Enums.Network, blockchainIdentifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: number, refundTime: number, unlockTime: number) {
     return await prisma.$transaction(async (transaction) => {
         const result = await transaction.apiKey.findUnique({
             where: { id: id }, include: {
@@ -80,7 +80,7 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
                         unit: unit
                     }))
                 },
-                submitResultTime: submitResultTime.getTime(),
+                submitResultTime: submitResultTime,
                 NetworkHandler: { connect: { id: networkHandler.id } },
                 SellerWallet: {
                     connectOrCreate: {
@@ -88,10 +88,10 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
                         create: { walletVkey: sellerVkey, networkHandlerId: networkHandler.id }
                     }
                 },
-                identifier: identifier,
+                blockchainIdentifier: blockchainIdentifier,
                 status: $Enums.PurchasingRequestStatus.PurchaseRequested,
-                refundTime: refundTime.getTime(),
-                unlockTime: unlockTime.getTime(),
+                refundTime: refundTime,
+                unlockTime: unlockTime,
             },
         })
 

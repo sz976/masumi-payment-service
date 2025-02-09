@@ -132,8 +132,6 @@ const datum = {
       refundTime,
       //is converted to true
       mBool(false),
-      //is converted to false
-      mBool(false),
     ],
   },
   inline: true,

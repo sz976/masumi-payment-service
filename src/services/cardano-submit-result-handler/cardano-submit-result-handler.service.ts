@@ -138,8 +138,6 @@ export async function submitResultV1() {
                                 refundTime,
                                 //is converted to false
                                 mBool(false),
-                                //is converted to false
-                                mBool(true),
                             ],
                         } as Data,
                         inline: true,

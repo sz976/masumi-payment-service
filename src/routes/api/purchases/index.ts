@@ -14,14 +14,14 @@ import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
-    cursorIdentifierSellingWalletVkey: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifier is required"),
-    cursorIdentifier: z.string().max(250).optional().describe("Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"),
+    cursorId: z.string().optional().describe("Used to paginate through the purchases. If this is provided, cursorId is required"),
     network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchases were made to"),
 })
 
 export const queryPurchaseRequestSchemaOutput = z.object({
     purchases: z.array(z.object({
+        id: z.string(),
         createdAt: z.date(),
         updatedAt: z.date(),
         status: z.nativeEnum($Enums.PurchasingRequestStatus),
@@ -30,7 +30,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         errorType: z.nativeEnum($Enums.PurchaseRequestErrorType).nullable(),
         errorNote: z.string().nullable(),
         errorRequiresManualReview: z.boolean().nullable(),
-        identifier: z.string(),
+        blockchainIdentifier: z.string(),
         SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
         SellerWallet: z.object({ walletVkey: z.string(), note: z.string().nullable() }).nullable(),
         Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
@@ -55,7 +55,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
             if (sellerWallet == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
-            cursor = { networkHandlerId_identifier_sellerWalletId: { networkHandlerId: networkHandler.id, identifier: input.cursorIdentifier, sellerWalletId: sellerWallet.id } }
+            cursor = { id: input.cursorId }
         }
 
         const result = await prisma.purchaseRequest.findMany({
@@ -77,15 +77,15 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
 });
 
 export const createPurchaseInitSchemaInput = z.object({
-    identifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
+    blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum($Enums.Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchase will be made to"),
     amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The payment type of smart contract used"),
-    unlockTime: ez.dateIn().describe("The time after which the purchase will be unlocked"),
-    refundTime: ez.dateIn().describe("The time after which a refund will be approved"),
-    submitResultTime: ez.dateIn().describe("The time by which the result has to be submitted"),
+    unlockTime: z.number({ coerce: true }).describe("The time after which the purchase will be unlocked. In unix time (number)"),
+    refundTime: z.number({ coerce: true }).describe("The time after which a refund will be approved. In unix time (number)"),
+    submitResultTime: z.number({ coerce: true }).describe("The time by which the result has to be submitted. In unix time (number)"),
 })
 
 export const createPurchaseInitSchemaOutput = z.object({
@@ -112,25 +112,30 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         }
         //require at least 3 hours between unlock time and the submit result time
         const additionalRefundTime = 1000 * 60 * 60 * 3;
-        if (input.unlockTime > new Date(input.refundTime.getTime() + additionalRefundTime)) {
+        if (input.unlockTime > input.refundTime + additionalRefundTime) {
             throw createHttpError(400, "Refund request time must be after unlock time with at least 3 hours difference")
         }
-        if (input.submitResultTime.getTime() < Date.now()) {
+        if (input.submitResultTime < Date.now()) {
             throw createHttpError(400, "Submit result time must be in the future")
         }
         const offset = 1000 * 60 * 15;
-        if (input.submitResultTime > new Date(input.unlockTime.getTime() + offset)) {
+        if (input.submitResultTime > input.unlockTime + offset) {
             throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference")
         }
-
-        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => ({ amount: BigInt(amount.amount), unit: amount.unit })), input.network, input.identifier, input.paymentType, paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
+        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => {
+            if (amount.unit == "") {
+                return { amount: BigInt(amount.amount), unit: "lovelace" }
+            } else {
+                return { amount: BigInt(amount.amount), unit: amount.unit }
+            }
+        }), input.network, input.blockchainIdentifier, input.paymentType, paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
         return initial
     },
 });
 
 
 export const refundPurchaseSchemaInput = z.object({
-    identifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
+    blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
     network: z.nativeEnum($Enums.Network).describe("The network the Cardano wallet will be used on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract holding the purchase"),
 })
@@ -154,7 +159,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
                 AdminWallets: true,
                 PurchaseRequests: {
                     where: {
-                        identifier: input.identifier
+                        blockchainIdentifier: input.blockchainIdentifier
                     }, include: {
                         SellerWallet: true,
                         SmartContractWallet: {
@@ -252,7 +257,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
                 fields: [
                     buyerVerificationKeyHash,
                     sellerVerificationKeyHash,
-                    purchase.identifier,
+                    purchase.blockchainIdentifier,
                     resultHash,
                     submitResultTime,
                     unlockTime,

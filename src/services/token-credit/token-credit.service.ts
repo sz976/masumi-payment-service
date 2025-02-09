@@ -7,17 +7,16 @@ async function handlePurchaseCreditInit(
     id: string,
     tokenCreditCost: { amount: bigint, unit: string }[],
     network: $Enums.Network,
-    identifier: string,
+    blockchainIdentifier: string,
     paymentType: $Enums.PaymentType,
     contractAddress: string,
     sellerVkey: string,
-    submitResultTime: Date,
-    refundTime: Date,
-    unlockTime: Date,
-
+    submitResultTime: number,
+    refundTime: number,
+    unlockTime: number,
 ) {
     try {
-        return await creditTokenRepository.handlePurchaseCreditInit(id, tokenCreditCost, network, identifier, paymentType, contractAddress, sellerVkey, submitResultTime, refundTime, unlockTime)
+        return await creditTokenRepository.handlePurchaseCreditInit(id, tokenCreditCost, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, refundTime, unlockTime)
     } catch (error) {
         if (error instanceof InsufficientFundsError) {
             throw createHttpError(400, "Insufficient funds")
