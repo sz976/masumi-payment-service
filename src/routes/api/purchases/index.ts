@@ -6,7 +6,6 @@ import createHttpError from 'http-errors';
 import * as cbor from "cbor"
 import { cardanoTxHandlerService } from "@/services/cardano-tx-handler"
 import { tokenCreditService } from '@/services/token-credit';
-import { ez } from 'express-zod-api';
 import { BlockfrostProvider, mBool, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from '@meshsdk/core';
 import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';

@@ -174,7 +174,7 @@ export async function batchLatestPaymentEntriesV1() {
                         const unlockTime = paymentRequest.unlockTime
                         const refundTime = paymentRequest.refundTime
                         const correctedPaymentAmounts = paymentRequest.Amounts;
-                        const lovelaceIndex = correctedPaymentAmounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
+                        //const lovelaceIndex = correctedPaymentAmounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
                         /*if (lovelaceIndex != -1) {
                             const removedLovelace = correctedPaymentAmounts.splice(lovelaceIndex, 1);
                             if (removedLovelace[0].amount > minTransactionCalculation) {

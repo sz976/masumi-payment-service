@@ -74,7 +74,12 @@ export async function submitResultV1() {
                     walletVkey: string; walletSecretId: string; pendingTransactionId: string | null;
                     networkHandlerId: string; note: string | null;
                 }) | null;
-            } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; status: $Enums.PaymentRequestStatus; errorType: $Enums.PaymentRequestErrorType | null; networkHandlerId: string; smartContractWalletId: string | null; buyerWalletId: string | null; identifier: string; resultHash: string | null; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null; })[] = []
+            } & {
+                id: string; createdAt: Date; updatedAt: Date;
+                lastCheckedAt: Date | null; status: $Enums.PaymentRequestStatus;
+                errorType: $Enums.PaymentRequestErrorType | null; networkHandlerId:
+                string; smartContractWalletId: string | null; buyerWalletId: string | null; blockchainIdentifier: string; resultHash: string | null; submitResultTime: bigint; unlockTime: bigint; refundTime: bigint; utxo: string | null; txHash: string | null; potentialTxHash: string | null; errorRetries: number; errorNote: string | null; errorRequiresManualReview: boolean | null;
+            })[] = []
             for (const request of paymentRequests) {
                 if (request.smartContractWalletId == null)
                     continue;
@@ -131,7 +136,7 @@ export async function submitResultV1() {
                             fields: [
                                 buyerVerificationKeyHash,
                                 sellerVerificationKeyHash,
-                                request.identifier,
+                                request.blockchainIdentifier,
                                 request.resultHash,
                                 submitResultTime,
                                 unlockTime,
