@@ -21,7 +21,7 @@ export function decodeV1ContractDatum(decodedDatum: any) {
         return null;
     }
     let fields = decodedDatum.fields
-    let values = decodedDatum.value
+    const values = decodedDatum.value
 
     if (fields.length != 10 && values.length != 10) {
         //invalid transaction

@@ -3,7 +3,7 @@ import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { logger } from "@/utils/logger";
 import { BlockFrostAPI } from "@blockfrost/blockfrost-js";
-import { mBool, resolvePaymentKeyHash } from "@meshsdk/core";
+import { resolvePaymentKeyHash } from "@meshsdk/core";
 import { PlutusDatumSchema, Transaction } from "@emurgo/cardano-serialization-lib-nodejs";
 import { Data } from 'lucid-cardano';
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";

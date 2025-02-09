@@ -299,8 +299,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "WalletSecret": {
-                                                "createdAt": "2025-02-05T14:11:44.524Z",
-                                                "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                "createdAt": "2025-02-09T02:42:19.647Z",
+                                                "updatedAt": "2025-02-09T02:42:19.647Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -959,12 +959,11 @@
                     {
                         "schema": {
                             "type": "string",
-                            "maxLength": 250,
-                            "description": "Used to paginate through the payments"
+                            "description": "Used to paginate through the payments. If this is provided, cursorId is required"
                         },
                         "required": false,
-                        "description": "Used to paginate through the payments",
-                        "name": "cursorIdentifier",
+                        "description": "Used to paginate through the payments. If this is provided, cursorId is required",
+                        "name": "cursorId",
                         "in": "query"
                     },
                     {
@@ -1012,6 +1011,9 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
                                                             "createdAt": {
                                                                 "type": "string"
                                                             },
@@ -1059,7 +1061,7 @@
                                                                 "type": "boolean",
                                                                 "nullable": true
                                                             },
-                                                            "identifier": {
+                                                            "blockchainIdentifier": {
                                                                 "type": "string"
                                                             },
                                                             "SmartContractWallet": {
@@ -1163,6 +1165,7 @@
                                                             }
                                                         },
                                                         "required": [
+                                                            "id",
                                                             "createdAt",
                                                             "updatedAt",
                                                             "status",
@@ -1171,7 +1174,7 @@
                                                             "errorType",
                                                             "errorNote",
                                                             "errorRequiresManualReview",
-                                                            "identifier",
+                                                            "blockchainIdentifier",
                                                             "SmartContractWallet",
                                                             "BuyerWallet",
                                                             "Amounts",
@@ -1194,18 +1197,19 @@
                                         "data": {
                                             "payments": [
                                                 {
-                                                    "createdAt": "2025-02-05T14:11:44.524Z",
-                                                    "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                    "createdAt": "2025-02-09T02:42:19.647Z",
+                                                    "updatedAt": "2025-02-09T02:42:19.647Z",
                                                     "status": "PaymentRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
                                                     "errorType": "NETWORK_ERROR",
                                                     "errorNote": "error_note",
                                                     "errorRequiresManualReview": false,
-                                                    "identifier": "identifier",
+                                                    "id": "unique_cuid_v2_auto_generated",
                                                     "BuyerWallet": {
                                                         "walletVkey": "wallet_vkey"
                                                     },
+                                                    "blockchainIdentifier": "blockchain_identifier",
                                                     "SmartContractWallet": {
                                                         "id": "unique_cuid_v2_auto_generated",
                                                         "walletAddress": "wallet_address",
@@ -1215,8 +1219,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-02-05T14:11:44.524Z",
-                                                            "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                                             "amount": 1000000,
                                                             "unit": "unit"
                                                         }
@@ -1328,7 +1332,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-06T02:11:43.748Z",
+                                        "default": "2025-02-09T14:42:19.551Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1383,7 +1387,7 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-02-06T02:11:44.524Z"
+                                    "submitResultTime": "2025-02-09T14:42:19.647Z"
                                 }
                             }
                         }
@@ -1400,6 +1404,9 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
                                                 "createdAt": {
                                                     "type": "string"
                                                 },
@@ -1447,8 +1454,17 @@
                                                     "type": "boolean",
                                                     "nullable": true
                                                 },
-                                                "identifier": {
+                                                "blockchainIdentifier": {
                                                     "type": "string"
+                                                },
+                                                "unlockTime": {
+                                                    "type": "number"
+                                                },
+                                                "refundTime": {
+                                                    "type": "number"
+                                                },
+                                                "submitResultTime": {
+                                                    "type": "number"
                                                 },
                                                 "Amounts": {
                                                     "type": "array",
@@ -1550,6 +1566,7 @@
                                                 }
                                             },
                                             "required": [
+                                                "id",
                                                 "createdAt",
                                                 "updatedAt",
                                                 "status",
@@ -1558,7 +1575,10 @@
                                                 "errorType",
                                                 "errorNote",
                                                 "errorRequiresManualReview",
-                                                "identifier",
+                                                "blockchainIdentifier",
+                                                "unlockTime",
+                                                "refundTime",
+                                                "submitResultTime",
                                                 "Amounts",
                                                 "SmartContractWallet",
                                                 "BuyerWallet",
@@ -1576,9 +1596,13 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "identifier": "agent_identifier_unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-05T14:11:44.524Z",
-                                            "updatedAt": "2025-02-05T14:11:44.524Z",
+                                            "id": "cuid_v2_auto_generated",
+                                            "blockchainIdentifier": "blockchain_identifier",
+                                            "refundTime": 1739198539647,
+                                            "unlockTime": 1739155339647,
+                                            "submitResultTime": 1739112139647,
+                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                             "status": "PaymentRequested",
                                             "txHash": "tx_hash",
                                             "utxo": "utxo",
@@ -1588,8 +1612,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-05T14:11:44.524Z",
-                                                    "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                    "createdAt": "2025-02-09T02:42:19.647Z",
+                                                    "updatedAt": "2025-02-09T02:42:19.647Z",
                                                     "amount": 1000000,
                                                     "unit": "lovelace"
                                                 }
@@ -1738,8 +1762,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-05T14:11:44.524Z",
-                                            "updatedAt": "2025-02-05T14:11:44.524Z",
+                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                             "status": "PaymentRequested"
                                         }
                                     }
@@ -1788,23 +1812,11 @@
                     {
                         "schema": {
                             "type": "string",
-                            "maxLength": 250,
-                            "description": "Used to paginate through the purchases. If this is provided, cursorIdentifier is required"
+                            "description": "Used to paginate through the purchases. If this is provided, cursorId is required"
                         },
                         "required": false,
-                        "description": "Used to paginate through the purchases. If this is provided, cursorIdentifier is required",
-                        "name": "cursorIdentifierSellingWalletVkey",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required"
-                        },
-                        "required": false,
-                        "description": "Used to paginate through the purchases. If this is provided, cursorIdentifierSellingWalletVkey is required",
-                        "name": "cursorIdentifier",
+                        "description": "Used to paginate through the purchases. If this is provided, cursorId is required",
+                        "name": "cursorId",
                         "in": "query"
                     },
                     {
@@ -1852,6 +1864,9 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
                                                             "createdAt": {
                                                                 "type": "string"
                                                             },
@@ -1899,7 +1914,7 @@
                                                                 "type": "boolean",
                                                                 "nullable": true
                                                             },
-                                                            "identifier": {
+                                                            "blockchainIdentifier": {
                                                                 "type": "string"
                                                             },
                                                             "SmartContractWallet": {
@@ -2009,6 +2024,7 @@
                                                             }
                                                         },
                                                         "required": [
+                                                            "id",
                                                             "createdAt",
                                                             "updatedAt",
                                                             "status",
@@ -2017,7 +2033,7 @@
                                                             "errorType",
                                                             "errorNote",
                                                             "errorRequiresManualReview",
-                                                            "identifier",
+                                                            "blockchainIdentifier",
                                                             "SmartContractWallet",
                                                             "SellerWallet",
                                                             "Amounts",
@@ -2040,15 +2056,16 @@
                                         "data": {
                                             "purchases": [
                                                 {
-                                                    "createdAt": "2025-02-05T14:11:44.524Z",
-                                                    "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                    "id": "unique_cuid_v2_auto_generated",
+                                                    "blockchainIdentifier": "blockchain_identifier",
+                                                    "createdAt": "2025-02-09T02:42:19.647Z",
+                                                    "updatedAt": "2025-02-09T02:42:19.647Z",
                                                     "status": "PurchaseRequested",
                                                     "txHash": "tx_hash",
                                                     "utxo": "utxo",
                                                     "errorType": "NETWORK_ERROR",
                                                     "errorNote": "error_note",
                                                     "errorRequiresManualReview": false,
-                                                    "identifier": "identifier",
                                                     "SmartContractWallet": {
                                                         "id": "unique_cuid_v2_auto_generated",
                                                         "walletAddress": "wallet_address",
@@ -2058,8 +2075,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "unique_cuid_v2_auto_generated",
-                                                            "createdAt": "2025-02-05T14:11:44.524Z",
-                                                            "updatedAt": "2025-02-05T14:11:44.524Z",
+                                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                                             "amount": 1000000,
                                                             "unit": "lovelace"
                                                         }
@@ -2111,7 +2128,10 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "identifier": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "blockchainIdentifier": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The identifier of the purchase. Is provided by the seller"
@@ -2165,59 +2185,24 @@
                                         "description": "The payment type of smart contract used"
                                     },
                                     "unlockTime": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "format": "date"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            }
-                                        ],
-                                        "description": "The time after which the purchase will be unlocked"
+                                        "type": "number",
+                                        "nullable": true,
+                                        "description": "The time after which the purchase will be unlocked. In unix time (number)"
                                     },
                                     "refundTime": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "format": "date"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            }
-                                        ],
-                                        "description": "The time after which a refund will be approved"
+                                        "type": "number",
+                                        "nullable": true,
+                                        "description": "The time after which a refund will be approved. In unix time (number)"
                                     },
                                     "submitResultTime": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "format": "date"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            }
-                                        ],
-                                        "description": "The time by which the result has to be submitted"
+                                        "type": "number",
+                                        "nullable": true,
+                                        "description": "The time by which the result has to be submitted. In unix time (number)"
                                     }
                                 },
                                 "required": [
-                                    "identifier",
+                                    "id",
+                                    "blockchainIdentifier",
                                     "network",
                                     "sellerVkey",
                                     "amounts",
@@ -2227,7 +2212,8 @@
                                     "submitResultTime"
                                 ],
                                 "example": {
-                                    "identifier": "identifier",
+                                    "id": "unique_cuid_v2_auto_generated",
+                                    "blockchainIdentifier": "blockchain_identifier",
                                     "network": "PREPROD",
                                     "sellerVkey": "seller_vkey",
                                     "paymentContractAddress": "address",
@@ -2238,9 +2224,9 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-02-06T02:11:44.524Z",
-                                    "unlockTime": "2025-02-06T14:11:44.524Z",
-                                    "refundTime": "2025-02-07T02:11:44.524Z"
+                                    "submitResultTime": 1739112139647,
+                                    "unlockTime": 1739155339647,
+                                    "refundTime": 1739198539647
                                 }
                             }
                         }
@@ -2302,8 +2288,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-05T14:11:44.524Z",
-                                            "updatedAt": "2025-02-05T14:11:44.524Z",
+                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                             "status": "PurchaseRequested"
                                         }
                                     }
@@ -2340,7 +2326,10 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "identifier": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "blockchainIdentifier": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The identifier of the purchase to be refunded"
@@ -2360,13 +2349,15 @@
                                     }
                                 },
                                 "required": [
-                                    "identifier",
+                                    "id",
+                                    "blockchainIdentifier",
                                     "network"
                                 ],
                                 "example": {
+                                    "id": "unique_cuid_v2_auto_generated",
                                     "network": "PREPROD",
                                     "paymentContractAddress": "address",
-                                    "identifier": "identifier"
+                                    "blockchainIdentifier": "blockchain_identifier"
                                 }
                             }
                         }
@@ -2729,6 +2720,11 @@
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The payment key of a specific wallet used for the registration"
+                                    },
+                                    "example_output": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "Link to a example output of the agent"
                                     },
                                     "tags": {
                                         "type": "array",
@@ -3254,13 +3250,13 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-05T14:11:44.525Z",
-                                                    "updatedAt": "2025-02-05T14:11:44.525Z",
+                                                    "createdAt": "2025-02-09T02:42:19.647Z",
+                                                    "updatedAt": "2025-02-09T02:42:19.647Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-02-05T14:11:44.525Z",
+                                                    "lastCheckedAt": "2025-02-09T02:42:19.647Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3558,15 +3554,15 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "unique_cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-05T14:11:44.525Z",
-                                                    "updatedAt": "2025-02-05T14:11:44.525Z",
+                                                    "createdAt": "2025-02-09T02:42:19.647Z",
+                                                    "updatedAt": "2025-02-09T02:42:19.647Z",
                                                     "network": "PREPROD",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
                                                     "rpcProviderApiKey": "rpc_provider_api_key",
                                                     "isSyncing": false,
                                                     "lastPageChecked": 1,
-                                                    "lastCheckedAt": "2025-02-05T14:11:44.525Z",
+                                                    "lastCheckedAt": "2025-02-09T02:42:19.647Z",
                                                     "lastIdentifierChecked": null,
                                                     "AdminWallets": [
                                                         {
@@ -3889,15 +3885,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-05T14:11:44.525Z",
-                                            "updatedAt": "2025-02-05T14:11:44.525Z",
+                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "isSyncing": false,
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-02-05T14:11:44.525Z",
+                                            "lastCheckedAt": "2025-02-09T02:42:19.647Z",
                                             "lastIdentifierChecked": null
                                         }
                                     }
@@ -4164,13 +4160,13 @@
                                         "data": {
                                             "paymentContractAddress": "address_of_the_smart_contract",
                                             "id": "unique_cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-05T14:11:44.525Z",
-                                            "updatedAt": "2025-02-05T14:11:44.525Z",
+                                            "createdAt": "2025-02-09T02:42:19.647Z",
+                                            "updatedAt": "2025-02-09T02:42:19.647Z",
                                             "network": "PREPROD",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "rpcProviderApiKey": "rpc_provider_api_key",
                                             "lastPageChecked": 1,
-                                            "lastCheckedAt": "2025-02-05T14:11:44.525Z",
+                                            "lastCheckedAt": "2025-02-09T02:42:19.647Z",
                                             "lastIdentifierChecked": null,
                                             "isSyncing": false
                                         }
@@ -4508,8 +4504,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-02-05T14:11:44.525Z",
-                                                "updatedAt": "2025-02-05T14:11:44.525Z"
+                                                "createdAt": "2025-02-09T02:42:19.647Z",
+                                                "updatedAt": "2025-02-09T02:42:19.647Z"
                                             }
                                         ]
                                     }
