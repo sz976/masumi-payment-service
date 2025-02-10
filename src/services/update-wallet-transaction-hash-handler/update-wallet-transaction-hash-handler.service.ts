@@ -66,6 +66,11 @@ export async function updateWalletTransactionHash() {
         })
         await Promise.allSettled(timedOutLockedPurchaseWallets.map(async (wallet) => {
             try {
+                await prisma.purchasingWallet.update({
+                    where: { id: wallet.id },
+                    data: { PendingTransaction: { delete: true } }
+                });
+
                 const txHash = wallet.PendingTransaction?.hash;
                 if (txHash) {
                     await prisma.purchaseRequest.updateMany({
@@ -75,10 +80,7 @@ export async function updateWalletTransactionHash() {
                         data: { errorRequiresManualReview: true, errorNote: "Transaction timeout", errorType: $Enums.PaymentRequestErrorType.UNKNOWN }
                     })
                 }
-                await prisma.purchasingWallet.update({
-                    where: { id: wallet.id },
-                    data: { PendingTransaction: { delete: true } }
-                });
+
             } catch (error) {
                 logger.error(`Error updating timed out wallet: ${error}`);
             }
@@ -139,6 +141,11 @@ export async function updateWalletTransactionHash() {
         })
         await Promise.allSettled(timedOutLockedSellingWallets.map(async (wallet) => {
             try {
+                await prisma.sellingWallet.update({
+                    where: { id: wallet.id },
+                    data: { PendingTransaction: { delete: true } }
+                });
+
                 const txHash = wallet.PendingTransaction?.hash;
                 if (txHash) {
                     await prisma.paymentRequest.updateMany({
@@ -147,10 +154,7 @@ export async function updateWalletTransactionHash() {
                         }
                     })
                 }
-                await prisma.sellingWallet.update({
-                    where: { id: wallet.id },
-                    data: { PendingTransaction: { delete: true } }
-                });
+
             } catch (error) {
                 logger.error(`Error updating timed out selling wallet: ${error}`);
             }

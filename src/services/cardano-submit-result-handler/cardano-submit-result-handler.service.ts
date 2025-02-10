@@ -8,6 +8,7 @@ import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
+import { lockAndQueryPayments } from "@/utils/db/lock-and-query-payments";
 
 const updateMutex = new Sema(1);
 
@@ -19,7 +20,19 @@ export async function submitResultV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
+        const networkChecksWithWalletLocked = await lockAndQueryPayments(
+            {
+                paymentStatus: { in: [$Enums.PaymentRequestStatus.PaymentConfirmed, $Enums.PaymentRequestStatus.RefundRequested] },
+                errorType: null,
+                submitResultTime: {
+                    lte: Date.now() - 1000 * 60 * 1 //remove 1 minute for block time
+                },
+                resultHash: { not: null },
+                smartContractWalletPendingTransaction: null
+            }
+        )
+
+        prisma.$transaction(async (prisma) => {
             const networkChecks = await prisma.networkHandler.findMany({
                 where: {
                     paymentType: "WEB3_CARDANO_V1",
@@ -29,8 +42,8 @@ export async function submitResultV1() {
                             //the smart contract requires the result hash to be provided before the result time
                             submitResultTime: {
                                 lte: Date.now() - 1000 * 60 * 1 //remove 1 minute for block time
-                            }
-                            , status: { in: ["PaymentConfirmed", "RefundRequested"] },
+                            },
+                            status: { in: ["PaymentConfirmed", "RefundRequested"] },
                             resultHash: { not: null },
                             errorType: null,
                             SmartContractWallet: { PendingTransaction: null }
