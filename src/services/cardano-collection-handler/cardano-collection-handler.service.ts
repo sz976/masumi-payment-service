@@ -8,6 +8,7 @@ import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract
 import { convertNetwork } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
+import { lockAndQueryPayments } from "@/utils/db/lock-and-query-payments";
 
 const updateMutex = new Sema(1);
 
@@ -21,39 +22,16 @@ export async function collectOutstandingPaymentsV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
-            const networkChecks = await prisma.networkHandler.findMany({
-                where: {
-                    paymentType: "WEB3_CARDANO_V1",
-                }, include: {
-                    PaymentRequests: {
-                        where: {
-                            unlockTime: {
-                                gte: Date.now() + 1000 * 60 * 15 //add 15 minutes for block time
-
-                            }
-                            , status: "CompletedConfirmed", resultHash: { not: null },
-                            errorType: null,
-                            SmartContractWallet: {
-                                PendingTransaction: null
-                            }
-                        },
-                        include: { BuyerWallet: true, SmartContractWallet: { where: { PendingTransaction: null }, include: { WalletSecret: true } } }
-                    },
-                    AdminWallets: true,
-                    FeeReceiverNetworkWallet: true,
-                    CollectionWallet: true
-                }
-            })
-            const sellingWalletIds = networkChecks.map(x => x.PaymentRequests).flat().map(x => x.SmartContractWallet?.id);
-            for (const sellingWalletId of sellingWalletIds) {
-                await prisma.sellingWallet.update({
-                    where: { id: sellingWalletId },
-                    data: { PendingTransaction: { create: { hash: null } } }
-                })
+        const networkChecksWithWalletLocked = await lockAndQueryPayments(
+            {
+                paymentStatus: $Enums.PaymentRequestStatus.CompletedConfirmed,
+                errorType: null,
+                resultHash: { not: null },
+                smartContractWalletPendingTransaction: null
             }
-            return networkChecks;
-        }, { isolationLevel: "Serializable" });
+        )
+
+
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
 
             if (networkCheck.PaymentRequests.length == 0 || networkCheck.CollectionWallet == null)

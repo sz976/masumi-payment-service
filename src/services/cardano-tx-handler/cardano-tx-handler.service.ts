@@ -3,7 +3,6 @@ import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { logger } from "@/utils/logger";
 import { BlockFrostAPI } from "@blockfrost/blockfrost-js";
-import { resolvePaymentKeyHash } from "@meshsdk/core";
 import { PlutusDatumSchema, Transaction } from "@emurgo/cardano-serialization-lib-nodejs";
 import { Data } from 'lucid-cardano';
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
@@ -141,7 +140,8 @@ export async function checkLatestTransactions() {
                                             status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
                                         },
                                         include: {
-                                            SmartContractWallet: true
+                                            SmartContractWallet: true,
+                                            SellerWallet: true
                                         }
 
                                     })
@@ -159,26 +159,25 @@ export async function checkLatestTransactions() {
                                         }
                                         return;
                                     }
-                                    const senderDb = databaseEntry[0].SmartContractWallet?.walletVkey;
-                                    if (senderDb == null) {
-                                        logger.error("No sender set for purchase request", { purchaseRequest: databaseEntry[0] })
-                                        return;
-                                    }
-                                    const sender = tx.utxos.inputs.filter(x => resolvePaymentKeyHash(x.address) == senderDb)[0].address;
-                                    if (sender == null) {
-                                        logger.error("Sender does not match buyer", { purchaseRequest: databaseEntry[0], sender: sender, senderDb: senderDb })
-                                        return;
-                                    }
                                     const dbEntry = databaseEntry[0];
-                                    if (decodedNewContract.seller != dbEntry.SmartContractWallet?.walletVkey) {
-                                        logger.error("Seller does not match seller in db", { paymentRequest: dbEntry, seller: decodedNewContract.seller, sellerDb: dbEntry.SmartContractWallet?.walletVkey })
+                                    if (dbEntry.SellerWallet?.walletVkey == undefined) {
+                                        logger.error("No seller set for purchase request in db", { purchaseRequest: databaseEntry[0] })
+                                        return;
+                                    }
+                                    if (decodedNewContract.seller != dbEntry.SellerWallet.walletVkey) {
+                                        logger.error("Seller does not match seller in db", { purchaseRequest: databaseEntry[0], sender: decodedNewContract.seller, senderDb: dbEntry.SmartContractWallet?.walletVkey })
+                                        return;
+                                    }
+
+                                    if (decodedNewContract.buyer != dbEntry.SmartContractWallet?.walletVkey) {
+                                        logger.error("Buyer does not match buyer in db", { paymentRequest: dbEntry, buyer: decodedNewContract.buyer, buyerDb: dbEntry.SmartContractWallet?.walletVkey })
                                         return;
                                     }
                                     if (decodedNewContract.refundRequested != false) {
                                         logger.error("Refund was requested", { paymentRequest: dbEntry, refundRequested: decodedNewContract.refundRequested })
                                         return;
                                     }
-                                    if (decodedNewContract.resultHash != null) {
+                                    if (decodedNewContract.resultHash != "") {
                                         logger.error("Result hash was set", { paymentRequest: dbEntry, resultHash: decodedNewContract.resultHash })
                                         return;
                                     }
@@ -244,11 +243,15 @@ export async function checkLatestTransactions() {
                                         return;
                                     }
                                     const dbEntry = databaseEntry[0];
-                                    if (decodedNewContract.buyer == dbEntry.BuyerWallet?.walletVkey) {
-                                        logger.error("Buyer does not match buyer in db", { paymentRequest: dbEntry, buyer: decodedNewContract.buyer, buyerDb: dbEntry.BuyerWallet?.walletVkey })
+                                    if (dbEntry.BuyerWallet != null) {
+                                        logger.error("Buyer is already set for payment request in db", { paymentRequest: dbEntry })
                                         return;
                                     }
-                                    if (decodedNewContract.seller == dbEntry.SmartContractWallet?.walletVkey) {
+                                    if (dbEntry.SmartContractWallet?.walletVkey == undefined) {
+                                        logger.error("No smart contract wallet set for payment request in db", { paymentRequest: dbEntry })
+                                        return;
+                                    }
+                                    if (decodedNewContract.seller != dbEntry.SmartContractWallet.walletVkey) {
                                         logger.error("Seller does not match seller in db", { paymentRequest: dbEntry, seller: decodedNewContract.seller, sellerDb: dbEntry.SmartContractWallet?.walletVkey })
                                         return;
                                     }
@@ -256,7 +259,7 @@ export async function checkLatestTransactions() {
                                         logger.error("Refund was requested", { paymentRequest: dbEntry, refundRequested: decodedNewContract.refundRequested })
                                         return;
                                     }
-                                    if (decodedNewContract.resultHash != null) {
+                                    if (decodedNewContract.resultHash != "") {
                                         logger.error("Result hash was set", { paymentRequest: dbEntry, resultHash: decodedNewContract.resultHash })
                                         return;
                                     }
@@ -264,7 +267,7 @@ export async function checkLatestTransactions() {
                                         logger.error("Result time is not the agreed upon time", { paymentRequest: dbEntry, resultTime: decodedNewContract.resultTime, resultTimeDb: dbEntry.submitResultTime })
                                         return;
                                     }
-                                    if (decodedNewContract.unlockTime < dbEntry.unlockTime) {
+                                    if (decodedNewContract.unlockTime != dbEntry.unlockTime) {
                                         logger.error("Unlock time is before the agreed upon time", { paymentRequest: dbEntry, unlockTime: decodedNewContract.unlockTime, unlockTimeDb: dbEntry.unlockTime })
                                         return;
                                     }

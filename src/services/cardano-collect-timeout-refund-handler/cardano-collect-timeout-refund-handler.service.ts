@@ -8,6 +8,7 @@ import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract
 import { convertNetwork } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
+import { lockAndQueryPurchases } from "@/utils/db/lock-and-query-purchases";
 
 const updateMutex = new Sema(1);
 
@@ -18,46 +19,15 @@ export async function collectTimeoutRefundsV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
-            const networkChecks = await prisma.networkHandler.findMany({
-                where: {
-                    paymentType: "WEB3_CARDANO_V1",
-                }, include: {
-                    PurchaseRequests: {
-                        where: {
-                            submitResultTime: {
-                                lte: Date.now() + 1000 * 60 * 25 //add 25 minutes for block time
-                            }, status: "PurchaseConfirmed", resultHash: null,
-                            errorType: null,
-                            SmartContractWallet: { PendingTransaction: null }
-                        },
-                        include: {
-                            SmartContractWallet: { include: { WalletSecret: true } }
-                        }
-                    },
-                    AdminWallets: true,
-                    FeeReceiverNetworkWallet: true,
-                    CollectionWallet: true
-                }
-            })
-            const purchaserWalletIds: string[] = []
-            for (const networkCheck of networkChecks) {
-                for (const purchaseRequest of networkCheck.PurchaseRequests) {
-                    if (purchaseRequest.SmartContractWallet?.id) {
-                        purchaserWalletIds.push(purchaseRequest.SmartContractWallet?.id)
-                    } else {
-                        logger.warn("No smart contract wallet found for purchase request", { purchaseRequest: purchaseRequest })
-                    }
-                }
+        const networkChecksWithWalletLocked = await lockAndQueryPurchases(
+            {
+                purchasingStatus: $Enums.PurchasingRequestStatus.RefundInitiated,
+                smartContractWalletPendingTransaction: null,
+                resultHash: null,
+                submitResultTime: { lte: Date.now() + 1000 * 60 * 25 }, //add 25 minutes for block time
+                errorType: null
             }
-            for (const purchaserWalletId of purchaserWalletIds) {
-                await prisma.purchasingWallet.update({
-                    where: { id: purchaserWalletId },
-                    data: { PendingTransaction: { create: { hash: null } } }
-                })
-            }
-            return networkChecks;
-        }, { isolationLevel: "Serializable" });
+        )
 
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
 

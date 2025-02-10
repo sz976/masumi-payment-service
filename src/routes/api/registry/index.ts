@@ -10,7 +10,7 @@ import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
 import { metadataToString, stringToMetadata } from '@/utils/converter/metadata-string-convert';
 import { DEFAULTS } from '@/utils/config';
-import { customRetryErrorResolver, executeWithRetry, errorToString, statusCodeFilterRange } from 'advanced-retry';
+import { customErrorResolver, advancedRetry, errorToString, statusCodeErrorFilterRange } from 'advanced-retry';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 
 const metadataSchema = z.object({
@@ -225,7 +225,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             sellingWallet = networkCheckSupported.SellingWallets[randomIndex]
         }
 
-        const result = await executeWithRetry({
+        const result = await advancedRetry({
             operation: async () => {
 
                 const { wallet, utxos, address } = await generateWalletExtended(input.network, networkCheckSupported.rpcProviderApiKey, sellingWallet.WalletSecret.secret!)
@@ -358,7 +358,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             },
             throwOnUnrecoveredError: true,
             errorResolvers: [
-                customRetryErrorResolver({
+                customErrorResolver({
                     configuration: {
                         attempts: 3,
                     },
@@ -377,7 +377,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                         }
                     },
                     canHandleError: (error, attempt, context) => {
-                        return statusCodeFilterRange(0, 599).canHandle(error, attempt, context) == false
+                        return statusCodeErrorFilterRange(0, 599).canHandleError(error, attempt, context) == false
                     }
                 })
             ]

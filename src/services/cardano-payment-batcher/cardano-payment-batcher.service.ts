@@ -4,7 +4,8 @@ import { prisma } from '@/utils/db';
 import { MeshWallet, Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
-import { delayedRetryErrorResolver, executeWithRetry } from "advanced-retry";
+import { delayErrorResolver, advancedRetry } from "advanced-retry";
+import { lockAndQueryPurchases } from "@/utils/db/lock-and-query-purchases";
 
 
 const updateMutex = new Sema(1);
@@ -22,48 +23,12 @@ export async function batchLatestPaymentEntriesV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
-            const networkChecks = await prisma.networkHandler.findMany({
-                where: {
-                    paymentType: "WEB3_CARDANO_V1",
-                    PurchasingWallets: { some: { PendingTransaction: null } }
-                }, include: {
-                    PurchaseRequests: {
-                        where: { status: $Enums.PurchasingRequestStatus.PurchaseRequested, errorType: null, },
-                        include: {
-                            Amounts: {
-                                select: {
-                                    amount: true, unit: true
-                                }
-                            },
-                            SellerWallet: {
-                                select: {
-                                    walletVkey: true
-                                }
-                            }
-                        }
-                    },
-                    PurchasingWallets: { include: { WalletSecret: true } }
-                }
-            })
-            const purchasingWalletIds: string[] = []
-            for (const networkCheck of networkChecks) {
-                for (const purchasingWallet of networkCheck.PurchasingWallets) {
-                    if (purchasingWallet.id) {
-                        purchasingWalletIds.push(purchasingWallet.id)
-                    } else {
-                        logger.warn("No purchasing wallet found for purchase request", { purchasingWallet: purchasingWallet })
-                    }
-                }
+        const networkChecksWithWalletLocked = await lockAndQueryPurchases(
+            {
+                purchasingStatus: $Enums.PurchasingRequestStatus.PurchaseRequested,
+                errorType: null
             }
-            for (const purchasingWalletId of purchasingWalletIds) {
-                await prisma.purchasingWallet.update({
-                    where: { id: purchasingWalletId },
-                    data: { PendingTransaction: { create: { hash: null } } }
-                })
-            }
-            return networkChecks;
-        }, { isolationLevel: "Serializable" });
+        )
 
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
             const paymentRequests = networkCheck.PurchaseRequests;
@@ -115,10 +80,10 @@ export async function batchLatestPaymentEntriesV1() {
                     //set min ada required;
                     const lovelaceRequired = paymentRequest.Amounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
                     if (lovelaceRequired == -1) {
-                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation })
+                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation, id: "", createdAt: new Date(), updatedAt: new Date(), paymentRequestId: null, purchaseRequestId: null })
                     } else {
                         const result = paymentRequest.Amounts.splice(lovelaceRequired, 1);
-                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation > result[0].amount ? minTransactionCalculation : result[0].amount })
+                        paymentRequest.Amounts.push({ unit: "lovelace", amount: minTransactionCalculation > result[0].amount ? minTransactionCalculation : result[0].amount, id: "", createdAt: new Date(), updatedAt: new Date(), paymentRequestId: null, purchaseRequestId: null })
                     }
                     let isFulfilled = true;
                     for (const paymentAmount of paymentRequest.Amounts) {
@@ -215,7 +180,7 @@ export async function batchLatestPaymentEntriesV1() {
                     //submit the transaction to the blockchain
                     const txHash = await wallet.submitTx(signedTx);
 
-                    await executeWithRetry({
+                    await advancedRetry({
                         operation: async () => {
                             //update purchase requests
                             const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
@@ -227,7 +192,7 @@ export async function batchLatestPaymentEntriesV1() {
                                 throw new Error("Error updating payment status " + failedPurchaseRequests);
                             }
                         },
-                        errorResolvers: [delayedRetryErrorResolver({
+                        errorResolvers: [delayErrorResolver({
                             configuration: {
                                 maxRetries: 3,
                                 backoffMultiplier: 2,

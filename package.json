@@ -32,7 +32,7 @@
         "@meshsdk/core-cst": "^1.8.14",
         "@paralleldrive/cuid2": "^2.2.2",
         "@prisma/client": "^6.3.1",
-        "advanced-retry": "^1.2.0",
+        "advanced-retry": "^1.2.1",
         "async-sema": "^3.1.1",
         "cbor": "^10.0.3",
         "dotenv": "^16.4.7",
