@@ -636,7 +636,6 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
-                id: "unique_cuid_v2_auto_generated",
                 blockchainIdentifier: "blockchain_identifier",
                 network: $Enums.Network.PREPROD,
                 sellerVkey: "seller_vkey",

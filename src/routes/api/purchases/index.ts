@@ -76,7 +76,6 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
 });
 
 export const createPurchaseInitSchemaInput = z.object({
-    id: z.string(),
     blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum($Enums.Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
