@@ -25,6 +25,9 @@ async function init() {
         await batchLatestPaymentEntriesV1()
         logger.info("finished batching payments in " + (new Date().getTime() - start.getTime()) / 1000 + "s")
     })
+    setTimeout(async () => {
+        await checkLatestTransactions()
+    }, 1000 * 5)
     cron.schedule(CONFIG.CHECK_COLLECTION_INTERVAL, async () => {
         logger.info("checking for payments to collect")
         const start = new Date()
