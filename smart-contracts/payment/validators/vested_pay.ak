@@ -8,6 +8,16 @@ use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange,
   find_input,
 }
+//MAS-201 is currently not necessary, as validation happens offchain. This would add more cost to every payment.
+//MAS-202 is wanted behaviour, to possibly add payment amounts
+//MAS-304 is needed to identify the payment offchain
+//Fixes 
+//MAS-203 reference script not allowed via validate_no_reference_script_attacked_to_script
+//MAS-301 is removed
+//MAS-302 now named AuthorizeRefund
+//MAS-303 is added, with checks of the status (duplicated checks of status and fields). Feels a bit redundant, as the state can be infered.
+//Furthermore renamed some of the fields to be more descriptive. Added cooldown periods to prevent DDOS, if other solutions exist recommendations are welcome.
+
 
 type POSIXTime =
   Int
