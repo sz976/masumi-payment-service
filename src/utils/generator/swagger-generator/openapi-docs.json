@@ -296,8 +296,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "Secret": {
-                                                "createdAt": "2025-02-12T23:05:42.567Z",
-                                                "updatedAt": "2025-02-12T23:05:42.567Z",
+                                                "createdAt": "2025-02-12T23:13:06.562Z",
+                                                "updatedAt": "2025-02-12T23:13:06.562Z",
                                                 "secret": "decoded_secret"
                                             }
                                         }
@@ -1309,17 +1309,17 @@
                                             "payments": [
                                                 {
                                                     "id": "unique_id",
-                                                    "createdAt": "2025-02-12T23:05:42.567Z",
-                                                    "updatedAt": "2025-02-12T23:05:42.567Z",
+                                                    "createdAt": "2025-02-12T23:13:06.562Z",
+                                                    "updatedAt": "2025-02-12T23:13:06.562Z",
                                                     "metadata": "(privately) stored metadata",
                                                     "blockchainIdentifier": "identifier",
                                                     "lastCheckedAt": null,
                                                     "networkHandlerId": "network_id",
                                                     "smartContractWalletId": null,
                                                     "buyerWalletId": null,
-                                                    "submitResultTime": "1739401542567",
-                                                    "unlockTime": "1739444742567",
-                                                    "refundTime": "1739487942567",
+                                                    "submitResultTime": "1739401986562",
+                                                    "unlockTime": "1739445186562",
+                                                    "refundTime": "1739488386562",
                                                     "requestedById": "requester_id",
                                                     "CurrentStatus": {
                                                         "status": "PaymentRequested",
@@ -1436,7 +1436,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-13T11:05:42.488Z",
+                                        "default": "2025-02-13T11:13:06.497Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1496,7 +1496,7 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "2025-02-13T11:05:42.568Z"
+                                    "submitResultTime": "2025-02-13T11:13:06.563Z"
                                 }
                             }
                         }
@@ -1758,11 +1758,11 @@
                                                 "errorNote": null,
                                                 "errorRequiresManualReview": null
                                             },
-                                            "createdAt": "2025-02-12T23:05:42.568Z",
-                                            "updatedAt": "2025-02-12T23:05:42.568Z",
-                                            "refundTime": "1739487942568",
-                                            "submitResultTime": "1739401542568",
-                                            "unlockTime": "1739444742568",
+                                            "createdAt": "2025-02-12T23:13:06.563Z",
+                                            "updatedAt": "2025-02-12T23:13:06.563Z",
+                                            "refundTime": "1739488386563",
+                                            "submitResultTime": "1739401986563",
+                                            "unlockTime": "1739445186563",
                                             "Amounts": [],
                                             "NetworkHandler": {
                                                 "id": "network_id",
@@ -2109,11 +2109,11 @@
                                                 "errorNote": null,
                                                 "errorRequiresManualReview": null
                                             },
-                                            "createdAt": "2025-02-12T23:05:42.568Z",
-                                            "updatedAt": "2025-02-12T23:05:42.568Z",
-                                            "refundTime": "1739487942568",
-                                            "submitResultTime": "1739401542568",
-                                            "unlockTime": "1739444742568",
+                                            "createdAt": "2025-02-12T23:13:06.563Z",
+                                            "updatedAt": "2025-02-12T23:13:06.563Z",
+                                            "refundTime": "1739488386563",
+                                            "submitResultTime": "1739401986563",
+                                            "unlockTime": "1739445186563",
                                             "Amounts": [],
                                             "NetworkHandler": {
                                                 "id": "network_id",
@@ -2651,11 +2651,11 @@
                                                         "errorRequiresManualReview": null
                                                     },
                                                     "StatusHistory": [],
-                                                    "createdAt": "2025-02-12T23:05:42.568Z",
-                                                    "updatedAt": "2025-02-12T23:05:42.568Z",
-                                                    "refundTime": "1739487942568",
-                                                    "submitResultTime": "1739401542568",
-                                                    "unlockTime": "1739444742568",
+                                                    "createdAt": "2025-02-12T23:13:06.563Z",
+                                                    "updatedAt": "2025-02-12T23:13:06.563Z",
+                                                    "refundTime": "1739488386563",
+                                                    "submitResultTime": "1739401986563",
+                                                    "unlockTime": "1739445186563",
                                                     "Amounts": [],
                                                     "NetworkHandler": {
                                                         "id": "network_id",
@@ -2791,9 +2791,9 @@
                                         }
                                     ],
                                     "paymentType": "WEB3_CARDANO_V1",
-                                    "submitResultTime": "1739444742568",
-                                    "unlockTime": "1739487942568",
-                                    "refundTime": "1739531142568"
+                                    "submitResultTime": "1739445186563",
+                                    "unlockTime": "1739488386563",
+                                    "refundTime": "1739531586563"
                                 }
                             }
                         }
@@ -3055,11 +3055,11 @@
                                                 "errorNote": null,
                                                 "errorRequiresManualReview": null
                                             },
-                                            "createdAt": "2025-02-12T23:05:42.568Z",
-                                            "updatedAt": "2025-02-12T23:05:42.568Z",
-                                            "refundTime": "1739487942568",
-                                            "submitResultTime": "1739401542568",
-                                            "unlockTime": "1739444742568",
+                                            "createdAt": "2025-02-12T23:13:06.563Z",
+                                            "updatedAt": "2025-02-12T23:13:06.563Z",
+                                            "refundTime": "1739488386563",
+                                            "submitResultTime": "1739401986563",
+                                            "unlockTime": "1739445186563",
                                             "Amounts": [],
                                             "NetworkHandler": {
                                                 "id": "network_id",
@@ -3259,9 +3259,14 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "unit": {
-                                                                "type": "string",
-                                                                "maxLength": 250
+                                                            "policyId": {
+                                                                "type": "string"
+                                                            },
+                                                            "assetName": {
+                                                                "type": "string"
+                                                            },
+                                                            "agentIdentifier": {
+                                                                "type": "string"
                                                             },
                                                             "metadata": {
                                                                 "type": "object",
@@ -3400,7 +3405,9 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "unit",
+                                                            "policyId",
+                                                            "assetName",
+                                                            "agentIdentifier",
                                                             "metadata"
                                                         ]
                                                     }
@@ -3420,7 +3427,9 @@
                                         "data": {
                                             "assets": [
                                                 {
-                                                    "unit": "unit",
+                                                    "policyId": "policy_id",
+                                                    "assetName": "asset_name",
+                                                    "agentIdentifier": "agent_identifier",
                                                     "metadata": {
                                                         "name": "name",
                                                         "description": "description",
@@ -4027,8 +4036,8 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-12T23:05:42.568Z",
-                                                    "updatedAt": "2025-02-12T23:05:42.568Z",
+                                                    "createdAt": "2025-02-12T23:13:06.563Z",
+                                                    "updatedAt": "2025-02-12T23:13:06.563Z",
                                                     "network": "MAINNET",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "paymentContractAddress": "address_of_the_smart_contract",
@@ -4050,7 +4059,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-12T23:05:42.568Z",
+                                                    "lastCheckedAt": "2025-02-12T23:13:06.563Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "PurchasingWallets": [
                                                         {
@@ -4333,8 +4342,8 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-12T23:05:42.568Z",
-                                                    "updatedAt": "2025-02-12T23:05:42.568Z",
+                                                    "createdAt": "2025-02-12T23:13:06.563Z",
+                                                    "updatedAt": "2025-02-12T23:13:06.563Z",
                                                     "network": "MAINNET",
                                                     "paymentType": "WEB3_CARDANO_V1",
                                                     "isSyncing": true,
@@ -4357,7 +4366,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-12T23:05:42.568Z",
+                                                    "lastCheckedAt": "2025-02-12T23:13:06.563Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "NetworkHandlerConfig": {
                                                         "rpcProviderApiKey": "rpc_provider_api_key_blockfrost"
@@ -4786,8 +4795,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-12T23:05:42.568Z",
-                                            "updatedAt": "2025-02-12T23:05:42.568Z",
+                                            "createdAt": "2025-02-12T23:13:06.563Z",
+                                            "updatedAt": "2025-02-12T23:13:06.563Z",
                                             "network": "MAINNET",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "isSyncing": true,
@@ -4810,7 +4819,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-12T23:05:42.568Z",
+                                            "lastCheckedAt": "2025-02-12T23:13:06.563Z",
                                             "lastIdentifierChecked": "identifier",
                                             "NetworkHandlerConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost"
@@ -5212,8 +5221,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-12T23:05:42.568Z",
-                                            "updatedAt": "2025-02-12T23:05:42.568Z",
+                                            "createdAt": "2025-02-12T23:13:06.563Z",
+                                            "updatedAt": "2025-02-12T23:13:06.563Z",
                                             "network": "MAINNET",
                                             "paymentType": "WEB3_CARDANO_V1",
                                             "isSyncing": true,
@@ -5236,7 +5245,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-12T23:05:42.568Z",
+                                            "lastCheckedAt": "2025-02-12T23:13:06.563Z",
                                             "lastIdentifierChecked": "identifier",
                                             "NetworkHandlerConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost"
@@ -5608,8 +5617,8 @@
                                                 "network": "PREPROD",
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
-                                                "createdAt": "2025-02-12T23:05:42.568Z",
-                                                "updatedAt": "2025-02-12T23:05:42.568Z"
+                                                "createdAt": "2025-02-12T23:13:06.563Z",
+                                                "updatedAt": "2025-02-12T23:13:06.563Z"
                                             }
                                         ]
                                     }
