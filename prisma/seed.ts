@@ -1,10 +1,13 @@
-import { Network, PaymentType, PrismaClient } from '@prisma/client';
+import { HotWalletType, Network, PaymentType, PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { MeshWallet, resolvePaymentKeyHash, resolvePlutusScriptAddress, resolveStakeKeyHash, PlutusScript, applyParamsToScript } from '@meshsdk/core'
 import { encrypt } from './../src/utils/security/encryption';
 import { DEFAULTS } from './../src/utils/config';
 import { getRegistryScriptV1 } from './../src/utils/generator/contract-generator';
+import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
+import cuid2 from '@paralleldrive/cuid2';
+
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -19,6 +22,14 @@ export const seed = async (prisma: PrismaClient) => {
       update: { apiKey: adminKey, permission: 'ADMIN', status: 'ACTIVE' },
       where: { apiKey: adminKey },
     });
+    const apiKeys = 20;
+    for (let i = 0; i < apiKeys; i++) {
+      const apiKey = "masumi-payment-demo-api-key-" + cuid2.createId();
+      await prisma.apiKey.create({
+        data: { apiKey: apiKey, permission: 'READ_PAY', status: 'ACTIVE', usageLimited: false },
+      });
+      console.log('API_KEY ' + i + ': ' + apiKey);
+    }
 
     console.log('ADMIN_KEY seeded');
   } else {
@@ -133,6 +144,20 @@ export const seed = async (prisma: PrismaClient) => {
     };
     const smartContractAddress = resolvePlutusScriptAddress(script, 0)
 
+    const blockfrostApi = new BlockFrostAPI({
+      projectId: blockfrostApiKeyPreprod
+    })
+
+    let latestTx: { tx_hash: string }[] | null = null
+    try {
+      latestTx = await blockfrostApi.addressesTransactions(smartContractAddress, { count: 1, order: "desc" })
+      if (latestTx.length > 0) {
+        console.log('Smart contract address exists on preprod, syncing after tx: ' + (latestTx[0]?.tx_hash ?? "no tx hash"));
+      }
+    } catch (error) {
+      console.warn('Smart contract address preprod has no transactions. ', error);
+    }
+
     try {
       const purchasingWallet = new MeshWallet({
         networkId: 0,
@@ -148,13 +173,22 @@ export const seed = async (prisma: PrismaClient) => {
           words: sellingWalletPreprodMnemonic.split(" "),
         },
       });
+      const purchasingWalletSecret = encrypt(purchaseWalletPreprodMnemonic)
+      const sellingWalletSecret = encrypt(sellingWalletPreprodMnemonic)
+      const purchasingWalletSecretId = await prisma.walletSecret.create({ data: { secret: purchasingWalletSecret } })
+      const sellingWalletSecretId = await prisma.walletSecret.create({ data: { secret: sellingWalletSecret } })
       await prisma.networkHandler.create({
         data: {
           paymentContractAddress: smartContractAddress,
           network: Network.PREPROD,
-          rpcProviderApiKey: blockfrostApiKeyPreprod,
+          NetworkHandlerConfig: {
+            create: {
+              rpcProviderApiKey: blockfrostApiKeyPreprod,
+            }
+          },
           paymentType: PaymentType.WEB3_CARDANO_V1,
           isSyncing: true,
+          lastIdentifierChecked: latestTx && latestTx.length > 0 ? latestTx[0].tx_hash : null,
           FeeReceiverNetworkWallet: {
             create: {
               walletAddress: adminWallet1AddressPreprod,
@@ -169,29 +203,26 @@ export const seed = async (prisma: PrismaClient) => {
               { walletAddress: adminWallet3AddressPreprod, order: 3 },
             ],
           },
-          PurchasingWallets: {
-            create: {
-              walletVkey: resolvePaymentKeyHash((await purchasingWallet.getUnusedAddresses())[0]),
-              walletAddress: (await purchasingWallet.getUnusedAddresses())[0],
-              note: "Created by seeding",
-              WalletSecret: { create: { secret: encrypt(purchaseWalletPreprodMnemonic) } }
-            }
-          },
-          SellingWallets: {
-            create: {
-              walletVkey: resolvePaymentKeyHash((await sellingWallet.getUnusedAddresses())[0]),
-              walletAddress: (await sellingWallet.getUnusedAddresses())[0],
-              note: "Created by seeding",
-              WalletSecret: { create: { secret: encrypt(sellingWalletPreprodMnemonic) } }
+          HotWallets: {
+            createMany: {
+              data: [{
+                walletVkey: resolvePaymentKeyHash((await purchasingWallet.getUnusedAddresses())[0]),
+                walletAddress: (await purchasingWallet.getUnusedAddresses())[0],
+                note: "Created by seeding",
+                type: HotWalletType.PURCHASING,
+                secretId: purchasingWalletSecretId.id
+              },
+              {
+                walletVkey: resolvePaymentKeyHash((await sellingWallet.getUnusedAddresses())[0]),
+                walletAddress: (await sellingWallet.getUnusedAddresses())[0],
+                note: "Created by seeding",
+                type: HotWalletType.SELLING,
+                secretId: sellingWalletSecretId.id,
+                collectionAddress: collectionWalletPreprodAddress
+              }]
             }
           },
           cooldownTime: cooldownTimePreprod,
-          CollectionWallet: {
-            create: {
-              walletAddress: collectionWalletPreprodAddress,
-              note: "Created by seeding",
-            }
-          }
         },
       });
       const { policyId } = await getRegistryScriptV1(smartContractAddress, Network.PREPROD)
@@ -257,7 +288,18 @@ export const seed = async (prisma: PrismaClient) => {
     };
 
     const smartContractAddress = resolvePlutusScriptAddress(script, 1)
-
+    const blockfrostApi = new BlockFrostAPI({
+      projectId: blockfrostApiKeyMainnet
+    })
+    let latestTx: { tx_hash: string }[] | null = null
+    try {
+      latestTx = await blockfrostApi.addressesTransactions(smartContractAddress, { count: 1, order: "desc" })
+      if (latestTx.length > 0) {
+        console.log('Smart contract address exists on mainnet, syncing after tx: ' + (latestTx[0]?.tx_hash ?? "no tx hash"));
+      }
+    } catch (error) {
+      console.warn('Smart contract address mainnet has no transactions. ', error);
+    }
     try {
       const purchasingWallet = new MeshWallet({
         networkId: 1,
@@ -273,11 +315,20 @@ export const seed = async (prisma: PrismaClient) => {
           words: sellingWalletMainnetMnemonic.split(" "),
         },
       });
+      const purchasingWalletSecret = encrypt(purchaseWalletMainnetMnemonic)
+      const sellingWalletSecret = encrypt(sellingWalletMainnetMnemonic)
+      const purchasingWalletSecretId = await prisma.walletSecret.create({ data: { secret: purchasingWalletSecret } })
+      const sellingWalletSecretId = await prisma.walletSecret.create({ data: { secret: sellingWalletSecret } })
       await prisma.networkHandler.create({
         data: {
           paymentContractAddress: smartContractAddress,
+          lastIdentifierChecked: latestTx && latestTx.length > 0 ? latestTx[0].tx_hash : null,
           network: Network.MAINNET,
-          rpcProviderApiKey: blockfrostApiKeyMainnet,
+          NetworkHandlerConfig: {
+            create: {
+              rpcProviderApiKey: blockfrostApiKeyMainnet,
+            }
+          },
           paymentType: PaymentType.WEB3_CARDANO_V1,
           isSyncing: true,
           FeeReceiverNetworkWallet: {
@@ -294,29 +345,26 @@ export const seed = async (prisma: PrismaClient) => {
               { walletAddress: adminWallet3AddressMainnet, order: 3 },
             ],
           },
-          PurchasingWallets: {
-            create: {
-              walletVkey: resolvePaymentKeyHash((await purchasingWallet.getUnusedAddresses())[0]),
-              walletAddress: (await purchasingWallet.getUnusedAddresses())[0],
-              note: "Created by seeding",
-              WalletSecret: { create: { secret: encrypt(purchaseWalletMainnetMnemonic) } }
-            }
-          },
-          SellingWallets: {
-            create: {
-              walletVkey: resolvePaymentKeyHash((await sellingWallet.getUnusedAddresses())[0]),
-              walletAddress: (await sellingWallet.getUnusedAddresses())[0],
-              note: "Created by seeding",
-              WalletSecret: { create: { secret: encrypt(sellingWalletMainnetMnemonic) } }
+          HotWallets: {
+            createMany: {
+              data: [{
+                walletVkey: resolvePaymentKeyHash((await purchasingWallet.getUnusedAddresses())[0]),
+                walletAddress: (await purchasingWallet.getUnusedAddresses())[0],
+                note: "Created by seeding",
+                type: HotWalletType.PURCHASING,
+                secretId: purchasingWalletSecretId.id
+              },
+              {
+                walletVkey: resolvePaymentKeyHash((await sellingWallet.getUnusedAddresses())[0]),
+                walletAddress: (await sellingWallet.getUnusedAddresses())[0],
+                note: "Created by seeding",
+                type: HotWalletType.SELLING,
+                secretId: sellingWalletSecretId.id,
+                collectionAddress: collectionWalletMainnetAddress
+              }]
             }
           },
           cooldownTime: cooldownTimeMainnet,
-          CollectionWallet: {
-            create: {
-              walletAddress: collectionWalletMainnetAddress,
-              note: "Created by seeding",
-            }
-          }
         },
       });
       const { policyId } = await getRegistryScriptV1(smartContractAddress, Network.MAINNET)

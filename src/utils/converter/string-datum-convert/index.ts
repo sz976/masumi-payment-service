@@ -1,3 +1,4 @@
+import { SmartContractState } from "@/utils/generator/contract-generator";
 import { mBool } from "@meshsdk/core";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7,12 +8,13 @@ export function decodeV1ContractDatum(decodedDatum: any) {
         seller: VerificationKeyHash,
         referenceId: ByteArray,
         resultHash: ByteArray,
-        result_submit_time: POSIXTime,
-        unlock_time: POSIXTime,
-        refund_time: POSIXTime,
+        submit_result_time,
+        unlock_time,
+        refund_time,
         refund_requested: Bool,
         seller_cooldown_time: POSIXTime,
         buyer_cooldown_time: POSIXTime,
+        state
 
     */
 
@@ -23,11 +25,11 @@ export function decodeV1ContractDatum(decodedDatum: any) {
     let fields = decodedDatum.fields
     const values = decodedDatum.value
 
-    if (fields.length != 10 && values.length != 10) {
+    if (fields.length != 11 && values.length != 11) {
         //invalid transaction
         return null;
     }
-    fields = fields.length == 10 ? fields : values
+    fields = fields.length == 11 ? fields : values
 
     if (typeof fields[0] !== "string") {
         //invalid transaction
@@ -85,9 +87,15 @@ export function decodeV1ContractDatum(decodedDatum: any) {
     }
     const sellerCooldownTime = fields[9]
 
+    const state = valueToStatus(fields[10])
+    if (state == null) {
+        //invalid transaction
+        return null;
+    }
+
     const newCooldownTime = Date.now() + 1000 * 60 * 20;
 
-    return { buyer, seller, blockchainIdentifier, resultHash, resultTime, unlockTime, refundTime, refundRequested, buyerCooldownTime, sellerCooldownTime, newCooldownTime }
+    return { buyer, seller, state, blockchainIdentifier, resultHash, resultTime, unlockTime, refundTime, refundRequested, buyerCooldownTime, sellerCooldownTime, newCooldownTime }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,11 +110,40 @@ function mBoolToBool(value: any) {
     const bFalse = mBool(false)
     const bTrue = mBool(true)
 
-    if (value.index == bTrue.alternative && typeof value.fields == typeof bTrue.fields) {
+    if (value.index == bTrue.alternative && (typeof value.fields == typeof bTrue.fields || typeof value.values == typeof bTrue.fields)) {
         return true;
     }
-    if (value.index == bFalse.alternative && typeof value.fields == typeof bFalse.fields) {
+    if (value.index == bFalse.alternative && (typeof value.fields == typeof bFalse.fields || typeof value.values == typeof bFalse.fields)) {
         return false;
+    }
+    return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function valueToStatus(value: any) {
+    if (value == null) {
+        return null;
+    }
+    if (typeof value !== "object") {
+        return null;
+    }
+    const fields = (value.fields == null ? value.values : value.fields)
+    if (!Array.isArray(fields) || fields.length != 0) {
+        return null;
+    }
+    const alternate = value.index
+    if (alternate == null || typeof alternate !== "number") {
+        return null;
+    }
+    switch (alternate) {
+        case 0:
+            return SmartContractState.FundsLocked;
+        case 1:
+            return SmartContractState.ResultSubmitted;
+        case 2:
+            return SmartContractState.RefundRequested;
+        case 3:
+            return SmartContractState.Disputed;
     }
     return null;
 }

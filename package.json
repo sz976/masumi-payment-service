@@ -26,8 +26,8 @@
     },
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^7.3.0",
-        "@blockfrost/blockfrost-js": "^5.7.0",
-        "@emurgo/cardano-serialization-lib-nodejs": "^14.0.0",
+        "@blockfrost/blockfrost-js": "^6.0.0",
+        "@emurgo/cardano-serialization-lib-nodejs": "^14.1.1",
         "@meshsdk/core": "^1.8.14",
         "@meshsdk/core-cst": "^1.8.14",
         "@paralleldrive/cuid2": "^2.2.2",
@@ -38,15 +38,14 @@
         "dotenv": "^16.4.7",
         "ethereum-cryptography": "^3.1.0",
         "express": "^5.0.1",
-        "express-zod-api": "^22.6.0",
+        "express-zod-api": "^22.8.0",
         "http-errors": "^2.0.0",
         "http-status-codes": "^2.3.0",
         "lucid-cardano": "^0.10.11",
         "node": "18.19.0",
-        "node-cron": "^3.0.3",
         "swagger-ui-express": "^5.0.1",
         "winston": "^3.17.0",
-        "zod": "^3.24.1"
+        "zod": "^3.24.2"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
@@ -54,20 +53,21 @@
         "@types/jest": "^29.5.14",
         "@types/node": "18.19.0",
         "@types/node-cron": "^3.0.11",
-        "@typescript-eslint/eslint-plugin": "^8.20.0",
-        "@typescript-eslint/parser": "^8.20.0",
-        "eslint": "^9.19.0",
+        "@types/swagger-ui-express": "^4.1.7",
+        "@typescript-eslint/eslint-plugin": "^8.24.0",
+        "@typescript-eslint/parser": "^8.24.0",
+        "eslint": "^9.20.1",
         "eslint-config-prettier": "^10.0.1",
         "eslint-plugin-prettier": "^5.2.3",
-        "globals": "^15.14.0",
+        "globals": "^15.15.0",
         "jest": "^29.7.0",
         "pkgroll": "^2.8.0",
-        "prettier": "^3.4.2",
+        "prettier": "^3.5.0",
         "prisma": "^6.3.1",
         "ts-jest": "^29.2.5",
         "ts-node": "^10.9.2",
         "tsx": "^4.19.2",
         "typescript": "^5.7.3",
-        "typescript-eslint": "^8.23.0"
+        "typescript-eslint": "^8.24.0"
     }
 }

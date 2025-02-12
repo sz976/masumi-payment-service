@@ -127,6 +127,10 @@ const datum = {
       mBool(false),
       0,
       0,
+      {
+        alternative: 0,
+        fields: [],
+      },
     ],
   },
   inline: true,

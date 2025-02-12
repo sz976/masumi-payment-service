@@ -119,6 +119,8 @@ const hash = decodedDatum.value[3];
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
 const refundTime = decodedDatum.value[6];
+const sellerCooldownTime = decodedDatum.value[8];
+const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
 
 const datum = {
   value: {
@@ -133,6 +135,12 @@ const datum = {
       refundTime,
       //is converted to true
       mBool(false),
+      0,
+      buyerCooldownTime,
+      {
+        alternative: 0,
+        fields: [],
+      },
     ],
   },
   inline: true,

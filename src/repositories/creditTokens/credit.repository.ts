@@ -1,8 +1,8 @@
 import { prisma } from '@/utils/db';
 import { InsufficientFundsError } from '@/utils/errors/insufficient-funds-error';
-import { $Enums } from '@prisma/client';
+import { $Enums, WalletType } from '@prisma/client';
 
-async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit: string }[], network: $Enums.Network, blockchainIdentifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: number, refundTime: number, unlockTime: number) {
+async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, unlockTime, refundTime }: { id: string, cost: { amount: bigint, unit: string }[], metadata: string | null | undefined, network: $Enums.Network, blockchainIdentifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: bigint, unlockTime: bigint, refundTime: bigint, }) {
     return await prisma.$transaction(async (transaction) => {
         const result = await transaction.apiKey.findUnique({
             where: { id: id }, include: {
@@ -64,16 +64,24 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
 
         const networkHandler = await transaction.networkHandler.findUnique({
             where: {
-                network_paymentContractAddress: { network: network, paymentContractAddress: contractAddress }
+                network_paymentContractAddress: { network: network, paymentContractAddress: contractAddress },
+                paymentType: paymentType
             }
         })
         if (!networkHandler) {
             throw Error("Invalid networkHandler: " + networkHandler)
         }
 
+        const sellerWallet = await transaction.walletBase.findUnique({
+            where: {
+                networkHandlerId_walletVkey_type: { networkHandlerId: networkHandler.id, walletVkey: sellerVkey, type: WalletType.SELLER }
+            }
+        })
+
+
         const purchaseRequest = await prisma.purchaseRequest.create({
             data: {
-                triggeredBy: { connect: { id: id } },
+                requestedBy: { connect: { id: id } },
                 Amounts: {
                     create: Array.from(totalCost.entries()).map(([unit, amount]) => ({
                         amount: amount,
@@ -84,15 +92,35 @@ async function handlePurchaseCreditInit(id: string, cost: { amount: bigint, unit
                 NetworkHandler: { connect: { id: networkHandler.id } },
                 SellerWallet: {
                     connectOrCreate: {
-                        where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: sellerVkey } },
-                        create: { walletVkey: sellerVkey, networkHandlerId: networkHandler.id }
+                        where: {
+                            id: sellerWallet?.id ?? "not-found"
+                        },
+                        create: { walletVkey: sellerVkey, networkHandlerId: networkHandler.id, type: WalletType.SELLER }
                     }
                 },
                 blockchainIdentifier: blockchainIdentifier,
-                status: $Enums.PurchasingRequestStatus.PurchaseRequested,
+                CurrentStatus: {
+                    create: {
+                        status: $Enums.PurchasingRequestStatus.PurchaseRequested,
+                        timestamp: new Date(),
+                        requestedBy: { connect: { id: id } }
+                    }
+                },
                 refundTime: refundTime,
                 unlockTime: unlockTime,
+                metadata: metadata,
             },
+            include: {
+                SellerWallet: true,
+                SmartContractWallet: true,
+                NetworkHandler: true,
+                Amounts: true,
+                CurrentStatus: {
+                    include: {
+                        Transaction: true
+                    }
+                },
+            }
         })
 
         return purchaseRequest

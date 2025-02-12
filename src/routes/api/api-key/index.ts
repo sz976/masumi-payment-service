@@ -19,7 +19,7 @@ export const getAPIKeySchemaOutput = z.object({
         usageLimited: z.boolean(),
         RemainingUsageCredits: z.array(z.object({
             unit: z.string(),
-            amount: z.number({ coerce: true }).int().min(0)
+            amount: z.string()
         })),
         status: z.nativeEnum(ApiKeyStatus),
     }))
@@ -31,7 +31,7 @@ export const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
     output: getAPIKeySchemaOutput,
     handler: async ({ input, }) => {
         const result = await prisma.apiKey.findMany({ where: {}, cursor: input.cursorApiKey ? { apiKey: input.cursorApiKey } : undefined, take: input.limit, include: { RemainingUsageCredits: true } })
-        return { apiKeys: result.map((data) => { return { ...data, RemainingUsageCredits: data.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) } }) }
+        return { apiKeys: result.map((data) => { return { ...data, RemainingUsageCredits: data.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: usageCredit.amount.toString() })) } }) }
     },
 });
 
@@ -39,7 +39,7 @@ export const addAPIKeySchemaInput = z.object({
     usageLimited: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).default("true").describe("Whether the API key is usage limited. Meaning only allowed to use the specified credits or can freely spend"),
     UsageCredits: z.array(z.object({
         unit: z.string().max(150),
-        amount: z.number({ coerce: true }).int().min(0).max(1000000)
+        amount: z.string()
     })).describe("The credits allowed to be used by the API key. Only relevant if usageLimited is true. "),
     permission: z.nativeEnum(Permission).default(Permission.READ).describe("The permission of the API key"),
 })
@@ -57,11 +57,19 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
     input: addAPIKeySchemaInput,
     output: addAPIKeySchemaOutput,
     handler: async ({ input }) => {
-        const apiKey = ("masumi-registry-" + input.permission == $Enums.Permission.ADMIN ? "admin-" : "") + createId()
+        const apiKey = ("masumi-payment-" + input.permission == $Enums.Permission.ADMIN ? "admin-" : "") + createId()
         const result = await prisma.apiKey.create({
             data: {
                 apiKey: apiKey, status: ApiKeyStatus.ACTIVE, permission: input.permission, usageLimited: input.usageLimited, RemainingUsageCredits: {
-                    createMany: { data: input.UsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: usageCredit.amount })) }
+                    createMany: {
+                        data: input.UsageCredits.map((usageCredit) => {
+                            const parsedAmount = BigInt(usageCredit.amount)
+                            if (parsedAmount < 0) {
+                                throw createHttpError(400, "Invalid amount")
+                            }
+                            return { unit: usageCredit.unit, amount: parsedAmount }
+                        })
+                    }
                 }
             }
         })
@@ -74,7 +82,7 @@ export const updateAPIKeySchemaInput = z.object({
     apiKey: z.string().max(550).optional().describe("The API key to update. Provide either id or apiKey"),
     UsageCredits: z.array(z.object({
         unit: z.string().max(150),
-        amount: z.number({ coerce: true }).int().min(0).max(1000000)
+        amount: z.string()
     })).optional().describe("The remaining credits allowed to be used by the API key. Only relevant if usageLimited is true. "),
     status: z.nativeEnum(ApiKeyStatus).default(ApiKeyStatus.ACTIVE).optional().describe("The status of the API key"),
 })
@@ -94,10 +102,36 @@ export const updateAPIKeyEndpointPatch = adminAuthenticatedEndpointFactory.build
     handler: async ({ input, }) => {
 
         if (input.id) {
-            const result = await prisma.apiKey.update({ where: { id: input.id }, data: { usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: { set: input.UsageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
+            const result = await prisma.apiKey.update({
+                where: { id: input.id }, data: {
+                    usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: {
+                        set: input.UsageCredits?.map((usageCredit) => {
+                            const parsedAmount = BigInt(usageCredit.amount)
+                            if (parsedAmount < 0) {
+                                throw createHttpError(400, "Invalid amount")
+                            }
+                            return {
+                                id: createId(), unit: usageCredit.unit, amount: parsedAmount
+                            }
+                        })
+                    }
+                }
+            })
             return result
         } else if (input.apiKey) {
-            const result = await prisma.apiKey.update({ where: { apiKey: input.apiKey }, data: { usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: { set: input.UsageCredits?.map((usageCredit) => ({ id: createId(), unit: usageCredit.unit, amount: usageCredit.amount })) } } })
+            const result = await prisma.apiKey.update({
+                where: { apiKey: input.apiKey }, data: {
+                    usageLimited: input.usageLimited, status: input.status, RemainingUsageCredits: {
+                        set: input.UsageCredits?.map((usageCredit) => {
+                            const parsedAmount = BigInt(usageCredit.amount)
+                            if (parsedAmount < 0) {
+                                throw createHttpError(400, "Invalid amount")
+                            }
+                            return { id: createId(), unit: usageCredit.unit, amount: parsedAmount }
+                        })
+                    }
+                }
+            })
             return result;
         }
         throw createHttpError(400, "Invalid input")
@@ -121,10 +155,10 @@ export const deleteAPIKeyEndpointDelete = adminAuthenticatedEndpointFactory.buil
 
     handler: async ({ input, }) => {
         if (input.id) {
-            const result = await prisma.apiKey.delete({ where: { id: input.id } })
+            const result = await prisma.apiKey.update({ where: { id: input.id }, data: { deletedAt: new Date() } })
             return result
         } else if (input.apiKey) {
-            const result = await prisma.apiKey.delete({ where: { apiKey: input.apiKey } })
+            const result = await prisma.apiKey.update({ where: { apiKey: input.apiKey }, data: { deletedAt: new Date() } })
             return result
         }
         throw createHttpError(400, "Invalid input")

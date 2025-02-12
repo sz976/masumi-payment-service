@@ -12,6 +12,13 @@ use cardano/transaction.{
 type POSIXTime =
   Int
 
+pub type State {
+  FundsLocked
+  ResultSubmitted
+  RefundRequested
+  Disputed
+}
+
 //this will be provided by the buyer and accepted by the seller off-chain
 pub type Datum {
   buyer: VerificationKeyHash,
@@ -20,10 +27,11 @@ pub type Datum {
   result_hash: ByteArray,
   submit_result_time: POSIXTime,
   unlock_time: POSIXTime,
-  refund_time: POSIXTime,
+  external_dispute_unlock_time: POSIXTime,
   refund_requested: Bool,
   seller_cooldown_time: POSIXTime,
   buyer_cooldown_time: POSIXTime,
+  state: State,
 }
 
 pub type Action {
@@ -64,16 +72,18 @@ validator vested_pay(
       result_hash,
       submit_result_time,
       unlock_time,
-      refund_time,
+      external_dispute_unlock_time,
       refund_requested,
       seller_cooldown_time,
       buyer_cooldown_time,
+      state,
     }) = datum
     let Transaction { validity_range, .. } = self
     expect Finite(tx_latest_time) = validity_range.upper_bound.bound_type
     let current_time = tx_latest_time
-    let cooldown_time = current_time + cooldown_period //requires 15 min cooldown
+    let cooldown_time = current_time + cooldown_period
 
+    //requires 15 min cooldown
     expect Some(input) =
       self.inputs
         |> find_input(own_ref)
@@ -109,6 +119,7 @@ validator vested_pay(
         expect must_be_signed_by(self, seller)
 
         expect must_start_after(validity_range, unlock_time)
+        expect state == ResultSubmitted
 
         expect Some(fee_output) =
           self.outputs
@@ -141,6 +152,21 @@ validator vested_pay(
         expect must_end_before(validity_range, unlock_time)
         expect must_start_after(validity_range, buyer_cooldown_time)
 
+        expect or {
+            state == FundsLocked,
+            state == ResultSubmitted,
+            //allow to set the field again, to in theory signal a dispute when the result hash is updated or allow to increase the amount of funds locked
+            state == RefundRequested,
+            state == Disputed,
+          }
+
+        let new_state =
+          if bytearray.is_empty(result_hash) {
+            RefundRequested
+          } else {
+            Disputed
+          }
+
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
@@ -148,15 +174,20 @@ validator vested_pay(
           new_datum.result_hash == result_hash,
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
-          new_datum.refund_time == refund_time,
+          new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.refund_requested,
           new_datum.seller_cooldown_time == 0,
           new_datum.buyer_cooldown_time >= cooldown_time,
+          new_datum.state == new_state,
         }
       }
       // Seller can approve the refund request by letting it run into the refund time
       WithdrawRefund -> {
         expect must_be_signed_by(self, buyer)
+        expect or {
+            state == FundsLocked,
+            state == RefundRequested,
+          }
         and {
           must_start_after(validity_range, submit_result_time),
           bytearray.is_empty(result_hash),
@@ -176,6 +207,21 @@ validator vested_pay(
         expect output_value_is_preserved(input.output.value, output.value)
         expect must_start_after(validity_range, buyer_cooldown_time)
 
+        expect or {
+            state == FundsLocked,
+            state == ResultSubmitted,
+            //allow to set the field again, to in theory allow to increase the amount of funds locked
+            state == RefundRequested,
+            state == Disputed,
+          }
+
+        let new_state =
+          if bytearray.is_empty(result_hash) {
+            FundsLocked
+          } else {
+            ResultSubmitted
+          }
+
         //we always allow to cancel the refund request
         //expect refund_requested
         and {
@@ -185,10 +231,11 @@ validator vested_pay(
           new_datum.result_hash == result_hash,
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
-          new_datum.refund_time == refund_time,
+          new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.refund_requested == False,
           new_datum.seller_cooldown_time == 0,
           new_datum.buyer_cooldown_time >= cooldown_time,
+          new_datum.state == new_state,
         }
       }
       //multi sig 2/X to withdraw the disputed funds via network admins
@@ -196,7 +243,7 @@ validator vested_pay(
         expect refund_requested
         expect bytearray.is_empty(result_hash) == False
 
-        expect must_start_after(validity_range, refund_time)
+        expect must_start_after(validity_range, external_dispute_unlock_time)
 
         //this allows to add one admin multiple times, giving them more voting power
         let countOfAdmins = list.length(admin_vks)
@@ -204,6 +251,8 @@ validator vested_pay(
         expect countOfAdmins >= 1
         //safety check to disallow anyone to withdraw from a misconfigured contract
         expect required_admins_multi_sig > 0
+
+        expect state == Disputed
 
         let signedBy =
           list.filter(admin_vks, fn(vk) { must_be_signed_by(self, vk) })
@@ -223,7 +272,7 @@ validator vested_pay(
         expect or {
             must_end_before(validity_range, submit_result_time),
             and {
-              must_end_before(validity_range, refund_time),
+              must_end_before(validity_range, external_dispute_unlock_time),
               bytearray.is_empty(result_hash) == False,
             },
           }
@@ -232,19 +281,34 @@ validator vested_pay(
         expect must_start_after(validity_range, seller_cooldown_time)
         expect bytearray.is_empty(new_datum.result_hash) == False
 
+        expect or {
+            state == FundsLocked,
+            state == RefundRequested,
+            //allow to set the field again, to in theory update to a new result
+            state == ResultSubmitted,
+            state == Disputed,
+          }
+
+        let new_state =
+          if refund_requested {
+            Disputed
+          } else {
+            ResultSubmitted
+          }
+
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
           new_datum.reference_id == reference_id,
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
-          new_datum.refund_time == refund_time,
+          new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.refund_requested == refund_requested,
           new_datum.seller_cooldown_time >= cooldown_time,
           new_datum.buyer_cooldown_time == 0,
+          new_datum.state == new_state,
         }
       }
-
 
       AuthorizeRefund -> {
         expect Some(output) =
@@ -258,6 +322,8 @@ validator vested_pay(
         //expect the locked value to be preserved
         expect output_value_is_preserved(input.output.value, output.value)
 
+        expect state == Disputed
+
         expect bytearray.is_empty(new_datum.result_hash)
         expect must_start_after(validity_range, buyer_cooldown_time)
         and {
@@ -266,10 +332,11 @@ validator vested_pay(
           new_datum.reference_id == reference_id,
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
-          new_datum.refund_time == refund_time,
+          new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.refund_requested == refund_requested,
           new_datum.seller_cooldown_time >= cooldown_time,
           new_datum.buyer_cooldown_time == 0,
+          new_datum.state == RefundRequested,
         }
       }
     }

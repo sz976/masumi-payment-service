@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { decrypt } from '@/utils/security/encryption';
-import { Network } from '@prisma/client';
+import { HotWalletType, Network } from '@prisma/client';
 import { MeshWallet, resolvePaymentKeyHash } from '@meshsdk/core';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
 
@@ -15,9 +15,8 @@ export const getWalletSchemaInput = z.object({
     includeSecret: z.string().transform((s) => s.toLowerCase() == "true" ? true : false).default("false").describe("Whether to include the decrypted secret in the response")
 })
 
-
 export const getWalletSchemaOutput = z.object({
-    WalletSecret: z.object({
+    Secret: z.object({
         createdAt: z.date(),
         updatedAt: z.date(),
         secret: z.string(),
@@ -39,39 +38,76 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
     output: getWalletSchemaOutput,
     handler: async ({ input }) => {
         if (input.walletType == "Selling") {
-            const result = await prisma.sellingWallet.findFirst({ where: { id: input.id }, include: { WalletSecret: true, PendingTransaction: true, NetworkHandler: true } })
+            const result = await prisma.hotWallet.findFirst({ where: { id: input.id, type: HotWalletType.SELLING }, include: { Secret: true, PendingTransaction: true, NetworkHandler: true } })
             if (result == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
-
             if (input.includeSecret == true) {
-                const decodedSecret = decrypt(result.WalletSecret.secret)
+                const decodedSecret = decrypt(result.Secret.secret)
                 return {
-                    ...result,
-                    WalletSecret: {
-                        ...result.WalletSecret,
+                    PendingTransaction: result.PendingTransaction ? {
+                        createdAt: result.PendingTransaction.createdAt,
+                        updatedAt: result.PendingTransaction.updatedAt,
+                        hash: result.PendingTransaction.txHash,
+                        lastCheckedAt: result.PendingTransaction.lastCheckedAt
+                    } : null,
+                    note: result.note,
+                    walletVkey: result.walletVkey,
+                    walletAddress: result.walletAddress,
+                    Secret: {
+                        createdAt: result.Secret.createdAt,
+                        updatedAt: result.Secret.updatedAt,
                         secret: decodedSecret
-                    },
+                    }
                 }
             }
-            return { ...result, WalletSecret: undefined }
+            return {
+                PendingTransaction: result.PendingTransaction ? {
+                    createdAt: result.PendingTransaction.createdAt,
+                    updatedAt: result.PendingTransaction.updatedAt,
+                    hash: result.PendingTransaction.txHash,
+                    lastCheckedAt: result.PendingTransaction.lastCheckedAt
+                } : null,
+                note: result.note,
+                walletVkey: result.walletVkey,
+                walletAddress: result.walletAddress
+            }
         } else if (input.walletType == "Purchasing") {
-            const result = await prisma.purchasingWallet.findFirst({ where: { id: input.id }, include: { WalletSecret: true, PendingTransaction: true, NetworkHandler: true } })
+            const result = await prisma.hotWallet.findFirst({ where: { id: input.id, type: HotWalletType.PURCHASING }, include: { Secret: true, PendingTransaction: true, NetworkHandler: true } })
             if (result == null) {
                 throw createHttpError(404, "Purchasing wallet not found")
             }
 
             if (input.includeSecret == true) {
-                const decodedSecret = decrypt(result.WalletSecret.secret)
+                const decodedSecret = decrypt(result.Secret.secret)
                 return {
-                    ...result,
-                    WalletSecret: {
-                        ...result.WalletSecret,
+                    PendingTransaction: result.PendingTransaction ? {
+                        createdAt: result.PendingTransaction.createdAt,
+                        updatedAt: result.PendingTransaction.updatedAt,
+                        hash: result.PendingTransaction.txHash,
+                        lastCheckedAt: result.PendingTransaction.lastCheckedAt
+                    } : null,
+                    note: result.note,
+                    walletVkey: result.walletVkey,
+                    walletAddress: result.walletAddress,
+                    Secret: {
+                        createdAt: result.Secret.createdAt,
+                        updatedAt: result.Secret.updatedAt,
                         secret: decodedSecret
-                    },
+                    }
                 }
             }
-            return { ...result, walletSecret: undefined }
+            return {
+                PendingTransaction: result.PendingTransaction ? {
+                    createdAt: result.PendingTransaction.createdAt,
+                    updatedAt: result.PendingTransaction.updatedAt,
+                    hash: result.PendingTransaction.txHash,
+                    lastCheckedAt: result.PendingTransaction.lastCheckedAt
+                } : null,
+                note: result.note,
+                walletVkey: result.walletVkey,
+                walletAddress: result.walletAddress
+            }
 
         }
         throw createHttpError(400, "Invalid wallet type")
