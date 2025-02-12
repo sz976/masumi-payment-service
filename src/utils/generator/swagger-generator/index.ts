@@ -912,7 +912,9 @@ export function generateOpenAPI() {
                 status: "success", data: {
                   assets: [
                     {
-                      unit: "unit",
+                      policyId: "policy_id",
+                      assetName: "asset_name",
+                      agentIdentifier: "agent_identifier",
                       metadata: {
                         name: "name",
                         description: "description",
