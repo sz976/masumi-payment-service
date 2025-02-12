@@ -13,7 +13,7 @@ async function initJobs() {
         level: "info",
         message: "initialized async intervals",
     });
-
+    await new Promise(resolve => setTimeout(resolve, 1500));
     // Check transactions interval
     AsyncInterval.start(async () => {
         logger.info("updating cardano payment entries");

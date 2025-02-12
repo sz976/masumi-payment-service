@@ -7,7 +7,7 @@ import {
 import { healthResponseSchema } from '@/routes/api/health';
 import { addAPIKeySchemaInput, addAPIKeySchemaOutput, deleteAPIKeySchemaInput, deleteAPIKeySchemaOutput, getAPIKeySchemaInput, getAPIKeySchemaOutput, updateAPIKeySchemaInput, updateAPIKeySchemaOutput } from '@/routes/api/api-key';
 import { $Enums } from '@prisma/client';
-import { createPaymentSchemaOutput, createPaymentsSchemaInput, queryPaymentsSchemaInput, queryPaymentsSchemaOutput, updatePaymentSchemaOutput, updatePaymentsSchemaInput } from '@/routes/api/payments';
+import { createPaymentSchemaOutput, createPaymentsSchemaInput, queryPaymentsSchemaInput, queryPaymentsSchemaOutput, refundPaymentSchemaInput, refundPaymentSchemaOutput, updatePaymentSchemaOutput, updatePaymentsSchemaInput } from '@/routes/api/payments';
 import { createPurchaseInitSchemaInput, createPurchaseInitSchemaOutput, queryPurchaseRequestSchemaInput, queryPurchaseRequestSchemaOutput, refundPurchaseSchemaInput, refundPurchaseSchemaOutput } from '@/routes/api/purchases';
 import { paymentSourceCreateSchemaInput, paymentSourceCreateSchemaOutput, paymentSourceDeleteSchemaInput, paymentSourceDeleteSchemaOutput, paymentSourceSchemaInput, paymentSourceSchemaOutput, paymentSourceUpdateSchemaInput, paymentSourceUpdateSchemaOutput } from '@/routes/api/payment-source';
 import { queryAgentSchemaInput, queryAgentSchemaOutput, registerAgentSchemaInput, registerAgentSchemaOutput, unregisterAgentSchemaInput, unregisterAgentSchemaOutput } from '@/routes/api/registry';
@@ -551,9 +551,10 @@ export function generateOpenAPI() {
               example: {
                 network: $Enums.Network.PREPROD,
                 paymentContractAddress: "address",
-                submitResultHash: "hash",
                 blockchainIdentifier: "identifier",
-                metadata: "data to be stored in the metadata of the payment request",
+                sellerVkey: "seller_vkey",
+                submitResultHash: "hash",
+
               }
             })
           }
@@ -599,6 +600,57 @@ export function generateOpenAPI() {
                   },
                   BuyerWallet: null,
                   SmartContractWallet: null
+                }
+              }
+            }),
+          },
+        },
+      },
+      400: {
+        description: 'Bad Request (possible parameters missing or invalid)',
+      },
+      401: {
+        description: 'Unauthorized',
+      },
+      500: {
+        description: 'Internal Server Error',
+      }
+    },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/payment/',
+    description: 'Deletes the right to receive a payment and initiates a refund for the other party.',
+    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    tags: ['payment',],
+    request: {
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: refundPaymentSchemaInput.openapi({
+              example: {
+                network: $Enums.Network.PREPROD,
+                paymentContractAddress: "address",
+                blockchainIdentifier: "blockchain_identifier",
+                sellerVkey: "seller_vkey",
+              }
+            })
+          }
+        }
+      }
+    },
+    security: [{ [apiKeyAuth.name]: [] }],
+    responses: {
+      200: {
+        description: 'API key deleted',
+        content: {
+          'application/json': {
+            schema: z.object({ data: refundPaymentSchemaOutput, status: z.string() }).openapi({
+              example: {
+                status: "success",
+                data: {
+                  txHash: "tx_hash",
                 }
               }
             }),

@@ -310,7 +310,7 @@ export const updatePaymentsSchemaInput = z.object({
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the payment was made to"),
     submitResultHash: z.string().max(250).describe("The hash of the AI agent result to be submitted"),
     blockchainIdentifier: z.string().max(250).describe("The identifier of the payment"),
-    metadata: z.string().nullable().optional().describe("Metadata to be stored with the payment request"),
+    sellerVkey: z.string().max(250).describe("The vkey of the seller"),
 })
 
 export const updatePaymentSchemaOutput = z.object({
@@ -372,7 +372,7 @@ export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
                 network_paymentContractAddress: {
                     network: input.network, paymentContractAddress: paymentContractAddress
                 }
-            }, include: { HotWallets: true, NetworkHandlerConfig: true, PaymentRequests: { where: { blockchainIdentifier: input.blockchainIdentifier, CurrentStatus: { status: $Enums.PaymentRequestStatus.PaymentRequested } }, include: { CurrentStatus: true } } }
+            }, include: { HotWallets: true, NetworkHandlerConfig: true, PaymentRequests: { where: { blockchainIdentifier: input.blockchainIdentifier, CurrentStatus: { status: $Enums.PaymentRequestStatus.PaymentRequested } }, include: { CurrentStatus: true, SmartContractWallet: true } } }
         })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
@@ -380,7 +380,13 @@ export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
         if (networkCheckSupported.PaymentRequests.length == 0) {
             throw createHttpError(404, "Payment not found")
         }
-
+        const payment = networkCheckSupported.PaymentRequests[0];
+        if (payment.SmartContractWallet == null) {
+            throw createHttpError(404, "Smart contract wallet not found")
+        }
+        if (payment.SmartContractWallet.walletVkey != input.sellerVkey) {
+            throw createHttpError(400, "Seller vkey does not match")
+        }
 
         const result = await prisma.paymentRequest.update({
             where: { id: networkCheckSupported.PaymentRequests[0].id },
@@ -394,7 +400,6 @@ export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
                     }
                 },
                 StatusHistory: { connect: { id: networkCheckSupported.PaymentRequests[0].CurrentStatus.id } },
-                metadata: input.metadata
             },
             include: {
                 CurrentStatus: {
@@ -424,8 +429,8 @@ export const paymentUpdatePatch = readAuthenticatedEndpointFactory.build({
 
 
 export const refundPaymentSchemaInput = z.object({
-    id: z.string(),
     blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
+    sellerVkey: z.string().max(250).describe("The vkey of the seller"),
     network: z.nativeEnum($Enums.Network).describe("The network the Cardano wallet will be used on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract holding the purchase"),
 })
@@ -439,7 +444,7 @@ export const refundPaymentDelete = readAuthenticatedEndpointFactory.build({
     input: refundPaymentSchemaInput,
     output: refundPaymentSchemaOutput,
     handler: async ({ input, options, logger }) => {
-        logger.info("Creating purchase", input.paymentTypes);
+        logger.info("Refunding payment", input.paymentTypes);
         const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
             where: {
@@ -470,7 +475,12 @@ export const refundPaymentDelete = readAuthenticatedEndpointFactory.build({
             throw createHttpError(404, "Purchase not found")
         }
         const purchase = networkCheckSupported.PaymentRequests[0];
-
+        if (purchase.SmartContractWallet == null) {
+            throw createHttpError(404, "Smart contract wallet not found")
+        }
+        if (purchase.SmartContractWallet.walletVkey != input.sellerVkey) {
+            throw createHttpError(400, "Seller vkey does not match")
+        }
         if (purchase.CurrentStatus.status != $Enums.PaymentRequestStatus.RefundRequested) {
             throw createHttpError(400, "Purchase in invalid state " + purchase.CurrentStatus.status)
         }
