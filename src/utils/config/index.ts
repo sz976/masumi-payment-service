@@ -8,13 +8,12 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length <= 20)
 export const CONFIG = {
     PORT: process.env.PORT ?? "3001",
     DATABASE_URL: process.env.DATABASE_URL,
-    BATCH_PAYMENT_INTERVAL: process.env.BATCH_PAYMENT_INTERVAL ?? "*/4 * * * *",
-    CHECK_TX_INTERVAL: process.env.CHECK_TX_INTERVAL ?? "*/3 * * * *",
-    CHECK_COLLECTION_INTERVAL: process.env.CHECK_COLLECTION_INTERVAL ?? "*/5 * * * *",
-    CHECK_COLLECT_REFUND_INTERVAL: process.env.CHECK_COLLECT_REFUND_INTERVAL ?? "*/5 * * * *",
-    CHECK_REFUND_INTERVAL: process.env.CHECK_REFUND_INTERVAL ?? "*/5 * * * *",
-    CHECK_DENY_INTERVAL: process.env.CHECK_DENY_INTERVAL ?? "*/5 * * * *",
-    CHECK_WALLET_TRANSACTION_HASH_INTERVAL: process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? "*/1 * * * *",
+    BATCH_PAYMENT_INTERVAL: Number(process.env.BATCH_PAYMENT_INTERVAL ?? "180"), // 3 minutes in seconds
+    CHECK_TX_INTERVAL: Number(process.env.CHECK_TX_INTERVAL ?? "180"), // 3 minutes in seconds
+    CHECK_COLLECTION_INTERVAL: Number(process.env.CHECK_COLLECTION_INTERVAL ?? "240"), // 4 minutes in seconds
+    CHECK_COLLECT_REFUND_INTERVAL: Number(process.env.CHECK_COLLECT_REFUND_INTERVAL ?? "300"), // 5 minutes in seconds
+    CHECK_REFUND_INTERVAL: Number(process.env.CHECK_REFUND_INTERVAL ?? "300"), // 5 minutes in seconds
+    CHECK_WALLET_TRANSACTION_HASH_INTERVAL: Number(process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? "90"), // 1,5 minutes in seconds
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
 };
 

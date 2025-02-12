@@ -20,14 +20,13 @@ variables
   section for more details and security considerations)
 - OPTIONAL: The services will run the following jobs whenever previous ones completed or after the provided
   time. (Defaults apply if not set)
-  - **CHECK_WALLET_TRANSACTION_HASH_INTERVAL**: Cron expression for checking wallet transaction hash. This also
+  - **CHECK_WALLET_TRANSACTION_HASH_INTERVAL**: delay in seconds for checking wallet transaction hash. This also
     reruns potentially effected services by unlocking the wallet
-  - **BATCH_PAYMENT_INTERVAL**: Cron expression for batching requests
-  - **CHECK_COLLECTION_INTERVAL**: Cron expression for checking collection
-  - **CHECK_TX_INTERVAL**: Cron expression for checking payment
-  - **CHECK_COLLECT_REFUND_INTERVAL**: Cron expression for checking collection and refund
-  - **CHECK_REFUND_INTERVAL**: Cron expression for checking refund
-  - **CHECK_DENY_INTERVAL**: Cron expression for checking deny
+  - **BATCH_PAYMENT_INTERVAL**: delay in seconds for batching requests
+  - **CHECK_COLLECTION_INTERVAL**: delay in seconds for checking collection
+  - **CHECK_TX_INTERVAL**: delay in seconds for checking payment
+  - **CHECK_COLLECT_REFUND_INTERVAL**: delay in seconds for checking collection and refund
+  - **CHECK_REFUND_INTERVAL**: delay in seconds for checking refunds
 
 1. If you're setting up the database for the first time (or want to provide some initial data) you also need the
    following variables:

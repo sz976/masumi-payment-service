@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { CONFIG } from "@/utils/config/";
 import { logger } from "@/utils/logger/";
-import InitSchedules from "@/services/schedules";
+import { initJobs } from "@/services/schedules";
 import { createConfig, createServer } from "express-zod-api";
 import { router } from "@/routes/index";
 import ui from "swagger-ui-express";
@@ -14,7 +14,7 @@ const __dirname = path.resolve();
 
 async function initialize() {
     await initDB();
-    await InitSchedules();
+    await initJobs();
 }
 
 initialize()
