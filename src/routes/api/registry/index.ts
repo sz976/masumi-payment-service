@@ -50,7 +50,9 @@ export const queryAgentSchemaInput = z.object({
 
 export const queryAgentSchemaOutput = z.object({
     assets: z.array(z.object({
-        unit: z.string().max(250),
+        policyId: z.string(),
+        assetName: z.string(),
+        agentIdentifier: z.string(),
         metadata: z.object({
             name: z.string().max(250),
             description: z.string().max(250).nullable().optional(),
@@ -152,7 +154,14 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
             })
         }))
 
-        return { assets: detailedAssets }
+        return {
+            assets: detailedAssets.map(asset => ({
+                policyId: policyId,
+                assetName: asset.unit.slice(policyId.length),
+                agentIdentifier: asset.unit,
+                metadata: asset.metadata,
+            })),
+        }
     },
 });
 
