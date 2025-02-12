@@ -1,6 +1,6 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { $Enums } from '@prisma/client';
+import { $Enums, HotWalletType } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { Transaction } from '@meshsdk/core';
@@ -87,14 +87,14 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
     output: queryAgentSchemaOutput,
     handler: async ({ input }) => {
         const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, NetworkHandlerConfig: true, HotWallets: { include: { Secret: true } } } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
         const blockfrost = new BlockFrostAPI({
-            projectId: networkCheckSupported.rpcProviderApiKey,
+            projectId: networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey,
         })
-        const wallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == input.walletVKey)
+        const wallet = networkCheckSupported.HotWallets.find(wallet => wallet.walletVkey == input.walletVKey && wallet.type == HotWalletType.SELLING)
         if (wallet == null) {
             throw createHttpError(404, "Wallet not found")
         }
@@ -205,38 +205,38 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                     network: input.network,
                     paymentContractAddress: paymentContractAddress
                 }
-            }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } }
+            }, include: { AdminWallets: true, HotWallets: { include: { Secret: true } }, NetworkHandlerConfig: true }
         })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
+        let sellingWallet = networkCheckSupported.HotWallets.find(wallet => wallet.walletVkey == input.sellingWalletVkey && wallet.type == HotWalletType.SELLING)
 
-        if (networkCheckSupported.SellingWallets == null || networkCheckSupported.SellingWallets.length == 0) {
-            throw createHttpError(404, "No Selling Wallets found")
-        }
-
-
-        let sellingWallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == input.sellingWalletVkey)
         if (sellingWallet == null) {
             if (input.sellingWalletVkey != null) {
                 throw createHttpError(404, "Selling Wallet not found")
             }
-            const randomIndex = Math.floor(Math.random() * networkCheckSupported.SellingWallets.length)
-            sellingWallet = networkCheckSupported.SellingWallets[randomIndex]
+            const hotWallets = networkCheckSupported.HotWallets.filter(wallet => wallet.type == HotWalletType.SELLING)
+            if (hotWallets.length == 0) {
+                throw createHttpError(404, "No Selling Wallets found")
+            }
+            const freeHotWallets = hotWallets.filter(wallet => wallet.pendingTransactionId == null)
+            if (freeHotWallets.length == 0) {
+                throw createHttpError(429, "No Selling Wallets not in use found")
+            }
+            const randomIndex = Math.floor(Math.random() * freeHotWallets.length)
+            sellingWallet = freeHotWallets[randomIndex]
         }
 
         const result = await advancedRetry({
             operation: async () => {
 
-                const { wallet, utxos, address } = await generateWalletExtended(input.network, networkCheckSupported.rpcProviderApiKey, sellingWallet.WalletSecret.secret!)
+                const { wallet, utxos, address } = await generateWalletExtended(input.network, networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey, sellingWallet.Secret.secret)
 
                 if (utxos.length === 0) {
                     throw new Error('No UTXOs found for the wallet');
                 }
-
-
                 const { script, policyId, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
-
 
                 /*const filteredUtxos = utxos.findIndex((a) => getLovelace(a.output.amount) > 0 && a.output.amount.length == 1);
                 if (filteredUtxos == -1) {
@@ -408,16 +408,16 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     handler: async ({ input, logger }) => {
         logger.info("Deregister Agent", input.paymentTypes);
         const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
-        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, SellingWallets: { include: { WalletSecret: true } } } })
+        const networkCheckSupported = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: { AdminWallets: true, HotWallets: { include: { Secret: true } }, NetworkHandlerConfig: true } })
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
-        if (networkCheckSupported.SellingWallets == null || networkCheckSupported.SellingWallets.length == 0) {
+        if (networkCheckSupported.HotWallets == null || networkCheckSupported.HotWallets.length == 0) {
             throw createHttpError(404, "Selling Wallet not found")
         }
 
         const blockfrost = new BlockFrostAPI({
-            projectId: networkCheckSupported.rpcProviderApiKey,
+            projectId: networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey,
         })
 
         const { policyId, script, smartContractAddress } = await getRegistryScriptFromNetworkHandlerV1(networkCheckSupported)
@@ -432,11 +432,11 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         }
         const vkey = resolvePaymentKeyHash(holderWallet[0].address)
 
-        const sellingWallet = networkCheckSupported.SellingWallets.find(wallet => wallet.walletVkey == vkey)
+        const sellingWallet = networkCheckSupported.HotWallets.find(wallet => wallet.walletVkey == vkey && wallet.type == HotWalletType.SELLING)
         if (sellingWallet == null) {
             throw createHttpError(404, "Registered Wallet not found")
         }
-        const { wallet, utxos, address } = await generateWalletExtended(input.network, networkCheckSupported.rpcProviderApiKey, sellingWallet.WalletSecret.secret!)
+        const { wallet, utxos, address } = await generateWalletExtended(input.network, networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey, sellingWallet.Secret.secret)
 
         if (utxos.length === 0) {
             throw new Error('No UTXOs found for the wallet');

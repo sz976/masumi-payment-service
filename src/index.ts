@@ -31,8 +31,19 @@ initialize()
             },
             startupLogo: false,
             beforeRouting: ({ app, }) => {
+                const replacer = (key: string, value: unknown): string | number | boolean | null | unknown => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    if (value instanceof Date) {
+                        return value.toISOString();
+                    }
+                    return value;
+                };
+                const docs = generateOpenAPI();
+                const docsString = JSON.stringify(docs, replacer, 4);
                 logger.info("Serving the API documentation at localhost:" + PORT + "/docs");
-                app.use("/docs", ui.serve, ui.setup(generateOpenAPI(), {
+                app.use("/docs", ui.serve, ui.setup(JSON.parse(docsString), {
                     explorer: false, swaggerOptions: {
                         persistAuthorization: true,
                         tryItOutEnabled: true,
@@ -40,7 +51,7 @@ initialize()
                     }
                 }));
                 app.get("/api-docs", (_, res) => {
-                    res.json(generateOpenAPI());
+                    res.json(JSON.parse(docsString));
                 });
 
                 //serve the static admin files

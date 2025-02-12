@@ -3,7 +3,7 @@ import { prisma } from '@/utils/db';
 import { encrypt } from '@/utils/security/encryption';
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
-import { $Enums } from '@prisma/client';
+import { $Enums, HotWalletType } from '@prisma/client';
 import createHttpError from 'http-errors';
 import { z } from 'zod';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
@@ -20,30 +20,28 @@ export const paymentSourceSchemaOutput = z.object({
         network: z.nativeEnum($Enums.Network),
         paymentContractAddress: z.string(),
         paymentType: z.nativeEnum($Enums.PaymentType),
-        rpcProviderApiKey: z.string(),
+        NetworkHandlerConfig: z.object({
+            rpcProviderApiKey: z.string(),
+        }),
         lastIdentifierChecked: z.string().nullable(),
         isSyncing: z.boolean(),
-        lastPageChecked: z.number(),
         lastCheckedAt: z.date().nullable(),
         AdminWallets: z.array(z.object({
             walletAddress: z.string(),
             order: z.number(),
         })),
-        CollectionWallet: z.object({
-            id: z.string(),
-            walletAddress: z.string(),
-            note: z.string().nullable(),
-        }).nullable(),
         PurchasingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
             walletAddress: z.string(),
+            collectionAddress: z.string().nullable(),
             note: z.string().nullable(),
         })),
         SellingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
             walletAddress: z.string(),
+            collectionAddress: z.string().nullable(),
             note: z.string().nullable(),
         })),
         FeeReceiverNetworkWallet: z.object({
@@ -66,20 +64,24 @@ export const paymentSourceEndpointGet = adminAuthenticatedEndpointFactory.build(
             cursor: input.cursorId ? { id: input.cursorId } : undefined,
             include: {
                 AdminWallets: { orderBy: { order: "asc" } },
-                CollectionWallet: true,
-                PurchasingWallets: true,
-                SellingWallets: true,
+                HotWallets: true,
                 FeeReceiverNetworkWallet: true,
+                NetworkHandlerConfig: true,
             }
         })
-        return { paymentSources: paymentSources }
+        const mappedPaymentSources = paymentSources.map(paymentSource => {
+            return { ...paymentSource, SellingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.SELLING), PurchasingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.PURCHASING) }
+        })
+        return { paymentSources: mappedPaymentSources }
     },
 });
 
 export const paymentSourceCreateSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The network the payment source will be used on"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The type of payment contract used"),
-    rpcProviderApiKey: z.string().max(250).describe("The rpc provider (blockfrost) api key to be used for the payment source"),
+    NetworkHandlerConfig: z.object({
+        rpcProviderApiKey: z.string().max(250).describe("The rpc provider (blockfrost) api key to be used for the payment source"),
+    }),
     feePermille: z.number({ coerce: true }).min(0).max(1000).describe("The fee in permille to be used for the payment source. The default contract uses 50 (5%)"),
     AdminWallets: z.array(z.object({
         walletAddress: z.string().max(250),
@@ -87,16 +89,14 @@ export const paymentSourceCreateSchemaInput = z.object({
     FeeReceiverNetworkWallet: z.object({
         walletAddress: z.string().max(250),
     }).describe("The wallet address of the network fee receiver wallet"),
-    CollectionWallet: z.object({
-        walletAddress: z.string().max(250),
-        note: z.string().max(250),
-    }).describe("The wallet address and note of the collection wallet (ideally a hardware wallet). Please backup the mnemonic of the wallet."),
     PurchasingWallets: z.array(z.object({
         walletMnemonic: z.string().max(1500),
+        collectionAddress: z.string().max(250).nullable().describe("The collection address of the purchasing wallet"),
         note: z.string().max(250),
     })).min(1).max(50).describe("The mnemonic of the purchasing wallets to be added. Please backup the mnemonic of the wallets."),
     SellingWallets: z.array(z.object({
         walletMnemonic: z.string().max(1500),
+        collectionAddress: z.string().max(250).nullable().describe("The collection address of the selling wallet"),
         note: z.string().max(250),
     })).min(1).max(50).describe("The mnemonic of the selling wallets to be added. Please backup the mnemonic of the wallets."),
 });
@@ -107,11 +107,34 @@ export const paymentSourceCreateSchemaOutput = z.object({
     network: z.nativeEnum($Enums.Network),
     paymentContractAddress: z.string(),
     paymentType: z.nativeEnum($Enums.PaymentType),
-    rpcProviderApiKey: z.string(),
-    isSyncing: z.boolean(),
+    NetworkHandlerConfig: z.object({
+        rpcProviderApiKey: z.string(),
+    }),
     lastIdentifierChecked: z.string().nullable(),
-    lastPageChecked: z.number(),
+    isSyncing: z.boolean(),
     lastCheckedAt: z.date().nullable(),
+    AdminWallets: z.array(z.object({
+        walletAddress: z.string(),
+        order: z.number(),
+    })),
+    PurchasingWallets: z.array(z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+        walletAddress: z.string(),
+        collectionAddress: z.string().nullable(),
+        note: z.string().nullable(),
+    })),
+    SellingWallets: z.array(z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+        walletAddress: z.string(),
+        collectionAddress: z.string().nullable(),
+        note: z.string().nullable(),
+    })),
+    FeeReceiverNetworkWallet: z.object({
+        walletAddress: z.string(),
+    }),
+    feePermille: z.number().min(0).max(1000),
 });
 
 export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build({
@@ -123,14 +146,16 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
             return {
                 wallet: generateOfflineWallet(input.network, sellingWallet.walletMnemonic.split(" ")),
                 note: sellingWallet.note,
-                secret: encrypt(sellingWallet.walletMnemonic)
+                secret: encrypt(sellingWallet.walletMnemonic),
+                collectionAddress: sellingWallet.collectionAddress
             };
         });
         const purchasingWalletsMesh = input.PurchasingWallets.map(purchasingWallet => {
             return {
                 wallet: generateOfflineWallet(input.network, purchasingWallet.walletMnemonic.split(" ")),
                 note: purchasingWallet.note,
-                secret: encrypt(purchasingWallet.walletMnemonic)
+                secret: encrypt(purchasingWallet.walletMnemonic),
+                collectionAddress: purchasingWallet.collectionAddress
             };
         });
 
@@ -142,8 +167,10 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                 return {
                     walletAddress: (await sw.wallet.getUnusedAddresses())[0],
                     walletVkey: resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]),
-                    walletSecretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
-                    note: sw.note
+                    secretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
+                    note: sw.note,
+                    type: HotWalletType.SELLING,
+                    collectionAddress: sw.collectionAddress
                 };
             }));
 
@@ -151,8 +178,10 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                 return {
                     walletVkey: resolvePaymentKeyHash((await pw.wallet.getUnusedAddresses())[0]),
                     walletAddress: (await pw.wallet.getUnusedAddresses())[0],
-                    walletSecretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
+                    secretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
                     note: pw.note,
+                    type: HotWalletType.PURCHASING,
+                    collectionAddress: pw.collectionAddress
                 };
             }));
 
@@ -161,7 +190,11 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                     network: input.network,
                     paymentContractAddress: smartContractAddress,
                     paymentType: input.paymentType,
-                    rpcProviderApiKey: input.rpcProviderApiKey,
+                    NetworkHandlerConfig: {
+                        create: {
+                            rpcProviderApiKey: input.NetworkHandlerConfig.rpcProviderApiKey
+                        }
+                    },
                     AdminWallets: {
                         createMany: {
                             data: input.AdminWallets.map((aw, index) => ({
@@ -177,42 +210,39 @@ export const paymentSourceEndpointPost = adminAuthenticatedEndpointFactory.build
                             order: 0
                         }
                     },
-                    CollectionWallet: {
-                        create: input.CollectionWallet
-                    },
-                    SellingWallets: {
+                    HotWallets: {
                         createMany: {
-                            data: sellingWallets
+                            data: [...purchasingWallets, ...sellingWallets]
                         }
                     },
-                    PurchasingWallets: {
-                        createMany: {
-                            data: purchasingWallets
-                        }
-                    },
-
+                },
+                include: {
+                    HotWallets: true,
+                    NetworkHandlerConfig: true,
+                    AdminWallets: true,
+                    FeeReceiverNetworkWallet: true
                 }
             });
 
-            return paymentSource
+            return { ...paymentSource, SellingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.SELLING), PurchasingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.PURCHASING) }
         })
     },
 });
 
 export const paymentSourceUpdateSchemaInput = z.object({
     id: z.string().max(250).describe("The id of the payment source to be updated"),
-    rpcProviderApiKey: z.string().max(250).optional().describe("The rpc provider (blockfrost) api key to be used for the payment source"),
-    CollectionWallet: z.object({
-        walletAddress: z.string().max(250),
-        note: z.string().max(250),
-    }).optional().describe("The wallet address and note of the collection wallet (ideally a hardware wallet). Usually should not be changed. Please backup the mnemonic of the old wallet before changing it."),
+    NetworkHandlerConfig: z.object({
+        rpcProviderApiKey: z.string().max(250).optional().describe("The rpc provider (blockfrost) api key to be used for the payment source"),
+    }).optional(),
     AddPurchasingWallets: z.array(z.object({
         walletMnemonic: z.string().max(1500),
         note: z.string().max(250),
+        collectionAddress: z.string().max(250).nullable().describe("The collection address of the purchasing wallet"),
     })).min(1).max(10).optional().describe("The mnemonic of the purchasing wallets to be added"),
     AddSellingWallets: z.array(z.object({
         walletMnemonic: z.string().max(1500),
         note: z.string().max(250),
+        collectionAddress: z.string().max(250).nullable().describe("The collection address of the selling wallet"),
     })).min(1).max(10).optional().describe("The mnemonic of the selling wallets to be added"),
     RemovePurchasingWallets: z.array(z.object({
         id: z.string()
@@ -220,7 +250,6 @@ export const paymentSourceUpdateSchemaInput = z.object({
     RemoveSellingWallets: z.array(z.object({
         id: z.string()
     })).max(10).optional().describe("The ids of the selling wallets to be removed. Please backup the mnemonic of the old wallet before removing it."),
-    lastPageChecked: z.number({ coerce: true }).min(1).max(100000000).optional().describe("The page number of the payment source. Usually should not be changed"),
     lastIdentifierChecked: z.string().max(250).nullable().optional().describe("The latest identifier of the payment source. Usually should not be changed")
 });
 export const paymentSourceUpdateSchemaOutput = z.object({
@@ -230,11 +259,34 @@ export const paymentSourceUpdateSchemaOutput = z.object({
     network: z.nativeEnum($Enums.Network),
     paymentContractAddress: z.string(),
     paymentType: z.nativeEnum($Enums.PaymentType),
-    rpcProviderApiKey: z.string(),
-    isSyncing: z.boolean(),
+    NetworkHandlerConfig: z.object({
+        rpcProviderApiKey: z.string(),
+    }),
     lastIdentifierChecked: z.string().nullable(),
-    lastPageChecked: z.number(),
+    isSyncing: z.boolean(),
     lastCheckedAt: z.date().nullable(),
+    AdminWallets: z.array(z.object({
+        walletAddress: z.string(),
+        order: z.number(),
+    })),
+    PurchasingWallets: z.array(z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+        walletAddress: z.string(),
+        collectionAddress: z.string().nullable(),
+        note: z.string().nullable(),
+    })),
+    SellingWallets: z.array(z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+        walletAddress: z.string(),
+        collectionAddress: z.string().nullable(),
+        note: z.string().nullable(),
+    })),
+    FeeReceiverNetworkWallet: z.object({
+        walletAddress: z.string(),
+    }),
+    feePermille: z.number().min(0).max(1000),
 });
 
 export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.build({
@@ -244,7 +296,10 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
     handler: async ({ input }) => {
         const networkHandler = await prisma.networkHandler.findUnique({
             where: { id: input.id }, include: {
-                PurchasingWallets: true, SellingWallets: true
+                HotWallets: true,
+                NetworkHandlerConfig: true,
+                AdminWallets: true,
+                FeeReceiverNetworkWallet: true
             }
         })
         if (networkHandler == null) {
@@ -254,13 +309,16 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
             return {
                 wallet: generateOfflineWallet(input.network, sellingWallet.walletMnemonic.split(" ")),
                 note: sellingWallet.note,
-                secret: encrypt(sellingWallet.walletMnemonic)
+                secret: encrypt(sellingWallet.walletMnemonic),
+                collectionAddress: sellingWallet.collectionAddress
             };
         });
         const purchasingWalletsMesh = input.AddPurchasingWallets?.map(purchasingWallet => {
             return {
-                wallet: generateOfflineWallet(input.network, purchasingWallet.walletMnemonic.split(" ")), note: purchasingWallet.note,
-                secret: encrypt(purchasingWallet.walletMnemonic)
+                wallet: generateOfflineWallet(input.network, purchasingWallet.walletMnemonic.split(" ")),
+                note: purchasingWallet.note,
+                secret: encrypt(purchasingWallet.walletMnemonic),
+                collectionAddress: purchasingWallet.collectionAddress
             };
         });
         const result = await prisma.$transaction(async (prisma) => {
@@ -268,8 +326,10 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
                 return {
                     walletAddress: (await sw.wallet.getUnusedAddresses())[0],
                     walletVkey: resolvePaymentKeyHash((await sw.wallet.getUnusedAddresses())[0]),
-                    walletSecretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
-                    note: sw.note
+                    secretId: (await prisma.walletSecret.create({ data: { secret: sw.secret } })).id,
+                    note: sw.note,
+                    type: HotWalletType.SELLING,
+                    collectionAddress: sw.collectionAddress
                 };
             })) : [];
 
@@ -277,29 +337,25 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
                 return {
                     walletAddress: (await pw.wallet.getUnusedAddresses())[0],
                     walletVkey: resolvePaymentKeyHash((await pw.wallet.getUnusedAddresses())[0]),
-                    walletSecretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
-                    note: pw.note
+                    secretId: (await prisma.walletSecret.create({ data: { secret: pw.secret } })).id,
+                    note: pw.note,
+                    type: HotWalletType.PURCHASING,
+                    collectionAddress: pw.collectionAddress
                 };
             })) : [];
 
-            if (input.RemoveSellingWallets != null && input.RemoveSellingWallets.length > 0 || input.RemovePurchasingWallets != null && input.RemovePurchasingWallets.length > 0) {
+            const walletIdsToRemove = [...(input.RemoveSellingWallets ?? []), ...(input.RemovePurchasingWallets ?? [])].map(rw => rw.id)
+
+            if (walletIdsToRemove.length > 0) {
                 await prisma.networkHandler.update({
                     where: { id: input.id }, data: {
-                        SellingWallets: {
-                            deleteMany: input.RemoveSellingWallets != null && input.RemoveSellingWallets.length > 0 ? {
+                        HotWallets: {
+                            deleteMany: {
                                 id: {
-                                    in: input.RemoveSellingWallets?.map(rw => rw.id)
+                                    in: walletIdsToRemove
                                 }
-                            } : undefined,
-                        },
-                        PurchasingWallets: {
-                            deleteMany: input.RemovePurchasingWallets != null && input.RemovePurchasingWallets.length > 0 ? {
-                                id: {
-                                    in: input.RemovePurchasingWallets?.map(rw => rw.id)
-                                }
-                            } : undefined,
-
-                        },
+                            }
+                        }
                     }
                 });
             }
@@ -308,28 +364,26 @@ export const paymentSourceEndpointPatch = adminAuthenticatedEndpointFactory.buil
                 where: { id: input.id },
                 data: {
                     lastIdentifierChecked: input.lastIdentifierChecked,
-                    lastPageChecked: input.lastPageChecked,
-                    rpcProviderApiKey: input.rpcProviderApiKey,
-                    CollectionWallet: input.CollectionWallet != undefined ? {
-                        update: { walletAddress: input.CollectionWallet.walletAddress, note: input.CollectionWallet.note },
+                    NetworkHandlerConfig: input.NetworkHandlerConfig != null ? {
+                        update: { rpcProviderApiKey: input.NetworkHandlerConfig.rpcProviderApiKey }
                     } : undefined,
-                    SellingWallets: {
+                    HotWallets: {
                         createMany: {
-                            data: sellingWallets
+                            data: [...purchasingWallets, ...sellingWallets]
                         }
                     },
-                    PurchasingWallets: {
-                        createMany: {
-                            data: purchasingWallets
-                        }
-                    },
-
                 },
+                include: {
+                    HotWallets: true,
+                    NetworkHandlerConfig: true,
+                    AdminWallets: true,
+                    FeeReceiverNetworkWallet: true
+                }
             });
 
             return paymentSource
         })
-        return result
+        return { ...result, PurchasingWallets: result.HotWallets.filter(wallet => wallet.type == HotWalletType.PURCHASING), SellingWallets: result.HotWallets.filter(wallet => wallet.type == HotWalletType.SELLING) }
     },
 });
 export const paymentSourceDeleteSchemaInput = z.object({

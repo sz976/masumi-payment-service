@@ -1,56 +1,69 @@
-import { $Enums, SellingWallet } from "@prisma/client";
+import { $Enums, HotWallet } from "@prisma/client";
 import { prisma } from "..";
 
-export async function lockAndQueryPayments({ paymentStatus, errorType = null, submitResultTime = undefined, resultHash = undefined, refundTime = undefined, unlockTime = undefined, smartContractWalletPendingTransaction = undefined }: { paymentStatus: $Enums.PaymentRequestStatus | { in: $Enums.PaymentRequestStatus[] }, errorType: $Enums.PaymentRequestErrorType | null, submitResultTime?: { lte: number } | undefined | { gte: number }, resultHash?: string | null | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | { hash: string } }) {
+export async function lockAndQueryPayments({ paymentStatus, errorType = null, submitResultTime = undefined, resultHash = undefined, refundTime = undefined, unlockTime = undefined, smartContractWalletPendingTransaction = undefined }: { paymentStatus: $Enums.PaymentRequestStatus | { in: $Enums.PaymentRequestStatus[] }, errorType: $Enums.PaymentRequestErrorType | null, submitResultTime?: { lte: number } | undefined | { gte: number }, resultHash?: string | null | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string }) {
     return await prisma.$transaction(async (prisma) => {
         const networkChecks = await prisma.networkHandler.findMany({
             where: {
                 paymentType: "WEB3_CARDANO_V1",
-                SellingWallets: { some: { PendingTransaction: null } },
                 isSyncing: false
             }, include: {
                 PaymentRequests: {
                     where: {
-                        status: paymentStatus,
-                        errorType: errorType,
+                        CurrentStatus: {
+                            status: paymentStatus,
+                            errorType: errorType,
+                            resultHash: resultHash,
+                        },
                         submitResultTime: submitResultTime,
-                        resultHash: resultHash,
                         refundTime: refundTime,
                         unlockTime: unlockTime,
-                        SmartContractWallet: smartContractWalletPendingTransaction !== undefined ? { PendingTransaction: smartContractWalletPendingTransaction } : undefined
+                        SmartContractWallet: {
+                            PendingTransaction: smartContractWalletPendingTransaction != null && smartContractWalletPendingTransaction != undefined ? {
+                                txHash: smartContractWalletPendingTransaction
+                            } : smartContractWalletPendingTransaction
+                        }
                     },
                     include: {
+                        CurrentStatus: {
+                            include: {
+                                Transaction: true
+                            }
+                        },
                         Amounts: true,
                         BuyerWallet: true,
                         SmartContractWallet: {
                             include: {
-                                WalletSecret: true
+                                Secret: true
                             }
                         }
                     }
                 },
                 AdminWallets: true,
-                CollectionWallet: true,
                 FeeReceiverNetworkWallet: true,
-                SellingWallets: { include: { WalletSecret: true }, where: { PendingTransaction: null } }
+                NetworkHandlerConfig: true
             }
         })
-        const sellingWallets: SellingWallet[] = []
+        const sellingWallets: HotWallet[] = []
+
+        const newNetworkChecks = []
         for (const networkCheck of networkChecks) {
-            for (const sellingWallet of networkCheck.SellingWallets) {
-                if (sellingWallet.id && !sellingWallets.some(w => w.id === sellingWallet.id)) {
-                    sellingWallets.push(sellingWallet)
+            const paymentRequests = []
+            for (const sellingRequest of networkCheck.PaymentRequests) {
+                const wallet = sellingRequest.SmartContractWallet;
+                if (wallet && !sellingWallets.some(w => w.id === wallet.id)) {
+                    const result = await prisma.hotWallet.update({
+                        where: { id: wallet.id },
+                        data: { PendingTransaction: { create: { txHash: null } } }
+                    })
+                    wallet.pendingTransactionId = result.pendingTransactionId
+                    sellingWallets.push(wallet)
+                    paymentRequests.push(sellingRequest)
                 }
             }
+            newNetworkChecks.push({ ...networkCheck, PaymentRequests: paymentRequests })
         }
-        for (const sellingWallet of sellingWallets) {
-            const result = await prisma.sellingWallet.update({
-                where: { id: sellingWallet.id },
-                data: { PendingTransaction: { create: { hash: null } } }
-            })
-            sellingWallet.pendingTransactionId = result.pendingTransactionId
-        }
-        return networkChecks;
+        return newNetworkChecks;
     }, { isolationLevel: "Serializable" });
 }
 

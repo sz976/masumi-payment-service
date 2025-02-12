@@ -89,3 +89,33 @@ export async function getRegistryScriptV1(contractAddress: string, network: Netw
     const smartContractAddress = resolvePlutusScriptAddress(script, networkId)
     return { script, policyId, smartContractAddress }
 }
+export enum SmartContractState {
+    FundsLocked = 0,
+    ResultSubmitted = 1,
+    RefundRequested = 2,
+    Disputed = 3,
+}
+export function getSmartContractStateDatum(state: SmartContractState) {
+    switch (state) {
+        case SmartContractState.FundsLocked:
+            return ({
+                alternative: 0,
+                fields: [],
+            })
+        case SmartContractState.ResultSubmitted:
+            return ({
+                alternative: 1,
+                fields: [],
+            })
+        case SmartContractState.RefundRequested:
+            return ({
+                alternative: 2,
+                fields: [],
+            })
+        case SmartContractState.Disputed:
+            return ({
+                alternative: 3,
+                fields: [],
+            })
+    }
+}

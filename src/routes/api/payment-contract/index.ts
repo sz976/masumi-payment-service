@@ -1,6 +1,6 @@
 import { prisma } from '@/utils/db';
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
-import { $Enums } from '@prisma/client';
+import { $Enums, HotWalletType } from '@prisma/client';
 import { z } from 'zod';
 
 export const paymentContractSchemaInput = z.object({
@@ -16,27 +16,23 @@ export const paymentContractSchemaOutput = z.object({
         paymentContractAddress: z.string(),
         paymentType: z.nativeEnum($Enums.PaymentType),
         lastIdentifierChecked: z.string().nullable(),
-        lastPageChecked: z.number(),
         lastCheckedAt: z.date().nullable(),
         AdminWallets: z.array(z.object({
             walletAddress: z.string(),
             order: z.number(),
         })),
-        CollectionWallet: z.object({
-            id: z.string(),
-            walletAddress: z.string(),
-            note: z.string().nullable(),
-        }).nullable(),
         PurchasingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
             walletAddress: z.string(),
+            collectionAddress: z.string().nullable(),
             note: z.string().nullable(),
         })),
         SellingWallets: z.array(z.object({
             id: z.string(),
             walletVkey: z.string(),
             walletAddress: z.string(),
+            collectionAddress: z.string().nullable(),
             note: z.string().nullable(),
         })),
         FeeReceiverNetworkWallet: z.object({
@@ -59,12 +55,13 @@ export const paymentContractEndpointGet = readAuthenticatedEndpointFactory.build
             cursor: input.cursorId ? { id: input.cursorId } : undefined,
             include: {
                 AdminWallets: { orderBy: { order: "asc" } },
-                CollectionWallet: true,
-                PurchasingWallets: true,
-                SellingWallets: true,
+                HotWallets: true,
                 FeeReceiverNetworkWallet: true,
             }
         })
-        return { paymentSources: paymentSources }
+        const mappedPaymentSources = paymentSources.map(paymentSource => {
+            return { ...paymentSource, SellingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.SELLING), PurchasingWallets: paymentSource.HotWallets.filter(wallet => wallet.type == HotWalletType.PURCHASING) }
+        })
+        return { paymentSources: mappedPaymentSources }
     },
 });

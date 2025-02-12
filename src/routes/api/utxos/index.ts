@@ -37,12 +37,12 @@ export const queryUTXOEndpointGet = readAuthenticatedEndpointFactory.build({
     input: getUTXOSchemaInput,
     output: getUTXOSchemaOutput,
     handler: async ({ input }) => {
-        const result = await prisma.networkHandler.findFirst({ where: { network: input.network } })
+        const result = await prisma.networkHandler.findFirst({ where: { network: input.network }, include: { NetworkHandlerConfig: true } })
         if (result == null) {
             throw createHttpError(404, "Network not found")
         }
         try {
-            const blockfrost = new BlockFrostAPI({ projectId: result.rpcProviderApiKey })
+            const blockfrost = new BlockFrostAPI({ projectId: result.NetworkHandlerConfig.rpcProviderApiKey })
             const utxos = await blockfrost.addressesUtxos(input.address, { count: input.count, page: input.page, order: input.order })
             return { utxos: utxos.map((utxo) => ({ txHash: utxo.tx_hash, address: utxo.address, amount: utxo.amount.map((amount) => ({ unit: amount.unit, quantity: parseInt(amount.quantity) })), output_index: utxo.output_index, block: utxo.block })) }
         } catch (error) {

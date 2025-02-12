@@ -16,7 +16,7 @@ export const getAPIKeyStatusSchemaOutput = z.object({
     usageLimited: z.boolean(),
     RemainingUsageCredits: z.array(z.object({
         unit: z.string(),
-        amount: z.number({ coerce: true }).int().min(0).max(100000000)
+        amount: z.string()
     })),
     status: z.nativeEnum(ApiKeyStatus),
 });
@@ -30,6 +30,7 @@ export const queryAPIKeyStatusEndpointGet = readAuthenticatedEndpointFactory.bui
         if (!result) {
             throw createHttpError(404, "API key not found");
         }
-        return { ...result, RemainingUsageCredits: result?.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: parseInt(usageCredit.amount.toString()) })) }
+
+        return { ...result, RemainingUsageCredits: result?.RemainingUsageCredits.map((usageCredit) => ({ unit: usageCredit.unit, amount: usageCredit.amount.toString() })) }
     },
 });

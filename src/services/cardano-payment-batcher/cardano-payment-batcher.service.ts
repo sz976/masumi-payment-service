@@ -1,12 +1,12 @@
-import { $Enums } from "@prisma/client";
+import { $Enums, HotWallet } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
-import { MeshWallet, Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
+import { Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { delayErrorResolver, advancedRetry } from "advanced-retry";
-import { lockAndQueryPurchases } from "@/utils/db/lock-and-query-purchases";
-
+import { SmartContractState } from "@/utils/generator/contract-generator";
+import { getSmartContractStateDatum } from "@/utils/generator/contract-generator";
 
 const updateMutex = new Sema(1);
 
@@ -23,12 +23,60 @@ export async function batchLatestPaymentEntriesV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await lockAndQueryPurchases(
-            {
-                purchasingStatus: $Enums.PurchasingRequestStatus.PurchaseRequested,
-                errorType: null
+        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
+            const networkChecks = await prisma.networkHandler.findMany({
+                where: {
+                    HotWallets: {
+                        some: {
+                            PendingTransaction: null,
+                            type: "PURCHASING"
+                        }
+                    }
+                },
+                include: {
+                    PurchaseRequests: {
+                        where: {
+                            CurrentStatus: {
+                                status: $Enums.PurchasingRequestStatus.PurchaseRequested,
+                                errorType: null,
+                                Transaction: null
+                            }
+                        },
+                        include: {
+                            Amounts: true,
+                            SellerWallet: true,
+                            SmartContractWallet: true,
+                            CurrentStatus: true,
+
+                        }
+                    },
+                    NetworkHandlerConfig: true,
+                    HotWallets: {
+                        where: {
+                            PendingTransaction: null,
+                            type: "PURCHASING"
+                        },
+                        include: {
+                            Secret: true
+                        }
+                    }
+                }
+            })
+            const walletsToLock: HotWallet[] = []
+            for (const networkCheck of networkChecks) {
+                for (const wallet of networkCheck.HotWallets) {
+                    if (!walletsToLock.some(w => w.id === wallet.id)) {
+                        walletsToLock.push(wallet);
+                        await prisma.hotWallet.update({
+                            where: { id: wallet.id },
+                            data: { PendingTransaction: { create: { txHash: null } } }
+                        })
+                    }
+                }
             }
-        )
+
+            return networkChecks;
+        })
 
         await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
             const paymentRequests = networkCheck.PurchaseRequests;
@@ -37,10 +85,10 @@ export async function batchLatestPaymentEntriesV1() {
                 return;
             }
 
-            const potentialWallets = networkCheck.PurchasingWallets;
+            const potentialWallets = networkCheck.HotWallets;
 
             const walletAmounts = await Promise.all(potentialWallets.map(async (wallet) => {
-                const { wallet: meshWallet, } = await generateWalletExtended(networkCheck.network, networkCheck.rpcProviderApiKey, wallet.WalletSecret.secret!)
+                const { wallet: meshWallet, } = await generateWalletExtended(networkCheck.network, networkCheck.NetworkHandlerConfig.rpcProviderApiKey, wallet.Secret.secret)
                 const amounts = await meshWallet.getBalance();
 
                 //TODO check if conversion to float fails
@@ -52,15 +100,7 @@ export async function batchLatestPaymentEntriesV1() {
                 }
             }))
             const paymentRequestsRemaining = [...paymentRequests];
-            const walletPairings: {
-                wallet: MeshWallet, scriptAddress: string,
-                walletId: string,
-                batchedRequests: {
-                    submitResultTime: bigint,
-                    Amounts: { unit: string, amount: bigint }[], blockchainIdentifier: string, resultHash: string | null, id: string,
-                    SellerWallet: { walletVkey: string }, refundTime: bigint, unlockTime: bigint
-                }[]
-            }[] = [];
+            const walletPairings = [];
             let maxBatchSizeReached = false;
             //TODO: greedy search?
             for (const walletData of walletAmounts) {
@@ -116,9 +156,15 @@ export async function batchLatestPaymentEntriesV1() {
                     //TODO create tx
                     await prisma.purchaseRequest.update({
                         where: { id: paymentRequest.id }, data: {
-                            errorType: "INSUFFICIENT_FUNDS",
-                            errorRequiresManualReview: true,
-                            errorNote: "Not enough funds in wallets",
+                            CurrentStatus: {
+                                create: {
+                                    status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
+                                    timestamp: new Date(),
+                                    errorType: "INSUFFICIENT_FUNDS",
+                                    errorRequiresManualReview: true,
+                                    errorNote: "Not enough funds in wallets",
+                                }
+                            }
                         }
                     })
                 }))
@@ -146,7 +192,7 @@ export async function batchLatestPaymentEntriesV1() {
                                     buyerVerificationKeyHash,
                                     sellerVerificationKeyHash,
                                     paymentRequest.blockchainIdentifier,
-                                    paymentRequest.resultHash ?? '',
+                                    paymentRequest.CurrentStatus.resultHash ?? '',
                                     submitResultTime,
                                     unlockTime,
                                     refundTime,
@@ -154,6 +200,7 @@ export async function batchLatestPaymentEntriesV1() {
                                     mBool(false),
                                     0,
                                     0,
+                                    getSmartContractStateDatum(SmartContractState.FundsLocked)
                                 ],
                             },
                             inline: true,
@@ -167,7 +214,36 @@ export async function batchLatestPaymentEntriesV1() {
                     }
 
                     const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
-                        await prisma.purchaseRequest.update({ where: { id: request.id }, data: { potentialTxHash: null, status: $Enums.PurchasingRequestStatus.PurchaseInitiated } })
+                        await prisma.purchaseRequest.update({
+                            where: { id: request.id }, data: {
+                                CurrentStatus: {
+                                    create: {
+                                        status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
+                                        timestamp: new Date(),
+                                        Transaction: {
+                                            create: {
+                                                txHash: null,
+                                                BlocksWallet: {
+                                                    connect: {
+                                                        id: walletId
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                SmartContractWallet: {
+                                    connect: {
+                                        id: walletId
+                                    }
+                                },
+                                StatusHistory: {
+                                    connect: {
+                                        id: request.CurrentStatus.id
+                                    }
+                                }
+                            }
+                        })
                     }))
                     const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
                     if (failedPurchaseRequests.length > 0) {
@@ -178,15 +254,28 @@ export async function batchLatestPaymentEntriesV1() {
                     const completeTx = await unsignedTx.build();
                     const signedTx = await wallet.signTx(completeTx);
                     //submit the transaction to the blockchain
-                    const txHash = await wallet.submitTx(signedTx);
+
 
                     await advancedRetry({
                         operation: async () => {
+                            const txHash = await wallet.submitTx(signedTx);
                             //update purchase requests
                             const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
-                                await prisma.purchaseRequest.update({ where: { id: request.id }, data: { SmartContractWallet: { connect: { id: walletId } }, potentialTxHash: txHash, status: $Enums.PurchasingRequestStatus.PurchaseInitiated } })
+                                await prisma.purchaseRequest.update({
+                                    where: { id: request.id }, data: {
+                                        CurrentStatus: {
+                                            update: {
+                                                Transaction: {
+                                                    update: {
+                                                        txHash: txHash
+                                                    }
+                                                },
+                                                status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
+                                            }
+                                        }
+                                    }
+                                })
                             }))
-                            await prisma.purchasingWallet.update({ where: { id: walletId }, data: { PendingTransaction: { upsert: { update: { hash: txHash }, create: { hash: txHash } } } } })
                             const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
                             if (failedPurchaseRequests.length > 0) {
                                 throw new Error("Error updating payment status " + failedPurchaseRequests);

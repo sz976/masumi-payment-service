@@ -3,20 +3,23 @@ import { InsufficientFundsError } from "@/utils/errors/insufficient-funds-error"
 import { logger } from "@/utils/logger";
 import { $Enums } from "@prisma/client";
 import createHttpError from "http-errors";
-async function handlePurchaseCreditInit(
-    id: string,
-    tokenCreditCost: { amount: bigint, unit: string }[],
-    network: $Enums.Network,
-    blockchainIdentifier: string,
-    paymentType: $Enums.PaymentType,
-    contractAddress: string,
-    sellerVkey: string,
-    submitResultTime: number,
-    refundTime: number,
-    unlockTime: number,
+async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, refundTime, unlockTime }:
+    {
+        id: string,
+        cost: { amount: bigint, unit: string }[],
+        metadata: string | null | undefined,
+        network: $Enums.Network,
+        blockchainIdentifier: string,
+        paymentType: $Enums.PaymentType,
+        contractAddress: string,
+        sellerVkey: string,
+        submitResultTime: bigint,
+        refundTime: bigint,
+        unlockTime: bigint,
+    }
 ) {
     try {
-        return await creditTokenRepository.handlePurchaseCreditInit(id, tokenCreditCost, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, refundTime, unlockTime)
+        return await creditTokenRepository.handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, unlockTime, refundTime })
     } catch (error) {
         if (error instanceof InsufficientFundsError) {
             throw createHttpError(400, "Insufficient funds")

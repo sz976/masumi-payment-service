@@ -27,7 +27,25 @@ export const queryRpcProviderKeysEndpointGet = adminAuthenticatedEndpointFactory
     input: getRpcProviderKeysSchemaInput,
     output: getRpcProviderKeysSchemaOutput,
     handler: async ({ input }) => {
-        const rpcProviderKeys = await prisma.networkHandler.findMany({ cursor: input.cursorId ? { id: input.cursorId } : undefined, orderBy: { createdAt: "asc" }, take: input.limit })
-        return { rpcProviderKeys: rpcProviderKeys }
+        const rpcProviderKeys = await prisma.networkHandlerConfig.findMany({
+            cursor: input.cursorId ? { id: input.cursorId } : undefined, take: input.limit, orderBy: { createdAt: "asc" },
+            where: {
+                NetworkHandler: {
+                    isNot: null
+                }
+            },
+            include: {
+                NetworkHandler: true
+            }
+        })
+        return {
+            rpcProviderKeys: rpcProviderKeys.map((rpcProviderKey) => ({
+                id: rpcProviderKey.id,
+                rpcProviderApiKey: rpcProviderKey.rpcProviderApiKey,
+                createdAt: rpcProviderKey.createdAt,
+                updatedAt: rpcProviderKey.updatedAt,
+                network: rpcProviderKey.NetworkHandler!.network
+            }))
+        }
     },
 });

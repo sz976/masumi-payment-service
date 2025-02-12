@@ -90,7 +90,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '71140e56780f327a6ebf1c365ad72ae908a4f586aeee33840797ca48db466820',
+  '11c09e1472a16a53ee947ce2f9d52a01d47198659238997bdb1f0d44e78aaeef',
 );
 
 if (!utxo) {
@@ -139,6 +139,10 @@ const datum = {
       //is converted to false
       0,
       buyerCooldownTime,
+      {
+        alternative: 2,
+        fields: [],
+      },
     ],
   },
   inline: true,

@@ -1,12 +1,12 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { $Enums } from '@prisma/client';
+import { $Enums, HotWalletType } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import * as cbor from "cbor"
 import { tokenCreditService } from '@/services/token-credit';
 import { BlockfrostProvider, mBool, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from '@meshsdk/core';
-import { getPaymentScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
+import { getPaymentScriptFromNetworkHandlerV1, getSmartContractStateDatum, SmartContractState } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
@@ -16,6 +16,7 @@ export const queryPurchaseRequestSchemaInput = z.object({
     cursorId: z.string().optional().describe("Used to paginate through the purchases. If this is provided, cursorId is required"),
     network: z.nativeEnum($Enums.Network).describe("The network the purchases were made on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchases were made to"),
+    includeHistory: z.boolean().optional().default(false).describe("Whether to include the full transaction and status history of the purchases")
 })
 
 export const queryPurchaseRequestSchemaOutput = z.object({
@@ -23,17 +24,56 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         id: z.string(),
         createdAt: z.date(),
         updatedAt: z.date(),
-        status: z.nativeEnum($Enums.PurchasingRequestStatus),
-        txHash: z.string().nullable(),
-        utxo: z.string().nullable(),
-        errorType: z.nativeEnum($Enums.PurchaseRequestErrorType).nullable(),
-        errorNote: z.string().nullable(),
-        errorRequiresManualReview: z.boolean().nullable(),
         blockchainIdentifier: z.string(),
-        SmartContractWallet: z.object({ id: z.string(), walletAddress: z.string(), walletVkey: z.string(), note: z.string().nullable() }).nullable(),
-        SellerWallet: z.object({ walletVkey: z.string(), note: z.string().nullable() }).nullable(),
-        Amounts: z.array(z.object({ id: z.string(), createdAt: z.date(), updatedAt: z.date(), amount: z.number({ coerce: true }).min(0), unit: z.string() })),
-        NetworkHandler: z.object({ id: z.string(), network: z.nativeEnum($Enums.Network), paymentContractAddress: z.string(), paymentType: z.nativeEnum($Enums.PaymentType) }).nullable(),
+        lastCheckedAt: z.date().nullable(),
+        networkHandlerId: z.string(),
+        smartContractWalletId: z.string().nullable(),
+        sellerWalletId: z.string().nullable(),
+        submitResultTime: z.string(),
+        unlockTime: z.string(),
+        refundTime: z.string(),
+        requestedById: z.string(),
+        CurrentStatus: z.object({
+            status: z.nativeEnum($Enums.PurchasingRequestStatus),
+            Transaction: z.object({
+                txHash: z.string().nullable(),
+            }).nullable(),
+            errorType: z.nativeEnum($Enums.PurchaseRequestErrorType).nullable(),
+            errorNote: z.string().nullable(),
+            errorRequiresManualReview: z.boolean().nullable(),
+        }),
+        StatusHistory: z.array(z.object({
+            status: z.nativeEnum($Enums.PurchasingRequestStatus),
+            Transaction: z.object({
+                txHash: z.string().nullable(),
+            }).nullable(),
+            errorType: z.nativeEnum($Enums.PurchaseRequestErrorType).nullable(),
+            errorNote: z.string().nullable(),
+            errorRequiresManualReview: z.boolean().nullable(),
+        })),
+        Amounts: z.array(z.object({
+            id: z.string(),
+            createdAt: z.date(),
+            updatedAt: z.date(),
+            amount: z.string(),
+            unit: z.string()
+        })),
+        NetworkHandler: z.object({
+            id: z.string(),
+            network: z.nativeEnum($Enums.Network),
+            paymentContractAddress: z.string(),
+            paymentType: z.nativeEnum($Enums.PaymentType)
+        }),
+        SellerWallet: z.object({
+            id: z.string(),
+            walletVkey: z.string(),
+        }).nullable(),
+        SmartContractWallet: z.object({
+            id: z.string(),
+            walletVkey: z.string(),
+            walletAddress: z.string(),
+        }).nullable(),
+        metadata: z.string().nullable(),
     }))
 });
 
@@ -44,13 +84,20 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     handler: async ({ input, logger }) => {
         logger.info("Querying registry");
         const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
-        const networkHandler = await prisma.networkHandler.findUnique({ where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } } })
+        const networkHandler = await prisma.networkHandler.findUnique({
+            where: { network_paymentContractAddress: { network: input.network, paymentContractAddress: paymentContractAddress } }, include: {
+                PurchaseRequests: {
+                    where: { blockchainIdentifier: input.blockchainIdentifier },
+
+                },
+            }
+        });
         if (networkHandler == null) {
             throw createHttpError(404, "Network handler not found")
         }
         let cursor = undefined;
         if (input.cursorIdentifierSellingWalletVkey && input.cursorIdentifier) {
-            const sellerWallet = await prisma.sellerWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifierSellingWalletVkey } } })
+            const sellerWallet = await prisma.hotWallet.findUnique({ where: { networkHandlerId_walletVkey: { networkHandlerId: networkHandler.id, walletVkey: input.cursorIdentifierSellingWalletVkey, }, type: HotWalletType.SELLING } })
             if (sellerWallet == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
@@ -62,16 +109,33 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
             cursor: cursor,
             take: input.limit,
             include: {
-                SellerWallet: { select: { walletVkey: true, note: true, } },
-                SmartContractWallet: { select: { id: true, walletVkey: true, note: true, walletAddress: true } },
+                SellerWallet: true,
+                SmartContractWallet: true,
                 NetworkHandler: true,
-                Amounts: true
+                Amounts: true,
+                CurrentStatus: {
+                    include: {
+                        Transaction: true
+                    }
+                },
+                StatusHistory: { orderBy: { timestamp: 'desc', }, take: input.includeHistory ? undefined : 0, include: { Transaction: true } }
             }
         })
         if (result == null) {
             throw createHttpError(404, "Purchase not found")
         }
-        return { purchases: result.map(purchase => ({ ...purchase, Amounts: purchase.Amounts.map(amount => ({ ...amount, amount: Number(amount.amount) })) })) }
+        return {
+            purchases: result.map(purchase => ({
+                ...purchase,
+                Amounts: purchase.Amounts.map(amount => ({
+                    ...amount,
+                    amount: amount.amount.toString()
+                })),
+                submitResultTime: purchase.submitResultTime.toString(),
+                unlockTime: purchase.unlockTime.toString(),
+                refundTime: purchase.refundTime.toString()
+            }))
+        }
     },
 });
 
@@ -80,18 +144,59 @@ export const createPurchaseInitSchemaInput = z.object({
     network: z.nativeEnum($Enums.Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchase will be made to"),
-    amounts: z.array(z.object({ amount: z.number({ coerce: true }).min(0).max(Number.MAX_SAFE_INTEGER), unit: z.string() })).max(7).describe("The amounts of the purchase"),
+    amounts: z.array(z.object({ amount: z.string(), unit: z.string() })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum($Enums.PaymentType).describe("The payment type of smart contract used"),
-    unlockTime: z.number({ coerce: true }).describe("The time after which the purchase will be unlocked. In unix time (number)"),
-    refundTime: z.number({ coerce: true }).describe("The time after which a refund will be approved. In unix time (number)"),
-    submitResultTime: z.number({ coerce: true }).describe("The time by which the result has to be submitted. In unix time (number)"),
+    unlockTime: z.string().describe("The time after which the purchase will be unlocked. In unix time (number)"),
+    refundTime: z.string().describe("The time after which a refund will be approved. In unix time (number)"),
+    submitResultTime: z.string().describe("The time by which the result has to be submitted. In unix time (number)"),
+    metadata: z.string().optional().describe("Metadata to be stored with the purchase request"),
 })
 
 export const createPurchaseInitSchemaOutput = z.object({
     id: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),
-    status: z.nativeEnum($Enums.PurchasingRequestStatus),
+    blockchainIdentifier: z.string(),
+    lastCheckedAt: z.date().nullable(),
+    networkHandlerId: z.string(),
+    smartContractWalletId: z.string().nullable(),
+    sellerWalletId: z.string().nullable(),
+    submitResultTime: z.string(),
+    unlockTime: z.string(),
+    refundTime: z.string(),
+    requestedById: z.string(),
+    CurrentStatus: z.object({
+        status: z.nativeEnum($Enums.PurchasingRequestStatus),
+        Transaction: z.object({
+            txHash: z.string().nullable(),
+        }).nullable(),
+        errorType: z.nativeEnum($Enums.PurchaseRequestErrorType).nullable(),
+        errorNote: z.string().nullable(),
+        errorRequiresManualReview: z.boolean().nullable(),
+    }),
+    Amounts: z.array(z.object({
+        id: z.string(),
+        createdAt: z.date(),
+        updatedAt: z.date(),
+        amount: z.string(),
+        unit: z.string()
+    })),
+    NetworkHandler: z.object({
+        id: z.string(),
+        network: z.nativeEnum($Enums.Network),
+        paymentContractAddress: z.string(),
+        paymentType: z.nativeEnum($Enums.PaymentType)
+    }),
+    SellerWallet: z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+    }).nullable(),
+    SmartContractWallet: z.object({
+        id: z.string(),
+        walletVkey: z.string(),
+        walletAddress: z.string(),
+    }).nullable(),
+    metadata: z.string().nullable(),
 });
 
 export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
@@ -105,30 +210,45 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         if (networkCheckSupported == null) {
             throw createHttpError(404, "Network and Address combination not supported")
         }
-        const wallets = await prisma.purchasingWallet.aggregate({ where: { networkHandlerId: networkCheckSupported.id, }, _count: true })
+        const wallets = await prisma.hotWallet.aggregate({ where: { networkHandlerId: networkCheckSupported.id, type: HotWalletType.SELLING }, _count: true })
         if (wallets._count === 0) {
             throw createHttpError(404, "No valid purchasing wallets found")
         }
         //require at least 3 hours between unlock time and the submit result time
-        const additionalRefundTime = 1000 * 60 * 60 * 3;
-        if (input.unlockTime > input.refundTime + additionalRefundTime) {
-            throw createHttpError(400, "Refund request time must be after unlock time with at least 3 hours difference")
+        const additionalRefundTime = BigInt(1000 * 60 * 15);
+        const submitResultTime = BigInt(input.submitResultTime);
+        const unlockTime = BigInt(input.unlockTime);
+        const refundTime = BigInt(input.refundTime);
+        if (refundTime < unlockTime + additionalRefundTime) {
+            throw createHttpError(400, "Refund request time must be after unlock time with at least 15 minutes difference")
         }
-        if (input.submitResultTime < Date.now()) {
-            throw createHttpError(400, "Submit result time must be in the future")
+        if (submitResultTime < BigInt(Date.now() + 1000 * 60 * 15)) {
+            throw createHttpError(400, "Submit result time must be in the future (min. 15 minutes)")
         }
-        const offset = 1000 * 60 * 15;
-        if (input.submitResultTime > input.unlockTime + offset) {
-            throw createHttpError(400, "Submit result time must be after unlock time with at least 15 minutes difference")
+        const offset = BigInt(1000 * 60 * 15);
+        if (submitResultTime > unlockTime - offset) {
+            throw createHttpError(400, "Submit result time must be before unlock time with at least 15 minutes difference")
         }
-        const initial = await tokenCreditService.handlePurchaseCreditInit(options.id, input.amounts.map(amount => {
-            if (amount.unit == "") {
-                return { amount: BigInt(amount.amount), unit: "lovelace" }
-            } else {
-                return { amount: BigInt(amount.amount), unit: amount.unit }
-            }
-        }), input.network, input.blockchainIdentifier, input.paymentType, paymentContractAddress, input.sellerVkey, input.submitResultTime, input.unlockTime, input.refundTime);
-        return initial
+        const initialPurchaseRequest = await tokenCreditService.handlePurchaseCreditInit({
+            id: options.id, cost: input.amounts.map(amount => {
+                if (amount.unit == "") {
+                    return { amount: BigInt(amount.amount), unit: "lovelace" }
+                } else {
+                    return { amount: BigInt(amount.amount), unit: amount.unit }
+                }
+            }), metadata: input.metadata, network: input.network, blockchainIdentifier: input.blockchainIdentifier, paymentType: input.paymentType, contractAddress: paymentContractAddress, sellerVkey: input.sellerVkey, submitResultTime: submitResultTime, unlockTime: unlockTime, refundTime: refundTime
+        });
+
+        return {
+            ...initialPurchaseRequest,
+            Amounts: initialPurchaseRequest.Amounts.map(amount => ({
+                ...amount,
+                amount: amount.amount.toString()
+            })),
+            submitResultTime: initialPurchaseRequest.submitResultTime.toString(),
+            unlockTime: initialPurchaseRequest.unlockTime.toString(),
+            refundTime: initialPurchaseRequest.refundTime.toString()
+        }
     },
 });
 
@@ -148,7 +268,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
     method: "patch",
     input: refundPurchaseSchemaInput,
     output: refundPurchaseSchemaOutput,
-    handler: async ({ input, logger }) => {
+    handler: async ({ input, options, logger }) => {
         logger.info("Creating purchase", input.paymentTypes);
         const paymentContractAddress = input.paymentContractAddress ?? (input.network == $Enums.Network.MAINNET ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD)
         const networkCheckSupported = await prisma.networkHandler.findUnique({
@@ -157,14 +277,18 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
             }, include: {
                 FeeReceiverNetworkWallet: true,
                 AdminWallets: true,
+                NetworkHandlerConfig: true,
                 PurchaseRequests: {
                     where: {
                         blockchainIdentifier: input.blockchainIdentifier
                     }, include: {
                         SellerWallet: true,
-                        SmartContractWallet: {
-                            include: { WalletSecret: true }
-                        }
+                        SmartContractWallet: true,
+                        CurrentStatus: {
+                            include: {
+                                Transaction: true
+                            }
+                        },
                     }
                 }
             }
@@ -176,18 +300,25 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
             throw createHttpError(404, "Purchase not found")
         }
         const purchase = networkCheckSupported.PurchaseRequests[0];
-        if (purchase.status != $Enums.PurchasingRequestStatus.RefundConfirmed) {
-            throw createHttpError(400, "Purchase in invalid state " + purchase.status)
+
+        if (purchase.CurrentStatus.status != $Enums.PurchasingRequestStatus.RefundConfirmed) {
+            throw createHttpError(400, "Purchase in invalid state " + purchase.CurrentStatus.status)
+        }
+
+        if (purchase.CurrentStatus.Transaction == null) {
+            throw createHttpError(400, "Purchase in invalid state")
+        }
+        if (purchase.CurrentStatus.Transaction.txHash == null) {
+            throw createHttpError(400, "Purchase in invalid state")
         }
 
 
         const blockchainProvider = new BlockfrostProvider(
-            networkCheckSupported.rpcProviderApiKey,
+            networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey,
         )
 
 
-
-        const { wallet, utxos, address } = await generateWalletExtended(networkCheckSupported.network, networkCheckSupported.rpcProviderApiKey, purchase.SmartContractWallet!.WalletSecret.secret!)
+        const { wallet, utxos, address } = await generateWalletExtended(networkCheckSupported.network, networkCheckSupported.NetworkHandlerConfig.rpcProviderApiKey, purchase.SmartContractWallet!.secretId)
 
         if (utxos.length === 0) {
             //this is if the buyer wallet is empty
@@ -196,14 +327,11 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
 
         const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheckSupported)
 
-
-
-
         const utxoByHash = await blockchainProvider.fetchUTxOs(
-            purchase.txHash!,
+            purchase.CurrentStatus.Transaction.txHash,
         );
 
-        const utxo = utxoByHash.find((utxo) => utxo.input.txHash == purchase.txHash);
+        const utxo = utxoByHash.find((utxo) => utxo.input.txHash == purchase.CurrentStatus.Transaction!.txHash);
 
         if (!utxo) {
             throw new Error('UTXO not found');
@@ -213,9 +341,6 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
             throw new Error('UTXO not found');
         }
 
-        // Get the datum from the UTXO
-
-        // Decode the CBOR-encoded datum
 
         const sellerVerificationKeyHash = purchase.SellerWallet.walletVkey;
         const buyerVerificationKeyHash = purchase.SmartContractWallet?.walletVkey;
@@ -226,14 +351,11 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
         if (!utxoDatum) {
             throw new Error('No datum found in UTXO');
         }
-
-
         const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
         const decodedContract = decodeV1ContractDatum(decodedDatum)
         if (decodedContract == null) {
             throw new Error('Invalid datum');
         }
-
 
         const datum = {
             value: {
@@ -250,6 +372,7 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
                     mBool(true),
                     decodedContract.newCooldownTime,
                     0,
+                    getSmartContractStateDatum(decodedContract.resultHash == "" ? SmartContractState.RefundRequested : SmartContractState.Disputed),
                 ],
             },
             inline: true,
@@ -289,7 +412,21 @@ export const refundPurchasePatch = payAuthenticatedEndpointFactory.build({
 
         //submit the transaction to the blockchain
         const txHash = await wallet.submitTx(signedTx);
-        await prisma.purchaseRequest.update({ where: { id: purchase.id }, data: { status: $Enums.PurchasingRequestStatus.RefundRequestInitiated, potentialTxHash: txHash } })
+        await prisma.purchaseRequest.update({
+            where: { id: purchase.id }, data: {
+                CurrentStatus: {
+                    create: {
+                        status: $Enums.PurchasingRequestStatus.RefundRequestInitiated,
+                        timestamp: new Date(),
+                        requestedBy: { connect: { id: options.id } },
+                        Transaction: { create: { txHash: txHash } }
+                    }
+                },
+                StatusHistory: {
+                    connect: { id: purchase.CurrentStatus.id }
+                }
+            }
+        })
 
         return { txHash }
     },
