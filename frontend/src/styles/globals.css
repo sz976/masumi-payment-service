@@ -84,3 +84,19 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+nextjs-portal {
+  display: none !important;
+
+  * {
+    display: none !important;
+  }
+}
+
+#transakRoot{
+  background-color: #000a !important;
+}
+
+#main-content{
+  overflow-y: scroll !important;
+}

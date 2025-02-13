@@ -4,8 +4,8 @@ import { Input } from "./ui/input";
 import { useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { toast } from 'react-toastify';
-import { getPaymentSources } from "@/lib/api/payment-source";
-import { setAuthToken } from "@/lib/api/client";
+import { setAuthToken } from '@/lib/api/client';
+import { getApiKeyStatus } from "@/lib/api/api-keys/status";
 
 export function ApiKeyDialog() {
   const [apiKey, setApiKey] = useState("");
@@ -18,9 +18,13 @@ export function ApiKeyDialog() {
     setIsLoading(true);
 
     try {
-      setAuthToken(key);
-      await getPaymentSources(key);
+      const response = await getApiKeyStatus(key);
 
+      if (response.data.status !== 'ACTIVE') {
+        throw new Error('API key is not active');
+      }
+
+      setAuthToken(key);
       const hexKey = Buffer.from(key).toString('hex');
       localStorage.setItem("payment_api_key", hexKey);
       dispatch({ type: 'SET_API_KEY', payload: key });

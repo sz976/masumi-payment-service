@@ -136,7 +136,8 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
 
   const getStatusColor = (status: string, hasError?: boolean) => {
     if (hasError) return "text-destructive";
-    switch (status.toLowerCase()) {
+    if (!status) return "text-muted-foreground";
+    switch (status?.toLowerCase()) {
       case 'payment received':
       case 'completed':
         return "text-green-500";
@@ -216,9 +217,9 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((tx: Transaction) => (
+                  {filteredTransactions.map((tx: Transaction, index: number) => (
                     <TableRow
-                      key={tx.identifier}
+                      key={tx.identifier || index}
                       className={`cursor-pointer ${tx.errorType
                         ? 'bg-destructive/10 hover:bg-destructive/20'
                         : 'hover:bg-muted/50'

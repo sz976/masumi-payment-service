@@ -5,7 +5,7 @@ import "@/styles/globals.css";
 import "@/styles/styles.scss"
 import type { AppProps } from "next/app";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/router';
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
@@ -72,7 +72,7 @@ function InitializeApp() {
     } else if(isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length){
       fetchPaymentSources();
     }
-  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey]);
+  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey, state.paymentSources?.length]);
 
   if (isHealthy === null) {
     return <div className="flex items-center justify-center bg-[#000] fixed top-0 left-0 w-full h-full z-50">
@@ -109,6 +109,18 @@ function AppContent({ Component, pageProps, router }: AppProps) {
     <AppProvider initialState={initialAppState}>
       <InitializeApp />
       <ComponentHolder Component={Component} pageProps={pageProps} router={router} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </AppProvider>
   );
 }

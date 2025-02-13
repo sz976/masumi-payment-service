@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import Head from "next/head";
 import { LuFileText } from "react-icons/lu";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { ToastContainer } from "react-toastify";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -204,12 +203,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         </aside>
 
         <div
-          className="flex flex-col min-h-screen transition-all duration-300 ease-in-out w-full"
-          style={{ marginLeft: isCollapsed ? "100px" : "300px" }}
+          className="flex flex-col min-h-screen transition-all duration-300 ease-in-out w-full overflow-y-auto"
+          id="main-content"
+          style={{ marginLeft: isCollapsed ? "100px" : "300px", overflowY: "scroll" }}
         >
           <header
-            className="fixed top-0 right-0 h-16 border-b border-border backdrop-blur-[10px] bg-[#0008] z-20 transition-all duration-300 ease-in-out"
-            style={{ width: `calc(100% - ${isCollapsed ? "100px" : "300px"})` }}
+            className="sticky top-0 h-16 border-b border-border backdrop-blur-[10px] bg-[#0008] z-20"
           >
             <div className="max-w-7xl mx-auto w-full h-full px-8">
               <div className="flex justify-between items-center h-full">
@@ -229,24 +228,12 @@ export function MainLayout({ children }: MainLayoutProps) {
           </header>
 
           <main className="flex-1 relative z-10 w-full">
-            <div className="max-w-7xl mx-auto p-8 mt-16">
+            <div className="max-w-7xl mx-auto p-8">
               {children}
             </div>
           </main>
         </div>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
     </>
   );
 } 
