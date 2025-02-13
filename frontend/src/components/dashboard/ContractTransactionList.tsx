@@ -217,9 +217,9 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((tx: Transaction) => (
+                  {filteredTransactions.map((tx: Transaction, index: number) => (
                     <TableRow
-                      key={tx.identifier}
+                      key={tx.identifier || index}
                       className={`cursor-pointer ${tx.errorType
                         ? 'bg-destructive/10 hover:bg-destructive/20'
                         : 'hover:bg-muted/50'

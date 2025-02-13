@@ -14,7 +14,6 @@ interface TransakWidgetProps {
 export function TransakWidget({ isOpen, onClose, walletAddress, network, onSuccess }: TransakWidgetProps) {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Handle Transak events through postMessage
       if (event.data.type === 'TRANSAK_ORDER_SUCCESSFUL') {
         console.log('Order successful:', event.data);
         onSuccess?.();

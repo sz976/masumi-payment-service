@@ -23,7 +23,6 @@ export function CreateWalletModal({ type, onClose, contractId }: CreateWalletMod
     try {
       const response = await createWallet(state.apiKey!, {
         walletType: type,
-        // Add other wallet creation data here
       });
 
       const data = response?.data?.wallet;

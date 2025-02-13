@@ -382,7 +382,6 @@ export function WalletCard({
           walletAddress={localAddress || ''}
           network={contract.network}
           onSuccess={() => {
-            // Refresh balance or perform other actions after successful purchase
             refreshBalance?.();
           }}
         />
