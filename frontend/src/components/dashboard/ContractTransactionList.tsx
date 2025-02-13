@@ -136,7 +136,8 @@ export function ContractTransactionList({ contractAddress, network, paymentType 
 
   const getStatusColor = (status: string, hasError?: boolean) => {
     if (hasError) return "text-destructive";
-    switch (status.toLowerCase()) {
+    if (!status) return "text-muted-foreground";
+    switch (status?.toLowerCase()) {
       case 'payment received':
       case 'completed':
         return "text-green-500";

@@ -3,13 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useCallback } from "react";
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { Copy } from "lucide-react";
-import { Transak } from '@transak/transak-sdk';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BlinkingUnderscore from "../BlinkingUnderscore";
 import { getWallet } from "@/lib/api/wallet";
 import { getWalletBalance } from "@/lib/api/balance/get";
+import { TransakWidget } from './TransakWidget';
 
 export function WalletCard({
   type,
@@ -28,7 +28,9 @@ export function WalletCard({
     paymentContractAddress: string;
     network: string;
     paymentType: string;
-    rpcProviderApiKey: string;
+    NetworkHandlerConfig: {
+      rpcProviderApiKey: string;
+    };
     adminWallets: {
       walletAddress: string;
     }[];
@@ -57,6 +59,7 @@ export function WalletCard({
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [walletSecret, setWalletSecret] = useState<string | null>(null);
+  const [showTransak, setShowTransak] = useState(false);
 
   const walletType = type === 'selling' ? 'Selling' : 'Purchasing';
 
@@ -91,13 +94,12 @@ export function WalletCard({
   }, [fetchWalletAddress, localAddress, walletId]);
 
   const fetchBalancePreprod = useCallback(async (address: string) => {
-
     try {
-      setFetchingBalance(true)
+      setFetchingBalance(true);
       const data = await getWalletBalance(state.apiKey!, {
         walletAddress: address,
         network: 'preprod',
-        blockfrostApiKey: contract.rpcProviderApiKey
+        blockfrostApiKey: contract.NetworkHandlerConfig.rpcProviderApiKey
       });
 
       setAdaBalance(data?.ada || 0);
@@ -105,18 +107,24 @@ export function WalletCard({
       setFetchingBalance(false);
       return data;
     } catch (error: unknown) {
-      console.error("Error fetching balance:", error instanceof Error ? error.message : 'Unknown error');
-      return null;
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error fetching balance';
+      setBalanceError(errorMessage);
+      console.error("Error fetching balance:", errorMessage);
+      throw error;
     }
-  }, [contract.rpcProviderApiKey, state.apiKey]);
+  }, [contract.NetworkHandlerConfig.rpcProviderApiKey, state.apiKey]);
 
   useEffect(() => {
     const fetchBalances = async () => {
       const defaultContract = state.paymentSources?.[0];
-      const apiKey = defaultContract?.rpcProviderApiKey;
+      const apiKey = defaultContract?.NetworkHandlerConfig?.rpcProviderApiKey;
 
       if (!apiKey) {
-        console.error('No Blockfrost API key found');
+        const errorMessage = 'No Blockfrost API key found';
+        console.error(errorMessage);
+        setBalanceError(errorMessage);
         return;
       }
 
@@ -126,11 +134,14 @@ export function WalletCard({
         const data = await fetchBalancePreprod(localAddress || '');
         setAdaBalance(data?.ada || 0);
         setUsdmBalance(data?.usdm || 0);
-        setFetchingBalance(false);
       } catch (error) {
-        console.error('Error fetching wallet balances:', error);
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Unknown error fetching balance';
+        console.error('Error fetching wallet balances:', errorMessage);
+        setBalanceError(errorMessage);
+      } finally {
         setFetchingBalance(false);
-        setBalanceError(error);
       }
     };
 
@@ -141,55 +152,29 @@ export function WalletCard({
 
   const refreshBalance = async () => {
     try {
-      setBalanceError(null)
-      setFetchingBalance(true)
-      const data = await fetchBalancePreprod(localAddress || '')
-      setAdaBalance(data?.ada || 0)
-      setUsdmBalance(data?.usdm || 0)
-      setFetchingBalance(false)
+      setBalanceError(null);
+      setFetchingBalance(true);
+      const data = await fetchBalancePreprod(localAddress || '');
+      setAdaBalance(data?.ada || 0);
+      setUsdmBalance(data?.usdm || 0);
     } catch (error) {
-      console.error('Error fetching wallet balances:', error);
-      setFetchingBalance(false)
-      setBalanceError(error)
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error fetching balance';
+      console.error('Error fetching wallet balances:', errorMessage);
+      setBalanceError(errorMessage);
+    } finally {
+      setFetchingBalance(false);
     }
-  }
+  };
 
   const handleTopUp = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const network = contract.network?.toLowerCase();
+    setShowTransak(true);
+  };
 
-    if (network === 'preprod') {
-      window.open('https://docs.cardano.org/cardano-testnets/tools/faucet', '_blank');
-      return;
-    }
-
-    const transak = new (Transak)({
-      apiKey: process.env.NEXT_PUBLIC_TRANSAK_API_KEY!,
-      environment: process.env.NODE_ENV === 'production' ? Transak.ENVIRONMENTS.PRODUCTION : Transak.ENVIRONMENTS.STAGING,
-      defaultCryptoCurrency: 'ADA',
-      walletAddress: localAddress || '',
-      defaultNetwork: type === 'mainnet' ? 'cardano' : 'cardano_preprod',
-      cryptoCurrencyList: 'ADA',
-      defaultPaymentMethod: 'credit_debit_card',
-      exchangeScreenTitle: 'Top up your wallet',
-      hideMenu: true,
-      themeColor: '#000000',
-      containerId: 'transak-widget',
-      widgetHeight: '650px',
-      widgetWidth: '450px'
-    });
-
-    transak.init();
-
-
-    Transak.on(Transak.EVENTS.TRANSAK_WIDGET_CLOSE, () => {
-      transak.close();
-    });
-
-    Transak.on(Transak.EVENTS.TRANSAK_ORDER_SUCCESSFUL, (orderData) => {
-      console.log('Order successful:', orderData);
-      transak.close();
-    });
+  const handleTransakClose = () => {
+    setShowTransak(false);
   };
 
   const handleExport = async (e: React.MouseEvent) => {
@@ -253,7 +238,17 @@ export function WalletCard({
 
         <div className="grid gap-2">
           {balanceError ? (
-            <div className="text-sm text-destructive">Error fetching balance. Please try again.</div>
+            <div className="space-y-2">
+              <div className="text-sm text-destructive">{balanceError as string}</div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={refreshBalance}
+                className="w-fit px-2 py-1 h-auto text-xs"
+              >
+                Try Again
+              </Button>
+            </div>
           ) : !fetchingBalance ? (
             <>
               <div className="text-sm">ADA Balance: {adaBalance?.toLocaleString() || "..."} ₳</div>
@@ -277,8 +272,8 @@ export function WalletCard({
         <div className="flex gap-1 justify-start mt-1">
           {(type === 'purchasing' || type === 'selling') && (
             <>
-              <Button variant="secondary" size="sm" onClick={handleTopUp} disabled={isExporting}>
-                Top up
+              <Button variant="secondary" size="sm" onClick={handleTopUp}>
+                Top Up
               </Button>
               <Button variant="secondary" size="sm" onClick={handleExport} disabled={isExporting}>
                 {isExporting ? 'Exporting...' : 'Export'}
@@ -379,6 +374,19 @@ export function WalletCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {showTransak && (
+        <TransakWidget
+          isOpen={showTransak}
+          onClose={handleTransakClose}
+          walletAddress={localAddress || ''}
+          network={contract.network}
+          onSuccess={() => {
+            // Refresh balance or perform other actions after successful purchase
+            refreshBalance?.();
+          }}
+        />
+      )}
     </>
   );
 }
