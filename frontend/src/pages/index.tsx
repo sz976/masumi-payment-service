@@ -11,7 +11,6 @@ interface OverviewProps {
 
 export const getStaticProps: GetStaticProps<OverviewProps> = async () => {
   try {
-    // Return empty initial data - will be populated client-side
     return {
       props: {
         initialPaymentSources: []

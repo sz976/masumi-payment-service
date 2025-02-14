@@ -45,7 +45,7 @@ const initialFormData: FormData = {
 
 export function CreateContractModal({ onClose }: CreateContractModalProps) {
   const { state } = useAppContext();
-  const defaultBlockfrostApiKey = state.paymentSources?.[0]?.rpcProviderApiKey || '';
+  const defaultBlockfrostApiKey = state.paymentSources?.[0]?.NetworkHandlerConfig?.rpcProviderApiKey || '';
 
   const [formData, setFormData] = useState<FormData>({
     ...initialFormData,
@@ -175,7 +175,7 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                   value={formData.blockfrostApiKey}
                   onChange={(e) => setFormData({ ...formData, blockfrostApiKey: e.target.value })}
                   placeholder="Using default Blockfrost API key"
-                  disabled={state.paymentSources?.[0]?.rpcProviderApiKey == undefined}
+                  disabled={state.paymentSources?.[0]?.NetworkHandlerConfig?.rpcProviderApiKey == undefined}
                 />
               </div>
 

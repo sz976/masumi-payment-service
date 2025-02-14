@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createContext, useContext, useReducer } from 'react';
+import { createContext, useContext, useReducer, useState, useCallback } from 'react';
+import { ErrorDialog } from '@/components/ui/error-dialog';
 
 interface AppState {
   paymentSources: {
@@ -8,7 +9,9 @@ interface AppState {
     paymentContractAddress: string;
     network: string;
     paymentType: string;
-    rpcProviderApiKey: string;
+    NetworkHandlerConfig: {
+      rpcProviderApiKey: string;
+    };
     adminWallets: {
       walletAddress: string;
     }[];
@@ -80,27 +83,30 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-interface AppContextType {
+export const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-}
+  showError: (error: { code?: number; message: string; details?: unknown }) => void;
+} | undefined>(undefined);
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-interface AppProviderProps {
-  children: React.ReactNode;
-  initialState: AppState;
-}
-
-export function AppProvider({ children, initialState }: AppProviderProps) {
+export function AppProvider({ children, initialState }: { children: React.ReactNode; initialState: AppState }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [error, setError] = useState<{ code?: number; message: string; details?: unknown } | null>(null);
 
-  const value = {
-    state,
-    dispatch
-  };
+  const showError = useCallback((error: { code?: number; message: string; details?: unknown }) => {
+    setError(error);
+  }, []);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={{ state, dispatch, showError }}>
+      {children}
+      <ErrorDialog 
+        open={!!error} 
+        onClose={() => setError(null)} 
+        error={error || { message: '' }} 
+      />
+    </AppContext.Provider>
+  );
 }
 
 export function useAppContext() {
