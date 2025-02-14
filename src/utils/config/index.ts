@@ -5,15 +5,34 @@ if (process.env.DATABASE_URL == null)
 if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length <= 20)
     throw new Error("Undefined or unsecure ENCRYPTION_KEY ENV variable. Require min 20 char")
 
+const batchPaymentInterval = Number(process.env.BATCH_PAYMENT_INTERVAL ?? "180");
+if (batchPaymentInterval < 20)
+    throw new Error("BATCH_PAYMENT_INTERVAL must be at least 20 seconds")
+const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? "180");
+if (checkTxInterval < 20)
+    throw new Error("CHECK_TX_INTERVAL must be at least 180 seconds")
+const checkCollectionInterval = Number(process.env.CHECK_COLLECTION_INTERVAL ?? "240");
+if (checkCollectionInterval < 20)
+    throw new Error("CHECK_COLLECTION_INTERVAL must be at least 20 seconds")
+const checkCollectRefundInterval = Number(process.env.CHECK_COLLECT_REFUND_INTERVAL ?? "300");
+if (checkCollectRefundInterval < 20)
+    throw new Error("CHECK_COLLECT_REFUND_INTERVAL must be at least 20 seconds")
+const checkRefundInterval = Number(process.env.CHECK_REFUND_INTERVAL ?? "300");
+if (checkRefundInterval < 20)
+    throw new Error("CHECK_REFUND_INTERVAL must be at least 20 seconds")
+const checkWalletTransactionHashInterval = Number(process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? "90");
+if (checkWalletTransactionHashInterval < 20)
+    throw new Error("CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 20 seconds")
+
 export const CONFIG = {
     PORT: process.env.PORT ?? "3001",
     DATABASE_URL: process.env.DATABASE_URL,
-    BATCH_PAYMENT_INTERVAL: Number(process.env.BATCH_PAYMENT_INTERVAL ?? "180"), // 3 minutes in seconds
-    CHECK_TX_INTERVAL: Number(process.env.CHECK_TX_INTERVAL ?? "180"), // 3 minutes in seconds
-    CHECK_COLLECTION_INTERVAL: Number(process.env.CHECK_COLLECTION_INTERVAL ?? "240"), // 4 minutes in seconds
-    CHECK_COLLECT_REFUND_INTERVAL: Number(process.env.CHECK_COLLECT_REFUND_INTERVAL ?? "300"), // 5 minutes in seconds
-    CHECK_REFUND_INTERVAL: Number(process.env.CHECK_REFUND_INTERVAL ?? "300"), // 5 minutes in seconds
-    CHECK_WALLET_TRANSACTION_HASH_INTERVAL: Number(process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? "90"), // 1,5 minutes in seconds
+    BATCH_PAYMENT_INTERVAL: batchPaymentInterval, // 3 minutes in seconds
+    CHECK_TX_INTERVAL: checkTxInterval, // 3 minutes in seconds
+    CHECK_COLLECTION_INTERVAL: checkCollectionInterval, // 4 minutes in seconds
+    CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval, // 5 minutes in seconds
+    CHECK_REFUND_INTERVAL: checkRefundInterval, // 5 minutes in seconds
+    CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval, // 1,5 minutes in seconds
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
 };
 
