@@ -19,7 +19,7 @@ export const getWalletSchemaOutput = z.object({
     Secret: z.object({
         createdAt: z.date(),
         updatedAt: z.date(),
-        secret: z.string(),
+        mnemonic: z.string(),
     }).optional(),
     PendingTransaction: z.object({
         createdAt: z.date(),
@@ -38,12 +38,21 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
     output: getWalletSchemaOutput,
     handler: async ({ input }) => {
         if (input.walletType == "Selling") {
-            const result = await prisma.hotWallet.findFirst({ where: { id: input.id, type: HotWalletType.SELLING }, include: { Secret: true, PendingTransaction: true, NetworkHandler: true } })
+            const result = await prisma.hotWallet.findFirst({
+                where: {
+                    id: input.id,
+                    type: HotWalletType.Selling
+                }, include: {
+                    Secret: true,
+                    PendingTransaction: true,
+                    PaymentSource: true
+                }
+            })
             if (result == null) {
                 throw createHttpError(404, "Selling wallet not found")
             }
             if (input.includeSecret == true) {
-                const decodedSecret = decrypt(result.Secret.secret)
+                const decodedMnemonic = decrypt(result.Secret.encryptedMnemonic)
                 return {
                     PendingTransaction: result.PendingTransaction ? {
                         createdAt: result.PendingTransaction.createdAt,
@@ -57,7 +66,7 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
                     Secret: {
                         createdAt: result.Secret.createdAt,
                         updatedAt: result.Secret.updatedAt,
-                        secret: decodedSecret
+                        mnemonic: decodedMnemonic
                     }
                 }
             }
@@ -73,13 +82,21 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
                 walletAddress: result.walletAddress
             }
         } else if (input.walletType == "Purchasing") {
-            const result = await prisma.hotWallet.findFirst({ where: { id: input.id, type: HotWalletType.PURCHASING }, include: { Secret: true, PendingTransaction: true, NetworkHandler: true } })
+            const result = await prisma.hotWallet.findFirst({
+                where: {
+                    id: input.id,
+                    type: HotWalletType.Purchasing
+                }, include: {
+                    Secret: true, PendingTransaction: true,
+                    PaymentSource: true
+                }
+            })
             if (result == null) {
                 throw createHttpError(404, "Purchasing wallet not found")
             }
 
             if (input.includeSecret == true) {
-                const decodedSecret = decrypt(result.Secret.secret)
+                const decodedMnemonic = decrypt(result.Secret.encryptedMnemonic)
                 return {
                     PendingTransaction: result.PendingTransaction ? {
                         createdAt: result.PendingTransaction.createdAt,
@@ -93,7 +110,7 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
                     Secret: {
                         createdAt: result.Secret.createdAt,
                         updatedAt: result.Secret.updatedAt,
-                        secret: decodedSecret
+                        mnemonic: decodedMnemonic
                     }
                 }
             }

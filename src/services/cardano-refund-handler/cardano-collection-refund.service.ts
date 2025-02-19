@@ -1,10 +1,10 @@
-import { $Enums } from "@prisma/client";
+import { HotWalletType, OnChainState, PurchaseErrorType, PurchasingAction, TransactionStatus, WalletType } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
+import { getPaymentScriptFromPaymentSourceV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
@@ -22,35 +22,33 @@ export async function collectRefundV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await lockAndQueryPurchases(
+        const paymentContractsWithWalletLocked = await lockAndQueryPurchases(
             {
-                purchasingStatus: $Enums.PurchasingRequestStatus.RefundRequestConfirmed,
-                errorType: null,
+                purchasingAction: PurchasingAction.WithdrawRefundRequested,
                 refundTime: {
                     gte: Date.now() + 1000 * 60 * 15 //add 15 minutes for block time
                 },
-                resultHash: null,
-                smartContractWalletPendingTransaction: null
             }
         )
 
-        await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
+        await Promise.allSettled(paymentContractsWithWalletLocked.map(async (paymentContract) => {
 
-            if (networkCheck.PurchaseRequests.length == 0)
+            if (paymentContract.PurchaseRequests.length == 0)
                 return;
 
-            const network = convertNetwork(networkCheck.network)
+            const network = convertNetwork(paymentContract.network)
 
 
-            const blockchainProvider = new BlockfrostProvider(networkCheck.NetworkHandlerConfig.rpcProviderApiKey, undefined);
+            const blockchainProvider = new BlockfrostProvider(paymentContract.PaymentSourceConfig.rpcProviderApiKey, undefined);
 
 
-            const purchaseRequests = networkCheck.PurchaseRequests;
+            const purchaseRequests = paymentContract.PurchaseRequests;
 
             if (purchaseRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ Amounts: { id: string; createdAt: Date; updatedAt: Date; purchaseRequestId: string | null; amount: bigint; unit: string; paymentRequestId: string | null; }[]; SellerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: $Enums.WalletType; networkHandlerId: string; note: string | null; }; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; secret: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: $Enums.HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; }) | null; CurrentStatus: { Transaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string | null; } | null; } & { id: string; createdAt: Date; updatedAt: Date; timestamp: Date; status: $Enums.PurchasingRequestStatus; resultHash: string | null; cooldownTimeSeller: bigint | null; cooldownTimeBuyer: bigint | null; transactionId: string | null; errorType: $Enums.PurchaseRequestErrorType | null; errorNote: string | null; errorRequiresManualReview: boolean | null; purchaseRequestId: string | null; requestedById: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; requestedById: string; networkHandlerId: string; sellerWalletId: string; smartContractWalletId: string | null; blockchainIdentifier: string; currentStatusId: string; })[] = []
+            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: PurchasingAction; submittedTxHash: string | null; errorType: PurchaseErrorType | null; errorNote: string | null; overrideRequestedById: string | null; purchaseRequestId: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; purchaseRequestId: string | null; amount: bigint; unit: string; paymentRequestId: string | null; }[]; SellerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: WalletType; paymentSourceId: string; note: string | null; }; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; sellerWalletId: string; smartContractWalletId: string | null; metadata: string | null; blockchainIdentifier: string; onChainState: OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; nextActionId: string; requestedById: string; currentTransactionId: string | null; })[] = []
+
             for (const request of purchaseRequests) {
                 if (request.smartContractWalletId == null)
                     continue;
@@ -63,17 +61,17 @@ export async function collectRefundV1() {
 
                 if (request.SmartContractWallet == null)
                     throw new Error("Smart contract wallet not found");
-                const { wallet, utxos, address } = await generateWalletExtended(networkCheck.network, networkCheck.NetworkHandlerConfig.rpcProviderApiKey, request.SmartContractWallet.Secret.secret!)
+                const { wallet, utxos, address } = await generateWalletExtended(paymentContract.network, paymentContract.PaymentSourceConfig.rpcProviderApiKey, request.SmartContractWallet.Secret.encryptedMnemonic)
 
                 if (utxos.length === 0) {
                     //this is if the seller wallet is empty
                     throw new Error('No UTXOs found in the wallet. Wallet is empty.');
                 }
 
-                const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
+                const { script, smartContractAddress } = await getPaymentScriptFromPaymentSourceV1(paymentContract)
 
 
-                const txHash = request.CurrentStatus?.Transaction?.txHash;
+                const txHash = request.CurrentTransaction?.txHash;
                 if (txHash == null) {
                     throw new Error('Transaction hash not found');
                 }
@@ -137,19 +135,17 @@ export async function collectRefundV1() {
                 const signedTx = await wallet.signTx(buildTransaction);
                 await prisma.purchaseRequest.update({
                     where: { id: request.id }, data: {
-                        CurrentStatus: {
+                        NextAction: {
                             create: {
-                                status: $Enums.PurchasingRequestStatus.RefundInitiated,
-                                timestamp: new Date(),
-                                Transaction: {
-                                    create: {
-                                        txHash: null,
-                                        BlocksWallet: { connect: { id: request.SmartContractWallet.id } }
-                                    }
-                                }
+                                requestedAction: PurchasingAction.SetRefundRequestedInitiated,
+                                submittedTxHash: null
                             }
                         },
-                        StatusHistory: { connect: { id: request.CurrentStatus.id } },
+                        ActionHistory: {
+                            connect: {
+                                id: request.NextAction.id
+                            }
+                        }
                     }
                 })
 
@@ -158,13 +154,20 @@ export async function collectRefundV1() {
 
                 await prisma.purchaseRequest.update({
                     where: { id: request.id }, data: {
-                        CurrentStatus: {
+                        CurrentTransaction: {
                             update: {
-                                Transaction: {
-                                    update: {
-                                        txHash: newTxHash,
+                                txHash: newTxHash,
+                                status: TransactionStatus.Pending,
+                                BlocksWallet: {
+                                    connect: {
+                                        id: request.SmartContractWallet.id
                                     }
                                 }
+                            }
+                        },
+                        TransactionHistory: {
+                            connect: {
+                                id: request.CurrentTransaction!.id
                             }
                         }
                     }
@@ -182,6 +185,10 @@ export async function collectRefundV1() {
             }))
         }))
 
+    }
+    catch (error) {
+        //TODO: Release the locked wallets
+        logger.error("Error collecting refund", { error: error })
     }
     finally {
         //library is strange as we can release from any non-acquired semaphore

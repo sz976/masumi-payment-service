@@ -1,16 +1,16 @@
 import { creditTokenRepository } from "@/repositories/creditTokens";
 import { InsufficientFundsError } from "@/utils/errors/insufficient-funds-error";
 import { logger } from "@/utils/logger";
-import { $Enums } from "@prisma/client";
+import { Network, PaymentType } from "@prisma/client";
 import createHttpError from "http-errors";
 async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, refundTime, unlockTime }:
     {
         id: string,
         cost: { amount: bigint, unit: string }[],
         metadata: string | null | undefined,
-        network: $Enums.Network,
+        network: Network,
         blockchainIdentifier: string,
-        paymentType: $Enums.PaymentType,
+        paymentType: PaymentType,
         contractAddress: string,
         sellerVkey: string,
         submitResultTime: bigint,

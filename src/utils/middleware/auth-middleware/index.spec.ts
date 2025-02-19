@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { testMiddleware } from 'express-zod-api';
 import { authMiddleware } from './index';
-import { $Enums } from '@prisma/client';
+import { } from '@prisma/client';
 
 jest.mock('@/utils/db', () => ({
     prisma: {
@@ -96,8 +96,8 @@ describe('authMiddleware', () => {
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
-            permission: $Enums.Permission.READ,
-            status: $Enums.ApiKeyStatus.ACTIVE,
+            permission: Permission.READ,
+            status: ApiKeyStatus.ACTIVE,
             usageLimited: true,
         });
 
@@ -113,8 +113,8 @@ describe('authMiddleware', () => {
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
-            permission: $Enums.Permission.READ_PAY,
-            status: $Enums.ApiKeyStatus.ACTIVE,
+            permission: Permission.READ_PAY,
+            status: ApiKeyStatus.ACTIVE,
             usageLimited: true,
         });
 
@@ -130,8 +130,8 @@ describe('authMiddleware', () => {
     it('should pass validation with valid user token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: $Enums.Permission.READ,
-            status: $Enums.ApiKeyStatus.ACTIVE,
+            permission: Permission.READ,
+            status: ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
@@ -153,8 +153,8 @@ describe('authMiddleware', () => {
     it('should pass validation with valid pay token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: $Enums.Permission.READ_PAY,
-            status: $Enums.ApiKeyStatus.ACTIVE,
+            permission: Permission.READ_PAY,
+            status: ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
@@ -175,8 +175,8 @@ describe('authMiddleware', () => {
     it('should pass validation with valid admin token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: $Enums.Permission.ADMIN,
-            status: $Enums.ApiKeyStatus.ACTIVE,
+            permission: Permission.ADMIN,
+            status: ApiKeyStatus.ACTIVE,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');

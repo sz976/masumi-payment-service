@@ -1,15 +1,19 @@
 import { DependsOnMethod, Routing } from "express-zod-api";
 import { healthEndpointGet } from '@/routes/api/health';
 import { queryAPIKeyEndpointGet as queryCentralizedRegistrySourceGet, addAPIKeyEndpointPost as addCentralizedRegistrySourceEndpointPost, updateAPIKeyEndpointPatch, deleteAPIKeyEndpointDelete as deleteCentralizedRegistrySourceEndpointDelete } from "./api-key";
-import { createPurchaseInitPost, queryPurchaseRequestGet, refundPurchasePatch } from "./purchases";
-import { paymentInitPost, paymentUpdatePatch, queryPaymentEntryGet, refundPaymentDelete } from "./payments";
+import { createPurchaseInitPost, queryPurchaseRequestGet } from "./purchases";
+import { paymentInitPost, queryPaymentEntryGet } from "./payments";
 import { queryAgentGet, registerAgentPost, unregisterAgentDelete } from "./registry";
-import { paymentSourceEndpointDelete, paymentSourceEndpointGet, paymentSourceEndpointPatch, paymentSourceEndpointPost } from "./payment-source";
+import { paymentSourceExtendedEndpointDelete, paymentSourceExtendedEndpointGet, paymentSourceExtendedEndpointPatch, paymentSourceExtendedEndpointPost } from "./payment-source-extended";
 import { queryAPIKeyStatusEndpointGet } from "./api-key-status";
 import { postWalletEndpointPost, queryWalletEndpointGet } from "./wallet";
 import { queryRpcProviderKeysEndpointGet } from "./rpc-api-keys";
 import { queryUTXOEndpointGet } from "./utxos";
-import { paymentContractEndpointGet } from "./payment-contract";
+import { paymentSourceEndpointGet } from "./payment-source";
+import { submitPaymentResultEndpointPost } from "./payments/submit-result";
+import { authorizePaymentRefundEndpointPost } from "./payments/authorize-refund";
+import { requestPurchaseRefundPost } from "./purchases/request-refund";
+import { cancelPurchaseRefundRequestPost } from "./purchases/cancel-refund-request";
 
 export const apiRouter: Routing = {
     v1: {
@@ -17,13 +21,22 @@ export const apiRouter: Routing = {
         "purchase": new DependsOnMethod({
             get: queryPurchaseRequestGet,
             post: createPurchaseInitPost,
-            patch: refundPurchasePatch,
+        }),
+        "purchase/request-refund": new DependsOnMethod({
+            post: requestPurchaseRefundPost,
+        }),
+        "purchase/cancel-refund-request": new DependsOnMethod({
+            post: cancelPurchaseRefundRequestPost,
         }),
         "payment": new DependsOnMethod({
             get: queryPaymentEntryGet,
             post: paymentInitPost,
-            patch: paymentUpdatePatch,
-            delete: refundPaymentDelete
+        }),
+        "payment/authorize-refund": new DependsOnMethod({
+            post: authorizePaymentRefundEndpointPost,
+        }),
+        "payment/submit-result": new DependsOnMethod({
+            post: submitPaymentResultEndpointPost,
         }),
         "registry": new DependsOnMethod({
             get: queryAgentGet,
@@ -43,11 +56,11 @@ export const apiRouter: Routing = {
             get: queryWalletEndpointGet,
             post: postWalletEndpointPost,
         }),
-        "payment-source": new DependsOnMethod({
-            get: paymentSourceEndpointGet,
-            post: paymentSourceEndpointPost,
-            patch: paymentSourceEndpointPatch,
-            delete: paymentSourceEndpointDelete
+        "payment-source-extended": new DependsOnMethod({
+            get: paymentSourceExtendedEndpointGet,
+            post: paymentSourceExtendedEndpointPost,
+            patch: paymentSourceExtendedEndpointPatch,
+            delete: paymentSourceExtendedEndpointDelete
         }),
         "rpc-api-keys": new DependsOnMethod({
             get: queryRpcProviderKeysEndpointGet,
@@ -55,8 +68,8 @@ export const apiRouter: Routing = {
         "utxos": new DependsOnMethod({
             get: queryUTXOEndpointGet,
         }),
-        "payment-contract": new DependsOnMethod({
-            get: paymentContractEndpointGet,
+        "payment-source": new DependsOnMethod({
+            get: paymentSourceEndpointGet,
         }),
     }
 }

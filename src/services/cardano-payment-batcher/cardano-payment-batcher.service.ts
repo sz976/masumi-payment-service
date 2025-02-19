@@ -1,4 +1,4 @@
-import { $Enums, HotWallet } from "@prisma/client";
+import { HotWallet, HotWalletType, PurchaseErrorType, PurchasingAction, TransactionStatus } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
@@ -23,38 +23,39 @@ export async function batchLatestPaymentEntriesV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await prisma.$transaction(async (prisma) => {
-            const networkChecks = await prisma.networkHandler.findMany({
+        const paymentContractsWithWalletLocked = await prisma.$transaction(async (prisma) => {
+            const paymentContracts = await prisma.paymentSource.findMany({
                 where: {
                     HotWallets: {
                         some: {
                             PendingTransaction: null,
-                            type: "PURCHASING"
+                            type: HotWalletType.Purchasing
                         }
                     }
                 },
                 include: {
                     PurchaseRequests: {
                         where: {
-                            CurrentStatus: {
-                                status: $Enums.PurchasingRequestStatus.PurchaseRequested,
+                            NextAction: {
+                                requestedAction: PurchasingAction.FundsLockingRequested,
                                 errorType: null,
-                                Transaction: null
-                            }
+                            },
+                            CurrentTransaction: { isNot: null }
                         },
                         include: {
                             Amounts: true,
                             SellerWallet: true,
                             SmartContractWallet: true,
-                            CurrentStatus: true,
-
+                            NextAction: true,
+                            CurrentTransaction: true,
                         }
                     },
-                    NetworkHandlerConfig: true,
+                    PaymentSourceConfig: true,
                     HotWallets: {
                         where: {
                             PendingTransaction: null,
-                            type: "PURCHASING"
+                            lockedAt: null,
+                            type: HotWalletType.Purchasing
                         },
                         include: {
                             Secret: true
@@ -62,47 +63,75 @@ export async function batchLatestPaymentEntriesV1() {
                     }
                 }
             })
+
             const walletsToLock: HotWallet[] = []
-            for (const networkCheck of networkChecks) {
-                for (const wallet of networkCheck.HotWallets) {
+            const paymentContractsToUse = []
+            for (const paymentContract of paymentContracts) {
+                const purchaseRequests = []
+                for (const purchaseRequest of paymentContract.PurchaseRequests) {
+
+                    //if the purchase request times out in less than 5 minutes, we ignore it
+                    const maxSubmitResultTime = Date.now() - 1000 * 60 * 5
+                    if (purchaseRequest.submitResultTime < maxSubmitResultTime) {
+                        logger.info("Purchase request times out in less than 5 minutes, ignoring", { purchaseRequest: purchaseRequest })
+                        await prisma.purchaseRequest.update({
+                            where: { id: purchaseRequest.id },
+                            data: {
+                                NextAction: {
+                                    create: { requestedAction: PurchasingAction.FundsLockingRequested, errorType: PurchaseErrorType.Unknown, errorNote: "Transaction timeout before sending", }
+                                },
+                                ActionHistory: {
+                                    connect: {
+                                        id: purchaseRequest.NextAction.id
+                                    }
+                                }
+                            }
+                        })
+                        continue;
+                    }
+                    purchaseRequests.push(purchaseRequest)
+                }
+                if (purchaseRequests.length == 0) {
+                    continue;
+                }
+                paymentContract.PurchaseRequests = purchaseRequests;
+                for (const wallet of paymentContract.HotWallets) {
                     if (!walletsToLock.some(w => w.id === wallet.id)) {
                         walletsToLock.push(wallet);
                         await prisma.hotWallet.update({
                             where: { id: wallet.id },
-                            data: { PendingTransaction: { create: { txHash: null } } }
+                            data: { lockedAt: new Date() }
                         })
                     }
                 }
+                paymentContractsToUse.push(paymentContract)
             }
+            return paymentContractsToUse;
+        }, { isolationLevel: "Serializable", maxWait: 10000, timeout: 10000 })
 
-            return networkChecks;
-        })
-
-        await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
-            const paymentRequests = networkCheck.PurchaseRequests;
+        await Promise.allSettled(paymentContractsWithWalletLocked.map(async (paymentContract) => {
+            const paymentRequests = paymentContract.PurchaseRequests;
             if (paymentRequests.length == 0) {
-                logger.info("no payment requests found for network " + networkCheck.network + " " + networkCheck.paymentContractAddress)
+                logger.info("no payment requests found for network " + paymentContract.network + " " + paymentContract.smartContractAddress)
                 return;
             }
 
-            const potentialWallets = networkCheck.HotWallets;
+            const potentialWallets = paymentContract.HotWallets;
 
             const walletAmounts = await Promise.all(potentialWallets.map(async (wallet) => {
-                const { wallet: meshWallet, } = await generateWalletExtended(networkCheck.network, networkCheck.NetworkHandlerConfig.rpcProviderApiKey, wallet.Secret.secret)
+                const { wallet: meshWallet, } = await generateWalletExtended(paymentContract.network, paymentContract.PaymentSourceConfig.rpcProviderApiKey, wallet.Secret.encryptedMnemonic)
                 const amounts = await meshWallet.getBalance();
-
-                //TODO check if conversion to float fails
                 return {
                     wallet: meshWallet,
                     walletId: wallet.id,
-                    scriptAddress: networkCheck.paymentContractAddress,
-                    amounts: amounts.map((amount) => ({ unit: amount.unit, quantity: parseFloat(amount.quantity) }))
+                    scriptAddress: paymentContract.smartContractAddress,
+                    amounts: amounts.map((amount) => ({ unit: amount.unit, quantity: BigInt(amount.quantity) }))
                 }
             }))
             const paymentRequestsRemaining = [...paymentRequests];
             const walletPairings = [];
             let maxBatchSizeReached = false;
-            //TODO: greedy search?
+
             for (const walletData of walletAmounts) {
                 const wallet = walletData.wallet;
                 const amounts = walletData.amounts;
@@ -138,7 +167,7 @@ export async function batchLatestPaymentEntriesV1() {
                         //deduct amounts from wallet
                         for (const paymentAmount of paymentRequest.Amounts) {
                             const walletAmount = amounts.find((amount) => amount.unit == paymentAmount.unit);
-                            walletAmount!.quantity -= parseInt(paymentAmount.amount.toString());
+                            walletAmount!.quantity -= paymentAmount.amount;
                         }
                         paymentRequestsRemaining.splice(index, 1);
 
@@ -148,20 +177,16 @@ export async function batchLatestPaymentEntriesV1() {
                 }
 
                 walletPairings.push({ wallet: wallet, scriptAddress: walletData.scriptAddress, walletId: walletData.walletId, batchedRequests: batchedPaymentRequests });
-                //TODO create tx
             }
             //only go into error state if we did not reach max batch size, as otherwise we might have enough funds in other wallets
             if (paymentRequestsRemaining.length > 0 && maxBatchSizeReached == false)
                 await Promise.allSettled(paymentRequestsRemaining.map(async (paymentRequest) => {
-                    //TODO create tx
                     await prisma.purchaseRequest.update({
                         where: { id: paymentRequest.id }, data: {
-                            CurrentStatus: {
+                            NextAction: {
                                 create: {
-                                    status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
-                                    timestamp: new Date(),
-                                    errorType: "INSUFFICIENT_FUNDS",
-                                    errorRequiresManualReview: true,
+                                    requestedAction: PurchasingAction.WaitingForManualAction,
+                                    errorType: PurchaseErrorType.InsufficientFunds,
                                     errorNote: "Not enough funds in wallets",
                                 }
                             }
@@ -189,10 +214,10 @@ export async function batchLatestPaymentEntriesV1() {
                             value: {
                                 alternative: 0,
                                 fields: [
-                                    buyerVerificationKeyHash,
-                                    sellerVerificationKeyHash,
-                                    paymentRequest.blockchainIdentifier,
-                                    paymentRequest.CurrentStatus.resultHash ?? '',
+                                    Buffer.from(buyerVerificationKeyHash).toString("hex"),
+                                    Buffer.from(sellerVerificationKeyHash).toString("hex"),
+                                    Buffer.from(paymentRequest.blockchainIdentifier).toString("hex"),
+                                    Buffer.from("").toString("hex"),
                                     submitResultTime,
                                     unlockTime,
                                     refundTime,
@@ -216,32 +241,23 @@ export async function batchLatestPaymentEntriesV1() {
                     const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
                         await prisma.purchaseRequest.update({
                             where: { id: request.id }, data: {
-                                CurrentStatus: {
+                                NextAction: {
                                     create: {
-                                        status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
-                                        timestamp: new Date(),
-                                        Transaction: {
-                                            create: {
-                                                txHash: null,
-                                                BlocksWallet: {
-                                                    connect: {
-                                                        id: walletId
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        requestedAction: PurchasingAction.FundsLockingInitiated,
+                                    },
+                                },
+                                ActionHistory: {
+                                    connect: {
+                                        id: request.NextAction.id
                                     }
                                 },
+
                                 SmartContractWallet: {
                                     connect: {
                                         id: walletId
                                     }
                                 },
-                                StatusHistory: {
-                                    connect: {
-                                        id: request.CurrentStatus.id
-                                    }
-                                }
+
                             }
                         })
                     }))
@@ -263,16 +279,22 @@ export async function batchLatestPaymentEntriesV1() {
                             const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
                                 await prisma.purchaseRequest.update({
                                     where: { id: request.id }, data: {
-                                        CurrentStatus: {
-                                            update: {
-                                                Transaction: {
-                                                    update: {
-                                                        txHash: txHash
+                                        CurrentTransaction: {
+                                            create: {
+                                                txHash: txHash,
+                                                status: TransactionStatus.Pending,
+                                                BlocksWallet: {
+                                                    connect: {
+                                                        id: walletId
                                                     }
-                                                },
-                                                status: $Enums.PurchasingRequestStatus.PurchaseInitiated,
+                                                }
                                             }
-                                        }
+                                        },
+                                        TransactionHistory: request.CurrentTransaction ? {
+                                            connect: {
+                                                id: request.CurrentTransaction.id
+                                            }
+                                        } : undefined
                                     }
                                 })
                             }))

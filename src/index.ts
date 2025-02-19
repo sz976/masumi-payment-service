@@ -9,14 +9,16 @@ import ui from "swagger-ui-express";
 import { generateOpenAPI } from "@/utils/generator/swagger-generator";
 import { cleanupDB, initDB } from "@/utils/db";
 import path from "path";
+import { requestLogger } from "@/utils/middleware/request-logger";
 
 const __dirname = path.resolve();
 
 async function initialize() {
     await initDB();
     await initJobs();
+    logger.info("Initialized all services");
 }
-
+logger.info("Initializing services");
 initialize()
     .then(async () => {
         const PORT = CONFIG.PORT;
@@ -31,6 +33,9 @@ initialize()
             },
             startupLogo: false,
             beforeRouting: ({ app, }) => {
+                // Add request logger middleware
+                app.use(requestLogger);
+
                 const replacer = (key: string, value: unknown): string | number | boolean | null | unknown => {
                     if (typeof value === 'bigint') {
                         return value.toString();
@@ -42,7 +47,7 @@ initialize()
                 };
                 const docs = generateOpenAPI();
                 const docsString = JSON.stringify(docs, replacer, 4);
-                logger.info("Serving the API documentation at localhost:" + PORT + "/docs");
+                logger.info("************** Now serving the API documentation at localhost:" + PORT + "/docs **************");
                 app.use("/docs", ui.serve, ui.setup(JSON.parse(docsString), {
                     explorer: false, swaggerOptions: {
                         persistAuthorization: true,

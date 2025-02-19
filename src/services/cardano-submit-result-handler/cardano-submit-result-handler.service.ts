@@ -1,10 +1,10 @@
-import { $Enums } from "@prisma/client";
+import { OnChainState, PaymentAction, TransactionStatus, WalletType, HotWalletType, PaymentErrorType } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Data, SLOT_CONFIG_NETWORK, Transaction, mBool, unixTimeToEnclosingSlot } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1, getSmartContractStateDatum, SmartContractState } from "@/utils/generator/contract-generator";
+import { getPaymentScriptFromPaymentSourceV1, getSmartContractStateDatum, SmartContractState } from "@/utils/generator/contract-generator";
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
@@ -20,35 +20,34 @@ export async function submitResultV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await lockAndQueryPayments(
+        //Submit a result for invalid tokens
+        const paymentContractsWithWalletLocked = await lockAndQueryPayments(
             {
-                paymentStatus: { in: [$Enums.PaymentRequestStatus.PaymentConfirmed, $Enums.PaymentRequestStatus.RefundRequested] },
-                errorType: null,
+                paymentStatus: PaymentAction.SubmitResultRequested,
                 submitResultTime: {
                     lte: Date.now() - 1000 * 60 * 1 //remove 1 minute for block time
                 },
                 resultHash: { not: null },
-                smartContractWalletPendingTransaction: null
             }
         )
 
-        await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
+        await Promise.allSettled(paymentContractsWithWalletLocked.map(async (paymentContract) => {
 
-            if (networkCheck.PaymentRequests.length == 0)
+            if (paymentContract.PaymentRequests.length == 0)
                 return;
 
-            const network = convertNetwork(networkCheck.network)
+            const network = convertNetwork(paymentContract.network)
 
-            const blockchainProvider = new BlockfrostProvider(networkCheck.NetworkHandlerConfig.rpcProviderApiKey);
+            const blockchainProvider = new BlockfrostProvider(paymentContract.PaymentSourceConfig.rpcProviderApiKey);
 
-            const paymentRequests = networkCheck.PaymentRequests;
+            const paymentRequests = paymentContract.PaymentRequests;
 
             if (paymentRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ Amounts: { id: string; createdAt: Date; updatedAt: Date; paymentRequestId: string | null; amount: bigint; unit: string; purchaseRequestId: string | null; }[]; BuyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: $Enums.WalletType; networkHandlerId: string; note: string | null; } | null; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; secret: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: $Enums.HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; }) | null; CurrentStatus: { Transaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string | null; } | null; } & { id: string; createdAt: Date; updatedAt: Date; timestamp: Date; status: $Enums.PaymentRequestStatus; resultHash: string | null; cooldownTimeSeller: bigint | null; cooldownTimeBuyer: bigint | null; transactionId: string | null; errorType: $Enums.PaymentRequestErrorType | null; errorNote: string | null; errorRequiresManualReview: boolean | null; requestedById: string | null; paymentRequestId: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; networkHandlerId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; requestedById: string; smartContractWalletId: string | null; buyerWalletId: string | null; currentStatusId: string; blockchainIdentifier: string; })[] = []
+            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: PaymentAction; resultHash: string | null; submittedTxHash: string | null; errorType: PaymentErrorType | null; errorNote: string | null; overrideRequestedById: string | null; paymentRequestId: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; paymentRequestId: string | null; amount: bigint; unit: string; purchaseRequestId: string | null; }[]; BuyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: WalletType; paymentSourceId: string; note: string | null; } | null; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; smartContractWalletId: string | null; buyerWalletId: string | null; nextActionId: string; metadata: string | null; blockchainIdentifier: string; onChainState: OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; requestedById: string; currentTransactionId: string | null; })[] = []
             for (const request of paymentRequests) {
-                if (request.smartContractWalletId == null)
+                if (request.smartContractWalletId == null || request.SmartContractWallet == null)
                     continue;
                 if (deDuplicatedRequests.some(r => r.smartContractWalletId == request.smartContractWalletId))
                     continue;
@@ -57,15 +56,15 @@ export async function submitResultV1() {
             }
 
             await Promise.allSettled(deDuplicatedRequests.map(async (request) => {
-                const { wallet, utxos, address } = await generateWalletExtended(networkCheck.network, networkCheck.NetworkHandlerConfig.rpcProviderApiKey, request.SmartContractWallet!.Secret.secret!)
+                const { wallet, utxos, address } = await generateWalletExtended(paymentContract.network, paymentContract.PaymentSourceConfig.rpcProviderApiKey, request.SmartContractWallet!.Secret.encryptedMnemonic)
 
                 if (utxos.length === 0) {
                     //this is if the seller wallet is empty
                     throw new Error('No UTXOs found in the wallet. Wallet is empty.');
                 }
 
-                const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
-                const txHash = request.CurrentStatus.Transaction?.txHash;
+                const { script, smartContractAddress } = await getPaymentScriptFromPaymentSourceV1(paymentContract)
+                const txHash = request.CurrentTransaction?.txHash;
                 if (txHash == null) {
                     throw new Error('No transaction hash found');
                 }
@@ -80,7 +79,7 @@ export async function submitResultV1() {
                 }
 
 
-                const buyerVerificationKeyHash = request.BuyerWallet?.walletVkey;
+                const buyerVerificationKeyHash = request.BuyerWallet!.walletVkey;
                 const sellerVerificationKeyHash = request.SmartContractWallet!.walletVkey;
 
                 const utxoDatum = utxo.output.plutusData;
@@ -98,10 +97,10 @@ export async function submitResultV1() {
                     value: {
                         alternative: 0,
                         fields: [
-                            buyerVerificationKeyHash,
-                            sellerVerificationKeyHash,
-                            request.blockchainIdentifier,
-                            request.CurrentStatus.resultHash,
+                            Buffer.from(buyerVerificationKeyHash).toString("hex"),
+                            Buffer.from(sellerVerificationKeyHash).toString("hex"),
+                            Buffer.from(request.blockchainIdentifier).toString("hex"),
+                            Buffer.from(request.NextAction.resultHash ?? "").toString("hex"),
                             decodedContract.resultTime,
                             decodedContract.unlockTime,
                             decodedContract.refundTime,
@@ -117,7 +116,7 @@ export async function submitResultV1() {
 
                 const redeemer = {
                     data: {
-                        alternative: 5,
+                        alternative: 4,
                         fields: [],
                     },
                 };
@@ -154,35 +153,37 @@ export async function submitResultV1() {
 
                 await prisma.paymentRequest.update({
                     where: { id: request.id }, data: {
-                        CurrentStatus: {
+                        NextAction: {
                             create: {
-                                timestamp: new Date(),
-                                Transaction: {
-                                    create: {
-                                        txHash: null,
-                                        BlocksWallet: {
-                                            connect: {
-                                                id: request.SmartContractWallet!.id
-                                            }
-                                        }
-                                    }
-                                },
-                                status: $Enums.PaymentRequestStatus.CompletedInitiated,
+                                requestedAction: PaymentAction.SubmitResultInitiated,
+                                resultHash: request.NextAction.resultHash,
                             }
                         },
+                        ActionHistory: {
+                            create: {
+                                requestedAction: PaymentAction.SubmitResultInitiated,
+                            }
+                        }
                     }
                 })
                 //submit the transaction to the blockchain
                 const newTxHash = await wallet.submitTx(signedTx);
                 await prisma.paymentRequest.update({
                     where: { id: request.id }, data: {
-                        CurrentStatus: {
-                            update: {
-                                Transaction: {
-                                    update: {
-                                        txHash: newTxHash
+                        CurrentTransaction: {
+                            create: {
+                                txHash: newTxHash,
+                                status: TransactionStatus.Pending,
+                                BlocksWallet: {
+                                    connect: {
+                                        id: request.SmartContractWallet!.id
                                     }
                                 }
+                            }
+                        },
+                        TransactionHistory: {
+                            connect: {
+                                id: request.CurrentTransaction!.id
                             }
                         }
                     }
@@ -200,6 +201,9 @@ export async function submitResultV1() {
             }))
         }))
 
+    }
+    catch (error) {
+        logger.error("Error submitting result", { error: error })
     }
     finally {
         //library is strange as we can release from any non-acquired semaphore
