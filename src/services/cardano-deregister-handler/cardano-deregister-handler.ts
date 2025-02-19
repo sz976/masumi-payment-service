@@ -1,4 +1,4 @@
-import { TransactionStatus, RegistrationState } from "@prisma/client";
+import { TransactionStatus, RegistrationState, HotWalletType } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { Transaction } from "@meshsdk/core";
@@ -38,7 +38,7 @@ export async function deRegisterAgentV1() {
             if (registryRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ Pricing: { id: string; createdAt: Date; updatedAt: Date; unit: string; quantity: bigint; registryRequestId: string | null; }[]; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: .HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { name: string; id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; state: .RegistrationState; smartContractWalletId: string | null; api_url: string; capability_name: string; capability_version: string; description: string | null; requests_per_hour: string | null; privacy_policy: string | null; terms: string | null; other: string | null; author_name: string; author_contact: string | null; author_organization: string | null; tags: string[]; agentIdentifier: string | null; currentTransactionId: string | null; })[] = []
+            const deDuplicatedRequests: ({ Pricing: { id: string; createdAt: Date; updatedAt: Date; unit: string; quantity: bigint; registryRequestId: string | null; }[]; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { name: string; id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; state: RegistrationState; smartContractWalletId: string | null; api_url: string; capability_name: string; capability_version: string; description: string | null; requests_per_hour: string | null; privacy_policy: string | null; terms: string | null; other: string | null; author_name: string; author_contact: string | null; author_organization: string | null; tags: string[]; agentIdentifier: string | null; currentTransactionId: string | null; })[] = []
             for (const request of registryRequests) {
                 if (request.smartContractWalletId == null || request.SmartContractWallet == null)
                     continue;
