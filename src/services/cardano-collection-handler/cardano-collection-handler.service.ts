@@ -44,7 +44,7 @@ export async function collectOutstandingPaymentsV1() {
             if (paymentRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: PaymentAction; resultHash: string | null; submittedTxHash: string | null; errorType: PaymentErrorType | null; errorNote: string | null; overrideRequestedById: string | null; paymentRequestId: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; paymentRequestId: string | null; amount: bigint; unit: string; purchaseRequestId: string | null; }[]; BuyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: WalletType; paymentSourceId: string; note: string | null; } | null; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; smartContractWalletId: string | null; buyerWalletId: string | null; nextActionId: string; metadata: string | null; blockchainIdentifier: string; onChainState: OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; requestedById: string; currentTransactionId: string | null; })[] = []
+            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: PaymentAction; resultHash: string | null; submittedTxHash: string | null; errorType: PaymentErrorType | null; errorNote: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; amount: bigint; unit: string; paymentRequestId: string | null; purchaseRequestId: string | null; }[]; BuyerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: WalletType; paymentSourceId: string; note: string | null; } | null; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; smartContractWalletId: string | null; buyerWalletId: string | null; nextActionId: string; metadata: string | null; blockchainIdentifier: string; onChainState: OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; requestedById: string; currentTransactionId: string | null; })[] = []
             for (const request of paymentRequests) {
                 if (request.smartContractWalletId == null)
                     continue;
@@ -176,15 +176,10 @@ export async function collectOutstandingPaymentsV1() {
                 await prisma.paymentRequest.update({
                     where: { id: request.id }, data: {
                         NextAction: {
-                            create: {
+                            update: {
                                 requestedAction: PaymentAction.WithdrawInitiated,
                             }
                         },
-                        ActionHistory: {
-                            connect: {
-                                id: request.NextAction.id
-                            }
-                        }
                     }
                 })
                 //submit the transaction to the blockchain

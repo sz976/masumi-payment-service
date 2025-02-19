@@ -32,11 +32,6 @@ export const queryPurchaseRequestSchemaOutput = z.object({
             errorType: z.nativeEnum(PurchaseErrorType).nullable(),
             errorNote: z.string().nullable(),
         }),
-        ActionHistory: z.array(z.object({
-            requestedAction: z.nativeEnum(PurchasingAction),
-            errorType: z.nativeEnum(PurchaseErrorType).nullable(),
-            errorNote: z.string().nullable(),
-        })),
         CurrentTransaction: z.object({
             id: z.string(),
             createdAt: z.date(),
@@ -113,10 +108,6 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
                 SmartContractWallet: true,
                 Amounts: true,
                 NextAction: true,
-                ActionHistory: {
-                    orderBy: { createdAt: 'desc', },
-                    take: (input.includeHistory == true ? undefined : 0)
-                },
                 PaymentSource: true,
                 CurrentTransaction: true,
                 TransactionHistory: {
@@ -246,7 +237,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
                 } else {
                     return { amount: BigInt(amount.amount), unit: amount.unit }
                 }
-            }), metadata: input.metadata, network: input.network, blockchainIdentifier: input.blockchainIdentifier, paymentType: input.paymentType, contractAddress: smartContractAddress, sellerVkey: input.sellerVkey, submitResultTime: submitResultTime, unlockTime: unlockTime, refundTime: refundTime
+            }), metadata: input.metadata, network: input.network,
+            blockchainIdentifier: input.blockchainIdentifier, paymentType: input.paymentType, contractAddress: smartContractAddress, sellerVkey: input.sellerVkey, submitResultTime: submitResultTime, unlockTime: unlockTime, refundTime: refundTime
         });
 
         return {

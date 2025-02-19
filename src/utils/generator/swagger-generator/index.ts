@@ -428,7 +428,6 @@ export function generateOpenAPI() {
                       errorNote: null
                     },
                     CurrentTransaction: null,
-                    ActionHistory: [],
                     TransactionHistory: [],
                     Amounts: [{
                       id: "amount_id",
@@ -756,7 +755,6 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null
                     },
-                    ActionHistory: [],
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     refundTime: (Date.now() + 1000 * 60 * 60 * 24).toString(),

@@ -11,7 +11,7 @@ CREATE TYPE "HotWalletType" AS ENUM ('Selling', 'Purchasing');
 CREATE TYPE "WalletType" AS ENUM ('Buyer', 'Seller');
 
 -- CreateEnum
-CREATE TYPE "RegistrationState" AS ENUM ('RegistrationRequested', 'RegistrationInitiated', 'RegistrationConfirmed', 'DeregistrationRequested', 'DeregistrationInitiated', 'DeregistrationConfirmed');
+CREATE TYPE "RegistrationState" AS ENUM ('RegistrationRequested', 'RegistrationInitiated', 'RegistrationConfirmed', 'RegistrationFailed', 'DeregistrationRequested', 'DeregistrationInitiated', 'DeregistrationConfirmed', 'DeregistrationFailed');
 
 -- CreateEnum
 CREATE TYPE "PaymentErrorType" AS ENUM ('NetworkError', 'Unknown');
@@ -198,7 +198,6 @@ CREATE TABLE "PaymentActionData" (
     "errorType" "PaymentErrorType",
     "errorNote" TEXT,
     "overrideRequestedById" TEXT,
-    "paymentRequestId" TEXT,
 
     CONSTRAINT "PaymentActionData_pkey" PRIMARY KEY ("id")
 );
@@ -238,7 +237,6 @@ CREATE TABLE "PurchaseActionData" (
     "errorType" "PurchaseErrorType",
     "errorNote" TEXT,
     "overrideRequestedById" TEXT,
-    "purchaseRequestId" TEXT,
 
     CONSTRAINT "PurchaseActionData_pkey" PRIMARY KEY ("id")
 );
@@ -392,9 +390,6 @@ ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_currentTransactionId
 ALTER TABLE "PaymentActionData" ADD CONSTRAINT "PaymentActionData_overrideRequestedById_fkey" FOREIGN KEY ("overrideRequestedById") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentActionData" ADD CONSTRAINT "PaymentActionData_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_paymentSourceId_fkey" FOREIGN KEY ("paymentSourceId") REFERENCES "PaymentSource"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -414,9 +409,6 @@ ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_currentTransaction
 
 -- AddForeignKey
 ALTER TABLE "PurchaseActionData" ADD CONSTRAINT "PurchaseActionData_overrideRequestedById_fkey" FOREIGN KEY ("overrideRequestedById") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PurchaseActionData" ADD CONSTRAINT "PurchaseActionData_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "PurchaseRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RequestAmount" ADD CONSTRAINT "RequestAmount_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;

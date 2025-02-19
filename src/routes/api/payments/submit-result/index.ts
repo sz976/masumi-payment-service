@@ -1,9 +1,10 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
-import { Network, OnChainState, PaymentAction, PaymentErrorType, PaymentType, } from '@prisma/client';
+import { Network, OnChainState, PaymentAction, PaymentErrorType, PaymentType, Permission, } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { DEFAULTS } from '@/utils/config';
+import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 
 export const submitPaymentResultSchemaInput = z.object({
     network: z.nativeEnum(Network).describe("The network the payment was received on"),
@@ -75,7 +76,11 @@ export const submitPaymentResultEndpointPost = readAuthenticatedEndpointFactory.
                         blockchainIdentifier: input.blockchainIdentifier,
                         NextAction: { requestedAction: { in: [PaymentAction.WaitingForExternalAction] } }
                     },
-                    include: { NextAction: true, SmartContractWallet: true }
+                    include: {
+                        NextAction: true,
+                        SmartContractWallet: true,
+                    },
+
                 }
             }
         })
@@ -86,25 +91,25 @@ export const submitPaymentResultEndpointPost = readAuthenticatedEndpointFactory.
             throw createHttpError(404, "Payment not found or in invalid state")
         }
         const payment = specifiedPaymentContract.PaymentRequests[0];
+        if (payment.requestedById != options.id && options.permission != Permission.Admin) {
+            throw createHttpError(403, "You are not authorized to submit results for this payment")
+        }
         if (payment.SmartContractWallet == null) {
             throw createHttpError(404, "Smart contract wallet not found")
         }
         if (payment.SmartContractWallet.walletVkey != input.sellerVkey) {
             throw createHttpError(400, "Seller vkey does not match")
         }
+        await checkIsAllowedNetworkOrThrowUnauthorized(options.networkLimit, input.network, options.permission)
 
         const result = await prisma.paymentRequest.update({
             where: { id: specifiedPaymentContract.PaymentRequests[0].id },
             data: {
                 NextAction: {
-                    create: {
+                    update: {
                         requestedAction: PaymentAction.SubmitResultRequested,
                         resultHash: input.submitResultHash,
-                        overrideRequestedById: options.id
                     }
-                },
-                ActionHistory: {
-                    connect: { id: payment.nextActionId }
                 },
             },
             include: {

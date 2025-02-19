@@ -1,6 +1,6 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
-import { Network, OnChainState, PaymentAction, PaymentErrorType, PaymentType, } from '@prisma/client';
+import { Network, OnChainState, PaymentAction, PaymentErrorType, PaymentType, Permission, } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { DEFAULTS } from '@/utils/config';
@@ -101,18 +101,16 @@ export const authorizePaymentRefundEndpointPost = readAuthenticatedEndpointFacto
             throw createHttpError(400, "Payment in invalid state")
         }
         await checkIsAllowedNetworkOrThrowUnauthorized(options.networkLimit, input.network, options.permission)
-
+        if (payment.requestedById != options.id && options.permission != Permission.Admin) {
+            throw createHttpError(403, "You are not authorized to authorize a refund for this payment")
+        }
         const result = await prisma.paymentRequest.update({
             where: { id: specifiedPaymentContract.PaymentRequests[0].id },
             data: {
                 NextAction: {
-                    create: {
+                    update: {
                         requestedAction: PaymentAction.AuthorizeRefundRequested,
-                        overrideRequestedById: options.id
                     }
-                },
-                ActionHistory: {
-                    connect: { id: payment.nextActionId }
                 },
             },
             include: {

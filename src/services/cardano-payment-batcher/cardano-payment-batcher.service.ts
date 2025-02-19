@@ -80,11 +80,6 @@ export async function batchLatestPaymentEntriesV1() {
                                 NextAction: {
                                     create: { requestedAction: PurchasingAction.FundsLockingRequested, errorType: PurchaseErrorType.Unknown, errorNote: "Transaction timeout before sending", }
                                 },
-                                ActionHistory: {
-                                    connect: {
-                                        id: purchaseRequest.NextAction.id
-                                    }
-                                }
                             }
                         })
                         continue;
@@ -242,16 +237,10 @@ export async function batchLatestPaymentEntriesV1() {
                         await prisma.purchaseRequest.update({
                             where: { id: request.id }, data: {
                                 NextAction: {
-                                    create: {
+                                    update: {
                                         requestedAction: PurchasingAction.FundsLockingInitiated,
                                     },
                                 },
-                                ActionHistory: {
-                                    connect: {
-                                        id: request.NextAction.id
-                                    }
-                                },
-
                                 SmartContractWallet: {
                                     connect: {
                                         id: walletId

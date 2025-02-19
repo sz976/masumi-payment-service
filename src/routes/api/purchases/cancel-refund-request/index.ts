@@ -1,6 +1,6 @@
 
 import { z } from 'zod';
-import { Network, PaymentType, PurchasingAction, TransactionStatus, OnChainState, PurchaseErrorType } from '@prisma/client';
+import { Network, PaymentType, PurchasingAction, TransactionStatus, OnChainState, PurchaseErrorType, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { DEFAULTS } from '@/utils/config';
@@ -83,7 +83,6 @@ export const cancelPurchaseRefundRequestPost = payAuthenticatedEndpointFactory.b
                         SellerWallet: true,
                         SmartContractWallet: true,
                         NextAction: true,
-                        ActionHistory: true,
                         CurrentTransaction: true,
                         TransactionHistory: true,
                         Amounts: true,
@@ -98,7 +97,9 @@ export const cancelPurchaseRefundRequestPost = payAuthenticatedEndpointFactory.b
             throw createHttpError(404, "Purchase not found or in invalid state")
         }
         const purchase = paymentContract.PurchaseRequests[0];
-
+        if (purchase.requestedById != options.id && options.permission != Permission.Admin) {
+            throw createHttpError(403, "You are not authorized to cancel a refund request for this purchase")
+        }
         if (purchase.CurrentTransaction == null) {
             throw createHttpError(400, "Purchase in invalid state")
         }
@@ -113,16 +114,12 @@ export const cancelPurchaseRefundRequestPost = payAuthenticatedEndpointFactory.b
         const result = await prisma.purchaseRequest.update({
             where: { id: purchase.id }, data: {
                 NextAction: {
-                    create: { requestedAction: PurchasingAction.UnSetRefundRequestedRequested }
+                    update: { requestedAction: PurchasingAction.UnSetRefundRequestedRequested }
 
                 },
-                ActionHistory: {
-                    connect: { id: purchase.nextActionId }
-                }
             },
             include: {
                 NextAction: true,
-                ActionHistory: true,
                 CurrentTransaction: true,
                 TransactionHistory: true,
                 Amounts: true,

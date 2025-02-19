@@ -53,7 +53,7 @@ export async function updateWalletTransactionHash() {
                     await prisma.hotWallet.update({
                         where: { id: wallet.id },
                         data: {
-                            PendingTransaction: { disconnect: true },
+                            PendingTransaction: { disconnect: true, },
                             lockedAt: null
                         }
                     });

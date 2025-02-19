@@ -9,19 +9,17 @@ datasource db {
 }
 
 model ApiKey {
-  id                    String               @id @default(cuid())
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  token                 String               @unique
+  id                    String            @id @default(cuid())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  token                 String            @unique
   status                ApiKeyStatus
   permission            Permission
   networkLimit          Network[]
-  usageLimited          Boolean              @default(false)
+  usageLimited          Boolean           @default(false)
   RemainingUsageCredits UsageCredit[]
   PurchaseRequest       PurchaseRequest[]
   PaymentRequest        PaymentRequest[]
-  PaymentActionData     PaymentActionData[]
-  PurchaseActionData    PurchaseActionData[]
   deletedAt             DateTime?
 }
 
@@ -136,10 +134,12 @@ enum RegistrationState {
   RegistrationRequested
   RegistrationInitiated
   RegistrationConfirmed
+  RegistrationFailed
 
   DeregistrationRequested
   DeregistrationInitiated
   DeregistrationConfirmed
+  DeregistrationFailed
 }
 
 model RegistryRequest {
@@ -208,8 +208,6 @@ model PaymentRequest {
   NextAction   PaymentActionData @relation("NextAction", fields: [nextActionId], references: [id])
   nextActionId String            @unique
 
-  ActionHistory PaymentActionData[] @relation("ActionHistory")
-
   metadata String?
 
   Amounts RequestAmount[]
@@ -246,11 +244,7 @@ model PaymentActionData {
   errorType PaymentErrorType?
   errorNote String?
 
-  overrideRequestedBy   ApiKey?         @relation(fields: [overrideRequestedById], references: [id])
-  overrideRequestedById String?
   PaymentRequestCurrent PaymentRequest? @relation("NextAction")
-  PaymentRequestHistory PaymentRequest? @relation("ActionHistory", fields: [paymentRequestId], references: [id])
-  paymentRequestId      String?
 }
 
 model PurchaseRequest {
@@ -282,9 +276,8 @@ model PurchaseRequest {
   sellerCoolDownTime BigInt
   buyerCoolDownTime  BigInt
 
-  NextAction    PurchaseActionData   @relation("NextAction", fields: [nextActionId], references: [id])
-  nextActionId  String               @unique
-  ActionHistory PurchaseActionData[] @relation("ActionHistory")
+  NextAction   PurchaseActionData @relation("NextAction", fields: [nextActionId], references: [id])
+  nextActionId String             @unique
 
   requestedBy          ApiKey        @relation(fields: [requestedById], references: [id])
   requestedById        String
@@ -307,11 +300,6 @@ model PurchaseActionData {
   errorType PurchaseErrorType?
   errorNote String?
 
-  overrideRequestedBy   ApiKey? @relation(fields: [overrideRequestedById], references: [id])
-  overrideRequestedById String?
-
-  PurchaseRequest        PurchaseRequest? @relation("ActionHistory", fields: [purchaseRequestId], references: [id])
-  purchaseRequestId      String?
   PurchaseRequestCurrent PurchaseRequest? @relation("NextAction")
 }
 

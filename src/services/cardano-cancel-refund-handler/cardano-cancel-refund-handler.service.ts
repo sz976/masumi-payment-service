@@ -1,4 +1,4 @@
-import { PurchasingAction, TransactionStatus, } from "@prisma/client";
+import { HotWalletType, OnChainState, PurchaseErrorType, PurchasingAction, TransactionStatus, WalletType, } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
@@ -43,7 +43,7 @@ export async function cancelRefundsV1() {
             if (purchaseRequests.length == 0)
                 return;
             //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: .PurchasingAction; submittedTxHash: string | null; errorType: .PurchaseErrorType | null; errorNote: string | null; overrideRequestedById: string | null; purchaseRequestId: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: .TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; purchaseRequestId: string | null; amount: bigint; unit: string; paymentRequestId: string | null; }[]; SellerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: .WalletType; paymentSourceId: string; note: string | null; }; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: .HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; sellerWalletId: string; smartContractWalletId: string | null; metadata: string | null; blockchainIdentifier: string; onChainState: .OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; nextActionId: string; requestedById: string; currentTransactionId: string | null; })[] = []
+            const deDuplicatedRequests: ({ NextAction: { id: string; createdAt: Date; updatedAt: Date; requestedAction: PurchasingAction; submittedTxHash: string | null; errorType: PurchaseErrorType | null; errorNote: string | null; }; CurrentTransaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string; status: TransactionStatus; paymentRequestHistoryId: string | null; purchaseRequestHistoryId: string | null; } | null; Amounts: { id: string; createdAt: Date; updatedAt: Date; amount: bigint; unit: string; paymentRequestId: string | null; purchaseRequestId: string | null; }[]; SellerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: WalletType; paymentSourceId: string; note: string | null; }; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; encryptedMnemonic: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; paymentSourceId: string; lockedAt: Date | null; note: string | null; }) | null; } & { id: string; createdAt: Date; updatedAt: Date; paymentSourceId: string; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; resultHash: string; sellerWalletId: string; smartContractWalletId: string | null; metadata: string | null; blockchainIdentifier: string; onChainState: OnChainState | null; sellerCoolDownTime: bigint; buyerCoolDownTime: bigint; nextActionId: string; requestedById: string; currentTransactionId: string | null; })[] = []
             for (const request of purchaseRequests) {
                 if (request.smartContractWalletId == null)
                     continue;
@@ -129,11 +129,10 @@ export async function cancelRefundsV1() {
                 await prisma.purchaseRequest.update({
                     where: { id: request.id }, data: {
                         NextAction: {
-                            create: {
+                            update: {
                                 requestedAction: PurchasingAction.UnSetRefundRequestedInitiated,
                             }
                         },
-                        ActionHistory: { connect: { id: request.NextAction.id } },
                     }
                 })
 

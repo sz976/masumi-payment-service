@@ -19,7 +19,50 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
     //if we are already performing an update, we wait for it to finish and return
     if (!acquiredMutex)
         return await updateMutex.acquire();
+    try {
 
+
+
+        await prisma.paymentActionData.updateMany({
+            where: {
+
+                requestedAction: { in: [PaymentAction.WithdrawInitiated, PaymentAction.SubmitResultInitiated, PaymentAction.AuthorizeRefundInitiated] },
+                updatedAt: {
+                    lt: new Date(Date.now() -
+                        //15 minutes for timeouts, check every tx older than 1 minute
+                        1000 * 60 * 15
+                    )
+                }
+            },
+            data: {
+                requestedAction: PaymentAction.WaitingForExternalAction,
+                errorNote: "Timeout waiting for transaction",
+                errorType: PaymentErrorType.Unknown
+            }
+        })
+    } catch (error) {
+        logger.error("Error updating timed out payment actions", { error: error })
+    }
+    try {
+        await prisma.purchaseActionData.updateMany({
+            where: {
+                requestedAction: { in: [PurchasingAction.FundsLockingInitiated] },
+                updatedAt: {
+                    lt: new Date(Date.now() -
+                        //15 minutes for timeouts, check every tx older than 1 minute
+                        1000 * 60 * 15
+                    )
+                }
+            },
+            data: {
+                requestedAction: PurchasingAction.WaitingForExternalAction,
+                errorNote: "Timeout waiting for transaction",
+                errorType: PurchaseErrorType.Unknown
+            }
+        })
+    } catch (error) {
+        logger.error("Error updating timed out purchase actions", { error: error })
+    }
     try {
         //only support web3 cardano v1 for now
         const paymentContracts = await prisma.$transaction(async (prisma) => {
@@ -69,40 +112,62 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                             id: paymentContract.id
                         },
                         state: { in: [RegistrationState.RegistrationInitiated, RegistrationState.DeregistrationInitiated] },
-                        agentIdentifier: { not: null }
+                        agentIdentifier: { not: null },
+                        updatedAt: {
+                            lt: new Date(Date.now() -
+                                //15 minutes for timeouts, check every tx older than 1 minute
+                                1000 * 60 * 1
+                            )
+                        }
                     }
                 })
-                const retriedRegistryRequests = await advancedRetryAll({
+                const checkedRegistryRequests = await advancedRetryAll({
                     operations: registryRequests.map((registryRequest) => async () => {
                         const owner = await blockfrost.assetsAddresses(registryRequest.agentIdentifier!)
-                        if (registryRequest.state == RegistrationState.RegistrationInitiated && owner.length == 1 && owner[0].quantity == "1") {
-                            await prisma.registryRequest.update({
-                                where: { id: registryRequest.id },
-                                data: {
-                                    state: RegistrationState.RegistrationConfirmed
-                                }
-                            })
-                        } else if (registryRequest.state == RegistrationState.DeregistrationInitiated && owner.length == 0) {
-                            await prisma.registryRequest.update({
-                                where: { id: registryRequest.id },
-                                data: {
-                                    state: RegistrationState.DeregistrationConfirmed
-                                }
-                            })
+                        if (registryRequest.state == RegistrationState.RegistrationInitiated) {
+                            if (owner.length == 1 && owner[0].quantity == "1") {
+                                await prisma.registryRequest.update({
+                                    where: { id: registryRequest.id },
+                                    data: {
+                                        state: RegistrationState.RegistrationConfirmed
+                                    }
+                                })
+                            } else if (registryRequest.updatedAt < new Date(Date.now() - 1000 * 60 * 15)) {
+                                await prisma.registryRequest.update({
+                                    where: { id: registryRequest.id },
+                                    data: {
+                                        state: RegistrationState.RegistrationFailed
+                                    }
+                                })
+                            }
+                        } else if (registryRequest.state == RegistrationState.DeregistrationInitiated) {
+                            if (owner.length == 0) {
+                                await prisma.registryRequest.update({
+                                    where: { id: registryRequest.id },
+                                    data: {
+                                        state: RegistrationState.DeregistrationConfirmed
+                                    }
+                                })
+                            } else if (registryRequest.updatedAt < new Date(Date.now() - 1000 * 60 * 15)) {
+                                await prisma.registryRequest.update({
+                                    where: { id: registryRequest.id },
+                                    data: {
+                                        state: RegistrationState.DeregistrationFailed
+                                    }
+                                })
+                            }
                         }
-                        return;
                     }),
                     errorResolvers: [delayErrorResolver({ configuration: { maxRetries: 2, backoffMultiplier: 2, initialDelayMs: 500, maxDelayMs: 1500 } })]
                 })
 
-                retriedRegistryRequests.forEach(x => {
+                checkedRegistryRequests.forEach(x => {
                     if (x.success == false) {
                         logger.warn("Failed to update registry request")
                     }
                 })
 
                 const latestIdentifier = paymentContract.lastIdentifierChecked;
-
 
                 let latestTx: { tx_hash: string }[] = []
                 let foundTx = -1
@@ -236,7 +301,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                                     errorType: PurchaseErrorType.Unknown
                                                 }
                                             },
-                                            ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         }
                                     })
                                     return;
@@ -255,7 +319,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                                     errorType: PurchaseErrorType.Unknown
                                                 }
                                             },
-                                            ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         }
                                     })
                                     return;
@@ -313,7 +376,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                                 requestedAction: PurchasingAction.WaitingForExternalAction,
                                             }
                                         },
-                                        ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         TransactionHistory: dbEntry.currentTransactionId != null ? { connect: { id: dbEntry.currentTransactionId } } : undefined,
                                         CurrentTransaction: {
                                             create: {
@@ -361,7 +423,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                                     errorType: PaymentErrorType.Unknown
                                                 }
                                             },
-                                            ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         }
                                     })
                                     return;
@@ -378,7 +439,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                                     errorType: PaymentErrorType.Unknown
                                                 }
                                             },
-                                            ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         }
                                     })
                                     return;
@@ -475,10 +535,9 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                                         NextAction: {
                                             create: {
                                                 requestedAction: newAction,
-                                                errorNote: errorNote.join(";\n ")
+                                                errorNote: errorNote.length > 0 ? errorNote.join(";\n ") : undefined
                                             }
                                         },
-                                        ActionHistory: { connect: { id: dbEntry.nextActionId } },
                                         TransactionHistory: dbEntry.currentTransactionId != null ? { connect: { id: dbEntry.currentTransactionId } } : undefined,
                                         CurrentTransaction: {
                                             create: {
@@ -731,8 +790,6 @@ async function handlePaymentTransactionCardanoV1(tx_hash: string, newStatus: OnC
 
         const newAction = convertNewPaymentActionAndError(currentAction, newStatus)
 
-
-
         await prisma.paymentRequest.update({
             where: { id: paymentRequest.id },
             data: {
@@ -743,7 +800,6 @@ async function handlePaymentTransactionCardanoV1(tx_hash: string, newStatus: OnC
                         errorType: newAction.errorType
                     }
                 },
-                ActionHistory: { connect: { id: paymentRequest.nextActionId } },
                 TransactionHistory: paymentRequest.currentTransactionId != null ? { connect: { id: paymentRequest.currentTransactionId } } : undefined,
                 CurrentTransaction: {
                     create: {
@@ -771,7 +827,6 @@ async function handlePurchasingTransactionCardanoV1(tx_hash: string, newStatus: 
         }
         const newAction = convertNewPurchasingActionAndError(currentAction, newStatus)
 
-
         await prisma.purchaseRequest.update({
             where: { id: purchasingRequest.id },
             data: {
@@ -782,7 +837,6 @@ async function handlePurchasingTransactionCardanoV1(tx_hash: string, newStatus: 
                         errorType: newAction.errorType
                     }
                 },
-                ActionHistory: { connect: { id: purchasingRequest.nextActionId } },
                 TransactionHistory: purchasingRequest.currentTransactionId != null ? { connect: { id: purchasingRequest.currentTransactionId } } : undefined,
                 CurrentTransaction: {
                     create: {

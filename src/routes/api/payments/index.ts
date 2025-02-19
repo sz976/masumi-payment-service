@@ -37,11 +37,6 @@ export const queryPaymentsSchemaOutput = z.object({
             errorType: z.nativeEnum(PaymentErrorType).nullable(),
             errorNote: z.string().nullable(),
         }),
-        ActionHistory: z.array(z.object({
-            requestedAction: z.nativeEnum(PaymentAction),
-            errorType: z.nativeEnum(PaymentErrorType).nullable(),
-            errorNote: z.string().nullable(),
-        })),
         CurrentTransaction: z.object({
             id: z.string(),
             createdAt: z.date(),
@@ -117,10 +112,6 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
                 PaymentSource: true,
                 Amounts: true,
                 NextAction: true,
-                ActionHistory: {
-                    orderBy: { createdAt: 'desc' },
-                    take: (input.includeHistory == true ? undefined : 0)
-                },
                 CurrentTransaction: true,
                 TransactionHistory: {
                     orderBy: { createdAt: 'desc' },
