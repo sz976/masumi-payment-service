@@ -23,7 +23,7 @@ export function ApiKeyDialog() {
         client: apiClient,
       });
 
-      if (response.data?.status !== 'Active') {
+      if (response.data?.data.status !== 'Active') {
         throw new Error('API key is not active');
       }
 
