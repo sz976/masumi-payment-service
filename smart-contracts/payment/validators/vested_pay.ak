@@ -52,7 +52,6 @@ pub type Action {
 }
 
 validator vested_pay(
-  //TODO: add required number of admins for the multi sig
   required_admins_multi_sig: Int,
   admin_vks: List<VerificationKeyHash>,
   fee_address: Address,
@@ -155,7 +154,7 @@ validator vested_pay(
         expect or {
             state == FundsLocked,
             state == ResultSubmitted,
-            //allow to set the field again, to in theory signal a dispute when the result hash is updated or allow to increase the amount of funds locked
+            //allow to set the field again, to in theory signal a dispute when the result hash is updated
             state == RefundRequested,
             state == Disputed,
           }
@@ -188,6 +187,7 @@ validator vested_pay(
             state == FundsLocked,
             state == RefundRequested,
           }
+
         and {
           must_start_after(validity_range, submit_result_time),
           bytearray.is_empty(result_hash),
@@ -208,9 +208,6 @@ validator vested_pay(
         expect must_start_after(validity_range, buyer_cooldown_time)
 
         expect or {
-            state == FundsLocked,
-            state == ResultSubmitted,
-            //allow to set the field again, to in theory allow to increase the amount of funds locked
             state == RefundRequested,
             state == Disputed,
           }
@@ -363,7 +360,7 @@ fn output_value_is_preserved(input_value: Value, output_value: Value) {
     |> list.all(
         fn(asset) {
           let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
-          out_value >= asset.3rd
+          out_value == asset.3rd
         },
       )
 }
@@ -377,7 +374,7 @@ test output_value_is_preserved_succeeds() {
   let output_value: Value =
     assets.from_lovelace(100)
       |> assets.add("foo", "bar", 51)
-      |> assets.add("foo2", "bar", 33)
+      |> assets.add("foo2", "bar", 32)
       |> assets.add("foo2", "baz", 1)
   output_value_is_preserved(input_value, output_value)
 }
@@ -423,6 +420,27 @@ test output_value_is_preserved_fails_4() {
     assets.from_lovelace(98)
       |> assets.add("foo", "bar", 42)
       |> assets.add("foo", "baz", 100)
+  output_value_is_preserved(input_value, output_value) == False
+}
+test output_value_is_preserved_fails_4() {
+  let input_value: Value =
+    assets.from_lovelace(100)
+      |> assets.add("foo", "bar", 42)
+
+  let output_value: Value =
+    assets.from_lovelace(98)
+      |> assets.add("foo", "bar", 43)
+  output_value_is_preserved(input_value, output_value) == False
+}
+test output_value_is_preserved_fails_4() {
+  let input_value: Value =
+    assets.from_lovelace(100)
+      |> assets.add("foo", "bar", 42)
+
+  let output_value: Value =
+    assets.from_lovelace(98)
+      |> assets.add("foo", "bar", 42)
+      |> assets.add("foo", "bar1", 1)
   output_value_is_preserved(input_value, output_value) == False
 }
 

@@ -22,11 +22,16 @@ variables
   time. (Defaults apply if not set)
   - **CHECK_WALLET_TRANSACTION_HASH_INTERVAL**: delay in seconds for checking wallet transaction hash. This also
     reruns potentially effected services by unlocking the wallet
-  - **BATCH_PAYMENT_INTERVAL**: delay in seconds for batching requests
-  - **CHECK_COLLECTION_INTERVAL**: delay in seconds for checking collection
-  - **CHECK_TX_INTERVAL**: delay in seconds for checking payment
-  - **CHECK_COLLECT_REFUND_INTERVAL**: delay in seconds for checking collection and refund
-  - **CHECK_REFUND_INTERVAL**: delay in seconds for checking refunds
+  - **BATCH_PAYMENT_INTERVAL**: check interval in seconds for batching requests
+  - **CHECK_COLLECTION_INTERVAL**: check interval in seconds for checking collection
+  - **CHECK_TX_INTERVAL**: check interval in seconds for checking payment
+  - **CHECK_COLLECT_REFUND_INTERVAL**: check interval in seconds for checking collection and refund
+  - **CHECK_SET_REFUND_INTERVAL**: check interval in seconds for checking set refund
+  - **CHECK_UNSET_REFUND_INTERVAL**: check interval in seconds for checking unset refund
+  - **CHECK_AUTHORIZE_REFUND_INTERVAL**: check interval in seconds for checking authorize refund
+  - **CHECK_SUBMIT_RESULT_INTERVAL**: check interval in seconds for checking submit result
+  - **REGISTER_AGENT_INTERVAL**: check interval in seconds for registering agent
+  - **DEREGISTER_AGENT_INTERVAL**: check interval in seconds for deregistering agent
 
 1. If you're setting up the database for the first time (or want to provide some initial data) you also need the
    following variables:

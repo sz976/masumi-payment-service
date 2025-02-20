@@ -7,9 +7,8 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BlinkingUnderscore from "../BlinkingUnderscore";
-import { getWallet } from "@/lib/api/wallet";
-import { getWalletBalance } from "@/lib/api/balance/get";
 import { TransakWidget } from './TransakWidget';
+import { getUtxos, getWallet } from "@/lib/api/generated";
 
 export function WalletCard({
   type,
@@ -60,20 +59,23 @@ export function WalletCard({
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [walletSecret, setWalletSecret] = useState<string | null>(null);
   const [showTransak, setShowTransak] = useState(false);
+  const { apiClient } = useAppContext();
 
   const walletType = type === 'selling' ? 'Selling' : 'Purchasing';
 
   const fetchWalletAddress = useCallback(async () => {
     try {
       setIsFetchingAddress(true);
-      const response = await getWallet(state.apiKey!, {
-        walletType,
-        id: walletId!,
-        includeSecret: true
+      const response = await getWallet({
+        client: apiClient,
+        query: {
+          walletType,
+          id: walletId!,
+          includeSecret: "true"
+        }
       });
 
-
-      const data = response.data?.wallet;
+      const data = response.data?.data;
       return data?.walletAddress;
     } catch (error) {
       console.error('Error fetching wallet address:', error);
@@ -81,7 +83,7 @@ export function WalletCard({
     } finally {
       setIsFetchingAddress(false);
     }
-  }, [walletId, state.apiKey, walletType]);
+  }, [apiClient, walletType, walletId]);
 
   useEffect(() => {
     if (!localAddress && walletId) {
@@ -96,38 +98,54 @@ export function WalletCard({
   const fetchBalancePreprod = useCallback(async (address: string) => {
     try {
       setFetchingBalance(true);
-      const data = await getWalletBalance(state.apiKey!, {
-        walletAddress: address,
-        network: 'preprod',
-        blockfrostApiKey: contract.NetworkHandlerConfig.rpcProviderApiKey
+      const result = await getUtxos({
+        client: apiClient,
+        //no cache
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        query: {
+          address: address,
+          network: 'Preprod',
+        }
       });
+      const usdmPolicyId = "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad";
+      const usdmHex = "0014df105553444d";
 
-      setAdaBalance(data?.ada || 0);
-      setUsdmBalance(data?.usdm || 0);
+      const lovelace = result?.data?.data?.utxos?.reduce((acc, utxo) => {
+        return acc + utxo.amount.reduce((acc, asset) => {
+          if (asset.unit === 'lovelace' || asset.unit === '') {
+            return acc + (asset.quantity ?? 0);
+          }
+          return acc;
+        }, 0)
+      }, 0);
+      const usdm = result?.data?.data?.utxos?.reduce((acc, utxo) => {
+        return acc + utxo.amount.reduce((acc, asset) => {
+          if (asset.unit === usdmPolicyId + usdmHex) {
+            return acc + (asset.quantity ?? 0);
+          }
+          return acc;
+        }, 0)
+      }, 0);
+      setAdaBalance((lovelace || 0) / 1000000);
+      setUsdmBalance((usdm || 0) / 10000000);
       setFetchingBalance(false);
-      return data;
+      return { ada: (lovelace || 0) / 1000000, usdm: (usdm || 0) / 10000000 };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : 'Unknown error fetching balance';
       setBalanceError(errorMessage);
       console.error("Error fetching balance:", errorMessage);
       throw error;
     }
-  }, [contract.NetworkHandlerConfig.rpcProviderApiKey, state.apiKey]);
+  }, [apiClient]);
 
   useEffect(() => {
     const fetchBalances = async () => {
-      const defaultContract = state.paymentSources?.[0];
-      const apiKey = defaultContract?.NetworkHandlerConfig?.rpcProviderApiKey;
-
-      if (!apiKey) {
-        const errorMessage = 'No Blockfrost API key found';
-        console.error(errorMessage);
-        setBalanceError(errorMessage);
-        return;
-      }
-
       try {
         setFetchingBalance(true);
         setBalanceError(null);
@@ -135,8 +153,8 @@ export function WalletCard({
         setAdaBalance(data?.ada || 0);
         setUsdmBalance(data?.usdm || 0);
       } catch (error) {
-        const errorMessage = error instanceof Error 
-          ? error.message 
+        const errorMessage = error instanceof Error
+          ? error.message
           : 'Unknown error fetching balance';
         console.error('Error fetching wallet balances:', errorMessage);
         setBalanceError(errorMessage);
@@ -158,8 +176,8 @@ export function WalletCard({
       setAdaBalance(data?.ada || 0);
       setUsdmBalance(data?.usdm || 0);
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : 'Unknown error fetching balance';
       console.error('Error fetching wallet balances:', errorMessage);
       setBalanceError(errorMessage);
@@ -182,14 +200,17 @@ export function WalletCard({
     setIsExporting(true);
 
     try {
-      const response = await getWallet(state.apiKey!, {
-        walletType,
-        id: walletId!,
-        includeSecret: true
+      const response = await getWallet({
+        client: apiClient,
+        query: {
+          walletType,
+          id: walletId!,
+          includeSecret: "true"
+        }
       });
 
-      const data = response.data?.wallet;
-      setWalletSecret(data?.WalletSecret?.secret || '');
+      const data = response.data?.data;
+      setWalletSecret(data?.Secret?.mnemonic || '');
       setShowExportDialog(true);
     } catch (error) {
       console.error('Error exporting wallet:', error);

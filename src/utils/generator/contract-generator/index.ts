@@ -3,12 +3,12 @@ import { deserializePlutusScript, resolvePlutusScriptAddress, resolveStakeKeyHas
 import { resolvePaymentKeyHash } from "@meshsdk/core-cst";
 import paymentPlutus from "@smart-contracts/payment/plutus.json"
 import registryPlutus from "@smart-contracts/registry/plutus.json"
-import { Network, NetworkHandler } from "@prisma/client";
+import { Network, PaymentSource } from "@prisma/client";
 import { applyParamsToScript } from "@meshsdk/core";
 import { convertNetworkToId } from "../../converter/network-convert";
 
-export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler & { AdminWallets: { walletAddress: string, order: number }[], FeeReceiverNetworkWallet: { walletAddress: string, order: number } }) {
-    const adminWallets = networkCheckSupported.AdminWallets;
+export async function getPaymentScriptFromPaymentSourceV1(paymentSourceSupported: PaymentSource & { AdminWallets: { walletAddress: string, order: number }[], FeeReceiverNetworkWallet: { walletAddress: string, order: number } }) {
+    const adminWallets = paymentSourceSupported.AdminWallets;
     if (adminWallets.length != 3)
         throw new Error("Invalid admin wallets")
 
@@ -16,12 +16,12 @@ export async function getPaymentScriptFromNetworkHandlerV1(networkCheckSupported
     const admin1 = sortedAdminWallets[0];
     const admin2 = sortedAdminWallets[1];
     const admin3 = sortedAdminWallets[2];
-    const feeWallet = networkCheckSupported.FeeReceiverNetworkWallet
-    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, networkCheckSupported.feePermille, networkCheckSupported.cooldownTime, networkCheckSupported.network)
+    const feeWallet = paymentSourceSupported.FeeReceiverNetworkWallet
+    return await getPaymentScriptV1(admin1.walletAddress, admin2.walletAddress, admin3.walletAddress, feeWallet.walletAddress, paymentSourceSupported.feeRatePermille, paymentSourceSupported.cooldownTime, paymentSourceSupported.network)
 }
 
-export async function getRegistryScriptFromNetworkHandlerV1(networkCheckSupported: NetworkHandler) {
-    return await getRegistryScriptV1(networkCheckSupported.paymentContractAddress, networkCheckSupported.network)
+export async function getRegistryScriptFromNetworkHandlerV1(paymentSource: PaymentSource) {
+    return await getRegistryScriptV1(paymentSource.smartContractAddress, paymentSource.network)
 }
 
 export async function getPaymentScriptV1(adminWalletAddress1: string, adminWalletAddress2: string, adminWalletAddress3: string, feeWalletAddress: string, feePermille: number, cooldownPeriod: number, network: Network) {

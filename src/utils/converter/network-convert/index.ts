@@ -2,9 +2,9 @@ import { Network } from "@prisma/client";
 
 export function convertNetwork(network: Network) {
     switch (network) {
-        case "MAINNET":
+        case "Mainnet":
             return "mainnet";
-        case "PREPROD":
+        case "Preprod":
             return "preprod";
         default:
             throw new Error("Invalid network");
@@ -12,9 +12,9 @@ export function convertNetwork(network: Network) {
 }
 export function convertNetworkToId(network: Network) {
     switch (network) {
-        case "MAINNET":
+        case "Mainnet":
             return 1;
-        case "PREPROD":
+        case "Preprod":
             return 0;
         default:
             throw new Error("Invalid network");
