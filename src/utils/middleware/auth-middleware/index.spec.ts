@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { testMiddleware } from 'express-zod-api';
 import { authMiddleware } from './index';
-import { } from '@prisma/client';
+import { ApiKeyStatus, Permission } from '@prisma/client';
 
 jest.mock('@/utils/db', () => ({
     prisma: {
@@ -19,7 +19,7 @@ describe('authMiddleware', () => {
     it('should throw 401 if no token provided read', async () => {
         await expect(
             testMiddleware({
-                middleware: authMiddleware('READ'),
+                middleware: authMiddleware(Permission.Read),
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
@@ -28,7 +28,7 @@ describe('authMiddleware', () => {
     it('should throw 401 if no token provided pay', async () => {
         await expect(
             testMiddleware({
-                middleware: authMiddleware('READ_PAY'),
+                middleware: authMiddleware(Permission.ReadAndPay),
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
@@ -37,7 +37,7 @@ describe('authMiddleware', () => {
     it('should throw 401 if no token provided admin', async () => {
         await expect(
             testMiddleware({
-                middleware: authMiddleware('ADMIN'),
+                middleware: authMiddleware(Permission.Admin),
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
@@ -49,7 +49,7 @@ describe('authMiddleware', () => {
 
         await expect(
             testMiddleware({
-                middleware: authMiddleware('READ'),
+                middleware: authMiddleware(Permission.Read),
                 requestProps: {
                     method: 'POST',
                     body: {},
@@ -65,7 +65,7 @@ describe('authMiddleware', () => {
 
         await expect(
             testMiddleware({
-                middleware: authMiddleware('READ_PAY'),
+                middleware: authMiddleware(Permission.ReadAndPay),
                 requestProps: {
                     method: 'POST',
                     body: {},
@@ -81,7 +81,7 @@ describe('authMiddleware', () => {
 
         await expect(
             testMiddleware({
-                middleware: authMiddleware('ADMIN'),
+                middleware: authMiddleware(Permission.Admin),
                 requestProps: {
                     method: 'POST',
                     body: {},
@@ -96,14 +96,14 @@ describe('authMiddleware', () => {
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
-            permission: Permission.READ,
-            status: ApiKeyStatus.ACTIVE,
+            permission: Permission.Read,
+            status: ApiKeyStatus.Active,
             usageLimited: true,
         });
 
         await expect(
             testMiddleware({
-                middleware: authMiddleware('READ_PAY'),
+                middleware: authMiddleware(Permission.ReadAndPay),
                 requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
                 options: {},
             }),
@@ -113,14 +113,14 @@ describe('authMiddleware', () => {
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue({
             id: 1,
-            permission: Permission.READ_PAY,
-            status: ApiKeyStatus.ACTIVE,
+            permission: Permission.ReadAndPay,
+            status: ApiKeyStatus.Active,
             usageLimited: true,
         });
 
         await expect(
             testMiddleware({
-                middleware: authMiddleware('ADMIN'),
+                middleware: authMiddleware(Permission.Admin),
                 requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
                 options: {},
             }),
@@ -130,15 +130,15 @@ describe('authMiddleware', () => {
     it('should pass validation with valid user token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: Permission.READ,
-            status: ApiKeyStatus.ACTIVE,
+            permission: Permission.Read,
+            status: ApiKeyStatus.Active,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
 
         const { output } = await testMiddleware({
-            middleware: authMiddleware('READ'),
+            middleware: authMiddleware(Permission.Read),
             requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
             options: {},
         });
@@ -153,15 +153,15 @@ describe('authMiddleware', () => {
     it('should pass validation with valid pay token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: Permission.READ_PAY,
-            status: ApiKeyStatus.ACTIVE,
+            permission: Permission.ReadAndPay,
+            status: ApiKeyStatus.Active,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
 
         const { output } = await testMiddleware({
-            middleware: authMiddleware('READ_PAY'),
+            middleware: authMiddleware(Permission.ReadAndPay),
             requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
             options: {},
         });
@@ -175,15 +175,15 @@ describe('authMiddleware', () => {
     it('should pass validation with valid admin token', async () => {
         const mockApiKey = {
             id: 1,
-            permission: Permission.ADMIN,
-            status: ApiKeyStatus.ACTIVE,
+            permission: Permission.Admin,
+            status: ApiKeyStatus.Active,
             usageLimited: true,
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
 
         const { output } = await testMiddleware({
-            middleware: authMiddleware('ADMIN'),
+            middleware: authMiddleware(Permission.Admin),
             requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
             options: {},
         });
