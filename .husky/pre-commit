@@ -1,12 +1,58 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo '🔍 Running ESLint on all files...'
-npm run lint || 
+# Colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo "${BLUE}🔍 Checking for git conflict markers...${NC}"
+if grep -r "^<<<<<<< \|^>>>>>>> \|^=======$" src/; then
+    echo "${RED}❌ Git conflict markers found. Please resolve conflicts before committing.${NC}"
+    exit 1
+fi
+
+echo "${BLUE}🔍 Checking for large files...${NC}"
+# Check for files larger than 5MB
+git diff --cached --name-only | while read file; do
+    if [ -f "$file" ]; then
+        filesize=$(stat -f%z "$file")
+        if [ $filesize -gt 5242880 ]; then
+            echo "${RED}❌ File $file is larger than 5MB. Please check if this file should be committed.${NC}"
+            exit 1
+        fi
+    fi
+done
+
+echo "${BLUE}🔍 Running TypeScript compilation check...${NC}"
+npx tsc --noEmit || 
 (
-    echo '❌ ESLint check failed. Please fix the errors and try committing again.';
+    echo "${RED}❌ TypeScript compilation failed. Please fix type errors and try again.${NC}"
     false;
 )
 
-echo '✅ ESLint check passed'
+echo "${BLUE}🔍 Running ESLint on all files...${NC}"
+npm run lint || 
+(
+    echo "${RED}❌ ESLint check failed. Please fix the errors and try committing again.${NC}"
+    false;
+)
+
+echo "${BLUE}🔍 Running unit tests...${NC}"
+npm run test || 
+(
+    echo "${RED}❌ Tests failed. Please fix failing tests and try again.${NC}"
+    false;
+)
+
+echo "${BLUE}🔍 Checking for npm audit issues...${NC}"
+npm audit --audit-level=high || 
+(
+    echo "${RED}⚠️ High severity vulnerabilities found. Please run 'npm audit fix' or review security issues.${NC}"
+    # Commenting out exit 1 to make this a warning only, uncomment if you want to block commits
+    # exit 1
+)
+
+echo "${GREEN}✅ All checks passed!${NC}"
 npx lint-staged

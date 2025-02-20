@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Protected branches
+protected_branches="^(main|dev)$"
+current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
+
+# Check if we're trying to push to a protected branch
+while read local_ref local_sha remote_ref remote_sha
+do
+    remote_branch=$(echo "$remote_ref" | sed -e 's,.*/\(.*\),\1,')
+    if [[ "$remote_branch" =~ $protected_branches ]]; then
+        echo "${RED}❌ Direct push to $remote_branch branch is not allowed${NC}"
+        echo "${YELLOW}Please create a pull request instead.${NC}"
+        exit 1
+    fi
+done
+
+echo "${BLUE}🔍 Running full test suite with coverage...${NC}"
+npm run test:coverage || 
+(
+    echo "${RED}❌ Test coverage check failed.${NC}"
+    false;
+)
+
+echo "${BLUE}🔍 Running comprehensive security audit...${NC}"
+npm audit || 
+(
+    echo "${YELLOW}⚠️ Security vulnerabilities found. Please review:${NC}"
+    echo "${YELLOW}1. Run 'npm audit' to see details${NC}"
+    echo "${YELLOW}2. Run 'npm audit fix' to fix automatically fixable issues${NC}"
+    echo "${YELLOW}3. Review and update packages with manual fixes required${NC}"
+    # Uncomment the next line to block pushes with vulnerabilities
+    # false;
+)
+
+echo "${BLUE}🔍 Checking for outdated dependencies...${NC}"
+npm outdated || true
+
+echo "${GREEN}✅ All pre-push checks completed!${NC}" 
