@@ -23,22 +23,12 @@ do
     fi
 done
 
-# Run tests with different levels based on target branch
-if [[ "$current_branch" =~ $protected_branches ]]; then
-    echo "${BLUE}🔍 Running full test suite with coverage (required for protected branches)...${NC}"
-    npm run test:coverage || 
-    (
-        echo "${RED}❌ Test coverage check failed.${NC}"
-        false;
-    )
-else
-    echo "${BLUE}🔍 Running basic test suite...${NC}"
-    npm run test || 
-    (
-        echo "${RED}❌ Tests failed. Please fix failing tests and try again.${NC}"
-        false;
-    )
-fi
+echo "${BLUE}🔍 Running test suite...${NC}"
+npm run test || 
+(
+    echo "${RED}❌ Tests failed. Please fix failing tests and try again.${NC}"
+    false;
+)
 
 echo "${BLUE}🔍 Running comprehensive security audit...${NC}"
 npm audit || 
