@@ -4,7 +4,6 @@ import { prisma } from '@/utils/db';
 import { Transaction, mBool, resolvePaymentKeyHash } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
-import { delayErrorResolver, advancedRetry } from "advanced-retry";
 import { SmartContractState } from "@/utils/generator/contract-generator";
 import { getSmartContractStateDatum } from "@/utils/generator/contract-generator";
 
@@ -40,7 +39,8 @@ export async function batchLatestPaymentEntriesV1() {
                                 requestedAction: PurchasingAction.FundsLockingRequested,
                                 errorType: null,
                             },
-                            CurrentTransaction: { isNot: null }
+                            CurrentTransaction: { is: null },
+                            onChainState: null,
                         },
                         include: {
                             Amounts: true,
@@ -99,7 +99,9 @@ export async function batchLatestPaymentEntriesV1() {
                         })
                     }
                 }
-                paymentContractsToUse.push(paymentContract)
+                if (paymentContract.PurchaseRequests.length > 0) {
+                    paymentContractsToUse.push(paymentContract)
+                }
             }
             return paymentContractsToUse;
         }, { isolationLevel: "Serializable", maxWait: 10000, timeout: 10000 })
@@ -139,7 +141,6 @@ export async function batchLatestPaymentEntriesV1() {
                         break;
                     }
                     const paymentRequest = paymentRequestsRemaining[index];
-
 
                     //set min ada required;
                     const lovelaceRequired = paymentRequest.Amounts.findIndex((amount) => amount.unit.toLowerCase() == "lovelace");
@@ -188,126 +189,137 @@ export async function batchLatestPaymentEntriesV1() {
                         }
                     })
                 }))
-            await Promise.allSettled(walletPairings.map(async (walletPairing) => {
-                try {
+            //do not retry, we want to fail if anything goes wrong. There should not be a possibility to pay twice
+            const results = await Promise.allSettled(walletPairings.map(async (walletPairing) => {
+                const wallet = walletPairing.wallet;
+                const walletId = walletPairing.walletId;
+                const batchedRequests = walletPairing.batchedRequests;
+                //batch payments
+                const unsignedTx = await new Transaction({ initiator: wallet, }).setMetadata(674, {
+                    msg: ["Masumi", "PaymentBatched"],
+                })
+                for (const paymentRequest of batchedRequests) {
+                    const buyerVerificationKeyHash = resolvePaymentKeyHash(wallet.getUsedAddress().toBech32())
+                    const sellerVerificationKeyHash = paymentRequest.SellerWallet.walletVkey;
+                    const submitResultTime = paymentRequest.submitResultTime
+                    const unlockTime = paymentRequest.unlockTime
+                    const refundTime = paymentRequest.refundTime
 
-                    const wallet = walletPairing.wallet;
-                    const walletId = walletPairing.walletId;
-                    const batchedRequests = walletPairing.batchedRequests;
-                    //batch payments
-                    const unsignedTx = await new Transaction({ initiator: wallet, }).setMetadata(674, {
-                        msg: ["Masumi", "PaymentBatched"],
-                    })
-                    for (const paymentRequest of batchedRequests) {
-                        const buyerVerificationKeyHash = resolvePaymentKeyHash(wallet.getUsedAddress().toBech32())
-                        const sellerVerificationKeyHash = paymentRequest.SellerWallet.walletVkey;
-                        const submitResultTime = paymentRequest.submitResultTime
-                        const unlockTime = paymentRequest.unlockTime
-                        const refundTime = paymentRequest.refundTime
-
-                        const datum = {
-                            value: {
-                                alternative: 0,
-                                fields: [
-                                    Buffer.from(buyerVerificationKeyHash).toString("hex"),
-                                    Buffer.from(sellerVerificationKeyHash).toString("hex"),
-                                    Buffer.from(paymentRequest.blockchainIdentifier).toString("hex"),
-                                    Buffer.from("").toString("hex"),
-                                    submitResultTime,
-                                    unlockTime,
-                                    refundTime,
-                                    //is converted to false
-                                    mBool(false),
-                                    0,
-                                    0,
-                                    getSmartContractStateDatum(SmartContractState.FundsLocked)
-                                ],
-                            },
-                            inline: true,
-                        };
-                        unsignedTx.sendAssets({
-                            address: walletPairing.scriptAddress,
-                            datum,
+                    const datum = {
+                        value: {
+                            alternative: 0,
+                            fields: [
+                                Buffer.from(buyerVerificationKeyHash).toString("hex"),
+                                Buffer.from(sellerVerificationKeyHash).toString("hex"),
+                                Buffer.from(paymentRequest.blockchainIdentifier).toString("hex"),
+                                Buffer.from("").toString("hex"),
+                                submitResultTime,
+                                unlockTime,
+                                refundTime,
+                                //is converted to false
+                                mBool(false),
+                                0,
+                                0,
+                                getSmartContractStateDatum(SmartContractState.FundsLocked)
+                            ],
                         },
-                            paymentRequest.Amounts.map((amount) => ({ unit: amount.unit, quantity: amount.amount.toString() }))
-                        )
-                    }
+                        inline: true,
+                    };
+                    unsignedTx.sendAssets({
+                        address: walletPairing.scriptAddress,
+                        datum,
+                    },
+                        paymentRequest.Amounts.map((amount) => ({ unit: amount.unit, quantity: amount.amount.toString() }))
+                    )
+                }
 
-                    const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
+                const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
+                    await prisma.purchaseRequest.update({
+                        where: { id: request.id }, data: {
+                            NextAction: {
+                                update: {
+                                    requestedAction: PurchasingAction.FundsLockingInitiated,
+                                },
+                            },
+                            SmartContractWallet: {
+                                connect: {
+                                    id: walletId
+                                }
+                            },
+
+                        }
+                    })
+                }))
+                const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
+                if (failedPurchaseRequests.length > 0) {
+                    logger.error("Error updating payment status, before submitting tx ", failedPurchaseRequests);
+                    throw new Error("Error updating payment status, before submitting tx ");
+                }
+
+                const completeTx = await unsignedTx.build();
+                const signedTx = await wallet.signTx(completeTx);
+                //submit the transaction to the blockchain
+
+                const txHash = await wallet.submitTx(signedTx);
+                //update purchase requests
+                const purchaseRequestsUpdated = await Promise.allSettled(batchedRequests.map(async (request) => {
+                    await prisma.purchaseRequest.update({
+                        where: { id: request.id }, data: {
+                            CurrentTransaction: {
+                                create: {
+                                    txHash: txHash,
+                                    status: TransactionStatus.Pending,
+                                    BlocksWallet: {
+                                        connect: {
+                                            id: walletId
+                                        }
+                                    }
+                                }
+                            },
+                            TransactionHistory: request.CurrentTransaction ? {
+                                connect: {
+                                    id: request.CurrentTransaction.id
+                                }
+                            } : undefined
+                        }
+                    })
+                }))
+                const failedPurchaseRequestsUpdated = purchaseRequestsUpdated.filter(x => x.status != "fulfilled")
+                if (failedPurchaseRequestsUpdated.length > 0) {
+                    throw new Error("Error updating payment status " + failedPurchaseRequests);
+                }
+                return true;
+            }))
+            let index = 0;
+            for (const result of results) {
+                const request = walletPairings[index];
+
+                if (result.status == "rejected" || result.value != true) {
+                    const error = result.status == "rejected" ? result.reason : "Transaction did not return true";
+                    logger.error(`Error batching payments`, { error: error });
+                    for (const batchedRequest of request.batchedRequests) {
                         await prisma.purchaseRequest.update({
-                            where: { id: request.id }, data: {
+                            where: { id: batchedRequest.id }, data: {
                                 NextAction: {
                                     update: {
-                                        requestedAction: PurchasingAction.FundsLockingInitiated,
-                                    },
-                                },
-                                SmartContractWallet: {
-                                    connect: {
-                                        id: walletId
+                                        requestedAction: PurchasingAction.WaitingForManualAction,
+                                        errorType: PurchaseErrorType.Unknown,
+                                        errorNote: "Batching payments failed: " + error,
                                     }
                                 },
-
                             }
                         })
-                    }))
-                    const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
-                    if (failedPurchaseRequests.length > 0) {
-                        logger.error("Error updating payment status, before submitting tx ", failedPurchaseRequests);
-                        throw new Error("Error updating payment status, before submitting tx ");
                     }
-
-                    const completeTx = await unsignedTx.build();
-                    const signedTx = await wallet.signTx(completeTx);
-                    //submit the transaction to the blockchain
-
-
-                    await advancedRetry({
-                        operation: async () => {
-                            const txHash = await wallet.submitTx(signedTx);
-                            //update purchase requests
-                            const purchaseRequests = await Promise.allSettled(batchedRequests.map(async (request) => {
-                                await prisma.purchaseRequest.update({
-                                    where: { id: request.id }, data: {
-                                        CurrentTransaction: {
-                                            create: {
-                                                txHash: txHash,
-                                                status: TransactionStatus.Pending,
-                                                BlocksWallet: {
-                                                    connect: {
-                                                        id: walletId
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        TransactionHistory: request.CurrentTransaction ? {
-                                            connect: {
-                                                id: request.CurrentTransaction.id
-                                            }
-                                        } : undefined
-                                    }
-                                })
-                            }))
-                            const failedPurchaseRequests = purchaseRequests.filter(x => x.status != "fulfilled")
-                            if (failedPurchaseRequests.length > 0) {
-                                throw new Error("Error updating payment status " + failedPurchaseRequests);
-                            }
-                        },
-                        errorResolvers: [delayErrorResolver({
-                            configuration: {
-                                maxRetries: 3,
-                                backoffMultiplier: 2,
-                                initialDelayMs: 1000,
-                                maxDelayMs: 10000
-                            },
-                        })],
-                        throwOnUnrecoveredError: true
-                    });
-
-                } catch (error) {
-                    logger.error("Error batching payments", error);
+                    await prisma.hotWallet.update({
+                        where: { id: request.walletId }, data: {
+                            lockedAt: null,
+                            PendingTransaction: { disconnect: true }
+                        }
+                    })
+                    index++;
                 }
-            }))
 
+            }
         }))
     }
     catch (error) {

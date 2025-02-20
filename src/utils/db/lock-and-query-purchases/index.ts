@@ -1,8 +1,8 @@
-import { HotWallet, PaymentType, PurchasingAction } from "@prisma/client";
+import { HotWallet, OnChainState, PaymentType, PurchasingAction } from "@prisma/client";
 import { prisma } from "..";
 import { logger } from "@/utils/logger";
 
-export async function lockAndQueryPurchases({ purchasingAction, unlockTime, resultHash = undefined, submitResultTime = undefined, refundTime = undefined, }: { purchasingAction: PurchasingAction, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string, resultHash?: string | undefined, submitResultTime?: { lte: number } | undefined | { gte: number }, refundTime?: { lte: number } | undefined | { gte: number }, }) {
+export async function lockAndQueryPurchases({ purchasingAction, unlockTime, onChainState = undefined, requestedResultHash = undefined, submitResultTime = undefined, refundTime = undefined, }: { purchasingAction: PurchasingAction, unlockTime?: { lte: number } | undefined | { gte: number }, onChainState?: OnChainState | { in: OnChainState[] } | undefined, requestedResultHash?: string | undefined, resultHash?: string | { not: string } | undefined, submitResultTime?: { lte: number } | undefined | { gte: number }, refundTime?: { lte: number } | undefined | { gte: number }, }) {
     return await prisma.$transaction(async (prisma) => {
         try {
             const paymentSources = await prisma.paymentSource.findMany({
@@ -19,7 +19,8 @@ export async function lockAndQueryPurchases({ purchasingAction, unlockTime, resu
                                 requestedAction: purchasingAction,
                                 errorType: null,
                             },
-                            resultHash: resultHash,
+                            resultHash: requestedResultHash,
+                            onChainState: onChainState,
                             SmartContractWallet: {
                                 PendingTransaction: { is: null },
                                 lockedAt: null
@@ -63,7 +64,9 @@ export async function lockAndQueryPurchases({ purchasingAction, unlockTime, resu
                         purchasingRequests.push(purchasingRequest)
                     }
                 }
-                newPaymentSources.push({ ...paymentSource, PurchaseRequests: purchasingRequests })
+                if (purchasingRequests.length > 0) {
+                    newPaymentSources.push({ ...paymentSource, PurchaseRequests: purchasingRequests })
+                }
             }
             return newPaymentSources;
         } catch (error) {

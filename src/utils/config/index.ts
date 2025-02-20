@@ -17,12 +17,27 @@ if (checkCollectionInterval < 20)
 const checkCollectRefundInterval = Number(process.env.CHECK_COLLECT_REFUND_INTERVAL ?? "300");
 if (checkCollectRefundInterval < 20)
     throw new Error("CHECK_COLLECT_REFUND_INTERVAL must be at least 20 seconds")
-const checkRefundInterval = Number(process.env.CHECK_REFUND_INTERVAL ?? "300");
-if (checkRefundInterval < 20)
-    throw new Error("CHECK_REFUND_INTERVAL must be at least 20 seconds")
+const checkSetRefundInterval = Number(process.env.CHECK_SET_REFUND_INTERVAL ?? "300");
+if (checkSetRefundInterval < 20)
+    throw new Error("CHECK_SET_REFUND_INTERVAL must be at least 20 seconds")
+const checkUnsetRefundInterval = Number(process.env.CHECK_UNSET_REFUND_INTERVAL ?? "300");
+if (checkUnsetRefundInterval < 20)
+    throw new Error("CHECK_UNSET_REFUND_INTERVAL must be at least 20 seconds")
 const checkWalletTransactionHashInterval = Number(process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? "90");
 if (checkWalletTransactionHashInterval < 20)
     throw new Error("CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 20 seconds")
+const checkAuthorizeRefundInterval = Number(process.env.CHECK_AUTHORIZE_REFUND_INTERVAL ?? "300");
+if (checkAuthorizeRefundInterval < 20)
+    throw new Error("CHECK_AUTHORIZE_REFUND_INTERVAL must be at least 20 seconds")
+const checkSubmitResultInterval = Number(process.env.CHECK_SUBMIT_RESULT_INTERVAL ?? "300");
+if (checkSubmitResultInterval < 20)
+    throw new Error("CHECK_SUBMIT_RESULT_INTERVAL must be at least 20 seconds")
+const registerAgentInterval = Number(process.env.REGISTER_AGENT_INTERVAL ?? "300");
+if (registerAgentInterval < 20)
+    throw new Error("REGISTER_AGENT_INTERVAL must be at least 20 seconds")
+const deregisterAgentInterval = Number(process.env.DEREGISTER_AGENT_INTERVAL ?? "300");
+if (deregisterAgentInterval < 20)
+    throw new Error("DEREGISTER_AGENT_INTERVAL must be at least 20 seconds")
 
 export const CONFIG = {
     PORT: process.env.PORT ?? "3001",
@@ -31,8 +46,13 @@ export const CONFIG = {
     CHECK_TX_INTERVAL: checkTxInterval, // 3 minutes in seconds
     CHECK_COLLECTION_INTERVAL: checkCollectionInterval, // 4 minutes in seconds
     CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval, // 5 minutes in seconds
-    CHECK_REFUND_INTERVAL: checkRefundInterval, // 5 minutes in seconds
+    CHECK_SET_REFUND_INTERVAL: checkSetRefundInterval, // 5 minutes in seconds
+    CHECK_UNSET_REFUND_INTERVAL: checkUnsetRefundInterval, // 5 minutes in seconds
     CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval, // 1,5 minutes in seconds
+    CHECK_AUTHORIZE_REFUND_INTERVAL: checkAuthorizeRefundInterval, // 5 minutes in seconds
+    CHECK_SUBMIT_RESULT_INTERVAL: checkSubmitResultInterval, // 5 minutes in seconds
+    REGISTER_AGENT_INTERVAL: registerAgentInterval, // 5 minutes in seconds
+    DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval, // 5 minutes in seconds
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
 };
 

@@ -1,2 +1,2 @@
-export { cardanoSubmitResultHandlerService } from "./cardano-authorize-refund-handler.service";
+export { authorizeRefundV1 } from "./cardano-authorize-refund-handler.service";
 

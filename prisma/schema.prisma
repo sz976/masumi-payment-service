@@ -151,8 +151,8 @@ model RegistryRequest {
   paymentSourceId String
   PaymentSource   PaymentSource @relation(fields: [paymentSourceId], references: [id])
 
-  SmartContractWallet   HotWallet? @relation(fields: [smartContractWalletId], references: [id], onDelete: SetNull)
-  smartContractWalletId String?
+  SmartContractWallet   HotWallet @relation(fields: [smartContractWalletId], references: [id], onDelete: Restrict)
+  smartContractWalletId String
 
   name               String
   api_url            String

@@ -1,2 +1,2 @@
-export { cardanoRegisterHandlerService } from "./cardano-register-handler";
+export { cardanoRegisterHandlerService } from "./cardano-register-handler.service";
 

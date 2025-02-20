@@ -168,7 +168,7 @@ export const queryAgentGet = payAuthenticatedEndpointFactory.build({
 export const registerAgentSchemaInput = z.object({
     network: z.nativeEnum(Network).describe("The Cardano network used to register the agent on"),
     smartContractAddress: z.string().max(250).optional().describe("The smart contract address of the payment contract to be registered for"),
-    sellingWalletVkey: z.string().max(250).optional().describe("The payment key of a specific wallet used for the registration"),
+    sellingWalletVkey: z.string().max(250).describe("The payment key of a specific wallet used for the registration"),
     example_output: z.string().max(250).optional().describe("Link to a example output of the agent"),
     tags: z.array(z.string().max(63)).min(1).max(15).describe("Tags used in the registry metadata"),
     name: z.string().max(250).describe("Name of the agent"),
@@ -207,7 +207,7 @@ export const registerAgentSchemaOutput = z.object({
     SmartContractWallet: z.object({
         walletVkey: z.string(),
         walletAddress: z.string(),
-    }).nullable(),
+    }),
     Pricing: z.array(z.object({
         unit: z.string(),
         quantity: z.string(),
@@ -234,6 +234,9 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         await checkIsAllowedNetworkOrThrowUnauthorized(options.networkLimit, input.network, options.permission)
 
         const sellingWallet = paymentSource.HotWallets.find(wallet => wallet.walletVkey == input.sellingWalletVkey && wallet.type == HotWalletType.Selling)
+        if (sellingWallet == null) {
+            throw createHttpError(404, "Selling wallet not found")
+        }
         const result = await prisma.registryRequest.create({
             data: {
                 name: input.name,
@@ -246,11 +249,11 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                 author_contact: input.author.contact,
                 author_organization: input.author.organization,
                 state: RegistrationState.RegistrationRequested,
-                SmartContractWallet: sellingWallet ? {
+                SmartContractWallet: {
                     connect: {
                         id: sellingWallet.id
                     }
-                } : undefined,
+                },
                 PaymentSource: {
                     connect: {
                         id: paymentSource.id
@@ -283,9 +286,6 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
 });
 
 
-
-
-
 export const unregisterAgentSchemaInput = z.object({
     assetName: z.string().max(250).describe("The identifier of the registration (asset) to be deregistered"),
     network: z.nativeEnum(Network).describe("The network the registration was made on"),
@@ -306,7 +306,7 @@ export const unregisterAgentSchemaOutput = z.object({
     SmartContractWallet: z.object({
         walletVkey: z.string(),
         walletAddress: z.string(),
-    }).nullable(),
+    }),
     state: z.nativeEnum(RegistrationState),
     Pricing: z.array(z.object({
         unit: z.string(),

@@ -20,9 +20,6 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
     if (!acquiredMutex)
         return await updateMutex.acquire();
     try {
-
-
-
         await prisma.paymentActionData.updateMany({
             where: {
 

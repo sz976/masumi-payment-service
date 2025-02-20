@@ -748,8 +748,10 @@ export function generateOpenAPI() {
                     id: "cuid_v2_auto_generated",
                     blockchainIdentifier: "blockchain_identifier",
                     lastCheckedAt: null,
+                    onChainState: null,
                     metadata: null,
                     requestedById: "requester_id",
+                    resultHash: "",
                     NextAction: {
                       requestedAction: PurchasingAction.FundsLockingRequested,
                       errorType: null,
@@ -837,6 +839,8 @@ export function generateOpenAPI() {
                   unlockTime: "0",
                   refundTime: "0",
                   requestedById: "requester_id",
+                  resultHash: "",
+                  onChainState: null,
                   NextAction: {
                     requestedAction: PurchasingAction.FundsLockingRequested,
                     errorType: null,
@@ -919,6 +923,8 @@ export function generateOpenAPI() {
                   unlockTime: "0",
                   refundTime: "0",
                   requestedById: "requester_id",
+                  resultHash: "",
+                  onChainState: null,
                   NextAction: {
                     requestedAction: PurchasingAction.FundsLockingRequested,
                     errorType: null,
@@ -1000,6 +1006,8 @@ export function generateOpenAPI() {
                   unlockTime: "0",
                   refundTime: "0",
                   requestedById: "requester_id",
+                  resultHash: "",
+                  onChainState: null,
                   NextAction: {
                     requestedAction: PurchasingAction.FundsLockingRequested,
                     errorType: null,
@@ -1241,10 +1249,10 @@ export function generateOpenAPI() {
   /********************* PAYMENT CONTRACT *****************************/
   registry.registerPath({
     method: 'get',
-    path: '/payment-contract/',
-    description: 'Gets the payment contract.',
+    path: '/payment-source/',
+    description: 'Gets the payment source.',
     summary: 'REQUIRES API KEY Authentication (+READ)',
-    tags: ['payment-contract',],
+    tags: ['payment-source',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: paymentSourceSchemaInput.openapi({
@@ -1292,10 +1300,10 @@ export function generateOpenAPI() {
   /********************* PAYMENT SOURCE *****************************/
   registry.registerPath({
     method: 'get',
-    path: '/payment-contract-extended/',
+    path: '/payment-source-extended/',
     description: 'Gets the payment contracts including the status.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['payment-contract',],
+    tags: ['payment-source',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: paymentSourceExtendedSchemaInput.openapi({
@@ -1345,10 +1353,10 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'post',
-    path: '/payment-contract-extended/',
-    description: 'Creates a payment contract.',
+    path: '/payment-source/',
+    description: 'Creates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['payment-contract',],
+    tags: ['payment-source',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       body: {
@@ -1409,10 +1417,10 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'patch',
-    path: '/payment-contract-extended/',
-    description: 'Creates a payment contract.',
+    path: '/payment-source/',
+    description: 'Updates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['payment-contract',],
+    tags: ['payment-source',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       body: {
@@ -1472,10 +1480,10 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'delete',
-    path: '/payment-contract-extended/',
-    description: 'Deletes a payment contract. WARNING will also delete all associated wallets and transactions.',
+    path: '/payment-source/',
+    description: 'Deletes a payment source. WARNING will also delete all associated wallets and transactions.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
-    tags: ['payment-contract',],
+    tags: ['payment-source',],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
       query: paymentSourceExtendedDeleteSchemaInput.openapi({

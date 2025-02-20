@@ -1,7 +1,7 @@
-import { HotWallet, PaymentAction, PaymentType } from "@prisma/client";
+import { HotWallet, OnChainState, PaymentAction, PaymentType } from "@prisma/client";
 import { prisma } from "..";
 
-export async function lockAndQueryPayments({ paymentStatus, submitResultTime = undefined, resultHash = undefined, refundTime = undefined, unlockTime = undefined }: { paymentStatus: PaymentAction | { in: PaymentAction[] }, submitResultTime?: { lte: number } | undefined | { gte: number }, resultHash?: string | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string }) {
+export async function lockAndQueryPayments({ paymentStatus, submitResultTime = undefined, onChainState = undefined, resultHash = undefined, requestedResultHash = undefined, refundTime = undefined, unlockTime = undefined }: { paymentStatus: PaymentAction | { in: PaymentAction[] }, submitResultTime?: { lte: number } | undefined | { gte: number }, onChainState?: OnChainState | { in: OnChainState[] } | undefined, resultHash?: string | { not: string } | undefined, requestedResultHash?: string | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string }) {
     return await prisma.$transaction(async (prisma) => {
 
         const paymentSources = await prisma.paymentSource.findMany({
@@ -14,7 +14,7 @@ export async function lockAndQueryPayments({ paymentStatus, submitResultTime = u
                         NextAction: {
                             requestedAction: paymentStatus,
                             errorType: null,
-                            resultHash: resultHash
+                            resultHash: requestedResultHash
                         },
                         submitResultTime: submitResultTime,
                         refundTime: refundTime,
@@ -23,7 +23,9 @@ export async function lockAndQueryPayments({ paymentStatus, submitResultTime = u
                             PendingTransaction: { is: null },
                             lockedAt: null
                         },
+                        onChainState: onChainState,
                         sellerCoolDownTime: { lte: Date.now() },
+                        resultHash: resultHash,
                     },
                     include: {
                         NextAction: true,
@@ -65,7 +67,9 @@ export async function lockAndQueryPayments({ paymentStatus, submitResultTime = u
                     paymentRequests.push(paymentRequest)
                 }
             }
-            newPaymentSources.push({ ...paymentSource, PaymentRequests: paymentRequests })
+            if (paymentRequests.length > 0) {
+                newPaymentSources.push({ ...paymentSource, PaymentRequests: paymentRequests })
+            }
         }
         return newPaymentSources;
     }, { isolationLevel: "Serializable" });

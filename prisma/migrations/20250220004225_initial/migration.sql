@@ -129,7 +129,7 @@ CREATE TABLE "RegistryRequest" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "lastCheckedAt" TIMESTAMP(3),
     "paymentSourceId" TEXT NOT NULL,
-    "smartContractWalletId" TEXT,
+    "smartContractWalletId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "api_url" TEXT NOT NULL,
     "capability_name" TEXT NOT NULL,
@@ -197,7 +197,6 @@ CREATE TABLE "PaymentActionData" (
     "submittedTxHash" TEXT,
     "errorType" "PaymentErrorType",
     "errorNote" TEXT,
-    "overrideRequestedById" TEXT,
 
     CONSTRAINT "PaymentActionData_pkey" PRIMARY KEY ("id")
 );
@@ -236,7 +235,6 @@ CREATE TABLE "PurchaseActionData" (
     "submittedTxHash" TEXT,
     "errorType" "PurchaseErrorType",
     "errorNote" TEXT,
-    "overrideRequestedById" TEXT,
 
     CONSTRAINT "PurchaseActionData_pkey" PRIMARY KEY ("id")
 );
@@ -360,7 +358,7 @@ ALTER TABLE "WalletBase" ADD CONSTRAINT "WalletBase_paymentSourceId_fkey" FOREIG
 ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_paymentSourceId_fkey" FOREIGN KEY ("paymentSourceId") REFERENCES "PaymentSource"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "HotWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "HotWallet"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -387,9 +385,6 @@ ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_requestedById_fkey" 
 ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentActionData" ADD CONSTRAINT "PaymentActionData_overrideRequestedById_fkey" FOREIGN KEY ("overrideRequestedById") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_paymentSourceId_fkey" FOREIGN KEY ("paymentSourceId") REFERENCES "PaymentSource"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -406,9 +401,6 @@ ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_requestedById_fkey
 
 -- AddForeignKey
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PurchaseActionData" ADD CONSTRAINT "PurchaseActionData_overrideRequestedById_fkey" FOREIGN KEY ("overrideRequestedById") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RequestAmount" ADD CONSTRAINT "RequestAmount_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;

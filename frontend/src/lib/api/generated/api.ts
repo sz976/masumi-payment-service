@@ -253,7 +253,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * @description Gets api key status
      *
-     * @tags api-key-status
+     * @tags api-key
      * @name ApiKeyStatusList
      * @summary REQUIRES API KEY Authentication (+READ)
      * @request GET:/api-key-status/
@@ -264,18 +264,15 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           status: string;
           data: {
-            apiKey: string;
-            permission: 'READ' | 'READ_PAY' | 'ADMIN';
+            token: string;
+            permission: 'Read' | 'ReadAndPay' | 'Admin';
             usageLimited: boolean;
+            networkLimit: ('Preprod' | 'Mainnet')[];
             RemainingUsageCredits: {
               unit: string;
-              /**
-               * @min 0
-               * @max 100000000
-               */
-              amount: number | null;
+              amount: string;
             }[];
-            status: 'ACTIVE' | 'REVOKED';
+            status: 'Active' | 'Revoked';
           };
         },
         any
@@ -319,10 +316,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           status: string;
           data: {
-            WalletSecret?: {
+            Secret?: {
               createdAt: string;
               updatedAt: string;
-              secret: string;
+              mnemonic: string;
             };
             PendingTransaction: {
               createdAt: string;
@@ -357,7 +354,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     walletCreate: (
       data: {
         /** The network the Cardano wallet will be used on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
       },
       params: RequestParams = {},
     ) =>
@@ -410,15 +407,15 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           status: string;
           data: {
             apiKeys: {
-              apiKey: string;
-              permission: 'READ' | 'READ_PAY' | 'ADMIN';
+              token: string;
+              permission: 'Read' | 'ReadAndPay' | 'Admin';
               usageLimited: boolean;
+              networkLimit: ('Preprod' | 'Mainnet')[];
               RemainingUsageCredits: {
                 unit: string;
-                /** @min 0 */
-                amount: number | null;
+                amount: string;
               }[];
-              status: 'ACTIVE' | 'REVOKED';
+              status: 'Active' | 'Revoked';
             }[];
           };
         },
@@ -452,17 +449,19 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         UsageCredits: {
           /** @maxLength 150 */
           unit: string;
-          /**
-           * @min 0
-           * @max 1000000
-           */
-          amount: number | null;
+          amount: string;
         }[];
         /**
-         * The permission of the API key
-         * @default "READ"
+         * The networks the API key is allowed to use
+         * @maxItems 3
+         * @default ["Mainnet","Preprod"]
          */
-        permission?: 'READ' | 'READ_PAY' | 'ADMIN';
+        networkLimit?: ('Preprod' | 'Mainnet')[];
+        /**
+         * The permission of the API key
+         * @default "Read"
+         */
+        permission?: 'Read' | 'ReadAndPay' | 'Admin';
       },
       params: RequestParams = {},
     ) =>
@@ -470,10 +469,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           data: {
             id: string;
-            apiKey: string;
-            permission: 'READ' | 'READ_PAY' | 'ADMIN';
+            token: string;
+            permission: 'Read' | 'ReadAndPay' | 'Admin';
             usageLimited: boolean;
-            status: 'ACTIVE' | 'REVOKED';
+            networkLimit: ('Preprod' | 'Mainnet')[];
+            status: 'Active' | 'Revoked';
           };
           status: string;
         },
@@ -508,22 +508,24 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * The API key to update. Provide either id or apiKey
          * @maxLength 550
          */
-        apiKey?: string;
+        token?: string;
         /** The remaining credits allowed to be used by the API key. Only relevant if usageLimited is true.  */
         UsageCredits?: {
           /** @maxLength 150 */
           unit: string;
-          /**
-           * @min 0
-           * @max 1000000
-           */
-          amount: number | null;
+          amount: string;
         }[];
         /**
          * The status of the API key
-         * @default "ACTIVE"
+         * @default "Active"
          */
-        status?: 'ACTIVE' | 'REVOKED';
+        status?: 'Active' | 'Revoked';
+        /**
+         * The networks the API key is allowed to use
+         * @maxItems 3
+         * @default ["Mainnet","Preprod"]
+         */
+        networkLimit?: ('Preprod' | 'Mainnet')[];
       },
       params: RequestParams = {},
     ) =>
@@ -531,10 +533,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           data: {
             id: string;
-            apiKey: string;
-            permission: 'READ' | 'READ_PAY' | 'ADMIN';
+            token: string;
+            permission: 'Read' | 'ReadAndPay' | 'Admin';
+            networkLimit: ('Preprod' | 'Mainnet')[];
             usageLimited: boolean;
-            status: 'ACTIVE' | 'REVOKED';
+            status: 'Active' | 'Revoked';
           };
           status: string;
         },
@@ -569,7 +572,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * The API key to delete. Provide either id or apiKey
          * @maxLength 550
          */
-        apiKey?: string;
+        token?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -577,7 +580,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           data: {
             id: string;
-            apiKey: string;
+            token: string;
           };
           status: string;
         },
@@ -614,12 +617,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         /** Used to paginate through the payments. If this is provided, cursorId is required */
         cursorId?: string;
         /** The network the payments were made on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The address of the smart contract where the payments were made to
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
+        /**
+         * Whether to include the full transaction and status history of the payments
+         * @default "false"
+         */
+        includeHistory?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -631,48 +639,73 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               id: string;
               createdAt: string;
               updatedAt: string;
-              status:
-                | 'PaymentRequested'
-                | 'PaymentConfirmed'
-                | 'PaymentInvalid'
-                | 'ResultGenerated'
-                | 'CompletedInitiated'
-                | 'CompletedConfirmed'
-                | 'Denied'
-                | 'RefundRequested'
-                | 'Refunded'
-                | 'WithdrawnInitiated'
-                | 'WithdrawnConfirmed'
-                | 'DisputedWithdrawn';
-              txHash: string | null;
-              utxo: string | null;
-              errorType: 'NETWORK_ERROR' | 'UNKNOWN' | null;
-              errorNote: string | null;
-              errorRequiresManualReview: boolean | null;
               blockchainIdentifier: string;
-              SmartContractWallet: {
-                id: string;
-                walletAddress: string;
-                walletVkey: string;
-                note: string | null;
+              lastCheckedAt: string | null;
+              submitResultTime: string;
+              unlockTime: string;
+              refundTime: string;
+              requestedById: string;
+              resultHash: string;
+              onChainState:
+                | 'FundsLocked'
+                | 'FundsOrDatumInvalid'
+                | 'ResultSubmitted'
+                | 'RefundRequested'
+                | 'Disputed'
+                | 'Withdrawn'
+                | 'RefundWithdrawn'
+                | 'DisputedWithdrawn'
+                | null;
+              NextAction: {
+                requestedAction:
+                  | 'None'
+                  | 'Ignore'
+                  | 'WaitingForManualAction'
+                  | 'WaitingForExternalAction'
+                  | 'SubmitResultRequested'
+                  | 'SubmitResultInitiated'
+                  | 'WithdrawRequested'
+                  | 'WithdrawInitiated'
+                  | 'AuthorizeRefundRequested'
+                  | 'AuthorizeRefundInitiated';
+                errorType: 'NetworkError' | 'Unknown' | null;
+                errorNote: string | null;
               };
-              BuyerWallet: {
-                walletVkey: string;
-              } | null;
+              CurrentTransaction: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string | null;
+              };
+              TransactionHistory: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string | null;
+              }[];
               Amounts: {
                 id: string;
                 createdAt: string;
                 updatedAt: string;
-                /** @min 0 */
-                amount: number | null;
+                amount: string;
                 unit: string;
               }[];
-              NetworkHandler: {
+              PaymentSource: {
                 id: string;
-                network: 'PREPROD' | 'MAINNET';
-                paymentContractAddress: string;
-                paymentType: 'WEB3_CARDANO_V1';
+                network: 'Preprod' | 'Mainnet';
+                smartContractAddress: string;
+                paymentType: 'Web3CardanoV1';
               };
+              BuyerWallet: {
+                id: string;
+                walletVkey: string;
+              } | null;
+              SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+              } | null;
+              metadata: string | null;
             }[];
           };
         },
@@ -698,7 +731,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     paymentCreate: (
       data: {
         /** The network the payment will be received on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The identifier of the agent that will be paid
          * @minLength 15
@@ -710,29 +743,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @maxItems 7
          */
         amounts: {
-          /**
-           * @min 0
-           * @max 9007199254740991
-           */
-          amount: number | null;
+          amount: string;
           unit: string;
         }[];
         /** The type of payment contract used */
-        paymentType: 'WEB3_CARDANO_V1';
+        paymentType: 'Web3CardanoV1';
         /**
          * The address of the smart contract where the payment will be made to
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
         /**
          * The time after which the payment has to be submitted to the smart contract
-         * @default "2025-02-09T14:57:08.497Z"
+         * @default "2025-02-20T13:22:11.970Z"
          */
         submitResultTime?: string;
         /** The time after which the payment will be unlocked */
         unlockTime?: string;
         /** The time after which a refund will be approved */
         refundTime?: string;
+        /** Metadata to be stored with the payment request */
+        metadata?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -742,51 +773,61 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             id: string;
             createdAt: string;
             updatedAt: string;
-            status:
-              | 'PaymentRequested'
-              | 'PaymentConfirmed'
-              | 'PaymentInvalid'
-              | 'ResultGenerated'
-              | 'CompletedInitiated'
-              | 'CompletedConfirmed'
-              | 'Denied'
-              | 'RefundRequested'
-              | 'Refunded'
-              | 'WithdrawnInitiated'
-              | 'WithdrawnConfirmed'
-              | 'DisputedWithdrawn';
-            txHash: string | null;
-            utxo: string | null;
-            errorType: 'NETWORK_ERROR' | 'UNKNOWN' | null;
-            errorNote: string | null;
-            errorRequiresManualReview: boolean | null;
             blockchainIdentifier: string;
-            unlockTime: number;
-            refundTime: number;
-            submitResultTime: number;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            lastCheckedAt: string | null;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
+              | 'RefundRequested'
+              | 'Disputed'
+              | 'Withdrawn'
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'SubmitResultRequested'
+                | 'SubmitResultInitiated'
+                | 'WithdrawRequested'
+                | 'WithdrawInitiated'
+                | 'AuthorizeRefundRequested'
+                | 'AuthorizeRefundInitiated';
+              errorType: 'NetworkError' | 'Unknown' | null;
+              errorNote: string | null;
+            };
             Amounts: {
               id: string;
               createdAt: string;
               updatedAt: string;
-              /** @min 0 */
-              amount: number | null;
+              amount: string;
               unit: string;
             }[];
-            SmartContractWallet: {
+            PaymentSource: {
               id: string;
-              walletAddress: string;
-              walletVkey: string;
-              note: string | null;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
             };
             BuyerWallet: {
+              id: string;
               walletVkey: string;
             } | null;
-            NetworkHandler: {
+            SmartContractWallet: {
               id: string;
-              network: 'PREPROD' | 'MAINNET';
-              paymentContractAddress: string;
-              paymentType: 'WEB3_CARDANO_V1';
-            };
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
           };
           status: string;
         },
@@ -805,30 +846,35 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @description Completes a payment request. This will collect the funds after the unlock time.
      *
      * @tags payment
-     * @name PaymentPartialUpdate
+     * @name SubmitResultCreate
      * @summary REQUIRES API KEY Authentication (+PAY)
-     * @request PATCH:/payment/
+     * @request POST:/payment/submit-result
      * @secure
      */
-    paymentPartialUpdate: (
+    submitResultCreate: (
       data: {
         /** The network the payment was received on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The address of the smart contract where the payment was made to
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
         /**
          * The hash of the AI agent result to be submitted
          * @maxLength 250
          */
-        hash: string;
+        submitResultHash: string;
         /**
          * The identifier of the payment
          * @maxLength 250
          */
-        identifier: string;
+        blockchainIdentifier: string;
+        /**
+         * The vkey of the seller
+         * @maxLength 250
+         */
+        sellerVkey: string;
       },
       params: RequestParams = {},
     ) =>
@@ -838,26 +884,174 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             id: string;
             createdAt: string;
             updatedAt: string;
-            status:
-              | 'PaymentRequested'
-              | 'PaymentConfirmed'
-              | 'PaymentInvalid'
-              | 'ResultGenerated'
-              | 'CompletedInitiated'
-              | 'CompletedConfirmed'
-              | 'Denied'
+            blockchainIdentifier: string;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            lastCheckedAt: string | null;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
               | 'RefundRequested'
-              | 'Refunded'
-              | 'WithdrawnInitiated'
-              | 'WithdrawnConfirmed'
-              | 'DisputedWithdrawn';
+              | 'Disputed'
+              | 'Withdrawn'
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'SubmitResultRequested'
+                | 'SubmitResultInitiated'
+                | 'WithdrawRequested'
+                | 'WithdrawInitiated'
+                | 'AuthorizeRefundRequested'
+                | 'AuthorizeRefundInitiated';
+              errorType: 'NetworkError' | 'Unknown' | null;
+              errorNote: string | null;
+            };
+            Amounts: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              amount: string;
+              unit: string;
+            }[];
+            PaymentSource: {
+              id: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+            };
+            BuyerWallet: {
+              id: string;
+              walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
           };
           status: string;
         },
         void
       >({
-        path: `/payment/`,
-        method: 'PATCH',
+        path: `/payment/submit-result`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: 'json',
+        ...params,
+      }),
+
+    /**
+     * @description Authorizes a refund for a payment request. This will stop the right to receive a payment and initiate a refund for the other party.
+     *
+     * @tags payment
+     * @name AuthorizeRefundCreate
+     * @summary REQUIRES API KEY Authentication (+PAY)
+     * @request POST:/payment/authorize-refund
+     * @secure
+     */
+    authorizeRefundCreate: (
+      data: {
+        /**
+         * The identifier of the purchase to be refunded
+         * @maxLength 250
+         */
+        blockchainIdentifier: string;
+        /**
+         * The vkey of the seller
+         * @maxLength 250
+         */
+        sellerVkey: string;
+        /** The network the Cardano wallet will be used on */
+        network: 'Preprod' | 'Mainnet';
+        /**
+         * The address of the smart contract holding the purchase
+         * @maxLength 250
+         */
+        paymentContractAddress?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          data: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            lastCheckedAt: string | null;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
+              | 'RefundRequested'
+              | 'Disputed'
+              | 'Withdrawn'
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'SubmitResultRequested'
+                | 'SubmitResultInitiated'
+                | 'WithdrawRequested'
+                | 'WithdrawInitiated'
+                | 'AuthorizeRefundRequested'
+                | 'AuthorizeRefundInitiated';
+              errorType: 'NetworkError' | 'Unknown' | null;
+              errorNote: string | null;
+            };
+            Amounts: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              amount: string;
+              unit: string;
+            }[];
+            PaymentSource: {
+              id: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+            };
+            BuyerWallet: {
+              id: string;
+              walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
+          };
+          status: string;
+        },
+        void
+      >({
+        path: `/payment/authorize-refund`,
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
@@ -887,12 +1081,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         /** Used to paginate through the purchases. If this is provided, cursorId is required */
         cursorId?: string;
         /** The network the purchases were made on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The address of the smart contract where the purchases were made to
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
+        /**
+         * Whether to include the full transaction and status history of the purchases
+         * @default "false"
+         */
+        includeHistory?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -904,48 +1103,77 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               id: string;
               createdAt: string;
               updatedAt: string;
-              status:
-                | 'PurchaseRequested'
-                | 'PurchaseInitiated'
-                | 'PurchaseConfirmed'
-                | 'Completed'
-                | 'RefundRequestInitiated'
-                | 'RefundRequestConfirmed'
-                | 'RefundInitiated'
-                | 'RefundConfirmed'
-                | 'RefundRequestCanceledInitiated'
-                | 'Withdrawn'
-                | 'DisputedWithdrawn';
-              txHash: string | null;
-              utxo: string | null;
-              errorType: 'NETWORK_ERROR' | 'INSUFFICIENT_FUNDS' | 'UNKNOWN' | null;
-              errorNote: string | null;
-              errorRequiresManualReview: boolean | null;
               blockchainIdentifier: string;
-              SmartContractWallet: {
+              lastCheckedAt: string | null;
+              submitResultTime: string;
+              unlockTime: string;
+              refundTime: string;
+              requestedById: string;
+              onChainState:
+                | 'FundsLocked'
+                | 'FundsOrDatumInvalid'
+                | 'ResultSubmitted'
+                | 'RefundRequested'
+                | 'Disputed'
+                | 'Withdrawn'
+                | 'RefundWithdrawn'
+                | 'DisputedWithdrawn'
+                | null;
+              resultHash: string;
+              NextAction: {
+                requestedAction:
+                  | 'None'
+                  | 'Ignore'
+                  | 'WaitingForManualAction'
+                  | 'WaitingForExternalAction'
+                  | 'FundsLockingRequested'
+                  | 'FundsLockingInitiated'
+                  | 'SetRefundRequestedRequested'
+                  | 'SetRefundRequestedInitiated'
+                  | 'UnSetRefundRequestedRequested'
+                  | 'UnSetRefundRequestedInitiated'
+                  | 'WithdrawRefundRequested'
+                  | 'WithdrawRefundInitiated';
+                errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown' | null;
+                errorNote: string | null;
+              };
+              CurrentTransaction: {
                 id: string;
-                walletAddress: string;
-                walletVkey: string;
-                note: string | null;
-              };
-              SellerWallet: {
-                walletVkey: string;
-                note: string | null;
-              };
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+              } | null;
+              TransactionHistory: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+              }[];
               Amounts: {
                 id: string;
                 createdAt: string;
                 updatedAt: string;
-                /** @min 0 */
-                amount: number | null;
+                amount: string;
                 unit: string;
               }[];
-              NetworkHandler: {
+              PaymentSource: {
                 id: string;
-                network: 'PREPROD' | 'MAINNET';
-                paymentContractAddress: string;
-                paymentType: 'WEB3_CARDANO_V1';
+                network: 'Preprod' | 'Mainnet';
+                smartContractAddress: string;
+                paymentType: 'Web3CardanoV1';
+              };
+              SellerWallet: {
+                id: string;
+                walletVkey: string;
               } | null;
+              SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+              } | null;
+              metadata: string | null;
             }[];
           };
         },
@@ -970,14 +1198,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      */
     purchaseCreate: (
       data: {
-        id: string;
         /**
          * The identifier of the purchase. Is provided by the seller
          * @maxLength 250
          */
         blockchainIdentifier: string;
         /** The network the transaction will be made on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The verification key of the seller
          * @maxLength 250
@@ -987,27 +1214,25 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * The address of the smart contract where the purchase will be made to
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
         /**
          * The amounts of the purchase
          * @maxItems 7
          */
         amounts: {
-          /**
-           * @min 0
-           * @max 9007199254740991
-           */
-          amount: number | null;
+          amount: string;
           unit: string;
         }[];
         /** The payment type of smart contract used */
-        paymentType: 'WEB3_CARDANO_V1';
+        paymentType: 'Web3CardanoV1';
         /** The time after which the purchase will be unlocked. In unix time (number) */
-        unlockTime: number | null;
+        unlockTime: string;
         /** The time after which a refund will be approved. In unix time (number) */
-        refundTime: number | null;
+        refundTime: string;
         /** The time by which the result has to be submitted. In unix time (number) */
-        submitResultTime: number | null;
+        submitResultTime: string;
+        /** Metadata to be stored with the purchase request */
+        metadata?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1017,18 +1242,70 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             id: string;
             createdAt: string;
             updatedAt: string;
-            status:
-              | 'PurchaseRequested'
-              | 'PurchaseInitiated'
-              | 'PurchaseConfirmed'
-              | 'Completed'
-              | 'RefundRequestInitiated'
-              | 'RefundRequestConfirmed'
-              | 'RefundInitiated'
-              | 'RefundConfirmed'
-              | 'RefundRequestCanceledInitiated'
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
+              | 'RefundRequested'
+              | 'Disputed'
               | 'Withdrawn'
-              | 'DisputedWithdrawn';
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'FundsLockingRequested'
+                | 'FundsLockingInitiated'
+                | 'SetRefundRequestedRequested'
+                | 'SetRefundRequestedInitiated'
+                | 'UnSetRefundRequestedRequested'
+                | 'UnSetRefundRequestedInitiated'
+                | 'WithdrawRefundRequested'
+                | 'WithdrawRefundInitiated';
+              errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown' | null;
+              errorNote: string | null;
+            };
+            CurrentTransaction: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              txHash: string;
+              status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+            } | null;
+            Amounts: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              amount: string;
+              unit: string;
+            }[];
+            PaymentSource: {
+              id: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+              id: string;
+              walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
           };
           status: string;
         },
@@ -1047,12 +1324,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @description Requests a refund for a completed purchase. This will collect the refund after the refund time.
      *
      * @tags purchase
-     * @name PurchasePartialUpdate
+     * @name RequestRefundCreate
      * @summary REQUIRES API KEY Authentication (+PAY)
-     * @request PATCH:/purchase/
+     * @request POST:/purchase/request-refund
      * @secure
      */
-    purchasePartialUpdate: (
+    requestRefundCreate: (
       data: {
         id: string;
         /**
@@ -1061,26 +1338,203 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         blockchainIdentifier: string;
         /** The network the Cardano wallet will be used on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The address of the smart contract holding the purchase
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
       },
       params: RequestParams = {},
     ) =>
       this.request<
         {
           data: {
-            txHash: string;
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
+              | 'RefundRequested'
+              | 'Disputed'
+              | 'Withdrawn'
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'FundsLockingRequested'
+                | 'FundsLockingInitiated'
+                | 'SetRefundRequestedRequested'
+                | 'SetRefundRequestedInitiated'
+                | 'UnSetRefundRequestedRequested'
+                | 'UnSetRefundRequestedInitiated'
+                | 'WithdrawRefundRequested'
+                | 'WithdrawRefundInitiated';
+              errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown' | null;
+              errorNote: string | null;
+            };
+            CurrentTransaction: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              txHash: string;
+              status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+            } | null;
+            Amounts: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              amount: string;
+              unit: string;
+            }[];
+            PaymentSource: {
+              id: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+              id: string;
+              walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
           };
           status: string;
         },
         void
       >({
-        path: `/purchase/`,
-        method: 'PATCH',
+        path: `/purchase/request-refund`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: 'json',
+        ...params,
+      }),
+
+    /**
+     * @description Requests a refund for a completed purchase. This will collect the refund after the refund time.
+     *
+     * @tags purchase
+     * @name CancelRefundRequestCreate
+     * @summary REQUIRES API KEY Authentication (+PAY)
+     * @request POST:/purchase/cancel-refund-request
+     * @secure
+     */
+    cancelRefundRequestCreate: (
+      data: {
+        id: string;
+        /**
+         * The identifier of the purchase to be refunded
+         * @maxLength 250
+         */
+        blockchainIdentifier: string;
+        /** The network the Cardano wallet will be used on */
+        network: 'Preprod' | 'Mainnet';
+        /**
+         * The address of the smart contract holding the purchase
+         * @maxLength 250
+         */
+        smartContractAddress?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          data: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            refundTime: string;
+            requestedById: string;
+            resultHash: string;
+            onChainState:
+              | 'FundsLocked'
+              | 'FundsOrDatumInvalid'
+              | 'ResultSubmitted'
+              | 'RefundRequested'
+              | 'Disputed'
+              | 'Withdrawn'
+              | 'RefundWithdrawn'
+              | 'DisputedWithdrawn'
+              | null;
+            NextAction: {
+              requestedAction:
+                | 'None'
+                | 'Ignore'
+                | 'WaitingForManualAction'
+                | 'WaitingForExternalAction'
+                | 'FundsLockingRequested'
+                | 'FundsLockingInitiated'
+                | 'SetRefundRequestedRequested'
+                | 'SetRefundRequestedInitiated'
+                | 'UnSetRefundRequestedRequested'
+                | 'UnSetRefundRequestedInitiated'
+                | 'WithdrawRefundRequested'
+                | 'WithdrawRefundInitiated';
+              errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown' | null;
+              errorNote: string | null;
+            };
+            CurrentTransaction: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              txHash: string;
+              status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+            } | null;
+            Amounts: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              amount: string;
+              unit: string;
+            }[];
+            PaymentSource: {
+              id: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+              id: string;
+              walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+            } | null;
+            metadata: string | null;
+          };
+          status: string;
+        },
+        void
+      >({
+        path: `/purchase/cancel-refund-request`,
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
@@ -1106,12 +1560,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         walletVKey: string;
         /** The Cardano network used to register the agent on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
-         * The smart contract address of the payment contract to which the registration belongs
+         * The smart contract address of the payment source to which the registration belongs
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1120,8 +1574,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           status: string;
           data: {
             assets: {
-              /** @maxLength 250 */
-              unit: string;
+              policyId: string;
+              assetName: string;
+              agentIdentifier: string;
               metadata: {
                 /** @maxLength 250 */
                 name: string;
@@ -1185,7 +1640,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
 
     /**
-     * @description Registers an agent to the registry.
+     * @description Registers an agent to the registry (Please note that while it it is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)
      *
      * @tags registry
      * @name RegistryCreate
@@ -1196,17 +1651,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     registryCreate: (
       data: {
         /** The Cardano network used to register the agent on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The smart contract address of the payment contract to be registered for
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
         /**
          * The payment key of a specific wallet used for the registration
          * @maxLength 250
          */
-        sellingWalletVkey?: string;
+        sellingWalletVkey: string;
         /**
          * Link to a example output of the agent
          * @maxLength 250
@@ -1280,7 +1735,33 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           status: string;
           data: {
-            txHash: string;
+            name: string;
+            api_url: string;
+            capability_name: string;
+            capability_version: string;
+            description: string | null;
+            requests_per_hour: string | null;
+            privacy_policy: string | null;
+            terms: string | null;
+            other: string | null;
+            tags: string[];
+            state:
+              | 'RegistrationRequested'
+              | 'RegistrationInitiated'
+              | 'RegistrationConfirmed'
+              | 'RegistrationFailed'
+              | 'DeregistrationRequested'
+              | 'DeregistrationInitiated'
+              | 'DeregistrationConfirmed'
+              | 'DeregistrationFailed';
+            SmartContractWallet: {
+              walletVkey: string;
+              walletAddress: string;
+            };
+            Pricing: {
+              unit: string;
+              quantity: string;
+            }[];
           };
         },
         any
@@ -1295,7 +1776,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
 
     /**
-     * @description Deregisters a agent from the specified registry.
+     * @description Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)
      *
      * @tags registry
      * @name RegistryDelete
@@ -1311,12 +1792,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         assetName: string;
         /** The network the registration was made on */
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The smart contract address of the payment contract to which the registration belongs
          * @maxLength 250
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1324,7 +1805,33 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         {
           status: string;
           data: {
-            txHash: string;
+            name: string;
+            api_url: string;
+            capability_name: string;
+            capability_version: string;
+            description: string | null;
+            requests_per_hour: string | null;
+            privacy_policy: string | null;
+            terms: string | null;
+            other: string | null;
+            tags: string[];
+            SmartContractWallet: {
+              walletVkey: string;
+              walletAddress: string;
+            };
+            state:
+              | 'RegistrationRequested'
+              | 'RegistrationInitiated'
+              | 'RegistrationConfirmed'
+              | 'RegistrationFailed'
+              | 'DeregistrationRequested'
+              | 'DeregistrationInitiated'
+              | 'DeregistrationConfirmed'
+              | 'DeregistrationFailed';
+            Pricing: {
+              unit: string;
+              quantity: string;
+            }[];
           };
         },
         any
@@ -1337,96 +1844,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         ...params,
       }),
   };
-  paymentContract = {
-    /**
-     * @description Gets the payment contract.
-     *
-     * @tags payment-contract
-     * @name PaymentContractList
-     * @summary REQUIRES API KEY Authentication (+READ)
-     * @request GET:/payment-contract/
-     * @secure
-     */
-    paymentContractList: (
-      query?: {
-        /**
-         * The number of payment sources to return
-         * @min 1
-         * @max 100
-         * @default 10
-         */
-        take?: number;
-        /**
-         * Used to paginate through the payment sources
-         * @maxLength 250
-         */
-        cursorId?: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        {
-          status: string;
-          data: {
-            paymentSources: {
-              id: string;
-              createdAt: string;
-              updatedAt: string;
-              network: 'PREPROD' | 'MAINNET';
-              paymentContractAddress: string;
-              paymentType: 'WEB3_CARDANO_V1';
-              lastIdentifierChecked: string | null;
-              lastPageChecked: number;
-              lastCheckedAt: string | null;
-              AdminWallets: {
-                walletAddress: string;
-                order: number;
-              }[];
-              CollectionWallet: {
-                id: string;
-                walletAddress: string;
-                note: string | null;
-              };
-              PurchasingWallets: {
-                id: string;
-                walletVkey: string;
-                walletAddress: string;
-                note: string | null;
-              }[];
-              SellingWallets: {
-                id: string;
-                walletVkey: string;
-                walletAddress: string;
-                note: string | null;
-              }[];
-              FeeReceiverNetworkWallet: {
-                walletAddress: string;
-              };
-              /**
-               * @min 0
-               * @max 1000
-               */
-              feePermille: number;
-            }[];
-          };
-        },
-        any
-      >({
-        path: `/payment-contract/`,
-        method: 'GET',
-        query: query,
-        secure: true,
-        format: 'json',
-        ...params,
-      }),
-  };
   paymentSource = {
     /**
-     * @description Gets the payment sources including the status.
+     * @description Gets the payment source.
      *
      * @tags payment-source
      * @name PaymentSourceList
-     * @summary REQUIRES API KEY Authentication (+ADMIN)
+     * @summary REQUIRES API KEY Authentication (+READ)
      * @request GET:/payment-source/
      * @secure
      */
@@ -1455,33 +1879,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               id: string;
               createdAt: string;
               updatedAt: string;
-              network: 'PREPROD' | 'MAINNET';
-              paymentContractAddress: string;
-              paymentType: 'WEB3_CARDANO_V1';
-              rpcProviderApiKey: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
               lastIdentifierChecked: string | null;
-              isSyncing: boolean;
-              lastPageChecked: number;
               lastCheckedAt: string | null;
               AdminWallets: {
                 walletAddress: string;
                 order: number;
               }[];
-              CollectionWallet: {
-                id: string;
-                walletAddress: string;
-                note: string | null;
-              };
               PurchasingWallets: {
                 id: string;
                 walletVkey: string;
                 walletAddress: string;
+                collectionAddress: string | null;
                 note: string | null;
               }[];
               SellingWallets: {
                 id: string;
                 walletVkey: string;
                 walletAddress: string;
+                collectionAddress: string | null;
                 note: string | null;
               }[];
               FeeReceiverNetworkWallet: {
@@ -1491,7 +1909,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                * @min 0
                * @max 1000
                */
-              feePermille: number;
+              feeRatePermille: number;
             }[];
           };
         },
@@ -1517,20 +1935,24 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     paymentSourceCreate: (
       data: {
         /** The network the payment source will be used on */
-        network: 'PREPROD' | 'MAINNET';
-        /** The type of payment contract used */
-        paymentType: 'WEB3_CARDANO_V1';
-        /**
-         * The rpc provider (blockfrost) api key to be used for the payment source
-         * @maxLength 250
-         */
-        rpcProviderApiKey: string;
+        network: 'Preprod' | 'Mainnet';
+        /** The type of payment source used */
+        paymentType: 'Web3CardanoV1';
+        PaymentSourceConfig: {
+          /**
+           * The rpc provider (blockfrost) api key to be used for the payment source
+           * @maxLength 250
+           */
+          rpcProviderApiKey: string;
+          /** The rpc provider to be used for the payment source */
+          rpcProvider: 'Blockfrost';
+        };
         /**
          * The fee in permille to be used for the payment source. The default contract uses 50 (5%)
          * @min 0
          * @max 1000
          */
-        feePermille: number | null;
+        feeRatePermille: number | null;
         /**
          * The wallet addresses of the admin wallets (exactly 3)
          * @maxItems 3
@@ -1545,13 +1967,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           /** @maxLength 250 */
           walletAddress: string;
         };
-        /** The wallet address and note of the collection wallet (ideally a hardware wallet). Please backup the mnemonic of the wallet. */
-        CollectionWallet: {
-          /** @maxLength 250 */
-          walletAddress: string;
-          /** @maxLength 250 */
-          note: string;
-        };
         /**
          * The mnemonic of the purchasing wallets to be added. Please backup the mnemonic of the wallets.
          * @maxItems 50
@@ -1560,6 +1975,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         PurchasingWallets: {
           /** @maxLength 1500 */
           walletMnemonic: string;
+          /**
+           * The collection address of the purchasing wallet
+           * @maxLength 250
+           */
+          collectionAddress: string | null;
           /** @maxLength 250 */
           note: string;
         }[];
@@ -1571,6 +1991,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         SellingWallets: {
           /** @maxLength 1500 */
           walletMnemonic: string;
+          /**
+           * The collection address of the selling wallet
+           * @maxLength 250
+           */
+          collectionAddress: string | null;
           /** @maxLength 250 */
           note: string;
         }[];
@@ -1584,14 +2009,42 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             id: string;
             createdAt: string;
             updatedAt: string;
-            network: 'PREPROD' | 'MAINNET';
-            paymentContractAddress: string;
-            paymentType: 'WEB3_CARDANO_V1';
-            rpcProviderApiKey: string;
-            isSyncing: boolean;
+            network: 'Preprod' | 'Mainnet';
+            smartContractAddress: string;
+            paymentType: 'Web3CardanoV1';
+            PaymentSourceConfig: {
+              rpcProviderApiKey: string;
+              rpcProvider: 'Blockfrost';
+            };
             lastIdentifierChecked: string | null;
-            lastPageChecked: number;
+            syncInProgress: boolean;
             lastCheckedAt: string | null;
+            AdminWallets: {
+              walletAddress: string;
+              order: number;
+            }[];
+            PurchasingWallets: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+              collectionAddress: string | null;
+              note: string | null;
+            }[];
+            SellingWallets: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+              collectionAddress: string | null;
+              note: string | null;
+            }[];
+            FeeReceiverNetworkWallet: {
+              walletAddress: string;
+            };
+            /**
+             * @min 0
+             * @max 1000
+             */
+            feeRatePermille: number;
           };
         },
         any
@@ -1606,7 +2059,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
 
     /**
-     * @description Creates a payment source.
+     * @description Updates a payment source.
      *
      * @tags payment-source
      * @name PaymentSourcePartialUpdate
@@ -1621,17 +2074,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @maxLength 250
          */
         id: string;
-        /**
-         * The rpc provider (blockfrost) api key to be used for the payment source
-         * @maxLength 250
-         */
-        rpcProviderApiKey?: string;
-        /** The wallet address and note of the collection wallet (ideally a hardware wallet). Usually should not be changed. Please backup the mnemonic of the old wallet before changing it. */
-        CollectionWallet?: {
-          /** @maxLength 250 */
-          walletAddress: string;
-          /** @maxLength 250 */
-          note: string;
+        PaymentSourceConfig?: {
+          /**
+           * The rpc provider (blockfrost) api key to be used for the payment source
+           * @maxLength 250
+           */
+          rpcProviderApiKey: string;
+          /** The rpc provider to be used for the payment contract */
+          rpcProvider: 'Blockfrost';
         };
         /**
          * The mnemonic of the purchasing wallets to be added
@@ -1643,6 +2093,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           walletMnemonic: string;
           /** @maxLength 250 */
           note: string;
+          /**
+           * The collection address of the purchasing wallet
+           * @maxLength 250
+           */
+          collectionAddress: string | null;
         }[];
         /**
          * The mnemonic of the selling wallets to be added
@@ -1654,6 +2109,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           walletMnemonic: string;
           /** @maxLength 250 */
           note: string;
+          /**
+           * The collection address of the selling wallet
+           * @maxLength 250
+           */
+          collectionAddress: string | null;
         }[];
         /**
          * The ids of the purchasing wallets to be removed. Please backup the mnemonic of the old wallet before removing it.
@@ -1670,12 +2130,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           id: string;
         }[];
         /**
-         * The page number of the payment source. Usually should not be changed
-         * @min 1
-         * @max 100000000
-         */
-        lastPageChecked?: number;
-        /**
          * The latest identifier of the payment source. Usually should not be changed
          * @maxLength 250
          */
@@ -1690,14 +2144,42 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             id: string;
             createdAt: string;
             updatedAt: string;
-            network: 'PREPROD' | 'MAINNET';
-            paymentContractAddress: string;
-            paymentType: 'WEB3_CARDANO_V1';
-            rpcProviderApiKey: string;
-            isSyncing: boolean;
+            network: 'Preprod' | 'Mainnet';
+            smartContractAddress: string;
+            paymentType: 'Web3CardanoV1';
+            PaymentSourceConfig: {
+              rpcProviderApiKey: string;
+              rpcProvider: 'Blockfrost';
+            };
             lastIdentifierChecked: string | null;
-            lastPageChecked: number;
+            syncInProgress: boolean;
             lastCheckedAt: string | null;
+            AdminWallets: {
+              walletAddress: string;
+              order: number;
+            }[];
+            PurchasingWallets: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+              collectionAddress: string | null;
+              note: string | null;
+            }[];
+            SellingWallets: {
+              id: string;
+              walletVkey: string;
+              walletAddress: string;
+              collectionAddress: string | null;
+              note: string | null;
+            }[];
+            FeeReceiverNetworkWallet: {
+              walletAddress: string;
+            };
+            /**
+             * @min 0
+             * @max 1000
+             */
+            feeRatePermille: number;
           };
         },
         any
@@ -1744,6 +2226,90 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         ...params,
       }),
   };
+  paymentSourceExtended = {
+    /**
+     * @description Gets the payment contracts including the status.
+     *
+     * @tags payment-source
+     * @name PaymentSourceExtendedList
+     * @summary REQUIRES API KEY Authentication (+ADMIN)
+     * @request GET:/payment-source-extended/
+     * @secure
+     */
+    paymentSourceExtendedList: (
+      query?: {
+        /**
+         * The number of payment sources to return
+         * @min 1
+         * @max 100
+         * @default 10
+         */
+        take?: number;
+        /**
+         * Used to paginate through the payment sources
+         * @maxLength 250
+         */
+        cursorId?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          status: string;
+          data: {
+            paymentSources: {
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+              network: 'Preprod' | 'Mainnet';
+              smartContractAddress: string;
+              paymentType: 'Web3CardanoV1';
+              PaymentSourceConfig: {
+                rpcProviderApiKey: string;
+                rpcProvider: 'Blockfrost';
+              };
+              lastIdentifierChecked: string | null;
+              syncInProgress: boolean;
+              lastCheckedAt: string | null;
+              AdminWallets: {
+                walletAddress: string;
+                order: number;
+              }[];
+              PurchasingWallets: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+                collectionAddress: string | null;
+                note: string | null;
+              }[];
+              SellingWallets: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+                collectionAddress: string | null;
+                note: string | null;
+              }[];
+              FeeReceiverNetworkWallet: {
+                walletAddress: string;
+              };
+              /**
+               * @min 0
+               * @max 1000
+               */
+              feeRatePermille: number;
+            }[];
+          };
+        },
+        any
+      >({
+        path: `/payment-source-extended/`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        format: 'json',
+        ...params,
+      }),
+  };
   utxos = {
     /**
      * @description Gets UTXOs (internal)
@@ -1761,7 +2327,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @maxLength 150
          */
         address: string;
-        network: 'PREPROD' | 'MAINNET';
+        network: 'Preprod' | 'Mainnet';
         /**
          * The number of UTXOs to get
          * @min 1
@@ -1851,9 +2417,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
           rpcProviderKeys: {
             id: string;
             rpcProviderApiKey: string;
+            rpcProvider: 'Blockfrost';
             createdAt: string;
             updatedAt: string;
-            network: 'PREPROD' | 'MAINNET';
+            network: 'Preprod' | 'Mainnet';
           }[];
         },
         any

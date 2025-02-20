@@ -5,10 +5,13 @@ import { BlockfrostProvider } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import { cardanoRefundHandlerService } from "../cardano-refund-handler/cardano-collection-refund.service";
 import { cardanoSubmitResultHandlerService } from "../cardano-submit-result-handler/cardano-submit-result-handler.service";
-import { cardanoTimeoutRefundHandlerService } from "../cardano-request-refund-handler/cardano-request-refund-handler.service";
+import { cardanoRequestRefundHandlerService } from "../cardano-request-refund-handler/cardano-request-refund-handler.service";
 import { cardanoCollectionHandlerService } from "../cardano-collection-handler";
 import { cardanoPaymentBatcherService } from "../cardano-payment-batcher";
-
+import { cardanoRegisterHandlerService } from "../cardano-register-handler/cardano-register-handler.service";
+import { cardanoDeregisterHandlerService } from "../cardano-deregister-handler/cardano-deregister-handler.service";
+import { cardanoAuthorizeRefundHandlerService } from "../cardano-authorize-refund-handler/cardano-authorize-refund-handler.service";
+import { cardanoCancelRefundHandlerService } from "../cardano-cancel-refund-handler/cardano-cancel-refund-handler.service";
 const updateMutex = new Sema(1);
 
 export async function updateWalletTransactionHash() {
@@ -19,12 +22,13 @@ export async function updateWalletTransactionHash() {
         return await updateMutex.acquire();
 
     try {
-
         const lockedHotWallets = await prisma.hotWallet.findMany({
             where: {
                 PendingTransaction: {
                     //if the transaction has been checked in the last 30 seconds, we skip it
-                    lastCheckedAt: { lte: new Date(Date.now() - 1000 * 30) }
+                    lastCheckedAt: {
+                        lte: new Date(Date.now() - 1000 * 30)
+                    }
                 }
             },
             include: {
@@ -33,15 +37,13 @@ export async function updateWalletTransactionHash() {
                     include: { PaymentSourceConfig: true }
                 }
             },
-
         });
         let unlockedSellingWallets = 0;
         let unlockedPurchasingWallets = 0;
-
         await Promise.allSettled(lockedHotWallets.map(async (wallet) => {
             try {
                 if (wallet.PendingTransaction == null) {
-                    logger.warn(`Wallet ${wallet.id} has no pending transaction. Skipping...`)
+                    logger.error(`Wallet ${wallet.id} has no pending transaction. Skipping...`)
                     return;
                 }
                 const txHash = wallet.PendingTransaction.txHash;
@@ -80,21 +82,33 @@ export async function updateWalletTransactionHash() {
             where: {
                 lockedAt: { lt: new Date(Date.now() - 1000 * 60 * 15) }
             },
-            include: { PendingTransaction: true, PaymentSource: { include: { PaymentSourceConfig: true } } }
+            include: {
+                PendingTransaction: true,
+                PaymentSource: { include: { PaymentSourceConfig: true } }
+            }
         })
         await Promise.allSettled(timedOutLockedHotWallets.map(async (wallet) => {
             try {
                 if (wallet.PendingTransaction == null) {
-                    logger.error(`Wallet ${wallet.id} has no pending transaction. Skipping...`)
-                    return;
+                    await prisma.hotWallet.update({
+                        where: { id: wallet.id },
+                        data: {
+                            lockedAt: null
+                        }
+                    })
+                } else {
+                    await prisma.transaction.update({
+                        where: { id: wallet.PendingTransaction.id },
+                        data: {
+                            BlocksWallet: {
+                                disconnect: true,
+                                update: {
+                                    data: { lockedAt: null }
+                                }
+                            },
+                        }
+                    })
                 }
-
-                await prisma.transaction.update({
-                    where: { id: wallet.PendingTransaction.id },
-                    data: {
-                        BlocksWallet: { disconnect: true },
-                    }
-                })
                 if (wallet.type == HotWalletType.Selling) {
                     unlockedSellingWallets++;
                 } else if (wallet.type == HotWalletType.Purchasing) {
@@ -105,14 +119,14 @@ export async function updateWalletTransactionHash() {
             }
         }));
         //TODO: reset initialized actions
-        if (unlockedPurchasingWallets > 0) {
+        if (unlockedSellingWallets > 0) {
             try {
                 await cardanoSubmitResultHandlerService.submitResultV1()
             } catch (error) {
                 logger.error(`Error initiating refunds: ${error}`);
             }
             try {
-                await cardanoPaymentBatcherService.batchLatestPaymentEntriesV1()
+                await cardanoAuthorizeRefundHandlerService.authorizeRefundV1()
             } catch (error) {
                 logger.error(`Error initiating refunds: ${error}`);
             }
@@ -121,17 +135,37 @@ export async function updateWalletTransactionHash() {
             } catch (error) {
                 logger.error(`Error initiating refunds: ${error}`);
             }
+            try {
+                await cardanoRegisterHandlerService.registerAgentV1()
+            } catch (error) {
+                logger.error(`Error initiating timeout refunds: ${error}`);
+            }
+            try {
+                await cardanoDeregisterHandlerService.deRegisterAgentV1()
+            } catch (error) {
+                logger.error(`Error initiating timeout refunds: ${error}`);
+            }
         }
-        if (unlockedSellingWallets > 0) {
+        if (unlockedPurchasingWallets > 0) {
             try {
                 await cardanoRefundHandlerService.collectRefundV1()
             } catch (error) {
                 logger.error(`Error initiating timeout refunds: ${error}`);
             }
             try {
-                await cardanoTimeoutRefundHandlerService.collectTimeoutRefundsV1()
+                await cardanoRequestRefundHandlerService.requestRefundsV1()
             } catch (error) {
                 logger.error(`Error initiating timeout refunds: ${error}`);
+            }
+            try {
+                await cardanoCancelRefundHandlerService.cancelRefundsV1()
+            } catch (error) {
+                logger.error(`Error initiating timeout refunds: ${error}`);
+            }
+            try {
+                await cardanoPaymentBatcherService.batchLatestPaymentEntriesV1()
+            } catch (error) {
+                logger.error(`Error initiating refunds: ${error}`);
             }
         }
 

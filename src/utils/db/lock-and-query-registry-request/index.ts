@@ -3,7 +3,6 @@ import { prisma } from "../index.js";
 
 export async function lockAndQueryRegistryRequests({ state }: { state: RegistrationState }) {
     return await prisma.$transaction(async (prisma) => {
-
         const paymentSources = await prisma.paymentSource.findMany({
             where: {
                 paymentType: PaymentType.Web3CardanoV1,
@@ -65,7 +64,9 @@ export async function lockAndQueryRegistryRequests({ state }: { state: Registrat
                     registryRequests.push(registryRequest)
                 }
             }
-            newPaymentSources.push({ ...paymentSource, RegistryRequests: registryRequests })
+            if (registryRequests.length > 0) {
+                newPaymentSources.push({ ...paymentSource, RegistryRequests: registryRequests })
+            }
         }
         return newPaymentSources;
     }, { isolationLevel: "Serializable" });

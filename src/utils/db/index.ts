@@ -12,9 +12,9 @@ export async function cleanupDB() {
 
 export async function initDB() {
     await prisma.$connect()
-    const paymentContracts = await prisma.paymentContract.aggregate({
+    const paymentSources = await prisma.paymentSource.aggregate({
         _count: true
     })
-    logger.info(`Found ${paymentContracts._count} payment contract${paymentContracts._count == 1 ? "" : "s"}`)
+    logger.info(`Found ${paymentSources._count} payment source${paymentSources._count == 1 ? "" : "s"}`)
     logger.info("Initialized database")
 }

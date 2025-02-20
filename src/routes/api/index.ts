@@ -1,7 +1,7 @@
 import { DependsOnMethod, Routing } from "express-zod-api";
 import { healthEndpointGet } from '@/routes/api/health';
 import { queryAPIKeyEndpointGet as queryCentralizedRegistrySourceGet, addAPIKeyEndpointPost as addCentralizedRegistrySourceEndpointPost, updateAPIKeyEndpointPatch, deleteAPIKeyEndpointDelete as deleteCentralizedRegistrySourceEndpointDelete } from "./api-key";
-import { createPurchaseInitPost, queryPurchaseRequestGet } from "./purchases";
+import { createPurchaseInitPost, queryPurchaseRequestGet, } from "./purchases";
 import { paymentInitPost, queryPaymentEntryGet } from "./payments";
 import { queryAgentGet, registerAgentPost, unregisterAgentDelete } from "./registry";
 import { paymentSourceExtendedEndpointDelete, paymentSourceExtendedEndpointGet, paymentSourceExtendedEndpointPatch, paymentSourceExtendedEndpointPost } from "./payment-source-extended";
@@ -21,22 +21,24 @@ export const apiRouter: Routing = {
         "purchase": new DependsOnMethod({
             get: queryPurchaseRequestGet,
             post: createPurchaseInitPost,
-        }),
-        "purchase/request-refund": new DependsOnMethod({
-            post: requestPurchaseRefundPost,
-        }),
-        "purchase/cancel-refund-request": new DependsOnMethod({
-            post: cancelPurchaseRefundRequestPost,
+        }).nest({
+            "request-refund": new DependsOnMethod({
+                post: requestPurchaseRefundPost,
+            }),
+            "cancel-refund-request": new DependsOnMethod({
+                post: cancelPurchaseRefundRequestPost,
+            }),
         }),
         "payment": new DependsOnMethod({
             get: queryPaymentEntryGet,
             post: paymentInitPost,
-        }),
-        "payment/authorize-refund": new DependsOnMethod({
-            post: authorizePaymentRefundEndpointPost,
-        }),
-        "payment/submit-result": new DependsOnMethod({
-            post: submitPaymentResultEndpointPost,
+        }).nest({
+            "authorize-refund": new DependsOnMethod({
+                post: authorizePaymentRefundEndpointPost,
+            }),
+            "submit-result": new DependsOnMethod({
+                post: submitPaymentResultEndpointPost,
+            }),
         }),
         "registry": new DependsOnMethod({
             get: queryAgentGet,

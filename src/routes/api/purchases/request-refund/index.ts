@@ -24,6 +24,8 @@ export const requestPurchaseRefundSchemaOutput = z.object({
     unlockTime: z.string(),
     refundTime: z.string(),
     requestedById: z.string(),
+    resultHash: z.string(),
+    onChainState: z.nativeEnum(OnChainState).nullable(),
     NextAction: z.object({
         requestedAction: z.nativeEnum(PurchasingAction),
         errorType: z.nativeEnum(PurchaseErrorType).nullable(),

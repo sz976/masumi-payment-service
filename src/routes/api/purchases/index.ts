@@ -1,6 +1,6 @@
 
 import { z } from 'zod';
-import { HotWalletType, Network, PaymentType, PurchasingAction, TransactionStatus, PurchaseErrorType } from '@prisma/client';
+import { HotWalletType, Network, PaymentType, PurchasingAction, TransactionStatus, PurchaseErrorType, OnChainState } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { tokenCreditService } from '@/services/token-credit';
@@ -27,6 +27,8 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         unlockTime: z.string(),
         refundTime: z.string(),
         requestedById: z.string(),
+        onChainState: z.nativeEnum(OnChainState).nullable(),
+        resultHash: z.string(),
         NextAction: z.object({
             requestedAction: z.nativeEnum(PurchasingAction),
             errorType: z.nativeEnum(PurchaseErrorType).nullable(),
@@ -157,6 +159,8 @@ export const createPurchaseInitSchemaOutput = z.object({
     unlockTime: z.string(),
     refundTime: z.string(),
     requestedById: z.string(),
+    resultHash: z.string(),
+    onChainState: z.nativeEnum(OnChainState).nullable(),
     NextAction: z.object({
         requestedAction: z.nativeEnum(PurchasingAction),
         errorType: z.nativeEnum(PurchaseErrorType).nullable(),
