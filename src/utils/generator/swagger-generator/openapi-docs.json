@@ -310,8 +310,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "Secret": {
-                                                "createdAt": "2025-02-20T09:39:30.246Z",
-                                                "updatedAt": "2025-02-20T09:39:30.246Z",
+                                                "createdAt": "2025-02-20T17:23:53.607Z",
+                                                "updatedAt": "2025-02-20T17:23:53.607Z",
                                                 "mnemonic": "decoded_secret"
                                             }
                                         }
@@ -1376,8 +1376,8 @@
                                                 {
                                                     "id": "cuid_v2_auto_generated",
                                                     "blockchainIdentifier": "blockchain_identifier",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "submitResultTime": "0",
                                                     "unlockTime": "0",
                                                     "refundTime": "0",
@@ -1395,8 +1395,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "amount_id",
-                                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                                             "amount": "10000000",
                                                             "unit": "lovelace"
                                                         }
@@ -1467,10 +1467,12 @@
                                             "type": "object",
                                             "properties": {
                                                 "amount": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "maxLength": 25
                                                 },
                                                 "unit": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "maxLength": 150
                                                 }
                                             },
                                             "required": [
@@ -1508,7 +1510,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-20T21:39:30.237Z",
+                                        "default": "2025-02-21T05:23:53.601Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1552,7 +1554,7 @@
                                     "identifierFromPurchaser": {
                                         "type": "string",
                                         "minLength": 15,
-                                        "maxLength": 250,
+                                        "maxLength": 25,
                                         "description": "The cuid2 identifier of the purchaser of the payment"
                                     }
                                 },
@@ -1575,7 +1577,7 @@
                                         }
                                     ],
                                     "paymentType": "Web3CardanoV1",
-                                    "submitResultTime": "2025-02-20T21:39:30.247Z",
+                                    "submitResultTime": "2025-02-21T05:23:53.607Z",
                                     "identifierFromPurchaser": "unique_key_from_purchaser"
                                 }
                             }
@@ -1809,8 +1811,8 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
                                             "refundTime": "0",
@@ -1826,8 +1828,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -2151,8 +2153,8 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
                                             "refundTime": "0",
@@ -2168,8 +2170,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -2486,8 +2488,8 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
                                             "refundTime": "0",
@@ -2503,8 +2505,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -2932,11 +2934,11 @@
                                                         "errorType": null,
                                                         "errorNote": null
                                                     },
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
-                                                    "refundTime": "1740130770247",
-                                                    "submitResultTime": "1740044370247",
-                                                    "unlockTime": "1740087570247",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
+                                                    "refundTime": "1740158633607",
+                                                    "submitResultTime": "1740072233607",
+                                                    "unlockTime": "1740115433607",
                                                     "Amounts": [],
                                                     "PaymentSource": {
                                                         "id": "payment_source_id",
@@ -3019,10 +3021,12 @@
                                             "type": "object",
                                             "properties": {
                                                 "amount": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "maxLength": 25
                                                 },
                                                 "unit": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "maxLength": 150
                                                 }
                                             },
                                             "required": [
@@ -3055,6 +3059,12 @@
                                     "metadata": {
                                         "type": "string",
                                         "description": "Metadata to be stored with the purchase request"
+                                    },
+                                    "identifierFromPurchaser": {
+                                        "type": "string",
+                                        "minLength": 15,
+                                        "maxLength": 25,
+                                        "description": "The cuid2 identifier of the purchaser of the purchase"
                                     }
                                 },
                                 "required": [
@@ -3066,7 +3076,8 @@
                                     "paymentType",
                                     "unlockTime",
                                     "refundTime",
-                                    "submitResultTime"
+                                    "submitResultTime",
+                                    "identifierFromPurchaser"
                                 ],
                                 "example": {
                                     "blockchainIdentifier": "blockchain_identifier",
@@ -3080,9 +3091,9 @@
                                         }
                                     ],
                                     "paymentType": "Web3CardanoV1",
-                                    "submitResultTime": "1740087570247",
-                                    "unlockTime": "1740130770247",
-                                    "refundTime": "1740173970247",
+                                    "submitResultTime": "1740115433607",
+                                    "unlockTime": "1740158633607",
+                                    "refundTime": "1740201833607",
                                     "agentIdentifier": "agent_identifier"
                                 }
                             }
@@ -3352,8 +3363,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "blockchainIdentifier": "blockchain_identifier",
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
@@ -3371,8 +3382,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -3723,8 +3734,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "blockchainIdentifier": "blockchain_identifier",
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
@@ -3742,8 +3753,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -4094,8 +4105,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "blockchainIdentifier": "blockchain_identifier",
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
@@ -4113,8 +4124,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -5211,8 +5222,8 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "network": "Mainnet",
                                                     "paymentType": "Web3CardanoV1",
                                                     "smartContractAddress": "address_of_the_smart_contract",
@@ -5234,7 +5245,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-20T09:39:30.247Z",
+                                                    "lastCheckedAt": "2025-02-20T17:23:53.607Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "PurchasingWallets": [
                                                         {
@@ -5676,8 +5687,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "network": "Mainnet",
                                             "paymentType": "Web3CardanoV1",
                                             "syncInProgress": true,
@@ -5700,7 +5711,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-20T09:39:30.247Z",
+                                            "lastCheckedAt": "2025-02-20T17:23:53.607Z",
                                             "lastIdentifierChecked": "identifier",
                                             "PaymentSourceConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6122,8 +6133,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T09:39:30.247Z",
-                                            "updatedAt": "2025-02-20T09:39:30.247Z",
+                                            "createdAt": "2025-02-20T17:23:53.607Z",
+                                            "updatedAt": "2025-02-20T17:23:53.607Z",
                                             "network": "Mainnet",
                                             "paymentType": "Web3CardanoV1",
                                             "syncInProgress": true,
@@ -6146,7 +6157,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-20T09:39:30.247Z",
+                                            "lastCheckedAt": "2025-02-20T17:23:53.607Z",
                                             "lastIdentifierChecked": "identifier",
                                             "PaymentSourceConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6500,8 +6511,8 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-20T09:39:30.247Z",
-                                                    "updatedAt": "2025-02-20T09:39:30.247Z",
+                                                    "createdAt": "2025-02-20T17:23:53.607Z",
+                                                    "updatedAt": "2025-02-20T17:23:53.607Z",
                                                     "network": "Mainnet",
                                                     "paymentType": "Web3CardanoV1",
                                                     "feeRatePermille": 50,
@@ -6524,7 +6535,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-20T09:39:30.247Z",
+                                                    "lastCheckedAt": "2025-02-20T17:23:53.607Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "PaymentSourceConfig": {
                                                         "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6860,8 +6871,8 @@
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
                                                 "rpcProvider": "Blockfrost",
-                                                "createdAt": "2025-02-20T09:39:30.248Z",
-                                                "updatedAt": "2025-02-20T09:39:30.248Z"
+                                                "createdAt": "2025-02-20T17:23:53.607Z",
+                                                "updatedAt": "2025-02-20T17:23:53.607Z"
                                             }
                                         ]
                                     }
