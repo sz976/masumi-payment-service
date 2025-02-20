@@ -310,10 +310,14 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         if (parsedBlockchainIdentifierData.data.refundTime != input.refundTime) {
             throw createHttpError(400, "Invalid blockchain identifier, refund time invalid")
         }
+        if (parsedBlockchainIdentifierData.data.purchaserIdentifier != input.identifierFromPurchaser) {
+            throw createHttpError(400, "Invalid blockchain identifier, purchaser identifier invalid")
+        }
         const amountsMatch = parsedBlockchainIdentifierData.data.Amounts.every(amount => input.amounts.some(a => a.amount == amount.amount && a.unit == amount.unit))
         if (!amountsMatch || parsedBlockchainIdentifierData.data.Amounts.length != input.amounts.length) {
             throw createHttpError(400, "Invalid blockchain identifier, amounts invalid")
         }
+
 
         const identifierIsSignedCorrectly = checkSignature(parsedBlockchainIdentifier.data.data, { signature: parsedBlockchainIdentifier.data.signature, key: parsedBlockchainIdentifier.data.key }, addressOfAsset)
         if (!identifierIsSignedCorrectly) {
