@@ -10,7 +10,7 @@ import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/aut
 import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
-import { logger } from '@/utils/logger';
+
 
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
