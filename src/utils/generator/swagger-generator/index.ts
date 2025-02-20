@@ -1527,9 +1527,18 @@ export function generateOpenAPI() {
         description: 'UTXOs',
         content: {
           'application/json': {
-            schema: getUTXOSchemaOutput.openapi({
+            schema: z.object({ status: z.string(), data: getUTXOSchemaOutput }).openapi({
               example: {
-                utxos: [{ txHash: "tx_hash", address: "addr1qx2ej34k567890", amount: [{ unit: "lovelace", quantity: 10000000 }], output_index: 1, block: "1" }]
+                status: "success",
+                data: {
+                  utxos: [{
+                    txHash: "tx_hash",
+                    address: "addr1qx2ej34k567890",
+                    amount: [{ unit: "lovelace", quantity: 10000000 }],
+                    output_index: 1,
+                    block: "1"
+                  }]
+                }
               }
             }),
           },
