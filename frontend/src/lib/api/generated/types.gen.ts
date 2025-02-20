@@ -496,6 +496,10 @@ export type PostPaymentData = {
          * Metadata to be stored with the payment request
          */
         metadata?: string;
+        /**
+         * The cuid2 identifier of the purchaser of the payment
+         */
+        identifierFromPurchaser: string;
     };
     path?: never;
     query?: never;
@@ -880,6 +884,10 @@ export type PostPurchaseData = {
          * The verification key of the seller
          */
         sellerVkey: string;
+        /**
+         * The identifier of the agent that is being purchased
+         */
+        agentIdentifier: string;
         /**
          * The address of the smart contract where the purchase will be made to
          */

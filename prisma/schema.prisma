@@ -285,7 +285,7 @@ model PurchaseRequest {
   currentTransactionId String?       @unique
   TransactionHistory   Transaction[] @relation("PurchaseTransactionHistory")
 
-  @@unique([paymentSourceId, blockchainIdentifier, sellerWalletId])
+  @@unique([paymentSourceId, blockchainIdentifier])
 }
 
 model PurchaseActionData {
