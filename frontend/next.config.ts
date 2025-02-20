@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   distDir: 'dist',
   basePath: '/admin',
   env: {
-    NEXT_PUBLIC_PAYMENT_API_BASE_URL: process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL || 'http://localhost:3001'
+    NEXT_PUBLIC_PAYMENT_API_BASE_URL: process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL || '/api/v1'
   },
   images: {
     unoptimized: true
