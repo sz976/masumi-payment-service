@@ -1,35 +1,35 @@
-import { $Enums, HotWallet } from "@prisma/client";
+import { HotWallet, OnChainState, PaymentAction, PaymentType } from "@prisma/client";
 import { prisma } from "..";
 
-export async function lockAndQueryPayments({ paymentStatus, errorType = null, submitResultTime = undefined, resultHash = undefined, refundTime = undefined, unlockTime = undefined, smartContractWalletPendingTransaction = undefined }: { paymentStatus: $Enums.PaymentRequestStatus | { in: $Enums.PaymentRequestStatus[] }, errorType: $Enums.PaymentRequestErrorType | null, submitResultTime?: { lte: number } | undefined | { gte: number }, resultHash?: string | null | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string }) {
+export async function lockAndQueryPayments({ paymentStatus, submitResultTime = undefined, onChainState = undefined, resultHash = undefined, requestedResultHash = undefined, refundTime = undefined, unlockTime = undefined }: { paymentStatus: PaymentAction | { in: PaymentAction[] }, submitResultTime?: { lte: number } | undefined | { gte: number }, onChainState?: OnChainState | { in: OnChainState[] } | undefined, resultHash?: string | { not: string } | undefined, requestedResultHash?: string | { not: null } | undefined, refundTime?: { lte: number } | undefined | { gte: number }, unlockTime?: { lte: number } | undefined | { gte: number }, smartContractWalletPendingTransaction?: undefined | null | string }) {
     return await prisma.$transaction(async (prisma) => {
-        const networkChecks = await prisma.networkHandler.findMany({
+
+        const paymentSources = await prisma.paymentSource.findMany({
             where: {
-                paymentType: "WEB3_CARDANO_V1",
-                isSyncing: false
+                paymentType: PaymentType.Web3CardanoV1,
+                syncInProgress: false
             }, include: {
                 PaymentRequests: {
                     where: {
-                        CurrentStatus: {
-                            status: paymentStatus,
-                            errorType: errorType,
-                            resultHash: resultHash,
+                        NextAction: {
+                            requestedAction: paymentStatus,
+                            errorType: null,
+                            resultHash: requestedResultHash
                         },
                         submitResultTime: submitResultTime,
                         refundTime: refundTime,
                         unlockTime: unlockTime,
                         SmartContractWallet: {
-                            PendingTransaction: smartContractWalletPendingTransaction != null && smartContractWalletPendingTransaction != undefined ? {
-                                txHash: smartContractWalletPendingTransaction
-                            } : smartContractWalletPendingTransaction
-                        }
+                            PendingTransaction: { is: null },
+                            lockedAt: null
+                        },
+                        onChainState: onChainState,
+                        sellerCoolDownTime: { lte: Date.now() },
+                        resultHash: resultHash,
                     },
                     include: {
-                        CurrentStatus: {
-                            include: {
-                                Transaction: true
-                            }
-                        },
+                        NextAction: true,
+                        CurrentTransaction: true,
                         Amounts: true,
                         BuyerWallet: true,
                         SmartContractWallet: {
@@ -41,29 +41,37 @@ export async function lockAndQueryPayments({ paymentStatus, errorType = null, su
                 },
                 AdminWallets: true,
                 FeeReceiverNetworkWallet: true,
-                NetworkHandlerConfig: true
+                PaymentSourceConfig: true
             }
         })
         const sellingWallets: HotWallet[] = []
 
-        const newNetworkChecks = []
-        for (const networkCheck of networkChecks) {
+        const newPaymentSources = []
+        for (const paymentSource of paymentSources) {
             const paymentRequests = []
-            for (const sellingRequest of networkCheck.PaymentRequests) {
-                const wallet = sellingRequest.SmartContractWallet;
+            const minCooldownTime = paymentSource.cooldownTime;
+            for (const paymentRequest of paymentSource.PaymentRequests) {
+                if (paymentRequest.sellerCoolDownTime > Date.now() - minCooldownTime) {
+                    continue;
+                }
+
+                const wallet = paymentRequest.SmartContractWallet;
                 if (wallet && !sellingWallets.some(w => w.id === wallet.id)) {
                     const result = await prisma.hotWallet.update({
                         where: { id: wallet.id },
-                        data: { PendingTransaction: { create: { txHash: null } } }
+                        data: { lockedAt: new Date() }
                     })
                     wallet.pendingTransactionId = result.pendingTransactionId
                     sellingWallets.push(wallet)
-                    paymentRequests.push(sellingRequest)
+
+                    paymentRequests.push(paymentRequest)
                 }
             }
-            newNetworkChecks.push({ ...networkCheck, PaymentRequests: paymentRequests })
+            if (paymentRequests.length > 0) {
+                newPaymentSources.push({ ...paymentSource, PaymentRequests: paymentRequests })
+            }
         }
-        return newNetworkChecks;
+        return newPaymentSources;
     }, { isolationLevel: "Serializable" });
 }
 

@@ -1,9 +1,7 @@
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 import { z } from 'zod';
 import { prisma } from '@/utils/db';
-import { $Enums } from '@prisma/client';
-
-
+import { Network, RPCProvider } from '@prisma/client';
 
 
 export const getRpcProviderKeysSchemaInput = z.object({
@@ -16,9 +14,10 @@ export const getRpcProviderKeysSchemaOutput = z.object({
     rpcProviderKeys: z.array(z.object({
         id: z.string(),
         rpcProviderApiKey: z.string(),
+        rpcProvider: z.nativeEnum(RPCProvider),
         createdAt: z.date(),
         updatedAt: z.date(),
-        network: z.nativeEnum($Enums.Network),
+        network: z.nativeEnum(Network),
     })),
 });
 
@@ -27,24 +26,26 @@ export const queryRpcProviderKeysEndpointGet = adminAuthenticatedEndpointFactory
     input: getRpcProviderKeysSchemaInput,
     output: getRpcProviderKeysSchemaOutput,
     handler: async ({ input }) => {
-        const rpcProviderKeys = await prisma.networkHandlerConfig.findMany({
+        const rpcProviderKeys = await prisma.paymentSourceConfig.findMany({
             cursor: input.cursorId ? { id: input.cursorId } : undefined, take: input.limit, orderBy: { createdAt: "asc" },
             where: {
-                NetworkHandler: {
+                PaymentSource: {
                     isNot: null
                 }
             },
             include: {
-                NetworkHandler: true
+                PaymentSource: true
             }
         })
+
         return {
             rpcProviderKeys: rpcProviderKeys.map((rpcProviderKey) => ({
                 id: rpcProviderKey.id,
                 rpcProviderApiKey: rpcProviderKey.rpcProviderApiKey,
+                rpcProvider: rpcProviderKey.rpcProvider,
                 createdAt: rpcProviderKey.createdAt,
                 updatedAt: rpcProviderKey.updatedAt,
-                network: rpcProviderKey.NetworkHandler!.network
+                network: rpcProviderKey.PaymentSource!.network
             }))
         }
     },

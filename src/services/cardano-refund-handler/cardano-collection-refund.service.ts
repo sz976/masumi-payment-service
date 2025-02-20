@@ -1,14 +1,16 @@
-import { $Enums } from "@prisma/client";
+import { PurchaseErrorType, PurchasingAction, TransactionStatus } from "@prisma/client";
 import { Sema } from "async-sema";
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, SLOT_CONFIG_NETWORK, Transaction, unixTimeToEnclosingSlot } from "@meshsdk/core";
 import { logger } from "@/utils/logger";
 import * as cbor from "cbor";
-import { getPaymentScriptFromNetworkHandlerV1 } from "@/utils/generator/contract-generator";
+import { getPaymentScriptFromPaymentSourceV1 } from "@/utils/generator/contract-generator";
 import { convertNetwork, } from "@/utils/converter/network-convert";
 import { generateWalletExtended } from "@/utils/generator/wallet-generator";
 import { decodeV1ContractDatum } from "@/utils/converter/string-datum-convert";
 import { lockAndQueryPurchases } from "@/utils/db/lock-and-query-purchases";
+import { convertErrorString } from "@/utils/converter/error-string-convert";
+import { advancedRetryAll, delayErrorResolver } from "advanced-retry";
 
 const updateMutex = new Sema(1);
 
@@ -22,166 +24,184 @@ export async function collectRefundV1() {
         return await updateMutex.acquire();
 
     try {
-        const networkChecksWithWalletLocked = await lockAndQueryPurchases(
+        const paymentContractsWithWalletLocked = await lockAndQueryPurchases(
             {
-                purchasingStatus: $Enums.PurchasingRequestStatus.RefundRequestConfirmed,
-                errorType: null,
-                refundTime: {
-                    gte: Date.now() + 1000 * 60 * 15 //add 15 minutes for block time
+                purchasingAction: PurchasingAction.WithdrawRefundRequested,
+                submitResultTime: {
+                    lte: Date.now() - 1000 * 60 * 1 //add 1 minutes for block time
                 },
-                resultHash: null,
-                smartContractWalletPendingTransaction: null
             }
         )
 
-        await Promise.allSettled(networkChecksWithWalletLocked.map(async (networkCheck) => {
+        await Promise.allSettled(paymentContractsWithWalletLocked.map(async (paymentContract) => {
 
-            if (networkCheck.PurchaseRequests.length == 0)
+            if (paymentContract.PurchaseRequests.length == 0)
                 return;
 
-            const network = convertNetwork(networkCheck.network)
+            const network = convertNetwork(paymentContract.network)
 
 
-            const blockchainProvider = new BlockfrostProvider(networkCheck.NetworkHandlerConfig.rpcProviderApiKey, undefined);
+            const blockchainProvider = new BlockfrostProvider(paymentContract.PaymentSourceConfig.rpcProviderApiKey, undefined);
 
 
-            const purchaseRequests = networkCheck.PurchaseRequests;
+            const purchaseRequests = paymentContract.PurchaseRequests;
 
             if (purchaseRequests.length == 0)
                 return;
-            //we can only allow one transaction per wallet
-            const deDuplicatedRequests: ({ Amounts: { id: string; createdAt: Date; updatedAt: Date; purchaseRequestId: string | null; amount: bigint; unit: string; paymentRequestId: string | null; }[]; SellerWallet: { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; type: $Enums.WalletType; networkHandlerId: string; note: string | null; }; SmartContractWallet: ({ Secret: { id: string; createdAt: Date; updatedAt: Date; secret: string; }; } & { id: string; createdAt: Date; updatedAt: Date; walletVkey: string; walletAddress: string; type: $Enums.HotWalletType; secretId: string; collectionAddress: string | null; pendingTransactionId: string | null; networkHandlerId: string; note: string | null; }) | null; CurrentStatus: { Transaction: { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; txHash: string | null; } | null; } & { id: string; createdAt: Date; updatedAt: Date; timestamp: Date; status: $Enums.PurchasingRequestStatus; resultHash: string | null; cooldownTimeSeller: bigint | null; cooldownTimeBuyer: bigint | null; transactionId: string | null; errorType: $Enums.PurchaseRequestErrorType | null; errorNote: string | null; errorRequiresManualReview: boolean | null; purchaseRequestId: string | null; requestedById: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; lastCheckedAt: Date | null; submitResultTime: bigint; refundTime: bigint; unlockTime: bigint; requestedById: string; networkHandlerId: string; sellerWalletId: string; smartContractWalletId: string | null; blockchainIdentifier: string; currentStatusId: string; })[] = []
-            for (const request of purchaseRequests) {
-                if (request.smartContractWalletId == null)
-                    continue;
-                if (deDuplicatedRequests.some(r => r.smartContractWalletId == request.smartContractWalletId))
-                    continue;
-                deDuplicatedRequests.push(request);
-            }
+            const results = await advancedRetryAll({
+                errorResolvers: [delayErrorResolver({ configuration: { maxRetries: 5, backoffMultiplier: 5, initialDelayMs: 500, maxDelayMs: 7500 } })],
+                operations: purchaseRequests.map((request) => async () => {
+                    if (request.SmartContractWallet == null)
+                        throw new Error("Smart contract wallet not found");
+                    const { wallet, utxos, address } = await generateWalletExtended(paymentContract.network, paymentContract.PaymentSourceConfig.rpcProviderApiKey, request.SmartContractWallet.Secret.encryptedMnemonic)
 
-            await Promise.allSettled(deDuplicatedRequests.map(async (request) => {
+                    if (utxos.length === 0) {
+                        //this is if the seller wallet is empty
+                        throw new Error('No UTXOs found in the wallet. Wallet is empty.');
+                    }
 
-                if (request.SmartContractWallet == null)
-                    throw new Error("Smart contract wallet not found");
-                const { wallet, utxos, address } = await generateWalletExtended(networkCheck.network, networkCheck.NetworkHandlerConfig.rpcProviderApiKey, request.SmartContractWallet.Secret.secret!)
-
-                if (utxos.length === 0) {
-                    //this is if the seller wallet is empty
-                    throw new Error('No UTXOs found in the wallet. Wallet is empty.');
-                }
-
-                const { script, smartContractAddress } = await getPaymentScriptFromNetworkHandlerV1(networkCheck)
+                    const { script, smartContractAddress } = await getPaymentScriptFromPaymentSourceV1(paymentContract)
 
 
-                const txHash = request.CurrentStatus?.Transaction?.txHash;
-                if (txHash == null) {
-                    throw new Error('Transaction hash not found');
-                }
+                    const txHash = request.CurrentTransaction?.txHash;
+                    if (txHash == null) {
+                        throw new Error('Transaction hash not found');
+                    }
 
-                const utxoByHash = await blockchainProvider.fetchUTxOs(
-                    txHash,
-                );
+                    const utxoByHash = await blockchainProvider.fetchUTxOs(
+                        txHash,
+                    );
 
-                const utxo = utxoByHash.find((utxo) => utxo.input.txHash == txHash);
+                    const utxo = utxoByHash.find((utxo) => utxo.input.txHash == txHash);
 
-                if (!utxo) {
-                    throw new Error('UTXO not found');
-                }
-
-
-                const utxoDatum = utxo.output.plutusData;
-                if (!utxoDatum) {
-                    throw new Error('No datum found in UTXO');
-                }
-
-                const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-                const decodedContract = decodeV1ContractDatum(decodedDatum)
-                if (decodedContract == null) {
-                    throw new Error('Invalid datum');
-                }
+                    if (!utxo) {
+                        throw new Error('UTXO not found');
+                    }
 
 
-                const redeemer = {
-                    data: {
-                        alternative: 3,
-                        fields: [],
-                    },
-                };
-                const invalidBefore =
-                    unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK[network]) - 1;
+                    const utxoDatum = utxo.output.plutusData;
+                    if (!utxoDatum) {
+                        throw new Error('No datum found in UTXO');
+                    }
 
-                const invalidAfter =
-                    unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK[network]) + 1;
+                    const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
+                    const decodedContract = decodeV1ContractDatum(decodedDatum)
+                    if (decodedContract == null) {
+                        throw new Error('Invalid datum');
+                    }
 
-                const unsignedTx = new Transaction({ initiator: wallet }).setMetadata(674, {
-                    msg: ["Masumi", "CollectRefund"],
-                })
-                    .redeemValue({
-                        value: utxo,
-                        script: script,
-                        redeemer: redeemer,
-                    })
-                    .sendAssets(
-                        {
-                            address: address,
+
+                    const redeemer = {
+                        data: {
+                            alternative: 3,
+                            fields: [],
                         },
-                        utxo.output.amount
-                    )
-                    .setChangeAddress(address)
-                    .setRequiredSigners([address]);
+                    };
+                    const invalidBefore =
+                        unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK[network]) - 1;
 
-                unsignedTx.txBuilder.invalidBefore(invalidBefore);
-                unsignedTx.txBuilder.invalidHereafter(invalidAfter);
+                    const invalidAfter =
+                        unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK[network]) + 1;
 
-                const buildTransaction = await unsignedTx.build();
-                const signedTx = await wallet.signTx(buildTransaction);
-                await prisma.purchaseRequest.update({
-                    where: { id: request.id }, data: {
-                        CurrentStatus: {
-                            create: {
-                                status: $Enums.PurchasingRequestStatus.RefundInitiated,
-                                timestamp: new Date(),
-                                Transaction: {
-                                    create: {
-                                        txHash: null,
-                                        BlocksWallet: { connect: { id: request.SmartContractWallet.id } }
+                    const unsignedTx = new Transaction({ initiator: wallet }).setMetadata(674, {
+                        msg: ["Masumi", "CollectRefund"],
+                    })
+                        .redeemValue({
+                            value: utxo,
+                            script: script,
+                            redeemer: redeemer,
+                        })
+                        .sendAssets(
+                            {
+                                address: address,
+                            },
+                            utxo.output.amount
+                        )
+                        .setChangeAddress(address)
+                        .setRequiredSigners([address]);
+
+                    unsignedTx.txBuilder.invalidBefore(invalidBefore);
+                    unsignedTx.txBuilder.invalidHereafter(invalidAfter);
+
+                    const buildTransaction = await unsignedTx.build();
+                    const signedTx = await wallet.signTx(buildTransaction);
+                    await prisma.purchaseRequest.update({
+                        where: { id: request.id }, data: {
+                            NextAction: {
+                                update: {
+                                    requestedAction: PurchasingAction.SetRefundRequestedInitiated,
+                                    submittedTxHash: null
+                                }
+                            },
+                        }
+                    })
+
+                    //submit the transaction to the blockchain
+                    const newTxHash = await wallet.submitTx(signedTx);
+
+                    await prisma.purchaseRequest.update({
+                        where: { id: request.id }, data: {
+                            CurrentTransaction: {
+                                update: {
+                                    txHash: newTxHash,
+                                    status: TransactionStatus.Pending,
+                                    BlocksWallet: {
+                                        connect: {
+                                            id: request.SmartContractWallet.id
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        StatusHistory: { connect: { id: request.CurrentStatus.id } },
-                    }
-                })
-
-                //submit the transaction to the blockchain
-                const newTxHash = await wallet.submitTx(signedTx);
-
-                await prisma.purchaseRequest.update({
-                    where: { id: request.id }, data: {
-                        CurrentStatus: {
-                            update: {
-                                Transaction: {
-                                    update: {
-                                        txHash: newTxHash,
-                                    }
+                            },
+                            TransactionHistory: {
+                                connect: {
+                                    id: request.CurrentTransaction!.id
                                 }
                             }
                         }
-                    }
-                })
+                    })
 
-                logger.info(`Created withdrawal transaction:
+                    logger.info(`Created withdrawal transaction:
                   Tx ID: ${txHash}
                   View (after a bit) on https://${network === 'preprod'
-                        ? 'preprod.'
-                        : ''
-                    }cardanoscan.io/transaction/${txHash}
+                            ? 'preprod.'
+                            : ''
+                        }cardanoscan.io/transaction/${txHash}
                   Smart Contract Address: ${smartContractAddress}
               `);
-
-            }))
+                    return true;
+                })
+            })
+            let index = 0;
+            for (const result of results) {
+                const request = purchaseRequests[index];
+                if (result.success == false || result.result != true) {
+                    const error = result.error;
+                    logger.error(`Error collecting refund`, { error: error });
+                    await prisma.purchaseRequest.update({
+                        where: { id: request.id }, data: {
+                            NextAction: {
+                                update: {
+                                    requestedAction: PurchasingAction.WaitingForManualAction,
+                                    errorType: PurchaseErrorType.Unknown,
+                                    errorNote: "Collecting refund failed: " + convertErrorString(error),
+                                }
+                            },
+                            SmartContractWallet: {
+                                update: {
+                                    lockedAt: null
+                                }
+                            }
+                        }
+                    })
+                }
+                index++;
+            }
         }))
 
+    }
+    catch (error) {
+        //TODO: Release the locked wallets
+        logger.error("Error collecting refund", { error: error })
     }
     finally {
         //library is strange as we can release from any non-acquired semaphore
