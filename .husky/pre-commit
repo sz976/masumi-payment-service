@@ -20,7 +20,7 @@ git diff --cached --name-only | while read -r file; do
         filesize=$(stat -f%z "$file")
         if [ $filesize -gt 5242880 ]; then
             echo "${RED}❌ File $file is larger than 5MB. Please check if this file should be committed.${NC}"
-            exit 1
+            exit 2
         fi
     fi
 done
@@ -29,7 +29,7 @@ echo "${BLUE}🔍 Running ESLint on all files...${NC}"
 npm run lint || 
 (
     echo "${RED}❌ ESLint check failed. Please fix the errors and try committing again.${NC}"
-    false;
+    exit 3;
 )
 
 echo "${GREEN}✅ All checks passed!${NC}"
