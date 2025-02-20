@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo '🔍 Running ESLint on all files...'
+npm run lint || 
+(
+    echo '❌ ESLint check failed. Please fix the errors and try committing again.';
+    false;
+)
+
+echo '✅ ESLint check passed'
+npx lint-staged
