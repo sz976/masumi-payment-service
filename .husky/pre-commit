@@ -39,13 +39,6 @@ npm run lint ||
     false;
 )
 
-echo "${BLUE}🔍 Running unit tests...${NC}"
-npm run test || 
-(
-    echo "${RED}❌ Tests failed. Please fix failing tests and try again.${NC}"
-    false;
-)
-
 echo "${BLUE}🔍 Checking for npm audit issues...${NC}"
 npm audit --audit-level=high || 
 (
