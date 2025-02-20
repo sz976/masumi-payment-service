@@ -25,13 +25,6 @@ git diff --cached --name-only | while read -r file; do
     fi
 done
 
-echo "${BLUE}🔍 Running TypeScript compilation check...${NC}"
-npx tsc --noEmit || 
-(
-    echo "${RED}❌ TypeScript compilation failed. Please fix type errors and try again.${NC}"
-    false;
-)
-
 echo "${BLUE}🔍 Running ESLint on all files...${NC}"
 npm run lint || 
 (
@@ -39,13 +32,6 @@ npm run lint ||
     false;
 )
 
-echo "${BLUE}🔍 Checking for npm audit issues...${NC}"
-npm audit --audit-level=high || 
-(
-    echo "${RED}⚠️ High severity vulnerabilities found. Please run 'npm audit fix' or review security issues.${NC}"
-    # Commenting out exit 1 to make this a warning only, uncomment if you want to block commits
-    # exit 1
-)
 
 echo "${GREEN}✅ All checks passed!${NC}"
 npx lint-staged

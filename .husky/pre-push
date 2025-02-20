@@ -37,10 +37,19 @@ npm audit ||
     echo "${YELLOW}2. Run 'npm audit fix' to fix automatically fixable issues${NC}"
     echo "${YELLOW}3. Review and update packages with manual fixes required${NC}"
     # Uncomment the next line to block pushes with vulnerabilities
-    # false;
 )
+
 
 echo "${BLUE}🔍 Checking for outdated dependencies...${NC}"
 npm outdated || true
+
+
+echo "${BLUE}🔍 Running TypeScript compilation check...${NC}"
+npm run build || 
+(
+    echo "${RED}❌ TypeScript compilation failed. Please fix type errors and try again.${NC}"
+    false;
+)
+
 
 echo "${GREEN}✅ All pre-push checks completed!${NC}" 
