@@ -6,10 +6,13 @@ import createHttpError from 'http-errors';
 import { ez } from 'express-zod-api';
 import cuid2 from '@paralleldrive/cuid2';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
-import { resolvePaymentKeyHash } from '@meshsdk/core';
+import { MeshWallet, resolvePaymentKeyHash } from '@meshsdk/core';
 import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { convertNetworkToId } from '@/utils/converter/network-convert';
+import { decrypt } from '@/utils/security/encryption';
+
 
 export const queryPaymentsSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of payments to return"),
@@ -149,6 +152,7 @@ export const createPaymentsSchemaInput = z.object({
     unlockTime: ez.dateIn().optional().describe("The time after which the payment will be unlocked"),
     refundTime: ez.dateIn().optional().describe("The time after which a refund will be approved"),
     metadata: z.string().optional().describe("Metadata to be stored with the payment request"),
+    identifierFromPurchaser: z.string().min(15).max(250).describe("The cuid2 identifier of the purchaser of the payment")
 })
 
 export const createPaymentSchemaOutput = z.object({
@@ -205,7 +209,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
                     network: input.network,
                     smartContractAddress: smartContractAddress
                 }
-            }, include: { HotWallets: true, PaymentSourceConfig: true }
+            }, include: { HotWallets: { include: { Secret: true } }, PaymentSourceConfig: true }
         })
         if (specifiedPaymentContract == null) {
             throw createHttpError(404, "Network and Address combination not supported")
@@ -233,10 +237,36 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         if (sellingWallet == null) {
             throw createHttpError(404, "Agent identifier not found in selling wallets")
         }
+        const blockchainIdentifier = {
+            agentIdentifier: input.agentIdentifier,
+            purchaserIdentifier: input.identifierFromPurchaser,
+            sellerAddress: sellingWallet.walletAddress,
+            sellerIdentifier: cuid2.createId(),
+            Amounts: input.amounts.map(amount => ({
+                amount: amount.amount,
+                unit: amount.unit
+            })),
+            submitResultTime: input.submitResultTime.getTime().toString(),
+            unlockTime: unlockTime.toString(),
+            refundTime: refundTime.toString(),
+        }
+        const meshWallet = new MeshWallet({
+            networkId: convertNetworkToId(input.network),
+            key: {
+                type: "mnemonic",
+                words: decrypt(sellingWallet.Secret.encryptedMnemonic).split(" ")
+            }
+        })
+
+        const encodedBlockchainIdentifier = JSON.stringify(blockchainIdentifier);
+        const signedBlockchainIdentifier = await meshWallet.signData(encodedBlockchainIdentifier, sellingWallet.walletAddress)
+        const signedEncodedBlockchainIdentifier = Buffer.from(JSON.stringify({ data: encodedBlockchainIdentifier, signature: signedBlockchainIdentifier.signature, key: signedBlockchainIdentifier.key })).toString('base64')
+
+
 
         const payment = await prisma.paymentRequest.create({
             data: {
-                blockchainIdentifier: input.agentIdentifier + "_" + cuid2.createId(),
+                blockchainIdentifier: signedEncodedBlockchainIdentifier,
                 PaymentSource: { connect: { id: specifiedPaymentContract.id } },
                 Amounts: {
                     createMany: {

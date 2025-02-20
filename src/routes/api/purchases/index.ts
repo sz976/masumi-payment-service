@@ -7,6 +7,10 @@ import { tokenCreditService } from '@/services/token-credit';
 import { DEFAULTS } from '@/utils/config';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
+import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
+import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
+
 
 export const queryPurchaseRequestSchemaInput = z.object({
     limit: z.number({ coerce: true }).min(1).max(100).default(10).describe("The number of purchases to return"),
@@ -137,9 +141,10 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
 });
 
 export const createPurchaseInitSchemaInput = z.object({
-    blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase. Is provided by the seller"),
+    blockchainIdentifier: z.string().max(2500).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum(Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
+    agentIdentifier: z.string().max(250).describe("The identifier of the agent that is being purchased"),
     smartContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchase will be made to"),
     amounts: z.array(z.object({ amount: z.string(), unit: z.string() })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum(PaymentType).describe("The payment type of smart contract used"),
@@ -198,6 +203,26 @@ export const createPurchaseInitSchemaOutput = z.object({
     metadata: z.string().nullable(),
 });
 
+const singedBlockchainIdentifierSchema = z.object({
+    data: z.string().min(100).max(5000),
+    signature: z.string().min(25).max(5000),
+    key: z.string().min(15).max(5000),
+})
+
+const blockchainIdentifierDataSchema = z.object({
+    agentIdentifier: z.string().min(10).max(250),
+    purchaserIdentifier: z.string().min(10).max(250),
+    sellerAddress: z.string().min(10).max(250),
+    sellerIdentifier: z.string().min(10).max(250),
+    Amounts: z.array(z.object({
+        amount: z.string().min(1).max(450),
+        unit: z.string().min(0).max(250),
+    })),
+    submitResultTime: z.string().min(1).max(150),
+    unlockTime: z.string().min(1).max(150),
+    refundTime: z.string().min(1).max(150),
+})
+
 export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     method: "post",
     input: createPurchaseInitSchemaInput,
@@ -215,6 +240,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
             throw createHttpError(404, "Network and Address combination not supported")
         }
         await checkIsAllowedNetworkOrThrowUnauthorized(options.networkLimit, input.network, options.permission)
+
         const wallets = await prisma.hotWallet.aggregate({ where: { paymentSourceId: paymentSource.id, type: HotWalletType.Selling }, _count: true })
         if (wallets._count === 0) {
             throw createHttpError(404, "No valid purchasing wallets found")
@@ -234,6 +260,65 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         if (submitResultTime > unlockTime - offset) {
             throw createHttpError(400, "Submit result time must be before unlock time with at least 15 minutes difference")
         }
+        const provider = new BlockFrostAPI({
+            projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey
+        })
+
+        const { policyId } = await getRegistryScriptV1(smartContractAddress, input.network)
+        const assetId = input.agentIdentifier;
+        const policyAsset = assetId.startsWith(policyId) ? assetId : policyId + assetId;
+        const assetInWallet = await provider.assetsAddresses(policyAsset, { order: "desc", count: 1 })
+
+        if (assetInWallet.length == 0) {
+            throw createHttpError(404, "Agent identifier not found")
+        }
+        const addressOfAsset = assetInWallet[0].address
+        if (addressOfAsset == null) {
+            throw createHttpError(404, "Agent identifier not found")
+        }
+
+        const vKey = resolvePaymentKeyHash(addressOfAsset)
+        if (vKey != input.sellerVkey) {
+            throw createHttpError(400, "Invalid seller vkey")
+        }
+
+
+        const decodedBlockchainIdentifier = Buffer.from(input.blockchainIdentifier, "base64").toString("utf-8")
+        const parsedBlockchainIdentifier = singedBlockchainIdentifierSchema.safeParse(JSON.parse(decodedBlockchainIdentifier))
+        if (!parsedBlockchainIdentifier.success) {
+            throw createHttpError(400, "Invalid blockchain identifier, format invalid")
+        }
+
+        const parsedBlockchainIdentifierData = blockchainIdentifierDataSchema.safeParse(JSON.parse(parsedBlockchainIdentifier.data.data))
+        if (!parsedBlockchainIdentifierData.success) {
+            throw createHttpError(400, "Invalid blockchain identifier, data invalid")
+        }
+
+        if (parsedBlockchainIdentifierData.data.agentIdentifier != input.agentIdentifier) {
+            throw createHttpError(400, "Invalid blockchain identifier, agent identifier invalid")
+        }
+        if (parsedBlockchainIdentifierData.data.sellerAddress != addressOfAsset) {
+            throw createHttpError(400, "Invalid blockchain identifier, seller address invalid")
+        }
+        if (parsedBlockchainIdentifierData.data.submitResultTime != input.submitResultTime) {
+            throw createHttpError(400, "Invalid blockchain identifier, submit result time invalid")
+        }
+        if (parsedBlockchainIdentifierData.data.unlockTime != input.unlockTime) {
+            throw createHttpError(400, "Invalid blockchain identifier, unlock time invalid")
+        }
+        if (parsedBlockchainIdentifierData.data.refundTime != input.refundTime) {
+            throw createHttpError(400, "Invalid blockchain identifier, refund time invalid")
+        }
+        const amountsMatch = parsedBlockchainIdentifierData.data.Amounts.every(amount => input.amounts.some(a => a.amount == amount.amount && a.unit == amount.unit))
+        if (!amountsMatch || parsedBlockchainIdentifierData.data.Amounts.length != input.amounts.length) {
+            throw createHttpError(400, "Invalid blockchain identifier, amounts invalid")
+        }
+
+        const identifierIsSignedCorrectly = checkSignature(parsedBlockchainIdentifier.data.data, { signature: parsedBlockchainIdentifier.data.signature, key: parsedBlockchainIdentifier.data.key }, addressOfAsset)
+        if (!identifierIsSignedCorrectly) {
+            throw createHttpError(400, "Invalid blockchain identifier, signature invalid")
+        }
+
         const initialPurchaseRequest = await tokenCreditService.handlePurchaseCreditInit({
             id: options.id, cost: input.amounts.map(amount => {
                 if (amount.unit == "") {

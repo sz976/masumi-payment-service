@@ -97,15 +97,10 @@ export async function updateWalletTransactionHash() {
                         }
                     })
                 } else {
-                    await prisma.transaction.update({
-                        where: { id: wallet.PendingTransaction.id },
+                    await prisma.hotWallet.update({
+                        where: { id: wallet.id },
                         data: {
-                            BlocksWallet: {
-                                disconnect: true,
-                                update: {
-                                    data: { lockedAt: null }
-                                }
-                            },
+                            lockedAt: null
                         }
                     })
                 }

@@ -325,7 +325,7 @@ CREATE UNIQUE INDEX "PurchaseRequest_nextActionId_key" ON "PurchaseRequest"("nex
 CREATE UNIQUE INDEX "PurchaseRequest_currentTransactionId_key" ON "PurchaseRequest"("currentTransactionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PurchaseRequest_paymentSourceId_blockchainIdentifier_seller_key" ON "PurchaseRequest"("paymentSourceId", "blockchainIdentifier", "sellerWalletId");
+CREATE UNIQUE INDEX "PurchaseRequest_paymentSourceId_blockchainIdentifier_key" ON "PurchaseRequest"("paymentSourceId", "blockchainIdentifier");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PaymentSource_paymentSourceConfigId_key" ON "PaymentSource"("paymentSourceConfigId");

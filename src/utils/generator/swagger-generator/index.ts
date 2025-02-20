@@ -484,6 +484,7 @@ export function generateOpenAPI() {
                 amounts: [{ amount: "10000000", unit: "lovelace" }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+                identifierFromPurchaser: "unique_key_from_purchaser"
               }
             })
           }
@@ -814,6 +815,7 @@ export function generateOpenAPI() {
                 submitResultTime: (Date.now() + 1000 * 60 * 60 * 12).toString(),
                 unlockTime: (Date.now() + 1000 * 60 * 60 * 24).toString(),
                 refundTime: (Date.now() + 1000 * 60 * 60 * 36).toString(),
+                agentIdentifier: "agent_identifier",
               }
             })
           }
