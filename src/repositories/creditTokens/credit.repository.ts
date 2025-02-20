@@ -1,16 +1,20 @@
 import { prisma } from '@/utils/db';
 import { InsufficientFundsError } from '@/utils/errors/insufficient-funds-error';
-import { $Enums, WalletType } from '@prisma/client';
+import { Network, PaymentType, Permission, PurchasingAction, WalletType } from '@prisma/client';
 
-async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, unlockTime, refundTime }: { id: string, cost: { amount: bigint, unit: string }[], metadata: string | null | undefined, network: $Enums.Network, blockchainIdentifier: string, paymentType: $Enums.PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: bigint, unlockTime: bigint, refundTime: bigint, }) {
+async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchainIdentifier, paymentType, contractAddress, sellerVkey, submitResultTime, unlockTime, refundTime }: { id: string, cost: { amount: bigint, unit: string }[], metadata: string | null | undefined, network: Network, blockchainIdentifier: string, paymentType: PaymentType, contractAddress: string, sellerVkey: string, submitResultTime: bigint, unlockTime: bigint, refundTime: bigint, }) {
     return await prisma.$transaction(async (transaction) => {
         const result = await transaction.apiKey.findUnique({
             where: { id: id }, include: {
-                RemainingUsageCredits: true
+                RemainingUsageCredits: true,
+
             }
         })
         if (!result) {
             throw Error("Invalid id: " + id)
+        }
+        if (result.permission != Permission.Admin && !result.networkLimit.includes(network)) {
+            throw Error("No permission for network: " + network + " for id: " + id)
         }
 
 
@@ -62,19 +66,19 @@ async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchai
             })
         }
 
-        const networkHandler = await transaction.networkHandler.findUnique({
+        const paymentSource = await transaction.paymentSource.findUnique({
             where: {
-                network_paymentContractAddress: { network: network, paymentContractAddress: contractAddress },
+                network_smartContractAddress: { network: network, smartContractAddress: contractAddress },
                 paymentType: paymentType
             }
         })
-        if (!networkHandler) {
-            throw Error("Invalid networkHandler: " + networkHandler)
+        if (!paymentSource) {
+            throw Error("Invalid paymentSource: " + paymentSource)
         }
 
         const sellerWallet = await transaction.walletBase.findUnique({
             where: {
-                networkHandlerId_walletVkey_type: { networkHandlerId: networkHandler.id, walletVkey: sellerVkey, type: WalletType.SELLER }
+                paymentSourceId_walletVkey_type: { paymentSourceId: paymentSource.id, walletVkey: sellerVkey, type: WalletType.Seller }
             }
         })
 
@@ -89,21 +93,22 @@ async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchai
                     }))
                 },
                 submitResultTime: submitResultTime,
-                NetworkHandler: { connect: { id: networkHandler.id } },
+                PaymentSource: { connect: { id: paymentSource.id } },
+                resultHash: "",
+                sellerCoolDownTime: 0,
+                buyerCoolDownTime: 0,
                 SellerWallet: {
                     connectOrCreate: {
                         where: {
                             id: sellerWallet?.id ?? "not-found"
                         },
-                        create: { walletVkey: sellerVkey, networkHandlerId: networkHandler.id, type: WalletType.SELLER }
+                        create: { walletVkey: sellerVkey, paymentSourceId: paymentSource.id, type: WalletType.Seller }
                     }
                 },
                 blockchainIdentifier: blockchainIdentifier,
-                CurrentStatus: {
+                NextAction: {
                     create: {
-                        status: $Enums.PurchasingRequestStatus.PurchaseRequested,
-                        timestamp: new Date(),
-                        requestedBy: { connect: { id: id } }
+                        requestedAction: PurchasingAction.FundsLockingRequested,
                     }
                 },
                 refundTime: refundTime,
@@ -113,13 +118,10 @@ async function handlePurchaseCreditInit({ id, cost, metadata, network, blockchai
             include: {
                 SellerWallet: true,
                 SmartContractWallet: true,
-                NetworkHandler: true,
+                PaymentSource: true,
                 Amounts: true,
-                CurrentStatus: {
-                    include: {
-                        Transaction: true
-                    }
-                },
+                NextAction: true,
+                CurrentTransaction: true,
             }
         })
 

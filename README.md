@@ -31,7 +31,7 @@ Additional guides can be found in the [docs](docs/) folder:
 
 Ensure your system meets the following requirements before installation:
 
-- Node.js v18.x or later
+- Node.js v20.x or later
 - PostgreSQL 15 database
 
 ## Installing the Masumi Node
@@ -63,8 +63,16 @@ Copy the `.env.example` file to `.env` and update the following variables:
 DATABASE_URL="postgresql://johndoe:randompassword@localhost:5432/masumi_payment?schema=public"
 ENCRYPTION_KEY="abcdef_this_should_be_very_secure_and_32_characters_long"
 ADMIN_KEY="abcdef_this_should_be_very_secure"
-BLOCKFROST_API_KEY="your_blockfrost_api_key"
+BLOCKFROST_API_KEY_PREPROD="your_blockfrost_api_key"
 ```
+
+or
+
+```sh
+BLOCKFROST_API_KEY_MAINNET="your_blockfrost_api_key"
+```
+
+if you want to run ont the mainnet. We recommend you to start on Preprod first.
 
 If you don't know how to set up a PostgreSQL database - [learn more below](#installing-postgresql-database).
 

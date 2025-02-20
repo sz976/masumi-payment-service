@@ -7,8 +7,8 @@ export function metadataToString(value: string | string[] | undefined) {
         return value
     return value.join("")
 }
-export function stringToMetadata(s: string | undefined, forceArray: boolean = true) {
-    if (s == undefined) {
+export function stringToMetadata(s: string | undefined | null, forceArray: boolean = true) {
+    if (s == undefined || s == null) {
         return ""
     }
     if (s.length <= 60 && forceArray == false) {

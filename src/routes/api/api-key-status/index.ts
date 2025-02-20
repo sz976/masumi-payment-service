@@ -1,6 +1,6 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
-import { ApiKeyStatus, Permission } from '@prisma/client';
+import { ApiKeyStatus, Network, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 
@@ -11,9 +11,10 @@ export const getAPIKeyStatusSchemaInput = z.object({
 
 
 export const getAPIKeyStatusSchemaOutput = z.object({
-    apiKey: z.string(),
+    token: z.string(),
     permission: z.nativeEnum(Permission),
     usageLimited: z.boolean(),
+    networkLimit: z.array(z.nativeEnum(Network)),
     RemainingUsageCredits: z.array(z.object({
         unit: z.string(),
         amount: z.string()

@@ -5,25 +5,25 @@ import "@/styles/globals.css";
 import "@/styles/styles.scss"
 import type { AppProps } from "next/app";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/router';
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
-import { getPaymentSources } from "@/lib/api/payment-source";
-import { checkHealth } from "@/lib/api/health";
-import { setAuthToken } from '@/lib/api/client';
+import { getHealth, getPaymentSource } from "@/lib/api/generated";
 
 function InitializeApp() {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   const { state, dispatch } = useAppContext();
   const router = useRouter();
-
+  const { apiClient } = useAppContext();
   const fetchPaymentSources = useCallback(async () => {
     try {
-      const sourceResponse = await getPaymentSources(state.apiKey!);
+      const sourceResponse = await getPaymentSource({
+        client: apiClient,
+      });
       const { data } = sourceResponse;
 
-      const sources = data?.paymentSources || [];
+      const sources = data?.data?.paymentSources || [];
       const sortedByCreatedAt = sources.sort((a: any, b: any) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -39,12 +39,12 @@ function InitializeApp() {
       console.error('Failed to fetch payment sources:', error);
       toast.error('Error fetching payment sources. Please try again later.');
     }
-  }, [state.apiKey, dispatch]);
+  }, [apiClient, dispatch]);
 
   useEffect(() => {
     const init = async () => {
       try {
-        await checkHealth();
+        await getHealth({ client: apiClient });
 
         const hexedKey = localStorage.getItem("payment_api_key");
         if (!hexedKey) {
@@ -53,7 +53,11 @@ function InitializeApp() {
         }
 
         const storedApiKey = Buffer.from(hexedKey, 'hex').toString('utf-8');
-        setAuthToken(storedApiKey);
+        apiClient.setConfig({
+          headers: {
+            'token': storedApiKey
+          }
+        });
         dispatch({ type: 'SET_API_KEY', payload: storedApiKey });
         setIsHealthy(true);
 
@@ -64,15 +68,15 @@ function InitializeApp() {
     };
 
     init();
-  }, [dispatch]);
+  }, [apiClient, dispatch]);
 
   useEffect(() => {
     if (isHealthy && router.pathname === '/' && state.apiKey) {
       fetchPaymentSources();
-    } else if(isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length){
+    } else if (isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length) {
       fetchPaymentSources();
     }
-  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey]);
+  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey, state.paymentSources?.length]);
 
   if (isHealthy === null) {
     return <div className="flex items-center justify-center bg-[#000] fixed top-0 left-0 w-full h-full z-50">
@@ -109,6 +113,18 @@ function AppContent({ Component, pageProps, router }: AppProps) {
     <AppProvider initialState={initialAppState}>
       <InitializeApp />
       <ComponentHolder Component={Component} pageProps={pageProps} router={router} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </AppProvider>
   );
 }
