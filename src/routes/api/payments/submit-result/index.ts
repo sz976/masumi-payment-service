@@ -10,7 +10,7 @@ export const submitPaymentResultSchemaInput = z.object({
     network: z.nativeEnum(Network).describe("The network the payment was received on"),
     smartContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the payment was made to"),
     submitResultHash: z.string().max(250).describe("The hash of the AI agent result to be submitted"),
-    blockchainIdentifier: z.string().max(250).describe("The identifier of the payment"),
+    blockchainIdentifier: z.string().max(8000).describe("The identifier of the payment"),
     sellerVkey: z.string().max(250).describe("The vkey of the seller"),
 })
 

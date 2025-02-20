@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "next lint",
-    "openapi-ts": "openapi-ts"
+    "openapi-ts": "openapi-ts",
+    "openapi-ts-latest": "cp ./../src/utils/generator/swagger-generator/openapi-docs.json ./openapi-docs.json && openapi-ts"
   },
   "dependencies": {
     "@hey-api/client-axios": "^0.6.1",

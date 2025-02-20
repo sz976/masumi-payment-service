@@ -141,7 +141,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
 });
 
 export const createPurchaseInitSchemaInput = z.object({
-    blockchainIdentifier: z.string().max(2500).describe("The identifier of the purchase. Is provided by the seller"),
+    blockchainIdentifier: z.string().max(8000).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum(Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
     agentIdentifier: z.string().max(250).describe("The identifier of the agent that is being purchased"),
@@ -205,9 +205,9 @@ export const createPurchaseInitSchemaOutput = z.object({
 });
 
 const singedBlockchainIdentifierSchema = z.object({
-    data: z.string().min(100).max(5000),
-    signature: z.string().min(25).max(5000),
-    key: z.string().min(15).max(5000),
+    data: z.string().min(100).max(4000),
+    signature: z.string().min(25).max(2000),
+    key: z.string().min(15).max(2000),
 })
 
 const blockchainIdentifierDataSchema = z.object({

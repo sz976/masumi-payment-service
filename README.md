@@ -31,7 +31,7 @@ Additional guides can be found in the [docs](docs/) folder:
 
 Ensure your system meets the following requirements before installation:
 
-- Node.js v18.x or later
+- Node.js v20.x or later
 - PostgreSQL 15 database
 
 ## Installing the Masumi Node
