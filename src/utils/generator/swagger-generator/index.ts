@@ -806,6 +806,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
+                identifierFromPurchaser: "cuid_v2_send_to_seller",
                 blockchainIdentifier: "blockchain_identifier",
                 network: Network.Preprod,
                 sellerVkey: "seller_vkey",

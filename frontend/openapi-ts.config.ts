@@ -1,7 +1,7 @@
 import { defaultPlugins } from '@hey-api/openapi-ts';
 
 const config = {
-  input: './../src/utils/generator/swagger-generator/openapi-docs.json',
+  input: './openapi-docs.json',
   output: 'src/lib/api/generated',
   plugins: [
     ...defaultPlugins,

@@ -141,17 +141,18 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
 });
 
 export const createPurchaseInitSchemaInput = z.object({
-    blockchainIdentifier: z.string().max(2500).describe("The identifier of the purchase. Is provided by the seller"),
+    blockchainIdentifier: z.string().max(8000).describe("The identifier of the purchase. Is provided by the seller"),
     network: z.nativeEnum(Network).describe("The network the transaction will be made on"),
     sellerVkey: z.string().max(250).describe("The verification key of the seller"),
     agentIdentifier: z.string().max(250).describe("The identifier of the agent that is being purchased"),
     smartContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the purchase will be made to"),
-    amounts: z.array(z.object({ amount: z.string(), unit: z.string() })).max(7).describe("The amounts of the purchase"),
+    amounts: z.array(z.object({ amount: z.string().max(25), unit: z.string().max(150) })).max(7).describe("The amounts of the purchase"),
     paymentType: z.nativeEnum(PaymentType).describe("The payment type of smart contract used"),
     unlockTime: z.string().describe("The time after which the purchase will be unlocked. In unix time (number)"),
     refundTime: z.string().describe("The time after which a refund will be approved. In unix time (number)"),
     submitResultTime: z.string().describe("The time by which the result has to be submitted. In unix time (number)"),
     metadata: z.string().optional().describe("Metadata to be stored with the purchase request"),
+    identifierFromPurchaser: z.string().min(15).max(25).describe("The cuid2 identifier of the purchaser of the purchase")
 })
 
 export const createPurchaseInitSchemaOutput = z.object({
@@ -204,23 +205,23 @@ export const createPurchaseInitSchemaOutput = z.object({
 });
 
 const singedBlockchainIdentifierSchema = z.object({
-    data: z.string().min(100).max(5000),
-    signature: z.string().min(25).max(5000),
-    key: z.string().min(15).max(5000),
+    data: z.string().min(100).max(4000),
+    signature: z.string().min(25).max(2000),
+    key: z.string().min(15).max(2000),
 })
 
 const blockchainIdentifierDataSchema = z.object({
-    agentIdentifier: z.string().min(10).max(250),
-    purchaserIdentifier: z.string().min(10).max(250),
-    sellerAddress: z.string().min(10).max(250),
-    sellerIdentifier: z.string().min(10).max(250),
+    agentIdentifier: z.string().min(15).max(250),
+    purchaserIdentifier: z.string().min(15).max(25),
+    sellerAddress: z.string().min(15).max(150),
+    sellerIdentifier: z.string().min(15).max(25),
     Amounts: z.array(z.object({
-        amount: z.string().min(1).max(450),
-        unit: z.string().min(0).max(250),
-    })),
-    submitResultTime: z.string().min(1).max(150),
-    unlockTime: z.string().min(1).max(150),
-    refundTime: z.string().min(1).max(150),
+        amount: z.string().min(1).max(25),
+        unit: z.string().min(0).max(150),
+    })).max(7),
+    submitResultTime: z.string().min(1).max(50),
+    unlockTime: z.string().min(1).max(50),
+    refundTime: z.string().min(1).max(50),
 })
 
 export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({

@@ -67,9 +67,9 @@ jobs:
         run: |
           npm run lint
 
-      # Step 5: Run ESLint with Auto-Fix
-      - name: Generate Swagger JSON
-        id: swagger_json
+      # Step 5: Run Generate OpenAPI Types
+      - name: Generate OpenAPI Types
+        id: openapi_types
         run: |
           npm run swagger-json
 

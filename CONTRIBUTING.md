@@ -13,6 +13,8 @@ We're happy you're interested in contributing! This document provides guidelines
 1. Fork the repository
 2. Create a new branch for your feature/fix
 3. Setup your development environment (see [Development Guide](docs/DEVELOPMENT.md))
+4. Commit your changes
+5. Create a pull request to the `dev` branch only
 
 ## Making Changes
 

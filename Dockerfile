@@ -1,4 +1,4 @@
-FROM node:18-slim AS backend-builder
+FROM node:20-slim AS backend-builder
 RUN apt-get update -y && apt-get install -y openssl
 # Build backend step
 WORKDIR /usr/src/app
@@ -13,11 +13,15 @@ COPY tsconfig.json .
 RUN npm install
 RUN npx prisma generate
 RUN npm run build
+RUN npm run swagger-json
+
+#RUN npm run prisma:migrate
 
 # Frontend build step
-FROM node:18-slim AS frontend-builder
+FROM node:20-slim AS frontend-builder
 WORKDIR /usr/src/app/frontend
 COPY frontend/package*.json ./
+COPY frontend/openapi-ts.config.ts ./openapi-ts.config.ts
 COPY frontend/src ./src
 COPY frontend/public ./public
 COPY frontend/.env* ./
@@ -26,12 +30,15 @@ COPY frontend/tailwind.config.ts ./
 COPY frontend/postcss.config.mjs ./
 COPY frontend/tsconfig.json ./
 COPY frontend/components.json ./
+COPY --from=backend-builder /usr/src/app/src/utils/generator/swagger-generator/openapi-docs.json ./openapi-docs.json
 
 RUN npm install
+RUN npm run openapi-ts
 RUN npm run build
 
+
 # Final stage
-FROM node:18-slim AS runner
+FROM node:20-slim AS runner
 RUN apt-get update -y && apt-get install -y openssl
 WORKDIR /usr/src/app
 
