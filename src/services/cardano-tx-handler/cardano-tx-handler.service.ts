@@ -267,10 +267,9 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
 
                                 const dbEntry = await prisma.purchaseRequest.findUnique({
                                     where: {
-                                        paymentSourceId_blockchainIdentifier_sellerWalletId: {
+                                        paymentSourceId_blockchainIdentifier: {
                                             paymentSourceId: paymentContract.id,
                                             blockchainIdentifier: decodedNewContract.blockchainIdentifier,
-                                            sellerWalletId: sellerWallet.id
                                         },
                                         NextAction: {
                                             requestedAction: PurchasingAction.FundsLockingInitiated,
@@ -619,7 +618,7 @@ export async function checkLatestTransactions({ maxParallelTransactions = 50 }: 
                         })
                         const purchasingRequest = await prisma.purchaseRequest.findUnique({
                             where: {
-                                paymentSourceId_blockchainIdentifier_sellerWalletId: { paymentSourceId: paymentContract.id, blockchainIdentifier: decodedOldContract.blockchainIdentifier, sellerWalletId: decodedOldContract.seller }
+                                paymentSourceId_blockchainIdentifier: { paymentSourceId: paymentContract.id, blockchainIdentifier: decodedOldContract.blockchainIdentifier }
                             },
                             include: {
                                 SmartContractWallet: true,
@@ -815,7 +814,7 @@ async function handlePurchasingTransactionCardanoV1(tx_hash: string, newStatus: 
     await prisma.$transaction(async (prisma) => {
         //we dont need to do sanity checks as the tx hash is unique
         const purchasingRequest = await prisma.purchaseRequest.findUnique({
-            where: { paymentSourceId_blockchainIdentifier_sellerWalletId: { paymentSourceId: paymentContractId, blockchainIdentifier: blockchainIdentifier, sellerWalletId: sellerVkey } },
+            where: { paymentSourceId_blockchainIdentifier: { paymentSourceId: paymentContractId, blockchainIdentifier: blockchainIdentifier } },
         })
 
         if (purchasingRequest == null) {
