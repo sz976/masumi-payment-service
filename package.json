@@ -10,6 +10,7 @@
         "seed": "tsx ./prisma/seed.ts"
     },
     "scripts": {
+        "prepare": "husky",
         "lint": "eslint --fix --quiet --config eslint.config.mjs",
         "format": "prettier --log-level silent --write src/**/*.ts",
         "test": "jest",
@@ -31,27 +32,29 @@
         "@meshsdk/core": "^1.8.14",
         "@meshsdk/core-cst": "^1.8.14",
         "@paralleldrive/cuid2": "^2.2.2",
-        "@prisma/client": "^6.4.0",
+        "@prisma/client": "^6.4.1",
         "advanced-retry": "^1.2.1",
         "async-sema": "^3.1.1",
         "cbor": "^10.0.3",
         "dotenv": "^16.4.7",
         "ethereum-cryptography": "^3.1.0",
         "express": "^5.0.1",
-        "express-zod-api": "^22.9.1",
+        "express-zod-api": "^22.10.0",
         "http-errors": "^2.0.0",
         "http-status-codes": "^2.3.0",
         "lucid-cardano": "^0.10.11",
-        "node": "18.19.0",
+        "node": "20.17.0",
         "swagger-ui-express": "^5.0.1",
         "winston": "^3.17.0",
         "zod": "^3.24.2"
     },
     "devDependencies": {
+        "@commitlint/cli": "^19.7.1",
+        "@commitlint/config-conventional": "^19.7.1",
         "@eslint/js": "^9.19.0",
         "@types/express": "^5.0.0",
         "@types/jest": "^29.5.14",
-        "@types/node": "18.19.0",
+        "@types/node": "20.17.0",
         "@types/node-cron": "^3.0.11",
         "@types/swagger-ui-express": "^4.1.7",
         "@typescript-eslint/eslint-plugin": "^8.24.1",
@@ -60,14 +63,22 @@
         "eslint-config-prettier": "^10.0.1",
         "eslint-plugin-prettier": "^5.2.3",
         "globals": "^15.15.0",
+        "husky": "^9.1.7",
         "jest": "^29.7.0",
+        "lint-staged": "^15.4.3",
         "pkgroll": "^2.10.0",
         "prettier": "^3.5.1",
-        "prisma": "^6.4.0",
+        "prisma": "^6.4.1",
         "ts-jest": "^29.2.5",
         "ts-node": "^10.9.2",
         "tsx": "^4.19.3",
         "typescript": "^5.7.3",
         "typescript-eslint": "^8.24.1"
+    },
+    "lint-staged": {
+        "*.{js,ts}": [
+            "npm run lint",
+            "npm run format"
+        ]
     }
 }

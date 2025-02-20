@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Backend Dependencies
         run: npm install
@@ -95,7 +95,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to push.";
           else
-            git commit -m "chore: auto-fix lint issues and generate swagger json"
+            git commit -m "chore(lint): auto-fix lint issues and generated swagger json"
             git push origin ${{ github.head_ref }}
           fi
         env:
