@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { testMiddleware } from 'express-zod-api';
 import { authMiddleware } from './index';
-import { ApiKeyStatus, Permission } from '@prisma/client';
+import { ApiKeyStatus, Network, Permission } from '@prisma/client';
 
 jest.mock('@/utils/db', () => ({
     prisma: {
@@ -23,7 +23,7 @@ describe('authMiddleware', () => {
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
-        ).rejects.toThrow('No token provided');
+        ).rejects.toThrow('Unauthorized, no authentication token provided');
     });
     it('should throw 401 if no token provided pay', async () => {
         await expect(
@@ -32,7 +32,7 @@ describe('authMiddleware', () => {
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
-        ).rejects.toThrow('No token provided');
+        ).rejects.toThrow('Unauthorized, no authentication token provided');
     });
     it('should throw 401 if no token provided admin', async () => {
         await expect(
@@ -41,7 +41,7 @@ describe('authMiddleware', () => {
                 requestProps: { method: 'POST', body: {}, headers: {} },
                 options: {},
             }),
-        ).rejects.toThrow('No token provided');
+        ).rejects.toThrow('Unauthorized, no authentication token provided');
     });
     it('should throw 401 if invalid token read', async () => {
         const { prisma } = require('@/utils/db');
@@ -57,7 +57,7 @@ describe('authMiddleware', () => {
                 },
                 options: {},
             }),
-        ).rejects.toThrow('Invalid token');
+        ).rejects.toThrow('Unauthorized, invalid authentication token provided');
     });
     it('should throw 401 if invalid token pay', async () => {
         const { prisma } = require('@/utils/db');
@@ -73,7 +73,7 @@ describe('authMiddleware', () => {
                 },
                 options: {},
             }),
-        ).rejects.toThrow('Invalid token');
+        ).rejects.toThrow('Unauthorized, invalid authentication token provided');
     });
     it('should throw 401 if invalid token admin', async () => {
         const { prisma } = require('@/utils/db');
@@ -89,7 +89,7 @@ describe('authMiddleware', () => {
                 },
                 options: {},
             }),
-        ).rejects.toThrow('Invalid token');
+        ).rejects.toThrow('Unauthorized, invalid authentication token provided');
     });
 
     it('should throw 401 if pay required but user is read', async () => {
@@ -116,6 +116,7 @@ describe('authMiddleware', () => {
             permission: Permission.ReadAndPay,
             status: ApiKeyStatus.Active,
             usageLimited: true,
+            networkLimit: [Network.Preprod],
         });
 
         await expect(
@@ -133,6 +134,7 @@ describe('authMiddleware', () => {
             permission: Permission.Read,
             status: ApiKeyStatus.Active,
             usageLimited: true,
+            networkLimit: [],
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
@@ -145,8 +147,9 @@ describe('authMiddleware', () => {
 
         expect(output).toEqual({
             id: mockApiKey.id,
-            permissions: [mockApiKey.permission],
+            permission: mockApiKey.permission,
             usageLimited: mockApiKey.usageLimited,
+            networkLimit: mockApiKey.networkLimit,
         });
     });
 
@@ -156,6 +159,7 @@ describe('authMiddleware', () => {
             permission: Permission.ReadAndPay,
             status: ApiKeyStatus.Active,
             usageLimited: true,
+            networkLimit: [],
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
@@ -168,8 +172,9 @@ describe('authMiddleware', () => {
 
         expect(output).toEqual({
             id: mockApiKey.id,
-            permissions: [mockApiKey.permission],
+            permission: mockApiKey.permission,
             usageLimited: mockApiKey.usageLimited,
+            networkLimit: [],
         });
     });
     it('should pass validation with valid admin token', async () => {
@@ -177,7 +182,8 @@ describe('authMiddleware', () => {
             id: 1,
             permission: Permission.Admin,
             status: ApiKeyStatus.Active,
-            usageLimited: true,
+            usageLimited: false,
+            networkLimit: [],
         };
         const { prisma } = require('@/utils/db');
         (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
@@ -190,7 +196,32 @@ describe('authMiddleware', () => {
 
         expect(output).toEqual({
             id: mockApiKey.id,
-            permissions: [mockApiKey.permission],
+            permission: mockApiKey.permission,
+            networkLimit: mockApiKey.networkLimit,
+            usageLimited: mockApiKey.usageLimited,
+        });
+    });
+    it('should pass validation with valid network ', async () => {
+        const mockApiKey = {
+            id: 1,
+            permission: Permission.ReadAndPay,
+            status: ApiKeyStatus.Active,
+            usageLimited: false,
+            networkLimit: [Network.Preprod, Network.Mainnet],
+        };
+        const { prisma } = require('@/utils/db');
+        (prisma.apiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+
+        const { output } = await testMiddleware({
+            middleware: authMiddleware(Permission.ReadAndPay),
+            requestProps: { method: 'POST', body: {}, headers: { token: 'valid' } },
+            options: {},
+        });
+
+        expect(output).toEqual({
+            id: mockApiKey.id,
+            permission: mockApiKey.permission,
+            networkLimit: mockApiKey.networkLimit,
             usageLimited: mockApiKey.usageLimited,
         });
     });
