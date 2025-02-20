@@ -13,8 +13,7 @@ protected_branches="^(main|dev)$"
 current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 
 # Check if we're trying to push to a protected branch
-while read local_ref local_sha remote_ref remote_sha
-do
+while read -r local_ref local_sha remote_ref remote_sha; do
     remote_branch=$(echo "$remote_ref" | sed -e 's,.*/\(.*\),\1,')
     if [[ "$remote_branch" =~ $protected_branches ]]; then
         echo "${RED}❌ Direct push to $remote_branch branch is not allowed${NC}"

@@ -15,7 +15,7 @@ fi
 
 echo "${BLUE}🔍 Checking for large files...${NC}"
 # Check for files larger than 5MB
-git diff --cached --name-only | while read file; do
+git diff --cached --name-only | while read -r file; do
     if [ -f "$file" ]; then
         filesize=$(stat -f%z "$file")
         if [ $filesize -gt 5242880 ]; then
