@@ -8,7 +8,7 @@ import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/aut
 
 
 export const authorizePaymentRefundSchemaInput = z.object({
-    blockchainIdentifier: z.string().max(250).describe("The identifier of the purchase to be refunded"),
+    blockchainIdentifier: z.string().max(8000).describe("The identifier of the purchase to be refunded"),
     sellerVkey: z.string().max(250).describe("The vkey of the seller"),
     network: z.nativeEnum(Network).describe("The network the Cardano wallet will be used on"),
     paymentContractAddress: z.string().max(250).optional().describe("The address of the smart contract holding the purchase"),

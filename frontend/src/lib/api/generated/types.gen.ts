@@ -919,6 +919,10 @@ export type PostPurchaseData = {
          * Metadata to be stored with the purchase request
          */
         metadata?: string;
+        /**
+         * The cuid2 identifier of the purchaser of the purchase
+         */
+        identifierFromPurchaser: string;
     };
     path?: never;
     query?: never;

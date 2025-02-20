@@ -90,7 +90,7 @@ export const seed = async (prisma: PrismaClient) => {
 
   const scriptJSON = readFileSync('./smart-contracts/payment/plutus.json', 'utf-8');
 
-  if (encryptionKey != null && blockfrostApiKeyPreprod != null) {
+  if (encryptionKey != null && blockfrostApiKeyPreprod != null && blockfrostApiKeyPreprod != "") {
 
     const blueprint = JSON.parse(scriptJSON)
 
@@ -235,7 +235,7 @@ export const seed = async (prisma: PrismaClient) => {
   const feeWalletAddressMainnet = DEFAULTS.FEE_WALLET_MAINNET;
   const feePermilleMainnet = DEFAULTS.FEE_PERMILLE_MAINNET;
 
-  if (encryptionKey != null && blockfrostApiKeyMainnet != null) {
+  if (encryptionKey != null && blockfrostApiKeyMainnet != null && blockfrostApiKeyMainnet != "") {
 
     const blueprint = JSON.parse(scriptJSON)
 

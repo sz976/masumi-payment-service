@@ -145,14 +145,14 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
 export const createPaymentsSchemaInput = z.object({
     network: z.nativeEnum(Network).describe("The network the payment will be received on"),
     agentIdentifier: z.string().min(15).max(250).describe("The identifier of the agent that will be paid"),
-    amounts: z.array(z.object({ amount: z.string(), unit: z.string() })).max(7).describe("The amounts of the payment"),
+    amounts: z.array(z.object({ amount: z.string().max(25), unit: z.string().max(150) })).max(7).describe("The amounts of the payment"),
     paymentType: z.nativeEnum(PaymentType).describe("The type of payment contract used"),
     smartContractAddress: z.string().max(250).optional().describe("The address of the smart contract where the payment will be made to"),
     submitResultTime: ez.dateIn().default(new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString()).describe("The time after which the payment has to be submitted to the smart contract"),
     unlockTime: ez.dateIn().optional().describe("The time after which the payment will be unlocked"),
     refundTime: ez.dateIn().optional().describe("The time after which a refund will be approved"),
     metadata: z.string().optional().describe("Metadata to be stored with the payment request"),
-    identifierFromPurchaser: z.string().min(15).max(250).describe("The cuid2 identifier of the purchaser of the payment")
+    identifierFromPurchaser: z.string().min(15).max(25).describe("The cuid2 identifier of the purchaser of the payment")
 })
 
 export const createPaymentSchemaOutput = z.object({
