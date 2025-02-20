@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Install Backend Dependencies
         run: npm install
 
       - name: Generate Prisma Client
@@ -31,6 +31,18 @@ jobs:
 
       - name: Run Build
         run: npm run build
+
+      - name: Run Open API Generator
+        run: npm run swagger-json
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm install
+
+      - name: Generate OpenAPI Types
+        run: cd frontend && npm run openapi-ts-latest
+
+      - name: Run Next Build
+        run: cd frontend && npm run build
 
   lint:
     name: Auto-Fix Lint Issues, Generate Swagger JSON and Push to PR and Comment
@@ -48,7 +60,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       # Step 3: Install dependencies
       - name: Install Dependencies
