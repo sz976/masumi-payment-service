@@ -186,8 +186,8 @@ export function generateOpenAPI() {
                     PendingTransaction: null,
                     walletAddress: 'wallet_address',
                     Secret: {
-                      createdAt: new Date(),
-                      updatedAt: new Date(),
+                      createdAt: new Date(1713636260),
+                      updatedAt: new Date(1713636260),
                       mnemonic: 'decoded_secret',
                     },
                   },
@@ -498,8 +498,8 @@ export function generateOpenAPI() {
                       {
                         id: 'cuid_v2_auto_generated',
                         blockchainIdentifier: 'blockchain_identifier',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         submitResultTime: '0',
                         unlockTime: '0',
                         externalDisputeUnlockTime: '0',
@@ -520,8 +520,8 @@ export function generateOpenAPI() {
                         Amounts: [
                           {
                             id: 'amount_id',
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
+                            createdAt: new Date(1713636260),
+                            updatedAt: new Date(1713636260),
                             amount: '10000000',
                             unit: 'lovelace',
                           },
@@ -598,8 +598,8 @@ export function generateOpenAPI() {
                   data: {
                     id: 'cuid_v2_auto_generated',
                     blockchainIdentifier: 'blockchain_identifier',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                     submitResultTime: '0',
                     unlockTime: '0',
                     externalDisputeUnlockTime: '0',
@@ -615,8 +615,8 @@ export function generateOpenAPI() {
                     Amounts: [
                       {
                         id: 'amount_id',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: 'lovelace',
                       },
@@ -689,8 +689,8 @@ export function generateOpenAPI() {
                   data: {
                     id: 'cuid_v2_auto_generated',
                     blockchainIdentifier: 'blockchain_identifier',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                     submitResultTime: '0',
                     unlockTime: '0',
                     externalDisputeUnlockTime: '0',
@@ -706,8 +706,8 @@ export function generateOpenAPI() {
                     Amounts: [
                       {
                         id: 'amount_id',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: 'lovelace',
                       },
@@ -778,8 +778,8 @@ export function generateOpenAPI() {
                   data: {
                     id: 'cuid_v2_auto_generated',
                     blockchainIdentifier: 'blockchain_identifier',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                     submitResultTime: '0',
                     unlockTime: '0',
                     externalDisputeUnlockTime: '0',
@@ -795,8 +795,8 @@ export function generateOpenAPI() {
                     Amounts: [
                       {
                         id: 'amount_id',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: 'lovelace',
                       },
@@ -878,8 +878,8 @@ export function generateOpenAPI() {
                           errorType: null,
                           errorNote: null,
                         },
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         externalDisputeUnlockTime: (1713636260).toString(),
                         submitResultTime: new Date(1713636260).toISOString(),
                         unlockTime: (1713636260).toString(),
@@ -1457,7 +1457,7 @@ export function generateOpenAPI() {
                         FeeReceiverNetworkWallet: {
                           walletAddress: 'wallet_address',
                         },
-                        lastCheckedAt: new Date(),
+                        lastCheckedAt: new Date(1713636260),
                         lastIdentifierChecked: 'identifier',
                         PurchasingWallets: [
                           {
@@ -1536,8 +1536,8 @@ export function generateOpenAPI() {
                     paymentSources: [
                       {
                         id: 'cuid_v2_auto_generated',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
                         network: Network.Mainnet,
                         paymentType: PaymentType.Web3CardanoV1,
                         feeRatePermille: 50,
@@ -1551,7 +1551,7 @@ export function generateOpenAPI() {
                         FeeReceiverNetworkWallet: {
                           walletAddress: 'wallet_address',
                         },
-                        lastCheckedAt: new Date(),
+                        lastCheckedAt: new Date(1713636260),
                         lastIdentifierChecked: 'identifier',
                         PaymentSourceConfig: {
                           rpcProviderApiKey: 'rpc_provider_api_key_blockfrost',
@@ -1663,8 +1663,8 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid_v2_auto_generated',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                     network: Network.Mainnet,
                     paymentType: PaymentType.Web3CardanoV1,
                     syncInProgress: true,
@@ -1678,7 +1678,7 @@ export function generateOpenAPI() {
                     FeeReceiverNetworkWallet: {
                       walletAddress: 'wallet_address',
                     },
-                    lastCheckedAt: new Date(),
+                    lastCheckedAt: new Date(1713636260),
                     lastIdentifierChecked: 'identifier',
                     PaymentSourceConfig: {
                       rpcProviderApiKey: 'rpc_provider_api_key_blockfrost',
@@ -1783,8 +1783,8 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid_v2_auto_generated',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                     network: Network.Mainnet,
                     paymentType: PaymentType.Web3CardanoV1,
                     syncInProgress: true,
@@ -1798,7 +1798,7 @@ export function generateOpenAPI() {
                     FeeReceiverNetworkWallet: {
                       walletAddress: 'wallet_address',
                     },
-                    lastCheckedAt: new Date(),
+                    lastCheckedAt: new Date(1713636260),
                     lastIdentifierChecked: 'identifier',
                     PaymentSourceConfig: {
                       rpcProviderApiKey: 'rpc_provider_api_key_blockfrost',
@@ -1957,8 +1957,8 @@ export function generateOpenAPI() {
                     id: 'unique_cuid_v2',
                     rpcProviderApiKey: 'blockfrost_api_key',
                     rpcProvider: RPCProvider.Blockfrost,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+                    createdAt: new Date(1713636260),
+                    updatedAt: new Date(1713636260),
                   },
                 ],
               },
