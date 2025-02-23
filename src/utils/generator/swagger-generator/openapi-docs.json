@@ -310,8 +310,8 @@
                                             "PendingTransaction": null,
                                             "walletAddress": "wallet_address",
                                             "Secret": {
-                                                "createdAt": "2025-02-20T20:45:01.218Z",
-                                                "updatedAt": "2025-02-20T20:45:01.218Z",
+                                                "createdAt": "1970-01-20T20:00:36.260Z",
+                                                "updatedAt": "1970-01-20T20:00:36.260Z",
                                                 "mnemonic": "decoded_secret"
                                             }
                                         }
@@ -1122,7 +1122,7 @@
                                                             "unlockTime": {
                                                                 "type": "string"
                                                             },
-                                                            "refundTime": {
+                                                            "externalDisputeUnlockTime": {
                                                                 "type": "string"
                                                             },
                                                             "requestedById": {
@@ -1130,6 +1130,12 @@
                                                             },
                                                             "resultHash": {
                                                                 "type": "string"
+                                                            },
+                                                            "cooldownTime": {
+                                                                "type": "number"
+                                                            },
+                                                            "cooldownTimeOtherParty": {
+                                                                "type": "number"
                                                             },
                                                             "onChainState": {
                                                                 "type": "string",
@@ -1344,9 +1350,11 @@
                                                             "lastCheckedAt",
                                                             "submitResultTime",
                                                             "unlockTime",
-                                                            "refundTime",
+                                                            "externalDisputeUnlockTime",
                                                             "requestedById",
                                                             "resultHash",
+                                                            "cooldownTime",
+                                                            "cooldownTimeOtherParty",
                                                             "onChainState",
                                                             "NextAction",
                                                             "CurrentTransaction",
@@ -1376,12 +1384,14 @@
                                                 {
                                                     "id": "cuid_v2_auto_generated",
                                                     "blockchainIdentifier": "blockchain_identifier",
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "submitResultTime": "0",
                                                     "unlockTime": "0",
-                                                    "refundTime": "0",
+                                                    "externalDisputeUnlockTime": "0",
                                                     "lastCheckedAt": null,
+                                                    "cooldownTime": 0,
+                                                    "cooldownTimeOtherParty": 0,
                                                     "requestedById": "requester_id",
                                                     "resultHash": "result_hash",
                                                     "onChainState": null,
@@ -1395,8 +1405,8 @@
                                                     "Amounts": [
                                                         {
                                                             "id": "amount_id",
-                                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                                             "amount": "10000000",
                                                             "unit": "lovelace"
                                                         }
@@ -1510,7 +1520,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-21T08:45:01.209Z",
+                                        "default": "2025-02-23T18:25:52.867Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -1530,7 +1540,7 @@
                                         ],
                                         "description": "The time after which the payment will be unlocked"
                                     },
-                                    "refundTime": {
+                                    "externalDisputeUnlockTime": {
                                         "anyOf": [
                                             {
                                                 "type": "string",
@@ -1545,7 +1555,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "description": "The time after which a refund will be approved"
+                                        "description": "The time after which the payment will be unlocked for external dispute"
                                     },
                                     "metadata": {
                                         "type": "string",
@@ -1613,7 +1623,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "lastCheckedAt": {
@@ -1785,7 +1795,7 @@
                                                 "blockchainIdentifier",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "lastCheckedAt",
                                                 "requestedById",
                                                 "resultHash",
@@ -1811,11 +1821,11 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "lastCheckedAt": null,
                                             "requestedById": "requester_id",
                                             "resultHash": "result_hash",
@@ -1828,8 +1838,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -1902,24 +1912,17 @@
                                         "type": "string",
                                         "maxLength": 8000,
                                         "description": "The identifier of the payment"
-                                    },
-                                    "sellerVkey": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The vkey of the seller"
                                     }
                                 },
                                 "required": [
                                     "network",
                                     "submitResultHash",
-                                    "blockchainIdentifier",
-                                    "sellerVkey"
+                                    "blockchainIdentifier"
                                 ],
                                 "example": {
                                     "network": "Preprod",
                                     "smartContractAddress": "address",
                                     "blockchainIdentifier": "identifier",
-                                    "sellerVkey": "seller_vkey",
                                     "submitResultHash": "hash"
                                 }
                             }
@@ -1955,7 +1958,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "lastCheckedAt": {
@@ -2127,7 +2130,7 @@
                                                 "blockchainIdentifier",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "lastCheckedAt",
                                                 "requestedById",
                                                 "resultHash",
@@ -2153,11 +2156,11 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "lastCheckedAt": null,
                                             "requestedById": "requester_id",
                                             "resultHash": "result_hash",
@@ -2170,8 +2173,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -2227,11 +2230,6 @@
                                         "maxLength": 8000,
                                         "description": "The identifier of the purchase to be refunded"
                                     },
-                                    "sellerVkey": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The vkey of the seller"
-                                    },
                                     "network": {
                                         "type": "string",
                                         "enum": [
@@ -2248,14 +2246,12 @@
                                 },
                                 "required": [
                                     "blockchainIdentifier",
-                                    "sellerVkey",
                                     "network"
                                 ],
                                 "example": {
                                     "network": "Preprod",
                                     "paymentContractAddress": "address",
-                                    "blockchainIdentifier": "blockchain_identifier",
-                                    "sellerVkey": "seller_vkey"
+                                    "blockchainIdentifier": "blockchain_identifier"
                                 }
                             }
                         }
@@ -2290,7 +2286,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "lastCheckedAt": {
@@ -2462,7 +2458,7 @@
                                                 "blockchainIdentifier",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "lastCheckedAt",
                                                 "requestedById",
                                                 "resultHash",
@@ -2488,11 +2484,11 @@
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
                                             "blockchainIdentifier": "blockchain_identifier",
-                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "lastCheckedAt": null,
                                             "requestedById": "requester_id",
                                             "resultHash": "result_hash",
@@ -2505,8 +2501,8 @@
                                             "Amounts": [
                                                 {
                                                     "id": "amount_id",
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": "lovelace"
                                                 }
@@ -2652,7 +2648,7 @@
                                                             "unlockTime": {
                                                                 "type": "string"
                                                             },
-                                                            "refundTime": {
+                                                            "externalDisputeUnlockTime": {
                                                                 "type": "string"
                                                             },
                                                             "requestedById": {
@@ -2671,6 +2667,12 @@
                                                                     "RefundWithdrawn",
                                                                     "DisputedWithdrawn"
                                                                 ]
+                                                            },
+                                                            "cooldownTime": {
+                                                                "type": "number"
+                                                            },
+                                                            "cooldownTimeOtherParty": {
+                                                                "type": "number"
                                                             },
                                                             "resultHash": {
                                                                 "type": "string"
@@ -2892,9 +2894,11 @@
                                                             "lastCheckedAt",
                                                             "submitResultTime",
                                                             "unlockTime",
-                                                            "refundTime",
+                                                            "externalDisputeUnlockTime",
                                                             "requestedById",
                                                             "onChainState",
+                                                            "cooldownTime",
+                                                            "cooldownTimeOtherParty",
                                                             "resultHash",
                                                             "NextAction",
                                                             "CurrentTransaction",
@@ -2929,14 +2933,16 @@
                                                     "metadata": null,
                                                     "requestedById": "requester_id",
                                                     "resultHash": "",
+                                                    "cooldownTime": 0,
+                                                    "cooldownTimeOtherParty": 0,
                                                     "NextAction": {
                                                         "requestedAction": "FundsLockingRequested",
                                                         "errorType": null,
                                                         "errorNote": null
                                                     },
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
-                                                    "refundTime": "1713636260",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
+                                                    "externalDisputeUnlockTime": "1713636260",
                                                     "submitResultTime": "1970-01-20T20:00:36.260Z",
                                                     "unlockTime": "1713636260",
                                                     "Amounts": [],
@@ -3048,9 +3054,9 @@
                                         "type": "string",
                                         "description": "The time after which the purchase will be unlocked. In unix time (number)"
                                     },
-                                    "refundTime": {
+                                    "externalDisputeUnlockTime": {
                                         "type": "string",
-                                        "description": "The time after which a refund will be approved. In unix time (number)"
+                                        "description": "The time after which the purchase will be unlocked for external dispute. In unix time (number)"
                                     },
                                     "submitResultTime": {
                                         "type": "string",
@@ -3075,7 +3081,7 @@
                                     "amounts",
                                     "paymentType",
                                     "unlockTime",
-                                    "refundTime",
+                                    "externalDisputeUnlockTime",
                                     "submitResultTime",
                                     "identifierFromPurchaser"
                                 ],
@@ -3094,7 +3100,7 @@
                                     "paymentType": "Web3CardanoV1",
                                     "submitResultTime": "1713636260",
                                     "unlockTime": "1713636260",
-                                    "refundTime": "1713636260",
+                                    "externalDisputeUnlockTime": "1713636260",
                                     "agentIdentifier": "agent_identifier"
                                 }
                             }
@@ -3134,7 +3140,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "requestedById": {
@@ -3339,7 +3345,7 @@
                                                 "lastCheckedAt",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "requestedById",
                                                 "resultHash",
                                                 "onChainState",
@@ -3370,7 +3376,7 @@
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "requestedById": "requester_id",
                                             "resultHash": "",
                                             "onChainState": null,
@@ -3435,9 +3441,6 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "id": {
-                                        "type": "string"
-                                    },
                                     "blockchainIdentifier": {
                                         "type": "string",
                                         "maxLength": 8000,
@@ -3458,12 +3461,10 @@
                                     }
                                 },
                                 "required": [
-                                    "id",
                                     "blockchainIdentifier",
                                     "network"
                                 ],
                                 "example": {
-                                    "id": "unique_cuid_v2_auto_generated",
                                     "network": "Preprod",
                                     "smartContractAddress": "address",
                                     "blockchainIdentifier": "blockchain_identifier"
@@ -3505,7 +3506,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "requestedById": {
@@ -3710,7 +3711,7 @@
                                                 "lastCheckedAt",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "requestedById",
                                                 "resultHash",
                                                 "onChainState",
@@ -3741,7 +3742,7 @@
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "requestedById": "requester_id",
                                             "resultHash": "",
                                             "onChainState": null,
@@ -3806,9 +3807,6 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "id": {
-                                        "type": "string"
-                                    },
                                     "blockchainIdentifier": {
                                         "type": "string",
                                         "maxLength": 8000,
@@ -3829,12 +3827,10 @@
                                     }
                                 },
                                 "required": [
-                                    "id",
                                     "blockchainIdentifier",
                                     "network"
                                 ],
                                 "example": {
-                                    "id": "unique_cuid_v2_auto_generated",
                                     "network": "Preprod",
                                     "smartContractAddress": "address",
                                     "blockchainIdentifier": "blockchain_identifier"
@@ -3876,7 +3872,7 @@
                                                 "unlockTime": {
                                                     "type": "string"
                                                 },
-                                                "refundTime": {
+                                                "externalDisputeUnlockTime": {
                                                     "type": "string"
                                                 },
                                                 "requestedById": {
@@ -4081,7 +4077,7 @@
                                                 "lastCheckedAt",
                                                 "submitResultTime",
                                                 "unlockTime",
-                                                "refundTime",
+                                                "externalDisputeUnlockTime",
                                                 "requestedById",
                                                 "resultHash",
                                                 "onChainState",
@@ -4112,7 +4108,7 @@
                                             "lastCheckedAt": null,
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
-                                            "refundTime": "0",
+                                            "externalDisputeUnlockTime": "0",
                                             "requestedById": "requester_id",
                                             "resultHash": "",
                                             "onChainState": null,
@@ -5246,7 +5242,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-20T20:45:01.219Z",
+                                                    "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "PurchasingWallets": [
                                                         {
@@ -5688,8 +5684,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                             "network": "Mainnet",
                                             "paymentType": "Web3CardanoV1",
                                             "syncInProgress": true,
@@ -5712,7 +5708,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-20T20:45:01.219Z",
+                                            "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                             "lastIdentifierChecked": "identifier",
                                             "PaymentSourceConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6134,8 +6130,8 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid_v2_auto_generated",
-                                            "createdAt": "2025-02-20T20:45:01.219Z",
-                                            "updatedAt": "2025-02-20T20:45:01.219Z",
+                                            "createdAt": "1970-01-20T20:00:36.260Z",
+                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                             "network": "Mainnet",
                                             "paymentType": "Web3CardanoV1",
                                             "syncInProgress": true,
@@ -6158,7 +6154,7 @@
                                             "FeeReceiverNetworkWallet": {
                                                 "walletAddress": "wallet_address"
                                             },
-                                            "lastCheckedAt": "2025-02-20T20:45:01.219Z",
+                                            "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                             "lastIdentifierChecked": "identifier",
                                             "PaymentSourceConfig": {
                                                 "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6512,8 +6508,8 @@
                                             "paymentSources": [
                                                 {
                                                     "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "2025-02-20T20:45:01.219Z",
-                                                    "updatedAt": "2025-02-20T20:45:01.219Z",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "network": "Mainnet",
                                                     "paymentType": "Web3CardanoV1",
                                                     "feeRatePermille": 50,
@@ -6536,7 +6532,7 @@
                                                     "FeeReceiverNetworkWallet": {
                                                         "walletAddress": "wallet_address"
                                                     },
-                                                    "lastCheckedAt": "2025-02-20T20:45:01.219Z",
+                                                    "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                                     "lastIdentifierChecked": "identifier",
                                                     "PaymentSourceConfig": {
                                                         "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
@@ -6872,8 +6868,8 @@
                                                 "id": "unique_cuid_v2",
                                                 "rpcProviderApiKey": "blockfrost_api_key",
                                                 "rpcProvider": "Blockfrost",
-                                                "createdAt": "2025-02-20T20:45:01.219Z",
-                                                "updatedAt": "2025-02-20T20:45:01.219Z"
+                                                "createdAt": "1970-01-20T20:00:36.260Z",
+                                                "updatedAt": "1970-01-20T20:00:36.260Z"
                                             }
                                         ]
                                     }
