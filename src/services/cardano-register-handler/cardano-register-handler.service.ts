@@ -131,7 +131,7 @@ export async function registerAgentV1() {
                   tags: request.tags,
                   pricing: request.Pricing.map((pricing) => ({
                     unit: stringToMetadata(pricing.unit),
-                    quantity: pricing.quantity,
+                    quantity: pricing.quantity.toString(),
                   })),
                   image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
                   metadata_version: stringToMetadata(
@@ -158,7 +158,6 @@ export async function registerAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationInitiated,
-                agentIdentifier: policyId + assetName,
               },
             });
             //submit the transaction to the blockchain

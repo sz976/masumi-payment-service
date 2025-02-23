@@ -1520,7 +1520,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-23T21:24:23.559Z",
+                                        "default": "2025-02-23T23:03:36.362Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -4915,6 +4915,9 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
                                                 "name": {
                                                     "type": "string"
                                                 },
@@ -5001,6 +5004,7 @@
                                                 }
                                             },
                                             "required": [
+                                                "id",
                                                 "name",
                                                 "apiUrl",
                                                 "capabilityName",
@@ -5024,6 +5028,7 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
+                                            "id": "cuid2",
                                             "apiUrl": "api_url",
                                             "tags": [
                                                 "tag1",
@@ -5076,7 +5081,7 @@
                         },
                         "required": true,
                         "description": "The identifier of the registration (asset) to be deregistered",
-                        "name": "assetName",
+                        "name": "assetIdentifier",
                         "in": "query"
                     },
                     {
@@ -5119,6 +5124,9 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
                                                 "name": {
                                                     "type": "string"
                                                 },
@@ -5205,6 +5213,7 @@
                                                 }
                                             },
                                             "required": [
+                                                "id",
                                                 "name",
                                                 "apiUrl",
                                                 "capabilityName",
@@ -5228,6 +5237,7 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
+                                            "id": "cuid2",
                                             "apiUrl": "api_url",
                                             "tags": [
                                                 "tag1",

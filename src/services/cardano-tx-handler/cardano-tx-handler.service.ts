@@ -70,7 +70,14 @@ export async function checkLatestTransactions(
   try {
     await prisma.purchaseActionData.updateMany({
       where: {
-        requestedAction: { in: [PurchasingAction.FundsLockingInitiated] },
+        requestedAction: {
+          in: [
+            PurchasingAction.FundsLockingInitiated,
+            PurchasingAction.WithdrawRefundInitiated,
+            PurchasingAction.SetRefundRequestedInitiated,
+            PurchasingAction.UnSetRefundRequestedInitiated,
+          ],
+        },
         updatedAt: {
           lt: new Date(
             Date.now() -
@@ -87,6 +94,42 @@ export async function checkLatestTransactions(
     });
   } catch (error) {
     logger.error('Error updating timed out purchase actions', { error: error });
+  }
+  try {
+    await prisma.registryRequest.updateMany({
+      where: {
+        state: { in: [RegistrationState.RegistrationInitiated] },
+        updatedAt: {
+          lt: new Date(
+            Date.now() -
+              //15 minutes for timeouts, check every tx older than 1 minute
+              1000 * 60 * 15,
+          ),
+        },
+      },
+      data: {
+        state: RegistrationState.RegistrationFailed,
+      },
+    });
+    await prisma.registryRequest.updateMany({
+      where: {
+        state: { in: [RegistrationState.DeregistrationInitiated] },
+        updatedAt: {
+          lt: new Date(
+            Date.now() -
+              //15 minutes for timeouts, check every tx older than 1 minute
+              1000 * 60 * 15,
+          ),
+        },
+      },
+      data: {
+        state: RegistrationState.DeregistrationFailed,
+      },
+    });
+  } catch (error) {
+    logger.error('Error updating timed out registry requests', {
+      error: error,
+    });
   }
   try {
     //only support web3 cardano v1 for now

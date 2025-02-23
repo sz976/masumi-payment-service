@@ -187,6 +187,7 @@ export const registerAgentSchemaInput = z.object({
 });
 
 export const registerAgentSchemaOutput = z.object({
+  id: z.string(),
   name: z.string(),
   apiUrl: z.string(),
   capabilityName: z.string(),
@@ -302,7 +303,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
 });
 
 export const unregisterAgentSchemaInput = z.object({
-  assetName: z
+  assetIdentifier: z
     .string()
     .max(250)
     .describe('The identifier of the registration (asset) to be deregistered'),
@@ -319,6 +320,7 @@ export const unregisterAgentSchemaInput = z.object({
 });
 
 export const unregisterAgentSchemaOutput = z.object({
+  id: z.string(),
   name: z.string(),
   apiUrl: z.string(),
   capabilityName: z.string(),
@@ -384,7 +386,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     const { policyId } =
       await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
-    let assetName = input.assetName;
+    let assetName = input.assetIdentifier;
     if (assetName.startsWith(policyId)) {
       assetName = assetName.slice(policyId.length);
     }

@@ -1403,6 +1403,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
+                    id: 'cuid2',
                     apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
                     capabilityName: 'capability_name',
@@ -1444,7 +1445,7 @@ export function generateOpenAPI() {
     request: {
       query: unregisterAgentSchemaInput.openapi({
         example: {
-          assetName: 'asset_name',
+          assetIdentifier: 'asset_name',
           network: Network.Preprod,
           smartContractAddress: 'address',
         },
@@ -1461,6 +1462,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
+                    id: 'cuid2',
                     apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
                     capabilityName: 'capability_name',

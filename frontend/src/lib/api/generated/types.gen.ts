@@ -1423,7 +1423,7 @@ export type DeleteRegistryData = {
     /**
      * The identifier of the registration (asset) to be deregistered
      */
-    assetName: string;
+    assetIdentifier: string;
     /**
      * The network the registration was made on
      */
@@ -1443,6 +1443,7 @@ export type DeleteRegistryResponses = {
   200: {
     status: string;
     data: {
+      id: string;
       name: string;
       apiUrl: string;
       capabilityName: string;
@@ -1629,6 +1630,7 @@ export type PostRegistryResponses = {
   200: {
     status: string;
     data: {
+      id: string;
       name: string;
       apiUrl: string;
       capabilityName: string;

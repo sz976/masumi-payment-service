@@ -7,7 +7,6 @@ import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 import { lockAndQueryRegistryRequests } from '@/utils/db/lock-and-query-registry-request';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
-import { blake2b } from 'ethereum-cryptography/blake2b';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 
 const updateMutex = new Sema(1);
@@ -49,6 +48,9 @@ export async function deRegisterAgentV1() {
             }),
           ],
           operations: registryRequests.map((request) => async () => {
+            if (!request.agentIdentifier) {
+              throw new Error('Agent identifier is not set');
+            }
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentSource.network,
               paymentSource.PaymentSourceConfig.rpcProviderApiKey,
@@ -60,21 +62,6 @@ export async function deRegisterAgentV1() {
             }
             const { script, policyId } =
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
-
-            const firstUtxo = utxos[0];
-            //utxos = utxos.filter((_, index) => index !== filteredUtxos);
-
-            const txId = firstUtxo.input.txHash;
-            const txIndex = firstUtxo.input.outputIndex;
-            const serializedOutput =
-              txId + txIndex.toString(16).padStart(8, '0');
-
-            const serializedOutputUint8Array = new Uint8Array(
-              Buffer.from(serializedOutput.toString(), 'hex'),
-            );
-            // Hash the serialized output using blake2b_256
-            const blake2b256 = blake2b(serializedOutputUint8Array, 32);
-            const assetName = Buffer.from(blake2b256).toString('hex');
 
             const redeemer = {
               data: { alternative: 1, fields: [] },
@@ -94,7 +81,11 @@ export async function deRegisterAgentV1() {
             //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
             tx.txBuilder
               .mintPlutusScript(script.version)
-              .mint('-1', policyId, assetName)
+              .mint(
+                '-1',
+                policyId,
+                request.agentIdentifier.slice(policyId.length),
+              )
               .mintingScript(script.code)
               .mintRedeemerValue(redeemer.data, 'Mesh');
             tx.sendLovelace(address, '5000000');
