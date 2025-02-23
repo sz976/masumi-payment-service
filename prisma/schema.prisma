@@ -212,12 +212,12 @@ model PaymentRequest {
 
   Amounts RequestAmount[]
 
-  blockchainIdentifier String
-  submitResultTime     BigInt
-  unlockTime           BigInt
-  refundTime           BigInt
-  resultHash           String
-  onChainState         OnChainState?
+  blockchainIdentifier      String
+  submitResultTime          BigInt
+  unlockTime                BigInt
+  externalDisputeUnlockTime BigInt
+  resultHash                String
+  onChainState              OnChainState?
 
   sellerCoolDownTime BigInt
   buyerCoolDownTime  BigInt
@@ -267,11 +267,11 @@ model PurchaseRequest {
   Amounts              RequestAmount[]
   blockchainIdentifier String
 
-  submitResultTime BigInt
-  unlockTime       BigInt
-  refundTime       BigInt
-  resultHash       String
-  onChainState     OnChainState?
+  submitResultTime          BigInt
+  unlockTime                BigInt
+  externalDisputeUnlockTime BigInt
+  resultHash                String
+  onChainState              OnChainState?
 
   sellerCoolDownTime BigInt
   buyerCoolDownTime  BigInt
