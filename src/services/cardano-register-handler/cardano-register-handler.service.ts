@@ -111,22 +111,20 @@ export async function registerAgentV1() {
                 [assetName]: {
                   name: stringToMetadata(request.name),
                   description: stringToMetadata(request.description),
-                  api_url: stringToMetadata(request.api_url),
+                  api_url: stringToMetadata(request.apiUrl),
                   example_output: stringToMetadata(request.other),
                   capability: {
-                    name: stringToMetadata(request.capability_name),
-                    version: stringToMetadata(request.capability_version),
+                    name: stringToMetadata(request.capabilityName),
+                    version: stringToMetadata(request.capabilityVersion),
                   },
-                  requests_per_hour: stringToMetadata(
-                    request.requests_per_hour,
-                  ),
+                  requests_per_hour: stringToMetadata(request.requestsPerHour),
                   author: {
-                    name: stringToMetadata(request.author_name),
-                    contact: stringToMetadata(request.author_contact),
-                    organization: stringToMetadata(request.author_organization),
+                    name: stringToMetadata(request.authorName),
+                    contact: stringToMetadata(request.authorContact),
+                    organization: stringToMetadata(request.authorOrganization),
                   },
                   legal: {
-                    privacy_policy: stringToMetadata(request.privacy_policy),
+                    privacy_policy: stringToMetadata(request.privacyPolicy),
                     terms: stringToMetadata(request.terms),
                     other: stringToMetadata(request.other),
                   },
