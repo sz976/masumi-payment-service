@@ -1230,8 +1230,8 @@ export function generateOpenAPI() {
                         metadata: {
                           name: 'name',
                           description: 'description',
-                          api_url: 'api_url',
-                          example_output: 'example_output',
+                          apiUrl: 'api_url',
+                          exampleOutput: 'example_output',
                           tags: ['tag1', 'tag2'],
                           capability: {
                             name: 'capability_name',
@@ -1243,7 +1243,7 @@ export function generateOpenAPI() {
                             organization: 'author_organization',
                           },
                           legal: {
-                            privacy_policy: 'privacy_policy',
+                            privacyPolicy: 'privacy_policy',
                             terms: 'terms',
                             other: 'other',
                           },
@@ -1254,7 +1254,7 @@ export function generateOpenAPI() {
                               unit: 'unit',
                             },
                           ],
-                          metadata_version: 1,
+                          metadataVersion: 1,
                         },
                       },
                     ],
@@ -1284,10 +1284,10 @@ export function generateOpenAPI() {
               example: {
                 network: Network.Preprod,
                 smartContractAddress: 'addr_test1',
-                example_output: 'example_output',
+                exampleOutput: 'example_output',
                 tags: ['tag1', 'tag2'],
                 name: 'Agent Name',
-                api_url: 'https://api.example.com',
+                apiUrl: 'https://api.example.com',
                 description: 'Agent Description',
                 author: {
                   name: 'Author Name',
@@ -1295,13 +1295,13 @@ export function generateOpenAPI() {
                   organization: 'Author Organization',
                 },
                 legal: {
-                  privacy_policy: 'Privacy Policy URL',
+                  privacyPolicy: 'Privacy Policy URL',
                   terms: 'Terms of Service URL',
                   other: 'Other Legal Information URL',
                 },
                 sellingWalletVkey: 'wallet_vkey',
                 capability: { name: 'Capability Name', version: '1.0.0' },
-                requests_per_hour: '100',
+                requestsPerHour: '100',
                 pricing: [
                   {
                     unit: 'usdm',
@@ -1325,11 +1325,11 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    api_url: 'api_url',
+                    apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
-                    capability_name: 'capability_name',
-                    capability_version: 'capability_version',
-                    requests_per_hour: '100',
+                    capabilityName: 'capability_name',
+                    capabilityVersion: 'capability_version',
+                    requestsPerHour: '100',
                     Pricing: [
                       {
                         unit: 'usdm',
@@ -1343,7 +1343,7 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacy_policy: 'link to privacy policy',
+                    privacyPolicy: 'link to privacy policy',
                     terms: 'link to terms',
                     other: 'link to other',
                   },
@@ -1383,11 +1383,11 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    api_url: 'api_url',
+                    apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
-                    capability_name: 'capability_name',
-                    capability_version: 'capability_version',
-                    requests_per_hour: '100',
+                    capabilityName: 'capability_name',
+                    capabilityVersion: 'capability_version',
+                    requestsPerHour: '100',
                     Pricing: [
                       {
                         unit: 'usdm',
@@ -1401,7 +1401,7 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacy_policy: 'link to privacy policy',
+                    privacyPolicy: 'link to privacy policy',
                     terms: 'link to terms',
                     other: 'link to other',
                   },

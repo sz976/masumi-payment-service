@@ -154,20 +154,20 @@ model RegistryRequest {
   SmartContractWallet   HotWallet @relation(fields: [smartContractWalletId], references: [id], onDelete: Restrict)
   smartContractWalletId String
 
-  name               String
-  api_url            String
-  capability_name    String
-  capability_version String
+  name              String
+  apiUrl            String
+  capabilityName    String
+  capabilityVersion String
 
-  description       String?
-  requests_per_hour String?
-  privacy_policy    String?
-  terms             String?
-  other             String?
+  description     String?
+  requestsPerHour String?
+  privacyPolicy   String?
+  terms           String?
+  other           String?
 
-  author_name         String
-  author_contact      String?
-  author_organization String?
+  authorName         String
+  authorContact      String?
+  authorOrganization String?
 
   tags    String[]
   Pricing AgentPricing[]

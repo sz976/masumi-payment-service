@@ -1520,7 +1520,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-23T18:25:52.867Z",
+                                        "default": "2025-02-23T19:10:22.425Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -4244,11 +4244,11 @@
                                                                         "nullable": true,
                                                                         "maxLength": 250
                                                                     },
-                                                                    "api_url": {
+                                                                    "apiUrl": {
                                                                         "type": "string",
                                                                         "maxLength": 250
                                                                     },
-                                                                    "example_output": {
+                                                                    "exampleOutput": {
                                                                         "type": "string",
                                                                         "nullable": true,
                                                                         "maxLength": 250
@@ -4260,7 +4260,7 @@
                                                                             "maxLength": 250
                                                                         }
                                                                     },
-                                                                    "requests_per_hour": {
+                                                                    "requestsPerHour": {
                                                                         "type": "string",
                                                                         "nullable": true,
                                                                         "maxLength": 250
@@ -4308,7 +4308,7 @@
                                                                         "type": "object",
                                                                         "nullable": true,
                                                                         "properties": {
-                                                                            "privacy_policy": {
+                                                                            "privacyPolicy": {
                                                                                 "type": "string",
                                                                                 "nullable": true,
                                                                                 "maxLength": 250
@@ -4350,7 +4350,7 @@
                                                                         "type": "string",
                                                                         "maxLength": 250
                                                                     },
-                                                                    "metadata_version": {
+                                                                    "metadataVersion": {
                                                                         "type": "integer",
                                                                         "minimum": 1,
                                                                         "maximum": 1
@@ -4358,13 +4358,13 @@
                                                                 },
                                                                 "required": [
                                                                     "name",
-                                                                    "api_url",
+                                                                    "apiUrl",
                                                                     "tags",
                                                                     "capability",
                                                                     "author",
                                                                     "pricing",
                                                                     "image",
-                                                                    "metadata_version"
+                                                                    "metadataVersion"
                                                                 ]
                                                             }
                                                         },
@@ -4397,8 +4397,8 @@
                                                     "metadata": {
                                                         "name": "name",
                                                         "description": "description",
-                                                        "api_url": "api_url",
-                                                        "example_output": "example_output",
+                                                        "apiUrl": "api_url",
+                                                        "exampleOutput": "example_output",
                                                         "tags": [
                                                             "tag1",
                                                             "tag2"
@@ -4413,7 +4413,7 @@
                                                             "organization": "author_organization"
                                                         },
                                                         "legal": {
-                                                            "privacy_policy": "privacy_policy",
+                                                            "privacyPolicy": "privacy_policy",
                                                             "terms": "terms",
                                                             "other": "other"
                                                         },
@@ -4424,7 +4424,7 @@
                                                                 "unit": "unit"
                                                             }
                                                         ],
-                                                        "metadata_version": 1
+                                                        "metadataVersion": 1
                                                     }
                                                 }
                                             ]
@@ -4472,7 +4472,7 @@
                                         "maxLength": 250,
                                         "description": "The payment key of a specific wallet used for the registration"
                                     },
-                                    "example_output": {
+                                    "exampleOutput": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "Link to a example output of the agent"
@@ -4492,7 +4492,7 @@
                                         "maxLength": 250,
                                         "description": "Name of the agent"
                                     },
-                                    "api_url": {
+                                    "apiUrl": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "Base URL of the agent, to request interactions"
@@ -4520,7 +4520,7 @@
                                         ],
                                         "description": "Provide information about the used AI model and version"
                                     },
-                                    "requests_per_hour": {
+                                    "requestsPerHour": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The request the agent can handle per hour"
@@ -4536,7 +4536,7 @@
                                                 },
                                                 "quantity": {
                                                     "type": "string",
-                                                    "maxLength": 55
+                                                    "maxLength": 25
                                                 }
                                             },
                                             "required": [
@@ -4550,7 +4550,7 @@
                                     "legal": {
                                         "type": "object",
                                         "properties": {
-                                            "privacy_policy": {
+                                            "privacyPolicy": {
                                                 "type": "string",
                                                 "maxLength": 250
                                             },
@@ -4592,23 +4592,23 @@
                                     "sellingWalletVkey",
                                     "tags",
                                     "name",
-                                    "api_url",
+                                    "apiUrl",
                                     "description",
                                     "capability",
-                                    "requests_per_hour",
+                                    "requestsPerHour",
                                     "pricing",
                                     "author"
                                 ],
                                 "example": {
                                     "network": "Preprod",
                                     "smartContractAddress": "addr_test1",
-                                    "example_output": "example_output",
+                                    "exampleOutput": "example_output",
                                     "tags": [
                                         "tag1",
                                         "tag2"
                                     ],
                                     "name": "Agent Name",
-                                    "api_url": "https://api.example.com",
+                                    "apiUrl": "https://api.example.com",
                                     "description": "Agent Description",
                                     "author": {
                                         "name": "Author Name",
@@ -4616,7 +4616,7 @@
                                         "organization": "Author Organization"
                                     },
                                     "legal": {
-                                        "privacy_policy": "Privacy Policy URL",
+                                        "privacyPolicy": "Privacy Policy URL",
                                         "terms": "Terms of Service URL",
                                         "other": "Other Legal Information URL"
                                     },
@@ -4625,7 +4625,7 @@
                                         "name": "Capability Name",
                                         "version": "1.0.0"
                                     },
-                                    "requests_per_hour": "100",
+                                    "requestsPerHour": "100",
                                     "pricing": [
                                         {
                                             "unit": "usdm",
@@ -4654,24 +4654,24 @@
                                                 "name": {
                                                     "type": "string"
                                                 },
-                                                "api_url": {
+                                                "apiUrl": {
                                                     "type": "string"
                                                 },
-                                                "capability_name": {
+                                                "capabilityName": {
                                                     "type": "string"
                                                 },
-                                                "capability_version": {
+                                                "capabilityVersion": {
                                                     "type": "string"
                                                 },
                                                 "description": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
-                                                "requests_per_hour": {
+                                                "requestsPerHour": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
-                                                "privacy_policy": {
+                                                "privacyPolicy": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
@@ -4738,12 +4738,12 @@
                                             },
                                             "required": [
                                                 "name",
-                                                "api_url",
-                                                "capability_name",
-                                                "capability_version",
+                                                "apiUrl",
+                                                "capabilityName",
+                                                "capabilityVersion",
                                                 "description",
-                                                "requests_per_hour",
-                                                "privacy_policy",
+                                                "requestsPerHour",
+                                                "privacyPolicy",
                                                 "terms",
                                                 "other",
                                                 "tags",
@@ -4760,14 +4760,14 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "api_url": "api_url",
+                                            "apiUrl": "api_url",
                                             "tags": [
                                                 "tag1",
                                                 "tag2"
                                             ],
-                                            "capability_name": "capability_name",
-                                            "capability_version": "capability_version",
-                                            "requests_per_hour": "100",
+                                            "capabilityName": "capability_name",
+                                            "capabilityVersion": "capability_version",
+                                            "requestsPerHour": "100",
                                             "Pricing": [
                                                 {
                                                     "unit": "usdm",
@@ -4781,7 +4781,7 @@
                                             "state": "RegistrationRequested",
                                             "description": "description",
                                             "name": "name",
-                                            "privacy_policy": "link to privacy policy",
+                                            "privacyPolicy": "link to privacy policy",
                                             "terms": "link to terms",
                                             "other": "link to other"
                                         }
@@ -4858,24 +4858,24 @@
                                                 "name": {
                                                     "type": "string"
                                                 },
-                                                "api_url": {
+                                                "apiUrl": {
                                                     "type": "string"
                                                 },
-                                                "capability_name": {
+                                                "capabilityName": {
                                                     "type": "string"
                                                 },
-                                                "capability_version": {
+                                                "capabilityVersion": {
                                                     "type": "string"
                                                 },
                                                 "description": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
-                                                "requests_per_hour": {
+                                                "requestsPerHour": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
-                                                "privacy_policy": {
+                                                "privacyPolicy": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
@@ -4942,12 +4942,12 @@
                                             },
                                             "required": [
                                                 "name",
-                                                "api_url",
-                                                "capability_name",
-                                                "capability_version",
+                                                "apiUrl",
+                                                "capabilityName",
+                                                "capabilityVersion",
                                                 "description",
-                                                "requests_per_hour",
-                                                "privacy_policy",
+                                                "requestsPerHour",
+                                                "privacyPolicy",
                                                 "terms",
                                                 "other",
                                                 "tags",
@@ -4964,14 +4964,14 @@
                                     "example": {
                                         "status": "success",
                                         "data": {
-                                            "api_url": "api_url",
+                                            "apiUrl": "api_url",
                                             "tags": [
                                                 "tag1",
                                                 "tag2"
                                             ],
-                                            "capability_name": "capability_name",
-                                            "capability_version": "capability_version",
-                                            "requests_per_hour": "100",
+                                            "capabilityName": "capability_name",
+                                            "capabilityVersion": "capability_version",
+                                            "requestsPerHour": "100",
                                             "Pricing": [
                                                 {
                                                     "unit": "usdm",
@@ -4985,7 +4985,7 @@
                                             "state": "RegistrationRequested",
                                             "description": "description",
                                             "name": "name",
-                                            "privacy_policy": "link to privacy policy",
+                                            "privacyPolicy": "link to privacy policy",
                                             "terms": "link to terms",
                                             "other": "link to other"
                                         }

@@ -1377,12 +1377,12 @@ export type DeleteRegistryResponses = {
     status: string;
     data: {
       name: string;
-      api_url: string;
-      capability_name: string;
-      capability_version: string;
+      apiUrl: string;
+      capabilityName: string;
+      capabilityVersion: string;
       description: string | null;
-      requests_per_hour: string | null;
-      privacy_policy: string | null;
+      requestsPerHour: string | null;
+      privacyPolicy: string | null;
       terms: string | null;
       other: string | null;
       tags: Array<string>;
@@ -1444,10 +1444,10 @@ export type GetRegistryResponses = {
         metadata: {
           name: string;
           description?: string | null;
-          api_url: string;
-          example_output?: string | null;
+          apiUrl: string;
+          exampleOutput?: string | null;
           tags: Array<string>;
-          requests_per_hour?: string | null;
+          requestsPerHour?: string | null;
           capability: {
             name: string;
             version: string;
@@ -1458,7 +1458,7 @@ export type GetRegistryResponses = {
             organization?: string | null;
           };
           legal?: {
-            privacy_policy?: string | null;
+            privacyPolicy?: string | null;
             terms?: string | null;
             other?: string | null;
           } | null;
@@ -1467,7 +1467,7 @@ export type GetRegistryResponses = {
             unit: string;
           }>;
           image: string;
-          metadata_version: number;
+          metadataVersion: number;
         };
       }>;
     };
@@ -1494,7 +1494,7 @@ export type PostRegistryData = {
     /**
      * Link to a example output of the agent
      */
-    example_output?: string;
+    exampleOutput?: string;
     /**
      * Tags used in the registry metadata
      */
@@ -1506,7 +1506,7 @@ export type PostRegistryData = {
     /**
      * Base URL of the agent, to request interactions
      */
-    api_url: string;
+    apiUrl: string;
     /**
      * Description of the agent
      */
@@ -1521,7 +1521,7 @@ export type PostRegistryData = {
     /**
      * The request the agent can handle per hour
      */
-    requests_per_hour: string;
+    requestsPerHour: string;
     /**
      * Price for a default interaction
      */
@@ -1533,7 +1533,7 @@ export type PostRegistryData = {
      * Legal information about the agent
      */
     legal?: {
-      privacy_policy?: string;
+      privacyPolicy?: string;
       terms?: string;
       other?: string;
     };
@@ -1559,12 +1559,12 @@ export type PostRegistryResponses = {
     status: string;
     data: {
       name: string;
-      api_url: string;
-      capability_name: string;
-      capability_version: string;
+      apiUrl: string;
+      capabilityName: string;
+      capabilityVersion: string;
       description: string | null;
-      requests_per_hour: string | null;
-      privacy_policy: string | null;
+      requestsPerHour: string | null;
+      privacyPolicy: string | null;
       terms: string | null;
       other: string | null;
       tags: Array<string>;
