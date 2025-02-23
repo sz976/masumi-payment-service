@@ -166,6 +166,7 @@ export async function registerAgentV1() {
             await prisma.registryRequest.update({
               where: { id: request.id },
               data: {
+                agentIdentifier: policyId + assetName,
                 CurrentTransaction: {
                   create: {
                     txHash: newTxHash,
