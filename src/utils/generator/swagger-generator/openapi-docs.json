@@ -1520,7 +1520,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-23T19:10:22.425Z",
+                                        "default": "2025-02-23T19:15:00.942Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
