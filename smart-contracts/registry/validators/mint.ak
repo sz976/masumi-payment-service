@@ -24,21 +24,25 @@ validator mintUnique(_paymentContractAddress: ByteArray) {
         // Select the first input and concatenate its output reference and index to
         // generate the expected token name
         // this ensures that the minted asset is unique and we can parallelize it better than with a counter
-        expect Some(first_input) = list.at(inputs, 0)
 
-        let expected_asset_name =
-          concat(
-            first_input.output_reference.transaction_id,
-            from_int_big_endian(first_input.output_reference.output_index, 4),
+        expect
+          list.any(
+            inputs,
+            fn(input) {
+              let expected_asset_name =
+                concat(
+                  input.output_reference.transaction_id,
+                  from_int_big_endian(input.output_reference.output_index, 4),
+                )
+                  |> blake2b_256
+              asset_name == expected_asset_name
+            },
           )
-            |> blake2b_256
-        // Compare the asset name with the first utxo output reference and that there is only one asset minted
-        asset_name == expected_asset_name && quantity == 1 && asset_mint_count == 1
+        quantity == 1 && asset_mint_count == 1
       }
-      BurnAction -> {
+      BurnAction ->
         //burn action is only valid if there is only one asset in the transaction
         quantity == -1 && asset_mint_count == 1
-      }
     }
   }
 

@@ -1349,6 +1349,73 @@ export type PostPurchaseCancelRefundRequestResponses = {
 export type PostPurchaseCancelRefundRequestResponse =
   PostPurchaseCancelRefundRequestResponses[keyof PostPurchaseCancelRefundRequestResponses];
 
+export type GetRegistryWalletData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * The payment key of the wallet to be queried
+     */
+    walletVKey: string;
+    /**
+     * The Cardano network used to register the agent on
+     */
+    network: 'Preprod' | 'Mainnet';
+    /**
+     * The smart contract address of the payment source to which the registration belongs
+     */
+    smartContractAddress?: string;
+  };
+  url: '/registry/wallet';
+};
+
+export type GetRegistryWalletResponses = {
+  /**
+   * Agent metadata
+   */
+  200: {
+    status: string;
+    data: {
+      assets: Array<{
+        policyId: string;
+        assetName: string;
+        agentIdentifier: string;
+        metadata: {
+          name: string;
+          description?: string | null;
+          apiUrl: string;
+          exampleOutput?: string | null;
+          tags: Array<string>;
+          requestsPerHour?: string | null;
+          capability: {
+            name: string;
+            version: string;
+          };
+          author: {
+            name: string;
+            contact?: string | null;
+            organization?: string | null;
+          };
+          legal?: {
+            privacyPolicy?: string | null;
+            terms?: string | null;
+            other?: string | null;
+          } | null;
+          pricing: Array<{
+            quantity: number;
+            unit: string;
+          }>;
+          image: string;
+          metadataVersion: number;
+        };
+      }>;
+    };
+  };
+};
+
+export type GetRegistryWalletResponse =
+  GetRegistryWalletResponses[keyof GetRegistryWalletResponses];
+
 export type DeleteRegistryData = {
   body?: never;
   path?: never;
@@ -1356,7 +1423,7 @@ export type DeleteRegistryData = {
     /**
      * The identifier of the registration (asset) to be deregistered
      */
-    assetName: string;
+    assetIdentifier: string;
     /**
      * The network the registration was made on
      */
@@ -1376,6 +1443,7 @@ export type DeleteRegistryResponses = {
   200: {
     status: string;
     data: {
+      id: string;
       name: string;
       apiUrl: string;
       capabilityName: string;
@@ -1415,9 +1483,9 @@ export type GetRegistryData = {
   path?: never;
   query: {
     /**
-     * The payment key of the wallet to be queried
+     * The cursor id to paginate through the results
      */
-    walletVKey: string;
+    cursorId?: string;
     /**
      * The Cardano network used to register the agent on
      */
@@ -1438,36 +1506,40 @@ export type GetRegistryResponses = {
     status: string;
     data: {
       assets: Array<{
-        policyId: string;
-        assetName: string;
-        agentIdentifier: string;
-        metadata: {
-          name: string;
-          description?: string | null;
-          apiUrl: string;
-          exampleOutput?: string | null;
-          tags: Array<string>;
-          requestsPerHour?: string | null;
-          capability: {
-            name: string;
-            version: string;
-          };
-          author: {
-            name: string;
-            contact?: string | null;
-            organization?: string | null;
-          };
-          legal?: {
-            privacyPolicy?: string | null;
-            terms?: string | null;
-            other?: string | null;
-          } | null;
-          pricing: Array<{
-            quantity: number;
-            unit: string;
-          }>;
-          image: string;
-          metadataVersion: number;
+        id: string;
+        name: string;
+        description: string | null;
+        apiUrl: string;
+        capabilityName: string;
+        capabilityVersion: string;
+        requestsPerHour: string | null;
+        authorName: string;
+        authorContact: string | null;
+        authorOrganization: string | null;
+        privacyPolicy: string | null;
+        terms: string | null;
+        other: string | null;
+        state:
+          | 'RegistrationRequested'
+          | 'RegistrationInitiated'
+          | 'RegistrationConfirmed'
+          | 'RegistrationFailed'
+          | 'DeregistrationRequested'
+          | 'DeregistrationInitiated'
+          | 'DeregistrationConfirmed'
+          | 'DeregistrationFailed';
+        tags: Array<string>;
+        createdAt: string;
+        updatedAt: string;
+        lastCheckedAt: string | null;
+        agentIdentifier: string | null;
+        Pricing: Array<{
+          unit: string;
+          quantity: string;
+        }>;
+        SmartContractWallet: {
+          walletVkey: string;
+          walletAddress: string;
         };
       }>;
     };
@@ -1558,6 +1630,7 @@ export type PostRegistryResponses = {
   200: {
     status: string;
     data: {
+      id: string;
       name: string;
       apiUrl: string;
       capabilityName: string;
