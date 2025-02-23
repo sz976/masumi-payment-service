@@ -42,6 +42,7 @@ export const seed = async (prisma: PrismaClient) => {
       },
       where: { token: adminKey },
     });
+
     console.log('ADMIN_KEY seeded');
   } else {
     console.log('ADMIN_KEY is not seeded. Provide ADMIN_KEY in .env');
