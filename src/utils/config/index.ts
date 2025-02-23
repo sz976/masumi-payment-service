@@ -94,9 +94,9 @@ export const DEFAULTS = {
     'addr_test1qqfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqt4u496',
   FEE_PERMILLE_PREPROD: 50, //equals simulated 5% fee for the network
   PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wqv9sc853kpurfdqv5f02tmmlscez20ks0p5p6aj76j0xac2jqve7',
+    'addr_test1wzlwhustapq9ck0zdz8dahhwd350nzlpg785nz7hs0tqjtgdy4230',
   REGISTRY_POLICY_ID_PREPROD:
-    'dcdf2c533510e865e3d7e0f0e5537c7a176dd4dc1df69e83a703976b',
+    'da5bd59a96e050d829d21f7cb4fc38994f85cb37fadab9f8b9a1e8a2',
   COOLDOWN_TIME_PREPROD: 1000 * 60 * 7,
 
   ADMIN_WALLET1_MAINNET:
@@ -109,8 +109,8 @@ export const DEFAULTS = {
     'addr1qyfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqgrp4f9',
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1wyv9sc853kpurfdqv5f02tmmlscez20ks0p5p6aj76j0xac365skm',
+    'addr1wxlwhustapq9ck0zdz8dahhwd350nzlpg785nz7hs0tqjtgkvpk72',
   REGISTRY_POLICY_ID_MAINNET:
-    '6323eccc89e311315a59f511e45c85fe48a7d14da743030707d42adf',
+    '2ecdeae3a746e95e1ed2162b6c3c62a76c7aa5e0962dad1a2650d175',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };
