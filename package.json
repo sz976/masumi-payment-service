@@ -35,7 +35,6 @@
         "@prisma/client": "^6.4.1",
         "advanced-retry": "^1.2.1",
         "async-sema": "^3.1.1",
-        "cbor": "^10.0.3",
         "dotenv": "^16.4.7",
         "ethereum-cryptography": "^3.1.0",
         "express": "^5.0.1",
