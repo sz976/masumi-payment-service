@@ -29,7 +29,7 @@ console.log(address);
 
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 const paymentContractAddress =
-  'addr_test1wrm4l7k9qgw9878ymvw223u45fje48tnhqsxk2tewe47z7se03mca';
+  'addr_test1wzlwhustapq9ck0zdz8dahhwd350nzlpg785nz7hs0tqjtgdy4230';
 
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [

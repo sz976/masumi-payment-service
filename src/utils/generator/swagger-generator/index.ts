@@ -28,8 +28,8 @@ import {
   queryPurchaseRequestSchemaOutput,
 } from '@/routes/api/purchases';
 import {
-  queryAgentSchemaInput,
-  queryAgentSchemaOutput,
+  queryRegistryRequestSchemaInput,
+  queryRegistryRequestSchemaOutput,
   registerAgentSchemaInput,
   registerAgentSchemaOutput,
   unregisterAgentSchemaInput,
@@ -86,6 +86,10 @@ import {
   paymentSourceExtendedUpdateSchemaInput,
   paymentSourceExtendedUpdateSchemaOutput,
 } from '@/routes/api/payment-source-extended';
+import {
+  queryAgentFromWalletSchemaInput,
+  queryAgentFromWalletSchemaOutput,
+} from '@/routes/api/registry/wallet';
 
 extendZodWithOpenApi(z);
 
@@ -1197,13 +1201,13 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'get',
-    path: '/registry/',
+    path: '/registry/wallet',
     description: 'Gets the agent metadata.',
     summary: 'REQUIRES API KEY Authentication (+READ)',
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: queryAgentSchemaInput.openapi({
+      query: queryAgentFromWalletSchemaInput.openapi({
         example: {
           walletVKey: 'wallet_vkey',
           network: Network.Preprod,
@@ -1217,7 +1221,10 @@ export function generateOpenAPI() {
         content: {
           'application/json': {
             schema: z
-              .object({ status: z.string(), data: queryAgentSchemaOutput })
+              .object({
+                status: z.string(),
+                data: queryAgentFromWalletSchemaOutput,
+              })
               .openapi({
                 example: {
                   status: 'success',
@@ -1230,8 +1237,8 @@ export function generateOpenAPI() {
                         metadata: {
                           name: 'name',
                           description: 'description',
-                          api_url: 'api_url',
-                          example_output: 'example_output',
+                          apiUrl: 'api_url',
+                          exampleOutput: 'example_output',
                           tags: ['tag1', 'tag2'],
                           capability: {
                             name: 'capability_name',
@@ -1243,7 +1250,7 @@ export function generateOpenAPI() {
                             organization: 'author_organization',
                           },
                           legal: {
-                            privacy_policy: 'privacy_policy',
+                            privacyPolicy: 'privacy_policy',
                             terms: 'terms',
                             other: 'other',
                           },
@@ -1254,7 +1261,7 @@ export function generateOpenAPI() {
                               unit: 'unit',
                             },
                           ],
-                          metadata_version: 1,
+                          metadataVersion: 1,
                         },
                       },
                     ],
@@ -1267,6 +1274,77 @@ export function generateOpenAPI() {
     },
   });
 
+  registry.registerPath({
+    method: 'get',
+    path: '/registry/',
+    description: 'Gets the agent metadata.',
+    summary: 'REQUIRES API KEY Authentication (+READ)',
+    tags: ['registry'],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      query: queryRegistryRequestSchemaInput.openapi({
+        example: {
+          network: Network.Preprod,
+          cursorId: 'cursor_id',
+          smartContractAddress: 'address',
+        },
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Agent metadata',
+        content: {
+          'application/json': {
+            schema: z
+              .object({
+                status: z.string(),
+                data: queryRegistryRequestSchemaOutput,
+              })
+              .openapi({
+                example: {
+                  status: 'success',
+                  data: {
+                    assets: [
+                      {
+                        id: 'asset_id',
+                        name: 'name',
+                        description: 'description',
+                        apiUrl: 'api_url',
+                        capabilityName: 'capability_name',
+                        capabilityVersion: 'capability_version',
+                        requestsPerHour: '100',
+                        authorName: 'author_name',
+                        authorContact: 'author_contact',
+                        authorOrganization: 'author_organization',
+                        privacyPolicy: 'link to privacy policy',
+                        terms: 'link to terms',
+                        other: 'link to other',
+                        state: 'RegistrationRequested',
+                        tags: ['tag1', 'tag2'],
+                        createdAt: new Date(1713636260),
+                        updatedAt: new Date(1713636260),
+                        lastCheckedAt: new Date(1713636260),
+                        agentIdentifier: 'agent_identifier',
+                        Pricing: [
+                          {
+                            unit: 'unit',
+                            quantity: '1000000',
+                          },
+                        ],
+                        SmartContractWallet: {
+                          walletVkey: 'wallet_vkey',
+                          walletAddress: 'wallet_address',
+                        },
+                      },
+                    ],
+                  },
+                },
+              }),
+          },
+        },
+      },
+    },
+  });
   registry.registerPath({
     method: 'post',
     path: '/registry/',
@@ -1284,10 +1362,10 @@ export function generateOpenAPI() {
               example: {
                 network: Network.Preprod,
                 smartContractAddress: 'addr_test1',
-                example_output: 'example_output',
+                exampleOutput: 'example_output',
                 tags: ['tag1', 'tag2'],
                 name: 'Agent Name',
-                api_url: 'https://api.example.com',
+                apiUrl: 'https://api.example.com',
                 description: 'Agent Description',
                 author: {
                   name: 'Author Name',
@@ -1295,13 +1373,13 @@ export function generateOpenAPI() {
                   organization: 'Author Organization',
                 },
                 legal: {
-                  privacy_policy: 'Privacy Policy URL',
+                  privacyPolicy: 'Privacy Policy URL',
                   terms: 'Terms of Service URL',
                   other: 'Other Legal Information URL',
                 },
                 sellingWalletVkey: 'wallet_vkey',
                 capability: { name: 'Capability Name', version: '1.0.0' },
-                requests_per_hour: '100',
+                requestsPerHour: '100',
                 pricing: [
                   {
                     unit: 'usdm',
@@ -1325,11 +1403,12 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    api_url: 'api_url',
+                    id: 'cuid2',
+                    apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
-                    capability_name: 'capability_name',
-                    capability_version: 'capability_version',
-                    requests_per_hour: '100',
+                    capabilityName: 'capability_name',
+                    capabilityVersion: 'capability_version',
+                    requestsPerHour: '100',
                     Pricing: [
                       {
                         unit: 'usdm',
@@ -1343,7 +1422,7 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacy_policy: 'link to privacy policy',
+                    privacyPolicy: 'link to privacy policy',
                     terms: 'link to terms',
                     other: 'link to other',
                   },
@@ -1366,7 +1445,7 @@ export function generateOpenAPI() {
     request: {
       query: unregisterAgentSchemaInput.openapi({
         example: {
-          assetName: 'asset_name',
+          assetIdentifier: 'asset_name',
           network: Network.Preprod,
           smartContractAddress: 'address',
         },
@@ -1383,11 +1462,12 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    api_url: 'api_url',
+                    id: 'cuid2',
+                    apiUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
-                    capability_name: 'capability_name',
-                    capability_version: 'capability_version',
-                    requests_per_hour: '100',
+                    capabilityName: 'capability_name',
+                    capabilityVersion: 'capability_version',
+                    requestsPerHour: '100',
                     Pricing: [
                       {
                         unit: 'usdm',
@@ -1401,7 +1481,7 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacy_policy: 'link to privacy policy',
+                    privacyPolicy: 'link to privacy policy',
                     terms: 'link to terms',
                     other: 'link to other',
                   },

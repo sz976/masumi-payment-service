@@ -111,29 +111,27 @@ export async function registerAgentV1() {
                 [assetName]: {
                   name: stringToMetadata(request.name),
                   description: stringToMetadata(request.description),
-                  api_url: stringToMetadata(request.api_url),
+                  api_url: stringToMetadata(request.apiUrl),
                   example_output: stringToMetadata(request.other),
                   capability: {
-                    name: stringToMetadata(request.capability_name),
-                    version: stringToMetadata(request.capability_version),
+                    name: stringToMetadata(request.capabilityName),
+                    version: stringToMetadata(request.capabilityVersion),
                   },
-                  requests_per_hour: stringToMetadata(
-                    request.requests_per_hour,
-                  ),
+                  requests_per_hour: stringToMetadata(request.requestsPerHour),
                   author: {
-                    name: stringToMetadata(request.author_name),
-                    contact: stringToMetadata(request.author_contact),
-                    organization: stringToMetadata(request.author_organization),
+                    name: stringToMetadata(request.authorName),
+                    contact: stringToMetadata(request.authorContact),
+                    organization: stringToMetadata(request.authorOrganization),
                   },
                   legal: {
-                    privacy_policy: stringToMetadata(request.privacy_policy),
+                    privacy_policy: stringToMetadata(request.privacyPolicy),
                     terms: stringToMetadata(request.terms),
                     other: stringToMetadata(request.other),
                   },
                   tags: request.tags,
                   pricing: request.Pricing.map((pricing) => ({
                     unit: stringToMetadata(pricing.unit),
-                    quantity: pricing.quantity,
+                    quantity: pricing.quantity.toString(),
                   })),
                   image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
                   metadata_version: stringToMetadata(
@@ -160,7 +158,6 @@ export async function registerAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationInitiated,
-                agentIdentifier: policyId + assetName,
               },
             });
             //submit the transaction to the blockchain
@@ -168,6 +165,7 @@ export async function registerAgentV1() {
             await prisma.registryRequest.update({
               where: { id: request.id },
               data: {
+                agentIdentifier: policyId + assetName,
                 CurrentTransaction: {
                   create: {
                     txHash: newTxHash,
