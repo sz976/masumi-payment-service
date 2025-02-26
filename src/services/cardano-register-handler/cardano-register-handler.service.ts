@@ -29,6 +29,10 @@ export async function registerAgentV1() {
       paymentSourcesWithWalletLocked.map(async (paymentSource) => {
         if (paymentSource.RegistryRequest.length == 0) return;
 
+        logger.info(
+          `Registering ${paymentSource.RegistryRequest.length} agents for payment source ${paymentSource.id}`,
+        );
+
         const network = convertNetwork(paymentSource.network);
 
         const registryRequests = paymentSource.RegistryRequest;
@@ -194,7 +198,9 @@ export async function registerAgentV1() {
           const request = registryRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error registering agent`, { error: error });
+            logger.error(`Error registering agent ${request.id}`, {
+              error: error,
+            });
             await prisma.registryRequest.update({
               where: { id: request.id },
               data: {

@@ -1,6 +1,11 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { HotWalletType, Network, RegistrationState } from '@prisma/client';
+import {
+  HotWalletType,
+  Network,
+  RegistrationState,
+  TransactionStatus,
+} from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
@@ -58,6 +63,12 @@ export const queryRegistryRequestSchemaOutput = z.object({
         walletVkey: z.string(),
         walletAddress: z.string(),
       }),
+      CurrentTransaction: z
+        .object({
+          txHash: z.string(),
+          status: z.nativeEnum(TransactionStatus),
+        })
+        .nullable(),
     }),
   ),
 });
@@ -106,6 +117,7 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       include: {
         SmartContractWallet: true,
+        CurrentTransaction: true,
         Pricing: true,
       },
     });
