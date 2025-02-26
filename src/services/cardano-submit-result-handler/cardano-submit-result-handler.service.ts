@@ -50,6 +50,10 @@ export async function submitResultV1() {
       paymentContractsWithWalletLocked.map(async (paymentContract) => {
         if (paymentContract.PaymentRequests.length == 0) return;
 
+        logger.info(
+          `Submitting ${paymentContract.PaymentRequests.length} results for payment source ${paymentContract.id}`,
+        );
+
         const network = convertNetwork(paymentContract.network);
 
         const blockchainProvider = new BlockfrostProvider(
@@ -250,7 +254,9 @@ export async function submitResultV1() {
           const request = paymentRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error submitting result`, { error: error });
+            logger.error(`Error submitting result ${request.id}`, {
+              error: error,
+            });
             await prisma.paymentRequest.update({
               where: { id: request.id },
               data: {
