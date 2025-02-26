@@ -50,6 +50,9 @@ export async function cancelRefundsV1() {
 
         const network = convertNetwork(paymentContract.network);
 
+        logger.info(
+          `Cancelling ${paymentContract.PurchaseRequests.length} refunds for payment source ${paymentContract.id}`,
+        );
         const blockchainProvider = new BlockfrostProvider(
           paymentContract.PaymentSourceConfig.rpcProviderApiKey,
           undefined,
@@ -228,7 +231,9 @@ export async function cancelRefundsV1() {
           const request = purchaseRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error cancelling refund`, { error: error });
+            logger.error(`Error cancelling refund ${request.id}`, {
+              error: error,
+            });
             await prisma.purchaseRequest.update({
               where: { id: request.id },
               data: {

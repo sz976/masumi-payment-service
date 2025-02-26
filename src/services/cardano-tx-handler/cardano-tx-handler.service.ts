@@ -40,97 +40,7 @@ export async function checkLatestTransactions(
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
   if (!acquiredMutex) return await updateMutex.acquire();
-  try {
-    await prisma.paymentActionData.updateMany({
-      where: {
-        requestedAction: {
-          in: [
-            PaymentAction.WithdrawInitiated,
-            PaymentAction.SubmitResultInitiated,
-            PaymentAction.AuthorizeRefundInitiated,
-          ],
-        },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        requestedAction: PaymentAction.WaitingForExternalAction,
-        errorNote: 'Timeout waiting for transaction',
-        errorType: PaymentErrorType.Unknown,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out payment actions', { error: error });
-  }
-  try {
-    await prisma.purchaseActionData.updateMany({
-      where: {
-        requestedAction: {
-          in: [
-            PurchasingAction.FundsLockingInitiated,
-            PurchasingAction.WithdrawRefundInitiated,
-            PurchasingAction.SetRefundRequestedInitiated,
-            PurchasingAction.UnSetRefundRequestedInitiated,
-          ],
-        },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        requestedAction: PurchasingAction.WaitingForExternalAction,
-        errorNote: 'Timeout waiting for transaction',
-        errorType: PurchaseErrorType.Unknown,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out purchase actions', { error: error });
-  }
-  try {
-    await prisma.registryRequest.updateMany({
-      where: {
-        state: { in: [RegistrationState.RegistrationInitiated] },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        state: RegistrationState.RegistrationFailed,
-      },
-    });
-    await prisma.registryRequest.updateMany({
-      where: {
-        state: { in: [RegistrationState.DeregistrationInitiated] },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        state: RegistrationState.DeregistrationFailed,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out registry requests', {
-      error: error,
-    });
-  }
+
   try {
     //only support web3 cardano v1 for now
     const paymentContracts = await prisma.$transaction(
@@ -197,6 +107,9 @@ export async function checkLatestTransactions(
                   RegistrationState.DeregistrationInitiated,
                 ],
               },
+              CurrentTransaction: {
+                isNot: null,
+              },
               agentIdentifier: { not: null },
               updatedAt: {
                 lt: new Date(
@@ -206,30 +119,54 @@ export async function checkLatestTransactions(
                 ),
               },
             },
+            include: {
+              CurrentTransaction: { include: { BlocksWallet: true } },
+            },
           });
           const checkedRegistryRequests = await advancedRetryAll({
             operations: registryRequests.map((registryRequest) => async () => {
               const owner = await blockfrost.assetsAddresses(
                 registryRequest.agentIdentifier!,
+                { order: 'desc' },
               );
+
               if (
                 registryRequest.state == RegistrationState.RegistrationInitiated
               ) {
-                if (owner.length == 1 && owner[0].quantity == '1') {
+                if (owner.length >= 1 && owner[0].quantity == '1') {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
                       state: RegistrationState.RegistrationConfirmed,
+                      CurrentTransaction: {
+                        update: {
+                          status: TransactionStatus.Confirmed,
+                          BlocksWallet:
+                            registryRequest.CurrentTransaction?.BlocksWallet !=
+                            null
+                              ? undefined
+                              : { disconnect: true },
+                        },
+                      },
                     },
                   });
-                } else if (
-                  registryRequest.updatedAt <
-                  new Date(Date.now() - 1000 * 60 * 15)
-                ) {
+                  if (
+                    registryRequest.CurrentTransaction?.BlocksWallet != null
+                  ) {
+                    await prisma.hotWallet.update({
+                      where: {
+                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                      },
+                      data: {
+                        lockedAt: null,
+                      },
+                    });
+                  }
+                } else {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
-                      state: RegistrationState.RegistrationFailed,
+                      updatedAt: new Date(),
                     },
                   });
                 }
@@ -237,21 +174,40 @@ export async function checkLatestTransactions(
                 registryRequest.state ==
                 RegistrationState.DeregistrationInitiated
               ) {
-                if (owner.length == 0) {
+                if (owner.length == 0 || owner[0].quantity == '0') {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
                       state: RegistrationState.DeregistrationConfirmed,
+                      CurrentTransaction: {
+                        update: {
+                          status: TransactionStatus.Confirmed,
+                          BlocksWallet:
+                            registryRequest.CurrentTransaction?.BlocksWallet !=
+                            null
+                              ? undefined
+                              : { disconnect: true },
+                        },
+                      },
                     },
                   });
-                } else if (
-                  registryRequest.updatedAt <
-                  new Date(Date.now() - 1000 * 60 * 15)
-                ) {
+                  if (
+                    registryRequest.CurrentTransaction?.BlocksWallet != null
+                  ) {
+                    await prisma.hotWallet.update({
+                      where: {
+                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                      },
+                      data: {
+                        lockedAt: null,
+                      },
+                    });
+                  }
+                } else {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
-                      state: RegistrationState.DeregistrationFailed,
+                      updatedAt: new Date(),
                     },
                   });
                 }
@@ -260,7 +216,7 @@ export async function checkLatestTransactions(
             errorResolvers: [
               delayErrorResolver({
                 configuration: {
-                  maxRetries: 2,
+                  maxRetries: 5,
                   backoffMultiplier: 2,
                   initialDelayMs: 500,
                   maxDelayMs: 1500,
@@ -453,6 +409,7 @@ export async function checkLatestTransactions(
                       include: {
                         SmartContractWallet: true,
                         SellerWallet: true,
+                        CurrentTransaction: { include: { BlocksWallet: true } },
                       },
                     });
                     if (dbEntry == null) {
@@ -652,13 +609,24 @@ export async function checkLatestTransactions(
                         resultHash: decodedNewContract.resultHash,
                       },
                     });
-                    if (dbEntry.currentTransactionId != null) {
+                    if (
+                      dbEntry.currentTransactionId != null &&
+                      dbEntry.CurrentTransaction?.BlocksWallet != null
+                    ) {
                       await prisma.transaction.update({
                         where: {
                           id: dbEntry.currentTransactionId!,
                         },
                         data: {
                           BlocksWallet: { disconnect: true },
+                        },
+                      });
+                      await prisma.hotWallet.update({
+                        where: {
+                          id: dbEntry.SmartContractWallet.id,
+                        },
+                        data: {
+                          lockedAt: null,
                         },
                       });
                     }
@@ -689,6 +657,7 @@ export async function checkLatestTransactions(
                         Amounts: true,
                         BuyerWallet: true,
                         SmartContractWallet: true,
+                        CurrentTransaction: { include: { BlocksWallet: true } },
                       },
                     });
                     if (dbEntry == null) {
@@ -940,6 +909,7 @@ export async function checkLatestTransactions(
                             },
                           },
                         },
+                        //no wallet was locked, we do not need to unlock it
                       },
                     });
                   },
@@ -1292,6 +1262,9 @@ async function handlePaymentTransactionCardanoV1(
             blockchainIdentifier: blockchainIdentifier,
           },
         },
+        include: {
+          CurrentTransaction: { include: { BlocksWallet: true } },
+        },
       });
 
       if (paymentRequest == null) {
@@ -1330,12 +1303,21 @@ async function handlePaymentTransactionCardanoV1(
           resultHash: resultHash,
         },
       });
-      if (paymentRequest.currentTransactionId != null) {
+      if (
+        paymentRequest.currentTransactionId != null &&
+        paymentRequest.CurrentTransaction?.BlocksWallet != null
+      ) {
         await prisma.transaction.update({
           where: {
             id: paymentRequest.currentTransactionId!,
           },
           data: { BlocksWallet: { disconnect: true } },
+        });
+        await prisma.hotWallet.update({
+          where: {
+            id: paymentRequest.CurrentTransaction.BlocksWallet.id,
+          },
+          data: { lockedAt: null },
         });
       }
     },
@@ -1366,6 +1348,9 @@ async function handlePurchasingTransactionCardanoV1(
             paymentSourceId: paymentContractId,
             blockchainIdentifier: blockchainIdentifier,
           },
+        },
+        include: {
+          CurrentTransaction: { include: { BlocksWallet: true } },
         },
       });
 
@@ -1404,12 +1389,21 @@ async function handlePurchasingTransactionCardanoV1(
           resultHash: resultHash,
         },
       });
-      if (purchasingRequest.currentTransactionId != null) {
+      if (
+        purchasingRequest.currentTransactionId != null &&
+        purchasingRequest.CurrentTransaction?.BlocksWallet != null
+      ) {
         await prisma.transaction.update({
           where: {
             id: purchasingRequest.currentTransactionId!,
           },
           data: { BlocksWallet: { disconnect: true } },
+        });
+        await prisma.hotWallet.update({
+          where: {
+            id: purchasingRequest.CurrentTransaction.BlocksWallet.id,
+          },
+          data: { lockedAt: null },
         });
       }
     },

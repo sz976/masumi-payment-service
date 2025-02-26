@@ -264,6 +264,10 @@ export async function batchLatestPaymentEntriesV1() {
               });
             }),
           );
+
+        logger.info(
+          `Batching ${walletPairings.length} payments for payment source ${paymentContract.id}`,
+        );
         //do not retry, we want to fail if anything goes wrong. There should not be a possibility to pay twice
         const results = await Promise.allSettled(
           walletPairings.map(async (walletPairing) => {
@@ -401,7 +405,12 @@ export async function batchLatestPaymentEntriesV1() {
               result.status == 'rejected'
                 ? result.reason
                 : 'Transaction did not return true';
-            logger.error(`Error batching payments`, { error: error });
+            logger.error(
+              `Error batching payments for wallet ${request.walletId}`,
+              {
+                error: error,
+              },
+            );
             for (const batchedRequest of request.batchedRequests) {
               await prisma.purchaseRequest.update({
                 where: { id: batchedRequest.id },

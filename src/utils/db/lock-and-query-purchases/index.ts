@@ -78,7 +78,10 @@ export async function lockAndQueryPurchases({
               continue;
             }
             const wallet = purchasingRequest.SmartContractWallet;
-            if (wallet && !purchasingWallets.some((w) => w.id === wallet.id)) {
+            if (
+              wallet != null &&
+              !purchasingWallets.some((w) => w.id === wallet.id)
+            ) {
               const result = await prisma.hotWallet.update({
                 where: { id: wallet.id },
                 data: { lockedAt: new Date() },
