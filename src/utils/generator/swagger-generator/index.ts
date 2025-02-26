@@ -1335,6 +1335,7 @@ export function generateOpenAPI() {
                           walletVkey: 'wallet_vkey',
                           walletAddress: 'wallet_address',
                         },
+                        CurrentTransaction: null,
                       },
                     ],
                   },
@@ -1445,7 +1446,7 @@ export function generateOpenAPI() {
     request: {
       query: unregisterAgentSchemaInput.openapi({
         example: {
-          assetIdentifier: 'asset_name',
+          agentIdentifier: 'agentIdentifier',
           network: Network.Preprod,
           smartContractAddress: 'address',
         },
