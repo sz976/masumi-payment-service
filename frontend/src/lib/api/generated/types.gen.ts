@@ -1423,7 +1423,7 @@ export type DeleteRegistryData = {
     /**
      * The identifier of the registration (asset) to be deregistered
      */
-    assetIdentifier: string;
+    agentIdentifier: string;
     /**
      * The network the registration was made on
      */
@@ -1541,6 +1541,10 @@ export type GetRegistryResponses = {
           walletVkey: string;
           walletAddress: string;
         };
+        CurrentTransaction: {
+          txHash: string;
+          status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+        } | null;
       }>;
     };
   };
