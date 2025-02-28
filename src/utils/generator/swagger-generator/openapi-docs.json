@@ -1520,7 +1520,7 @@
                                                 "format": "date-time"
                                             }
                                         ],
-                                        "default": "2025-02-23T23:03:36.362Z",
+                                        "default": "2025-02-28T14:49:42.125Z",
                                         "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "unlockTime": {
@@ -4616,6 +4616,27 @@
                                                                     "walletVkey",
                                                                     "walletAddress"
                                                                 ]
+                                                            },
+                                                            "CurrentTransaction": {
+                                                                "type": "object",
+                                                                "nullable": true,
+                                                                "properties": {
+                                                                    "txHash": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "Pending",
+                                                                            "Confirmed",
+                                                                            "FailedViaTimeout"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "txHash",
+                                                                    "status"
+                                                                ]
                                                             }
                                                         },
                                                         "required": [
@@ -4639,7 +4660,8 @@
                                                             "lastCheckedAt",
                                                             "agentIdentifier",
                                                             "Pricing",
-                                                            "SmartContractWallet"
+                                                            "SmartContractWallet",
+                                                            "CurrentTransaction"
                                                         ]
                                                     }
                                                 }
@@ -4689,7 +4711,8 @@
                                                     "SmartContractWallet": {
                                                         "walletVkey": "wallet_vkey",
                                                         "walletAddress": "wallet_address"
-                                                    }
+                                                    },
+                                                    "CurrentTransaction": null
                                                 }
                                             ]
                                         }
@@ -5081,7 +5104,7 @@
                         },
                         "required": true,
                         "description": "The identifier of the registration (asset) to be deregistered",
-                        "name": "assetIdentifier",
+                        "name": "agentIdentifier",
                         "in": "query"
                     },
                     {
