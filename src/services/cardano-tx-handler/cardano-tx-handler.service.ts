@@ -144,8 +144,8 @@ export async function checkLatestTransactions(
                           BlocksWallet:
                             registryRequest.CurrentTransaction?.BlocksWallet !=
                             null
-                              ? undefined
-                              : { disconnect: true },
+                              ? { disconnect: true }
+                              : undefined,
                         },
                       },
                     },
@@ -185,8 +185,8 @@ export async function checkLatestTransactions(
                           BlocksWallet:
                             registryRequest.CurrentTransaction?.BlocksWallet !=
                             null
-                              ? undefined
-                              : { disconnect: true },
+                              ? { disconnect: true }
+                              : undefined,
                         },
                       },
                     },

@@ -97,7 +97,7 @@ Congratulations! You have successfully run the Masumi Payment Service in Docker.
 
 ### Run in Development Mode instead
 
-### Step 1: Building the Admin Interface
+#### Step 1: Building the Admin Interface
 
 ```sh
 cd frontend
@@ -106,7 +106,7 @@ npm run build
 cd ..
 ```
 
-## Step 2: Running the Node
+#### Step 2: Running the Node
 
 Start the node with:
 
