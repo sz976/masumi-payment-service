@@ -212,7 +212,7 @@ export async function requestRefundsV1() {
               },
             });
 
-            logger.debug(`Created withdrawal transaction:
+            logger.debug(`Created refund request transaction:
                   Tx ID: ${txHash}
                   View (after a bit) on https://${
                     network === 'preprod' ? 'preprod.' : ''

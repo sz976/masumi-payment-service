@@ -1147,49 +1147,47 @@ export async function checkLatestTransactions(
                 );
                 continue;
               }
-
-              const results = await Promise.allSettled([
-                inputTxHashMatchPaymentRequest
-                  ? handlePaymentTransactionCardanoV1(
-                      tx.tx.tx_hash,
-                      newState,
-                      paymentContract.id,
-                      decodedOldContract.blockchainIdentifier,
-                      decodedNewContract?.resultHash ??
-                        decodedOldContract.resultHash,
-                      paymentRequest?.NextAction?.requestedAction ??
-                        PurchasingAction.None,
-                      Number(paymentRequest?.buyerCoolDownTime ?? 0),
-                      Number(paymentRequest?.sellerCoolDownTime ?? 0),
-                    )
-                  : Promise.resolve(),
-                inputTxHashMatchPurchasingRequest
-                  ? handlePurchasingTransactionCardanoV1(
-                      tx.tx.tx_hash,
-                      newState,
-                      paymentContract.id,
-                      decodedOldContract.blockchainIdentifier,
-                      decodedNewContract?.resultHash ??
-                        decodedOldContract.resultHash,
-                      purchasingRequest?.NextAction?.requestedAction ??
-                        PurchasingAction.None,
-                      Number(purchasingRequest?.buyerCoolDownTime ?? 0),
-                      Number(purchasingRequest?.sellerCoolDownTime ?? 0),
-                    )
-                  : Promise.resolve(),
-              ]);
-              results.forEach((x) => {
-                if (x.status == 'fulfilled') {
-                  logger.debug('Transaction handled successfully', {
-                    txHash: tx.tx.tx_hash,
-                  });
-                } else {
-                  logger.warn('Transaction failed', {
-                    txHash: tx.tx.tx_hash,
-                    error: x.reason,
-                  });
+              try {
+                if (inputTxHashMatchPaymentRequest) {
+                  await handlePaymentTransactionCardanoV1(
+                    tx.tx.tx_hash,
+                    newState,
+                    paymentContract.id,
+                    decodedOldContract.blockchainIdentifier,
+                    decodedNewContract?.resultHash ??
+                      decodedOldContract.resultHash,
+                    paymentRequest?.NextAction?.requestedAction ??
+                      PurchasingAction.None,
+                    Number(paymentRequest?.buyerCoolDownTime ?? 0),
+                    Number(paymentRequest?.sellerCoolDownTime ?? 0),
+                  );
                 }
-              });
+              } catch (error) {
+                logger.error('Error handling payment transaction', {
+                  error: error,
+                });
+              }
+              try {
+                if (inputTxHashMatchPurchasingRequest) {
+                  await handlePurchasingTransactionCardanoV1(
+                    tx.tx.tx_hash,
+                    newState,
+                    paymentContract.id,
+                    decodedOldContract.blockchainIdentifier,
+                    decodedNewContract?.resultHash ??
+                      decodedOldContract.resultHash,
+                    purchasingRequest?.NextAction?.requestedAction ??
+                      PurchasingAction.None,
+                    Number(purchasingRequest?.buyerCoolDownTime ?? 0),
+                    Number(purchasingRequest?.sellerCoolDownTime ?? 0),
+                  );
+                }
+              } catch (error) {
+                logger.error('Error handling purchasing transaction', {
+                  error: error,
+                });
+              }
+
               await prisma.paymentSource.update({
                 where: { id: paymentContract.id },
                 data: { lastIdentifierChecked: tx.tx.tx_hash },
@@ -1323,7 +1321,7 @@ async function handlePaymentTransactionCardanoV1(
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      timeout: 1000,
+      timeout: 100000,
       maxWait: 10000,
     },
   );

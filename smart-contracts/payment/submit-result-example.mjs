@@ -93,7 +93,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '269445855f4dfd2b228caba7c705fdb4af30ea6938674a6571d97ebd5022467a',
+  '11b667184d319bd678d752e0bf300cbab3daf9963c27502df7767513541788b2',
 );
 
 if (!utxo) {
@@ -130,7 +130,7 @@ const datum = {
     fields: [
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
-      'test_1238091298389124991297247921793h214bfubasfjklnasvjnsacoinasoidnoiadsnoaiusfniuasdnbiuanwdiu12312ono1i2u4niou12n4iuon21oi4n213321io123n123',
+      'test',
       hash,
       submitResultTime,
       unlockTime,
