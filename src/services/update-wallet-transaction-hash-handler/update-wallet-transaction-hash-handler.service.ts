@@ -653,6 +653,26 @@ export async function updateWalletTransactionHash() {
         logger.error(`Error initiating refunds: ${error}`);
       }
     }
+    try {
+      const errorHotWallets = await prisma.hotWallet.findMany({
+        where: { PendingTransaction: { isNot: null }, lockedAt: null },
+        include: { PendingTransaction: true },
+      });
+      for (const hotWallet of errorHotWallets) {
+        logger.error(
+          `Hot wallet ${hotWallet.id} was in an invalid locked state (this is likely a bug please report it with the following transaction hash): ${hotWallet.PendingTransaction?.txHash}`,
+        );
+        await prisma.hotWallet.update({
+          where: { id: hotWallet.id },
+          data: {
+            lockedAt: null,
+            PendingTransaction: { disconnect: true },
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(`Error updating wallet transaction hash`, { error: error });
+    }
   } catch (error) {
     logger.error(`Error updating wallet transaction hash`, { error: error });
   } finally {

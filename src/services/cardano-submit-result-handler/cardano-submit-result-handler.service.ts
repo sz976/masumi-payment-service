@@ -217,7 +217,7 @@ export async function submitResultV1() {
                 },
               });
 
-              logger.debug(`Created withdrawal transaction:
+              logger.debug(`Created submit result transaction:
                   Tx ID: ${txHash}
                   View (after a bit) on https://${
                     network === 'preprod' ? 'preprod.' : ''
