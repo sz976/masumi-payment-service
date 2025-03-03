@@ -225,7 +225,7 @@ export const createPaymentsSchemaInput = z.object({
     ),
   submitResultTime: ez
     .dateIn()
-    .default(new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString())
+    .default(new Date(1000 * 60 * 60 * 12).toISOString())
     .describe(
       'The time after which the payment has to be submitted to the smart contract',
     ),
