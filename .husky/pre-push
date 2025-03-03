@@ -104,4 +104,18 @@ if ! npm run swagger-json; then
     exit 6
 fi
 
+# Generate types
+echo "${BLUE}🔍 Generating types...${NC}"
+if ! cd frontend && npm run openapi-ts-latest; then
+    echo "${RED}❌ Type generation for the frontend failed. Please fix errors and try again.${NC}"
+    exit 7
+fi
+
+# TypeScript build check
+echo "${BLUE}🔍 Running Frontend TypeScript compilation check...${NC}"
+if ! cd frontend && npm run build; then
+    echo "${RED}❌ TypeScript frontend compilation failed. Please fix type errors and try again.${NC}"
+    exit 8
+fi
+
 echo "${GREEN}✅ All pre-push checks completed!${NC}" 
