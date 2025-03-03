@@ -85,7 +85,6 @@ jobs:
         run: |
           npm run swagger-json
 
-      # Step 6: Commit and Push Fixes (if any)
       - name: Commit and Push Fixes
         if: ${{ github.event_name == 'pull_request' }}
         run: |
