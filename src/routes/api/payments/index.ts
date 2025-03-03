@@ -355,7 +355,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
     if (input.agentIdentifier.startsWith(policyId) == false) {
       throw createHttpError(
         404,
-        'The wallet is not of the specified payment source',
+        'The agentIdentifier is not of the specified payment source',
       );
     }
     const assetInWallet = await provider.assetsAddresses(
