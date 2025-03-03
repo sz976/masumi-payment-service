@@ -8,10 +8,9 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getWalletBalance } from "@/lib/api/balance/get";
 import swappableTokens from "@/assets/swappableTokens.json";
 import { FaExchangeAlt } from "react-icons/fa";
-import { getWallet } from "@/lib/api/generated";
+import { getUtxos, getWallet } from "@/lib/api/generated";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { toast } from "react-toastify";
 import BlinkingUnderscore from "../BlinkingUnderscore";
@@ -54,7 +53,7 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
 
   const isDev = process.env.NEXT_PUBLIC_DEV === "Isaac";
   const devWalletAddress = process.env.NEXT_PUBLIC_DEV_WALLET_ADDRESS || "";
-  
+
   const effectiveWalletAddress = isDev ? devWalletAddress : walletAddress;
 
   const [tokenRates, setTokenRates] = useState<Record<string, number>>({});
@@ -104,14 +103,54 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
 
   const fetchBalance = async () => {
     try {
-      const data = await getWalletBalance(state?.apiKey || "", {
-        walletAddress: effectiveWalletAddress,
-        network: isDev ? process.env.NEXT_PUBLIC_DEV_NETWORK || "" : network,
-        blockfrostApiKey: isDev ? process.env.NEXT_PUBLIC_DEV_BLOCKFROST_API_KEY || "" : blockfrostApiKey,
+
+      const result = await getUtxos({
+        client: apiClient,
+        //no cache
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        query: {
+          address: effectiveWalletAddress,
+          network: 'Preprod',
+        }
       });
-      setAdaBalance(data.ada);
-      setUsdmBalance(data.usdm);
-      setNmkrBalance(data.nmkr);
+      const usdmPolicyId = "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad";
+      const usdmHex = "0014df105553444d";
+
+      const lovelace = result?.data?.data?.utxos?.reduce((acc, utxo) => {
+        return acc + utxo.amount.reduce((acc, asset) => {
+          if (asset.unit === 'lovelace' || asset.unit === '') {
+            return acc + (asset.quantity ?? 0);
+          }
+          return acc;
+        }, 0)
+      }, 0) ?? 0;
+      const usdm = result?.data?.data?.utxos?.reduce((acc, utxo) => {
+        return acc + utxo.amount.reduce((acc, asset) => {
+          if (asset.unit === usdmPolicyId + usdmHex) {
+            return acc + (asset.quantity ?? 0);
+          }
+          return acc;
+        }, 0)
+      }, 0) ?? 0;
+      const nmkrPolicyId =
+        '5dac8536653edc12f6f5e1045d8164b9f59998d3bdc300fc92843489';
+      const nmkrHex = '4e4d4b52';
+      const nmkr = result?.data?.data?.utxos?.reduce((acc, utxo) => {
+        return acc + utxo.amount.reduce((acc, asset) => {
+          if (asset.unit === nmkrPolicyId + nmkrHex) {
+            return acc + (asset.quantity ?? 0);
+          }
+          return acc;
+        }, 0)
+      }, 0) ?? 0;
+
+      setAdaBalance(lovelace / 1000000);
+      setUsdmBalance(usdm / 10000000);
+      setNmkrBalance(nmkr / 1000000);
       setBalanceError(null);
     } catch (error) {
       console.error("Failed to fetch balance", error);
@@ -274,7 +313,7 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
       setSwapStatus('submitted');
       toast.info("Swap submitted!", { theme: "dark" });
       await fetchBalance();
-      
+
       maestroProvider.onTxConfirmed(result.txHash, async () => {
         setSwapStatus('confirmed');
         toast.success("Swap transaction confirmed!", { theme: "dark" });
@@ -366,16 +405,15 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                     <div className="relative w-full">
                       <input
                         type="number"
-                        className={`w-24 text-right bg-transparent border-b border-gray-500 focus:outline-none appearance-none text-[24px] font-bold mb-2 ${
-                          fromAmount > getMaxAmount(selectedFromToken.symbol) ? 'text-red-500' : ''
-                        }`}
+                        className={`w-24 text-right bg-transparent border-b border-gray-500 focus:outline-none appearance-none text-[24px] font-bold mb-2 ${fromAmount > getMaxAmount(selectedFromToken.symbol) ? 'text-red-500' : ''
+                          }`}
                         placeholder="0"
                         value={fromAmount || ''}
                         onChange={handleFromAmountChange}
                         step="0.2"
                         style={{ MozAppearance: "textfield" }}
                       />
-                      <span 
+                      <span
                         className="absolute right-0 -top-5 text-xs text-gray-500 cursor-pointer hover:text-gray-400"
                         onClick={handleMaxClick}
                       >
@@ -425,10 +463,10 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                 <div className="text-center text-sm text-muted-foreground">
                   1 {selectedFromToken.symbol} ≈ {conversionRate.toFixed(5)} {selectedToToken.symbol}
                 </div>
-                <Button 
-                  variant="default" 
-                  className="w-full" 
-                  onClick={handleSwapClick} 
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={handleSwapClick}
                   disabled={!canSwap || isSwapping || fromAmount <= 0 || fromAmount > getMaxAmount(selectedFromToken.symbol)}
                 >
                   {isSwapping ? "Swap in Progress..." : "Swap"} {isSwapping && <Spinner size="sm" className="ml-1" />}
@@ -462,12 +500,12 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
             </div>
             {isSwapping && (
               <div className="w-full h-[4px] bg-gray-700 rounded-full overflow-hidden animate-bounce-bottom">
-                <div 
+                <div
                   className={`h-full transition-all duration-1000 ease-in-out ${getProgressBarColor()}`}
-                  style={{ 
-                    width: swapStatus === 'processing' ? '20%' : 
-                            swapStatus === 'submitted' ? '66%' : 
-                            swapStatus === 'confirmed' ? '100%' : '0%' 
+                  style={{
+                    width: swapStatus === 'processing' ? '20%' :
+                      swapStatus === 'submitted' ? '66%' :
+                        swapStatus === 'confirmed' ? '100%' : '0%'
                   }}
                 />
               </div>
