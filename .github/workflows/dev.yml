@@ -74,33 +74,15 @@ jobs:
       - name: Run Format
         run: npm run format
 
-      - name: Run ESLint with Auto-Fix
-        id: lint_fix
-        run: |
-          npm run lint
-
       - name: Generate OpenAPI Types
         id: openapi_types
         run: |
           npm run swagger-json
 
-      - name: Commit and Push Fixes
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79
-        with:
-          commit_message: 'chore(lint): auto-fix lint issues and generated swagger json'
-          branch: ${{ github.head_ref }}
-          file_pattern: '.'
-          commit_user_name: 'github-actions[bot]'
-          commit_user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run ESLint remaining issues
+      - name: Run ESLint for issues
         id: lint_fix_remaining
         run: |
-          npx eslint --fix --config eslint.config.mjs --format=stylish > lint-results.txt || true
+          npx eslint --fix --config eslint.config.mjs > lint-results.txt || true
 
       - name: Check Lint Results File
         run: |
