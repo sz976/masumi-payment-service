@@ -13,7 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -50,55 +53,35 @@ jobs:
     needs: build
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      # Step 2: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Step 3: Install dependencies
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm install
 
-      # Step 4: Run Linter
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
       - name: Run Format
         run: npm run format
 
-      # Step 4: Run ESLint with Auto-Fix
       - name: Run ESLint with Auto-Fix
         id: lint_fix
         run: |
           npm run lint
 
-      # Step 5: Run Generate OpenAPI Types
       - name: Generate OpenAPI Types
         id: openapi_types
         run: |
           npm run swagger-json
-
-      - name: Commit and Push Fixes
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          if git diff --cached --quiet; then
-            echo "No changes to push.";
-          else
-            git commit -m "chore(lint): auto-fix lint issues and generated swagger json"
-            git push origin ${{ github.head_ref }}
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run ESLint remaining issues
         id: lint_fix_remaining
