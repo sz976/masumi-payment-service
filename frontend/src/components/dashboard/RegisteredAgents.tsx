@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Pagination } from "../ui/pagination";
 import BlinkingUnderscore from '../BlinkingUnderscore';
 import { RegisterAgentModal } from './RegisterAgentModal';
-import { getRegisteredAgents } from '@/lib/api/get-registered-agents';
+import { getRegistry } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 
 interface RegisteredAgentsProps {
@@ -25,7 +25,7 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
   const [hasMore, setHasMore] = useState(false);
   const [cursor, setCursor] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
-  const { state } = useAppContext();
+  const { state, apiClient } = useAppContext();
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const fetchAgents = useCallback(async (nextCursor?: string) => {
@@ -53,16 +53,16 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
         throw new Error('Selling wallet vkey is required');
       }
 
-      const response = await getRegisteredAgents(state.apiKey, 10, nextCursor, walletVKey, network, paymentContractAddress);
+      const response = await getRegistry({ client: apiClient, query: { cursorId: nextCursor, network: network === 'PREPROD' ? 'Preprod' : 'Mainnet', smartContractAddress: paymentContractAddress } });
 
-      const agentsFound = response?.data?.assets || [];
+      const agentsFound = response?.data?.data?.assets || [];
       setAgents(prevAgents =>
         nextCursor
           ? [...prevAgents, ...agentsFound]
           : agentsFound
       );
-      setHasMore(response?.data?.hasMore || false);
-      setCursor(response?.data?.nextCursor || undefined);
+      setHasMore(response?.data?.data?.assets.length === 10);
+      setCursor(response?.data?.data?.assets[response?.data?.data?.assets.length - 1]?.id || undefined);
     } catch (error) {
       console.error('Failed to fetch agents:', error);
       console.log(walletVKey, network, paymentContractAddress);

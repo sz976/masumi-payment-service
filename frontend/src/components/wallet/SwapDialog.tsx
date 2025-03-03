@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { getWalletBalance } from "@/lib/api/balance/get";
 import swappableTokens from "@/assets/swappableTokens.json";
 import { FaExchangeAlt } from "react-icons/fa";
-import { getWallet } from "@/lib/api/wallet";
+import { getWallet } from "@/lib/api/generated";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { toast } from "react-toastify";
 import BlinkingUnderscore from "../BlinkingUnderscore";
@@ -31,7 +31,7 @@ interface SwapDialogProps {
 }
 
 export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrostApiKey, walletType, walletId }: SwapDialogProps) {
-  const { state } = useAppContext();
+  const { state, apiClient } = useAppContext();
   const [adaBalance, setAdaBalance] = useState<number>(0);
   const [usdmBalance, setUsdmBalance] = useState<number>(0);
   const [nmkrBalance, setNmkrBalance] = useState<number>(0);
@@ -141,13 +141,9 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
 
         const type = walletType?.toLowerCase() === "purchasing" ? "Purchasing" : "Selling";
 
-        const response = await getWallet(state?.apiKey || "", {
-          walletType: type,
-          id: walletId,
-          includeSecret: true,
-        });
+        const response = await getWallet({ client: apiClient, query: { walletType: type, id: walletId, includeSecret: "true" } });
 
-        const fetchedMnemonic = response.data?.Secret?.mnemonic || null;
+        const fetchedMnemonic = response.data?.data?.Secret?.mnemonic || null;
         setMnemonic(fetchedMnemonic);
       }
     } catch (error: any) {

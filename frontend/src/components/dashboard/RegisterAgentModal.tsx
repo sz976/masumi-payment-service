@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { registerAgent } from '@/lib/api/register-agent';
 import { toast } from 'react-toastify';
 import { shortenAddress } from '@/lib/utils';
+import { postRegistry, PostRegistryData } from '@/lib/api/generated';
 
 interface RegisterAgentModalProps {
   onClose: () => void;
@@ -36,7 +36,7 @@ const AGENT_PLACEHOLDERS = {
 };
 
 export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress, sellingWallets, network }: RegisterAgentModalProps) {
-  const { state } = useAppContext();
+  const { apiClient } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -72,12 +72,12 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
     }
 
     try {
-      const details = {
-        network,
-        paymentContractAddress,
+      const details: PostRegistryData['body'] = {
+        network: network === 'PREPROD' ? 'Preprod' : 'Mainnet',
+        smartContractAddress: paymentContractAddress,
         tags: formData.tags,
         name: formData.name,
-        api_url: formData.api_url,
+        apiUrl: formData.api_url,
         description: formData.description,
         author: {
           name: formData.authorName,
@@ -88,16 +88,16 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
           name: formData.capabilityName,
           version: formData.capabilityVersion
         },
-        requests_per_hour: formData.requests_per_hour,
+        requestsPerHour: formData.requests_per_hour,
         pricing: [{
           unit: formData.pricingUnit,
           quantity: formData.pricingQuantity
         }],
         legal: {},
         sellingWalletVkey: selectedWallet
-      }
+      };
       console.log(details);
-      await registerAgent(details, state.apiKey!);
+      await postRegistry({ client: apiClient, body: details });
 
       onSuccess();
     } catch (error) {
