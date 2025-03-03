@@ -97,4 +97,11 @@ if ! npm outdated --json >/dev/null 2>&1; then
     # Note: We don't exit here as this is informational
 fi
 
+# Generate Swagger documentation
+echo "${BLUE}🔍 Generating Swagger documentation...${NC}"
+if ! npm run swagger-json; then
+    echo "${RED}❌ Swagger documentation generation failed. Please fix any API documentation issues and try again.${NC}"
+    exit 6
+fi
+
 echo "${GREEN}✅ All pre-push checks completed!${NC}" 
