@@ -120,4 +120,15 @@ if [ $? -ne 0 ]; then
     exit 8
 fi
 
+# Check for changes in generated files
+echo "${BLUE}🔍 Checking for generated file changes...${NC}"
+if git diff --quiet; then
+    echo "${GREEN}✅ No changes in generated files${NC}"
+else
+    echo "${BLUE}📝 Committing generated file changes...${NC}"
+    git add .
+    git commit -m "chore: update generated files" --no-verify
+    echo "${GREEN}✅ Generated files committed${NC}"
+fi
+
 echo "${GREEN}✅ All pre-push checks completed!${NC}" 
