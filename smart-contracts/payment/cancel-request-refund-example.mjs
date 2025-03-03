@@ -118,7 +118,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 const hash = decodedDatum.value[3];
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
-const refundTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[6];
 const sellerCooldownTime = decodedDatum.value[8];
 const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
 
@@ -132,7 +132,7 @@ const datum = {
       hash.toString('hex'),
       submitResultTime,
       unlockTime,
-      refundTime,
+      externalDisputeUnlockTime,
       //is converted to true
       mBool(false),
       0,
