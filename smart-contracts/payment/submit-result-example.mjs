@@ -121,7 +121,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 const hash = 'abc_hash_of_the_result2';
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
-const refundTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[6];
 const sellerCooldownTime = Date.now() + 1000 * 60 * 35;
 
 const datum = {
@@ -134,7 +134,7 @@ const datum = {
       hash,
       submitResultTime,
       unlockTime,
-      refundTime,
+      externalDisputeUnlockTime,
       //is converted to true
       mBool(false),
       sellerCooldownTime,
