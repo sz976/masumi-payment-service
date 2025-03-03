@@ -12,6 +12,7 @@
     "scripts": {
         "prepare": "husky",
         "lint": "eslint --fix --quiet --config eslint.config.mjs",
+        "lint-ci": "eslint --fix --config eslint.config.mjs",
         "format": "prettier --log-level silent --write src/**/*.ts",
         "test": "jest",
         "test:watch": "jest --watch",
