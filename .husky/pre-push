@@ -106,16 +106,29 @@ fi
 
 # Generate types
 echo "${BLUE}🔍 Generating types...${NC}"
-if ! cd frontend && npm run openapi-ts-latest; then
+cd frontend && npm run openapi-ts-latest && cd ..
+if [ $? -ne 0 ]; then
     echo "${RED}❌ Type generation for the frontend failed. Please fix errors and try again.${NC}"
     exit 7
 fi
 
 # TypeScript build check
 echo "${BLUE}🔍 Running Frontend TypeScript compilation check...${NC}"
-if ! cd frontend && npm run build; then
+cd frontend && npm run build && cd ..
+if [ $? -ne 0 ]; then
     echo "${RED}❌ TypeScript frontend compilation failed. Please fix type errors and try again.${NC}"
     exit 8
+fi
+
+# Check for changes in generated files
+echo "${BLUE}🔍 Checking for generated file changes...${NC}"
+if git diff --quiet; then
+    echo "${GREEN}✅ No changes in generated files${NC}"
+else
+    echo "${BLUE}📝 Committing generated file changes...${NC}"
+    git add .
+    git commit -m "chore: update generated files" --no-verify
+    echo "${GREEN}✅ Generated files committed${NC}"
 fi
 
 echo "${GREEN}✅ All pre-push checks completed!${NC}" 
