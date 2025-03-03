@@ -107,7 +107,7 @@ const submitResultTime = Date.now() + 1000 * 60 * 60 * 24 * 30;
 //1 minute unlock period
 const unlockTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 2; // * 30;
 //1 hour refund dispute period
-const refundTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 3; //* 60; //* 24 * 30;
+const externalDisputeUnlockTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 3; //* 60; //* 24 * 30;
 const sellerCooldownTime = Date.now() + 1000 * 15;
 const buyerCooldownTime = Date.now() + 1000 * 15;
 const datum = {
@@ -122,7 +122,7 @@ const datum = {
       //unlock time after specified time
       unlockTime,
       //refund time after specified time
-      refundTime,
+      externalDisputeUnlockTime,
       //is converted to false
       mBool(false),
       0,

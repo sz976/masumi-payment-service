@@ -352,14 +352,25 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       smartContractAddress,
       input.network,
     );
-    const assetId = input.agentIdentifier;
-    const policyAsset = assetId.startsWith(policyId)
-      ? assetId
-      : policyId + assetId;
-    const assetInWallet = await provider.assetsAddresses(policyAsset, {
-      order: 'desc',
-      count: 1,
-    });
+    if (input.agentIdentifier.startsWith(policyId) == false) {
+      throw createHttpError(
+        404,
+        'The agentIdentifier is not of the specified payment source',
+      );
+    }
+    let assetInWallet = [];
+    try {
+      assetInWallet = await provider.assetsAddresses(input.agentIdentifier, {
+        order: 'desc',
+        count: 1,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        throw createHttpError(404, 'Agent identifier not found');
+      }
+      throw createHttpError(500, 'Error fetching asset in wallet');
+    }
+
     if (assetInWallet.length == 0) {
       throw createHttpError(404, 'Agent identifier not found');
     }

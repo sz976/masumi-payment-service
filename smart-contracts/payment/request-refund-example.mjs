@@ -90,7 +90,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '11c09e1472a16a53ee947ce2f9d52a01d47198659238997bdb1f0d44e78aaeef',
+  '63fec8089e25ec346cdd861b9fec630698c7ed3bb5fceb5203eeaae5900922a0',
 );
 
 if (!utxo) {
@@ -120,7 +120,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 const hash = decodedDatum.value[3];
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
-const refundTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[6];
 const sellerCooldownTime = decodedDatum.value[8];
 const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
 const datum = {
@@ -133,7 +133,7 @@ const datum = {
       hash.toString('hex'),
       submitResultTime,
       unlockTime,
-      refundTime,
+      externalDisputeUnlockTime,
       //is converted to true
       mBool(true),
       //is converted to false
