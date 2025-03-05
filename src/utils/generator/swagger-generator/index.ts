@@ -59,6 +59,7 @@ import {
   Permission,
   ApiKeyStatus,
   RPCProvider,
+  PricingType,
 } from '@prisma/client';
 import {
   authorizePaymentRefundSchemaInput,
@@ -252,7 +253,7 @@ export function generateOpenAPI() {
       query: getAPIKeySchemaInput.openapi({
         example: {
           limit: 10,
-          cursorApiKey: 'identifier',
+          cursorToken: 'identifier',
         },
       }),
     },
@@ -269,6 +270,7 @@ export function generateOpenAPI() {
                   data: {
                     apiKeys: [
                       {
+                        id: 'unique_cuid_v2_of_entry',
                         token: 'masumi_payment_api_key_secret',
                         permission: Permission.Admin,
                         usageLimited: true,
@@ -369,9 +371,12 @@ export function generateOpenAPI() {
           'application/json': {
             schema: updateAPIKeySchemaInput.openapi({
               example: {
-                id: 'id_or_apiKey_unique_cuid_v2_of_entry_to_update',
-                token: 'id_or_apiKey_api_key_to_update',
-                UsageCredits: [{ unit: 'lovelace', amount: '10000000' }],
+                id: 'unique_cuid_v2_of_entry_to_update',
+                token: 'api_key_to_change_to',
+                UsageCreditsToAddOrRemove: [
+                  { unit: 'lovelace', amount: '10000000' },
+                  { unit: 'usdm', amount: '-10000000' },
+                ],
                 status: ApiKeyStatus.Active,
               },
             }),
@@ -429,7 +434,6 @@ export function generateOpenAPI() {
             schema: deleteAPIKeySchemaInput.openapi({
               example: {
                 id: 'id_or_apiKey_unique_cuid_v2_of_entry_to_delete',
-                token: 'id_or_apiKey_api_key_to_delete',
               },
             }),
           },
@@ -450,6 +454,11 @@ export function generateOpenAPI() {
                   data: {
                     id: 'unique_cuid_v2_of_entry_to_delete',
                     token: 'masumi_registry_api_key_secret',
+                    status: ApiKeyStatus.Revoked,
+                    permission: Permission.Admin,
+                    usageLimited: true,
+                    networkLimit: [Network.Preprod, Network.Mainnet],
+                    deletedAt: new Date(1713636260),
                   },
                 },
               }),
@@ -521,7 +530,7 @@ export function generateOpenAPI() {
                         },
                         CurrentTransaction: null,
                         TransactionHistory: [],
-                        Amounts: [
+                        RequestedFunds: [
                           {
                             id: 'amount_id',
                             createdAt: new Date(1713636260),
@@ -578,7 +587,7 @@ export function generateOpenAPI() {
                 metadata:
                   '(private) metadata to be stored with the payment request',
                 smartContractAddress: 'address',
-                amounts: [{ amount: '10000000', unit: 'lovelace' }],
+                RequestedFunds: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
                 identifierFromPurchaser: 'unique_key_from_purchaser',
@@ -616,7 +625,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -707,7 +716,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -796,7 +805,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -887,7 +896,7 @@ export function generateOpenAPI() {
                         externalDisputeUnlockTime: (1713636260).toString(),
                         submitResultTime: new Date(1713636260).toISOString(),
                         unlockTime: (1713636260).toString(),
-                        Amounts: [],
+                        PaidFunds: [],
                         PaymentSource: {
                           id: 'payment_source_id',
                           network: Network.Preprod,
@@ -937,7 +946,7 @@ export function generateOpenAPI() {
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
                 smartContractAddress: 'address',
-                amounts: [{ amount: '10000000', unit: 'lovelace' }],
+                Amounts: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
@@ -981,7 +990,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1072,7 +1081,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1162,7 +1171,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1255,12 +1264,15 @@ export function generateOpenAPI() {
                             other: 'other',
                           },
                           image: 'image',
-                          pricing: [
-                            {
-                              quantity: 1000000,
-                              unit: 'unit',
-                            },
-                          ],
+                          AgentPricing: {
+                            pricingType: PricingType.Fixed,
+                            Pricing: [
+                              {
+                                amount: '1000000',
+                                unit: 'unit',
+                              },
+                            ],
+                          },
                           metadataVersion: 1,
                         },
                       },
@@ -1325,12 +1337,15 @@ export function generateOpenAPI() {
                         updatedAt: new Date(1713636260),
                         lastCheckedAt: new Date(1713636260),
                         agentIdentifier: 'agent_identifier',
-                        Pricing: [
-                          {
-                            unit: 'unit',
-                            quantity: '1000000',
-                          },
-                        ],
+                        AgentPricing: {
+                          pricingType: PricingType.Fixed,
+                          Pricing: [
+                            {
+                              unit: 'unit',
+                              amount: '1000000',
+                            },
+                          ],
+                        },
                         SmartContractWallet: {
                           walletVkey: 'wallet_vkey',
                           walletAddress: 'wallet_address',
@@ -1381,12 +1396,15 @@ export function generateOpenAPI() {
                 sellingWalletVkey: 'wallet_vkey',
                 capability: { name: 'Capability Name', version: '1.0.0' },
                 requestsPerHour: '100',
-                pricing: [
-                  {
-                    unit: 'usdm',
-                    quantity: '500000000',
-                  },
-                ],
+                AgentPricing: {
+                  pricingType: PricingType.Fixed,
+                  Pricing: [
+                    {
+                      unit: 'usdm',
+                      amount: '500000000',
+                    },
+                  ],
+                },
               },
             }),
           },
@@ -1410,12 +1428,15 @@ export function generateOpenAPI() {
                     capabilityName: 'capability_name',
                     capabilityVersion: 'capability_version',
                     requestsPerHour: '100',
-                    Pricing: [
-                      {
-                        unit: 'usdm',
-                        quantity: '500000000',
-                      },
-                    ],
+                    AgentPricing: {
+                      pricingType: PricingType.Fixed,
+                      Pricing: [
+                        {
+                          unit: 'usdm',
+                          amount: '500000000',
+                        },
+                      ],
+                    },
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',
@@ -1469,12 +1490,15 @@ export function generateOpenAPI() {
                     capabilityName: 'capability_name',
                     capabilityVersion: 'capability_version',
                     requestsPerHour: '100',
-                    Pricing: [
-                      {
-                        unit: 'usdm',
-                        quantity: '500000000',
-                      },
-                    ],
+                    AgentPricing: {
+                      pricingType: PricingType.Fixed,
+                      Pricing: [
+                        {
+                          unit: 'usdm',
+                          amount: '500000000',
+                        },
+                      ],
+                    },
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',

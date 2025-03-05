@@ -17,20 +17,26 @@ model ApiKey {
   permission            Permission
   networkLimit          Network[]
   usageLimited          Boolean           @default(false)
-  RemainingUsageCredits UsageCredit[]
+  RemainingUsageCredits UnitValue[]
   PurchaseRequest       PurchaseRequest[]
   PaymentRequest        PaymentRequest[]
   deletedAt             DateTime?
 }
 
-model UsageCredit {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  amount    BigInt
-  unit      String
-  apiKey    ApiKey?  @relation(fields: [apiKeyId], references: [id])
-  apiKeyId  String?
+model UnitValue {
+  id                  String             @id @default(cuid())
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  unit                String
+  amount              BigInt
+  ApiKey              ApiKey?            @relation(fields: [apiKeyId], references: [id])
+  apiKeyId            String?
+  AgentFixedPricing   AgentFixedPricing? @relation(fields: [agentFixedPricingId], references: [id])
+  agentFixedPricingId String?
+  PaymentRequest      PaymentRequest?    @relation(fields: [paymentRequestId], references: [id])
+  paymentRequestId    String?
+  PurchaseRequest     PurchaseRequest?   @relation(fields: [purchaseRequestId], references: [id])
+  purchaseRequestId   String?
 }
 
 enum ApiKeyStatus {
@@ -169,8 +175,10 @@ model RegistryRequest {
   authorContact      String?
   authorOrganization String?
 
-  tags    String[]
-  Pricing AgentPricing[]
+  tags String[]
+
+  Pricing        AgentPricing @relation(fields: [agentPricingId], references: [id])
+  agentPricingId String       @unique
 
   agentIdentifier String?           @unique
   state           RegistrationState
@@ -184,10 +192,23 @@ model AgentPricing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  unit              String
-  quantity          BigInt
-  RegistryRequest   RegistryRequest? @relation(fields: [registryRequestId], references: [id])
-  registryRequestId String?
+  RegistryRequest RegistryRequest?
+
+  pricingType         PricingType
+  FixedPricing        AgentFixedPricing? @relation(fields: [agentFixedPricingId], references: [id])
+  agentFixedPricingId String?            @unique
+}
+
+enum PricingType {
+  Fixed
+}
+
+model AgentFixedPricing {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  AgentPricing AgentPricing?
+  Amounts      UnitValue[]
 }
 
 model PaymentRequest {
@@ -210,7 +231,7 @@ model PaymentRequest {
 
   metadata String?
 
-  Amounts RequestAmount[]
+  RequestedFunds UnitValue[]
 
   blockchainIdentifier      String
   submitResultTime          BigInt
@@ -264,7 +285,8 @@ model PurchaseRequest {
 
   metadata String?
 
-  Amounts              RequestAmount[]
+  PaidFunds UnitValue[]
+
   blockchainIdentifier String
 
   submitResultTime          BigInt
@@ -301,18 +323,6 @@ model PurchaseActionData {
   errorNote String?
 
   PurchaseRequestCurrent PurchaseRequest? @relation("NextAction")
-}
-
-model RequestAmount {
-  id                String           @id @default(cuid())
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  amount            BigInt
-  unit              String
-  PaymentRequest    PaymentRequest?  @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
-  paymentRequestId  String?
-  PurchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
-  purchaseRequestId String?
 }
 
 enum PaymentErrorType {

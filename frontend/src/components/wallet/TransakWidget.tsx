@@ -11,18 +11,25 @@ interface TransakWidgetProps {
   onSuccess?: () => void;
 }
 
-export function TransakWidget({ isOpen, onClose, walletAddress, network, onSuccess }: TransakWidgetProps) {
+export function TransakWidget({
+  isOpen,
+  onClose,
+  walletAddress,
+  network,
+  onSuccess,
+}: TransakWidgetProps) {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'TRANSAK_ORDER_SUCCESSFUL') {
-        console.log('Order successful:', event.data);
         onSuccess?.();
         onClose();
       } else if (event.data.type === 'TRANSAK_ORDER_FAILED') {
         console.error('Order failed:', event.data);
         onClose();
-      } else if (event.data.type?.includes('TRANSAK_WIDGET_CLOSE') || 
-                 event.data.type?.includes('TRANSAK_EXIT')) {
+      } else if (
+        event.data.type?.includes('TRANSAK_WIDGET_CLOSE') ||
+        event.data.type?.includes('TRANSAK_EXIT')
+      ) {
         onClose();
       }
     };
@@ -34,16 +41,32 @@ export function TransakWidget({ isOpen, onClose, walletAddress, network, onSucce
   if (!isOpen) return null;
 
   const isProduction = process.env.NEXT_PUBLIC_ENVIRONMENT === 'production';
-  const transakUrl = new URL(isProduction ? 'https://global.transak.com' : 'https://global-stg.transak.com');
-  transakUrl.searchParams.set('apiKey', process.env.NEXT_PUBLIC_TRANSAK_API_KEY!);
-  transakUrl.searchParams.set('environment', isProduction ? 'PRODUCTION' : 'STAGING');
+  const transakUrl = new URL(
+    isProduction
+      ? 'https://global.transak.com'
+      : 'https://global-stg.transak.com',
+  );
+  transakUrl.searchParams.set(
+    'apiKey',
+    process.env.NEXT_PUBLIC_TRANSAK_API_KEY!,
+  );
+  transakUrl.searchParams.set(
+    'environment',
+    isProduction ? 'PRODUCTION' : 'STAGING',
+  );
   transakUrl.searchParams.set('cryptoCurrencyList', 'ADA');
   transakUrl.searchParams.set('defaultCryptoCurrency', 'ADA');
   transakUrl.searchParams.set('walletAddress', walletAddress);
-  transakUrl.searchParams.set('network', network.toLowerCase() === 'preprod' ? 'cardano-preprod' : 'cardano');
+  transakUrl.searchParams.set(
+    'network',
+    network.toLowerCase() === 'preprod' ? 'cardano-preprod' : 'cardano',
+  );
   transakUrl.searchParams.set('themeColor', '#000000');
   transakUrl.searchParams.set('hideMenu', 'true');
-  transakUrl.searchParams.set('exchangeScreenTitle', 'Top up your Masumi Wallet with ADA');
+  transakUrl.searchParams.set(
+    'exchangeScreenTitle',
+    'Top up your Masumi Wallet with ADA',
+  );
 
   const content = (
     <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center">
@@ -66,4 +89,4 @@ export function TransakWidget({ isOpen, onClose, walletAddress, network, onSucce
   );
 
   return createPortal(content, document.body);
-} 
+}

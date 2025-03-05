@@ -124,14 +124,15 @@ export async function submitResultV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: decodedContract.refundRequested,
               newCooldownTimeSeller: newCooldownTime(
                 paymentContract.cooldownTime,
               ),
               newCooldownTimeBuyer: 0,
-              state: decodedContract.refundRequested
-                ? SmartContractState.Disputed
-                : SmartContractState.ResultSubmitted,
+              state:
+                decodedContract.state == SmartContractState.Disputed ||
+                decodedContract.state == SmartContractState.RefundRequested
+                  ? SmartContractState.Disputed
+                  : SmartContractState.ResultSubmitted,
             });
 
             const redeemer = {

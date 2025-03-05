@@ -51,7 +51,7 @@ export const submitPaymentResultSchemaOutput = z.object({
     errorType: z.nativeEnum(PaymentErrorType).nullable(),
     errorNote: z.string().nullable(),
   }),
-  Amounts: z.array(
+  RequestedFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -169,7 +169,7 @@ export const submitPaymentResultEndpointPost =
           BuyerWallet: true,
           SmartContractWallet: true,
           PaymentSource: true,
-          Amounts: true,
+          RequestedFunds: true,
         },
       });
 
@@ -178,7 +178,7 @@ export const submitPaymentResultEndpointPost =
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-        Amounts: result.Amounts.map((amount) => ({
+        RequestedFunds: result.RequestedFunds.map((amount) => ({
           ...amount,
           amount: amount.amount.toString(),
         })),

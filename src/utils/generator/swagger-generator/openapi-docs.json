@@ -428,7 +428,7 @@
                         },
                         "required": false,
                         "description": "Used to paginate through the API keys",
-                        "name": "cursorApiKey",
+                        "name": "cursorToken",
                         "in": "query"
                     }
                 ],
@@ -451,6 +451,9 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
                                                             "token": {
                                                                 "type": "string"
                                                             },
@@ -502,6 +505,7 @@
                                                             }
                                                         },
                                                         "required": [
+                                                            "id",
                                                             "token",
                                                             "permission",
                                                             "usageLimited",
@@ -525,6 +529,7 @@
                                         "data": {
                                             "apiKeys": [
                                                 {
+                                                    "id": "unique_cuid_v2_of_entry",
                                                     "token": "masumi_payment_api_key_secret",
                                                     "permission": "Admin",
                                                     "usageLimited": true,
@@ -761,10 +766,11 @@
                                     },
                                     "token": {
                                         "type": "string",
+                                        "minLength": 15,
                                         "maxLength": 550,
-                                        "description": "The API key to update. Provide either id or apiKey"
+                                        "description": "To change the api key token"
                                     },
-                                    "UsageCredits": {
+                                    "UsageCreditsToAddOrRemove": {
                                         "type": "array",
                                         "items": {
                                             "type": "object",
@@ -782,7 +788,8 @@
                                                 "amount"
                                             ]
                                         },
-                                        "description": "The remaining credits allowed to be used by the API key. Only relevant if usageLimited is true. "
+                                        "maxItems": 25,
+                                        "description": "The amount of credits to add or remove from the API key. Only relevant if usageLimited is true. "
                                     },
                                     "status": {
                                         "type": "string",
@@ -810,13 +817,20 @@
                                         "description": "The networks the API key is allowed to use"
                                     }
                                 },
+                                "required": [
+                                    "id"
+                                ],
                                 "example": {
-                                    "id": "id_or_apiKey_unique_cuid_v2_of_entry_to_update",
-                                    "token": "id_or_apiKey_api_key_to_update",
-                                    "UsageCredits": [
+                                    "id": "unique_cuid_v2_of_entry_to_update",
+                                    "token": "api_key_to_change_to",
+                                    "UsageCreditsToAddOrRemove": [
                                         {
                                             "unit": "lovelace",
                                             "amount": "10000000"
+                                        },
+                                        {
+                                            "unit": "usdm",
+                                            "amount": "-10000000"
                                         }
                                     ],
                                     "status": "Active"
@@ -938,17 +952,14 @@
                                     "id": {
                                         "type": "string",
                                         "maxLength": 150,
-                                        "description": "The id of the API key to delete. Provide either id or apiKey"
-                                    },
-                                    "token": {
-                                        "type": "string",
-                                        "maxLength": 550,
-                                        "description": "The API key to delete. Provide either id or apiKey"
+                                        "description": "The id of the API key to be (soft) deleted."
                                     }
                                 },
+                                "required": [
+                                    "id"
+                                ],
                                 "example": {
-                                    "id": "id_or_apiKey_unique_cuid_v2_of_entry_to_delete",
-                                    "token": "id_or_apiKey_api_key_to_delete"
+                                    "id": "id_or_apiKey_unique_cuid_v2_of_entry_to_delete"
                                 }
                             }
                         }
@@ -970,11 +981,48 @@
                                                 },
                                                 "token": {
                                                     "type": "string"
+                                                },
+                                                "permission": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Read",
+                                                        "ReadAndPay",
+                                                        "Admin"
+                                                    ]
+                                                },
+                                                "usageLimited": {
+                                                    "type": "boolean"
+                                                },
+                                                "networkLimit": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "Preprod",
+                                                            "Mainnet"
+                                                        ]
+                                                    }
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Active",
+                                                        "Revoked"
+                                                    ]
+                                                },
+                                                "deletedAt": {
+                                                    "type": "string",
+                                                    "nullable": true
                                                 }
                                             },
                                             "required": [
                                                 "id",
-                                                "token"
+                                                "token",
+                                                "permission",
+                                                "usageLimited",
+                                                "networkLimit",
+                                                "status",
+                                                "deletedAt"
                                             ]
                                         },
                                         "status": {
@@ -989,7 +1037,15 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_of_entry_to_delete",
-                                            "token": "masumi_registry_api_key_secret"
+                                            "token": "masumi_registry_api_key_secret",
+                                            "status": "Revoked",
+                                            "permission": "Admin",
+                                            "usageLimited": true,
+                                            "networkLimit": [
+                                                "Preprod",
+                                                "Mainnet"
+                                            ],
+                                            "deletedAt": "1970-01-20T20:00:36.260Z"
                                         }
                                     }
                                 }
@@ -1241,7 +1297,7 @@
                                                                     ]
                                                                 }
                                                             },
-                                                            "Amounts": {
+                                                            "RequestedFunds": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "object",
@@ -1359,7 +1415,7 @@
                                                             "NextAction",
                                                             "CurrentTransaction",
                                                             "TransactionHistory",
-                                                            "Amounts",
+                                                            "RequestedFunds",
                                                             "PaymentSource",
                                                             "BuyerWallet",
                                                             "SmartContractWallet",
@@ -1402,7 +1458,7 @@
                                                     },
                                                     "CurrentTransaction": null,
                                                     "TransactionHistory": [],
-                                                    "Amounts": [
+                                                    "RequestedFunds": [
                                                         {
                                                             "id": "amount_id",
                                                             "createdAt": "1970-01-20T20:00:36.260Z",
@@ -1471,7 +1527,7 @@
                                         "maxLength": 250,
                                         "description": "The identifier of the agent that will be paid"
                                     },
-                                    "amounts": {
+                                    "RequestedFunds": {
                                         "type": "array",
                                         "items": {
                                             "type": "object",
@@ -1571,7 +1627,7 @@
                                 "required": [
                                     "network",
                                     "agentIdentifier",
-                                    "amounts",
+                                    "RequestedFunds",
                                     "paymentType",
                                     "identifierFromPurchaser"
                                 ],
@@ -1580,7 +1636,7 @@
                                     "network": "Preprod",
                                     "metadata": "(private) metadata to be stored with the payment request",
                                     "smartContractAddress": "address",
-                                    "amounts": [
+                                    "RequestedFunds": [
                                         {
                                             "amount": "10000000",
                                             "unit": "lovelace"
@@ -1687,7 +1743,7 @@
                                                         "errorNote"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "RequestedFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -1801,7 +1857,7 @@
                                                 "resultHash",
                                                 "onChainState",
                                                 "NextAction",
-                                                "Amounts",
+                                                "RequestedFunds",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -1835,7 +1891,7 @@
                                                 "errorType": null,
                                                 "errorNote": null
                                             },
-                                            "Amounts": [
+                                            "RequestedFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -2022,7 +2078,7 @@
                                                         "errorNote"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "RequestedFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -2136,7 +2192,7 @@
                                                 "resultHash",
                                                 "onChainState",
                                                 "NextAction",
-                                                "Amounts",
+                                                "RequestedFunds",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -2170,7 +2226,7 @@
                                                 "errorType": null,
                                                 "errorNote": null
                                             },
-                                            "Amounts": [
+                                            "RequestedFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -2350,7 +2406,7 @@
                                                         "errorNote"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "RequestedFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -2464,7 +2520,7 @@
                                                 "resultHash",
                                                 "onChainState",
                                                 "NextAction",
-                                                "Amounts",
+                                                "RequestedFunds",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -2498,7 +2554,7 @@
                                                 "errorType": null,
                                                 "errorNote": null
                                             },
-                                            "Amounts": [
+                                            "RequestedFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -2785,7 +2841,7 @@
                                                                     ]
                                                                 }
                                                             },
-                                                            "Amounts": {
+                                                            "PaidFunds": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "object",
@@ -2903,7 +2959,7 @@
                                                             "NextAction",
                                                             "CurrentTransaction",
                                                             "TransactionHistory",
-                                                            "Amounts",
+                                                            "PaidFunds",
                                                             "PaymentSource",
                                                             "SellerWallet",
                                                             "SmartContractWallet",
@@ -2945,7 +3001,7 @@
                                                     "externalDisputeUnlockTime": "1713636260",
                                                     "submitResultTime": "1970-01-20T20:00:36.260Z",
                                                     "unlockTime": "1713636260",
-                                                    "Amounts": [],
+                                                    "PaidFunds": [],
                                                     "PaymentSource": {
                                                         "id": "payment_source_id",
                                                         "network": "Preprod",
@@ -3021,7 +3077,7 @@
                                         "maxLength": 250,
                                         "description": "The address of the smart contract where the purchase will be made to"
                                     },
-                                    "amounts": {
+                                    "Amounts": {
                                         "type": "array",
                                         "items": {
                                             "type": "object",
@@ -3041,7 +3097,7 @@
                                             ]
                                         },
                                         "maxItems": 7,
-                                        "description": "The amounts of the purchase"
+                                        "description": "The amounts to be paid for the purchase"
                                     },
                                     "paymentType": {
                                         "type": "string",
@@ -3078,7 +3134,7 @@
                                     "network",
                                     "sellerVkey",
                                     "agentIdentifier",
-                                    "amounts",
+                                    "Amounts",
                                     "paymentType",
                                     "unlockTime",
                                     "externalDisputeUnlockTime",
@@ -3091,7 +3147,7 @@
                                     "network": "Preprod",
                                     "sellerVkey": "seller_vkey",
                                     "smartContractAddress": "address",
-                                    "amounts": [
+                                    "Amounts": [
                                         {
                                             "amount": "10000000",
                                             "unit": "lovelace"
@@ -3236,7 +3292,7 @@
                                                         "status"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "PaidFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -3351,7 +3407,7 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "CurrentTransaction",
-                                                "Amounts",
+                                                "PaidFunds",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
@@ -3386,7 +3442,7 @@
                                                 "errorNote": null
                                             },
                                             "CurrentTransaction": null,
-                                            "Amounts": [
+                                            "PaidFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -3602,7 +3658,7 @@
                                                         "status"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "PaidFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -3717,7 +3773,7 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "CurrentTransaction",
-                                                "Amounts",
+                                                "PaidFunds",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
@@ -3752,7 +3808,7 @@
                                                 "errorNote": null
                                             },
                                             "CurrentTransaction": null,
-                                            "Amounts": [
+                                            "PaidFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -3968,7 +4024,7 @@
                                                         "status"
                                                     ]
                                                 },
-                                                "Amounts": {
+                                                "PaidFunds": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -4083,7 +4139,7 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "CurrentTransaction",
-                                                "Amounts",
+                                                "PaidFunds",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
@@ -4118,7 +4174,7 @@
                                                 "errorNote": null
                                             },
                                             "CurrentTransaction": null,
-                                            "Amounts": [
+                                            "PaidFunds": [
                                                 {
                                                     "id": "amount_id",
                                                     "createdAt": "1970-01-20T20:00:36.260Z",
@@ -4325,26 +4381,40 @@
                                                                             }
                                                                         }
                                                                     },
-                                                                    "pricing": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "object",
-                                                                            "properties": {
-                                                                                "quantity": {
-                                                                                    "type": "integer",
-                                                                                    "minimum": 1
-                                                                                },
-                                                                                "unit": {
-                                                                                    "type": "string",
-                                                                                    "maxLength": 250
-                                                                                }
+                                                                    "AgentPricing": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "pricingType": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "Fixed"
+                                                                                ]
                                                                             },
-                                                                            "required": [
-                                                                                "quantity",
-                                                                                "unit"
-                                                                            ]
+                                                                            "Pricing": {
+                                                                                "type": "array",
+                                                                                "items": {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                        "amount": {
+                                                                                            "type": "string"
+                                                                                        },
+                                                                                        "unit": {
+                                                                                            "type": "string",
+                                                                                            "maxLength": 250
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "amount",
+                                                                                        "unit"
+                                                                                    ]
+                                                                                },
+                                                                                "minItems": 1
+                                                                            }
                                                                         },
-                                                                        "minItems": 1
+                                                                        "required": [
+                                                                            "pricingType",
+                                                                            "Pricing"
+                                                                        ]
                                                                     },
                                                                     "image": {
                                                                         "type": "string",
@@ -4362,7 +4432,7 @@
                                                                     "tags",
                                                                     "capability",
                                                                     "author",
-                                                                    "pricing",
+                                                                    "AgentPricing",
                                                                     "image",
                                                                     "metadataVersion"
                                                                 ]
@@ -4418,12 +4488,15 @@
                                                             "other": "other"
                                                         },
                                                         "image": "image",
-                                                        "pricing": [
-                                                            {
-                                                                "quantity": 1000000,
-                                                                "unit": "unit"
-                                                            }
-                                                        ],
+                                                        "AgentPricing": {
+                                                            "pricingType": "Fixed",
+                                                            "Pricing": [
+                                                                {
+                                                                    "amount": "1000000",
+                                                                    "unit": "unit"
+                                                                }
+                                                            ]
+                                                        },
                                                         "metadataVersion": 1
                                                     }
                                                 }
@@ -4584,23 +4657,40 @@
                                                                 "type": "string",
                                                                 "nullable": true
                                                             },
-                                                            "Pricing": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "unit": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "quantity": {
-                                                                            "type": "string"
-                                                                        }
+                                                            "AgentPricing": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "pricingType": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "Fixed"
+                                                                        ]
                                                                     },
-                                                                    "required": [
-                                                                        "unit",
-                                                                        "quantity"
-                                                                    ]
-                                                                }
+                                                                    "Pricing": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "amount": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "unit": {
+                                                                                    "type": "string",
+                                                                                    "maxLength": 250
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "amount",
+                                                                                "unit"
+                                                                            ]
+                                                                        },
+                                                                        "minItems": 1
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "pricingType",
+                                                                    "Pricing"
+                                                                ]
                                                             },
                                                             "SmartContractWallet": {
                                                                 "type": "object",
@@ -4659,7 +4749,7 @@
                                                             "updatedAt",
                                                             "lastCheckedAt",
                                                             "agentIdentifier",
-                                                            "Pricing",
+                                                            "AgentPricing",
                                                             "SmartContractWallet",
                                                             "CurrentTransaction"
                                                         ]
@@ -4702,12 +4792,15 @@
                                                     "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                                     "agentIdentifier": "agent_identifier",
-                                                    "Pricing": [
-                                                        {
-                                                            "unit": "unit",
-                                                            "quantity": "1000000"
-                                                        }
-                                                    ],
+                                                    "AgentPricing": {
+                                                        "pricingType": "Fixed",
+                                                        "Pricing": [
+                                                            {
+                                                                "unit": "unit",
+                                                                "amount": "1000000"
+                                                            }
+                                                        ]
+                                                    },
                                                     "SmartContractWallet": {
                                                         "walletVkey": "wallet_vkey",
                                                         "walletAddress": "wallet_address"
@@ -4812,27 +4905,43 @@
                                         "maxLength": 250,
                                         "description": "The request the agent can handle per hour"
                                     },
-                                    "pricing": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "unit": {
-                                                    "type": "string",
-                                                    "maxLength": 250
-                                                },
-                                                "quantity": {
-                                                    "type": "string",
-                                                    "maxLength": 25
-                                                }
+                                    "AgentPricing": {
+                                        "type": "object",
+                                        "properties": {
+                                            "pricingType": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Fixed"
+                                                ]
                                             },
-                                            "required": [
-                                                "unit",
-                                                "quantity"
-                                            ]
+                                            "Pricing": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "unit": {
+                                                            "type": "string",
+                                                            "maxLength": 250
+                                                        },
+                                                        "amount": {
+                                                            "type": "string",
+                                                            "maxLength": 25
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "unit",
+                                                        "amount"
+                                                    ]
+                                                },
+                                                "minItems": 1,
+                                                "maxItems": 5,
+                                                "description": "Price for a default interaction"
+                                            }
                                         },
-                                        "maxItems": 5,
-                                        "description": "Price for a default interaction"
+                                        "required": [
+                                            "pricingType",
+                                            "Pricing"
+                                        ]
                                     },
                                     "legal": {
                                         "type": "object",
@@ -4883,7 +4992,7 @@
                                     "description",
                                     "capability",
                                     "requestsPerHour",
-                                    "pricing",
+                                    "AgentPricing",
                                     "author"
                                 ],
                                 "example": {
@@ -4913,12 +5022,15 @@
                                         "version": "1.0.0"
                                     },
                                     "requestsPerHour": "100",
-                                    "pricing": [
-                                        {
-                                            "unit": "usdm",
-                                            "quantity": "500000000"
-                                        }
-                                    ]
+                                    "AgentPricing": {
+                                        "pricingType": "Fixed",
+                                        "Pricing": [
+                                            {
+                                                "unit": "usdm",
+                                                "amount": "500000000"
+                                            }
+                                        ]
+                                    }
                                 }
                             }
                         }
@@ -5007,23 +5119,38 @@
                                                         "walletAddress"
                                                     ]
                                                 },
-                                                "Pricing": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "unit": {
-                                                                "type": "string"
-                                                            },
-                                                            "quantity": {
-                                                                "type": "string"
-                                                            }
+                                                "AgentPricing": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "pricingType": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "Fixed"
+                                                            ]
                                                         },
-                                                        "required": [
-                                                            "unit",
-                                                            "quantity"
-                                                        ]
-                                                    }
+                                                        "Pricing": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "unit": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "unit",
+                                                                    "amount"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "pricingType",
+                                                        "Pricing"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -5040,7 +5167,7 @@
                                                 "tags",
                                                 "state",
                                                 "SmartContractWallet",
-                                                "Pricing"
+                                                "AgentPricing"
                                             ]
                                         }
                                     },
@@ -5060,12 +5187,15 @@
                                             "capabilityName": "capability_name",
                                             "capabilityVersion": "capability_version",
                                             "requestsPerHour": "100",
-                                            "Pricing": [
-                                                {
-                                                    "unit": "usdm",
-                                                    "quantity": "500000000"
-                                                }
-                                            ],
+                                            "AgentPricing": {
+                                                "pricingType": "Fixed",
+                                                "Pricing": [
+                                                    {
+                                                        "unit": "usdm",
+                                                        "amount": "500000000"
+                                                    }
+                                                ]
+                                            },
                                             "SmartContractWallet": {
                                                 "walletVkey": "wallet_vkey",
                                                 "walletAddress": "wallet_address"
@@ -5216,23 +5346,38 @@
                                                         "DeregistrationFailed"
                                                     ]
                                                 },
-                                                "Pricing": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "unit": {
-                                                                "type": "string"
-                                                            },
-                                                            "quantity": {
-                                                                "type": "string"
-                                                            }
+                                                "AgentPricing": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "pricingType": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "Fixed"
+                                                            ]
                                                         },
-                                                        "required": [
-                                                            "unit",
-                                                            "quantity"
-                                                        ]
-                                                    }
+                                                        "Pricing": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "unit": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "unit",
+                                                                    "amount"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "pricingType",
+                                                        "Pricing"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -5249,7 +5394,7 @@
                                                 "tags",
                                                 "SmartContractWallet",
                                                 "state",
-                                                "Pricing"
+                                                "AgentPricing"
                                             ]
                                         }
                                     },
@@ -5269,12 +5414,15 @@
                                             "capabilityName": "capability_name",
                                             "capabilityVersion": "capability_version",
                                             "requestsPerHour": "100",
-                                            "Pricing": [
-                                                {
-                                                    "unit": "usdm",
-                                                    "quantity": "500000000"
-                                                }
-                                            ],
+                                            "AgentPricing": {
+                                                "pricingType": "Fixed",
+                                                "Pricing": [
+                                                    {
+                                                        "unit": "usdm",
+                                                        "amount": "500000000"
+                                                    }
+                                                ]
+                                            },
                                             "SmartContractWallet": {
                                                 "walletVkey": "wallet_vkey",
                                                 "walletAddress": "wallet_address"

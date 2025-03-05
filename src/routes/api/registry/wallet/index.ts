@@ -1,6 +1,6 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { HotWalletType, Network } from '@prisma/client';
+import { HotWalletType, Network, PricingType } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -42,17 +42,21 @@ const metadataSchema = z.object({
     })
     .optional(),
   tags: z.array(z.string().min(1)).min(1),
-  pricing: z
-    .array(
-      z.object({
-        quantity: z.number({ coerce: true }).int().min(1),
-        unit: z
-          .string()
-          .min(1)
-          .or(z.array(z.string().min(1))),
-      }),
-    )
-    .min(1),
+  AgentPricing: z.object({
+    pricingType: z.enum([PricingType.Fixed]),
+    Pricing: z
+      .array(
+        z.object({
+          amount: z.number({ coerce: true }).int().min(1),
+          unit: z
+            .string()
+            .min(1)
+            .or(z.array(z.string().min(1))),
+        }),
+      )
+      .min(1)
+      .max(5),
+  }),
   image: z.string().or(z.array(z.string())),
   metadata_version: z.number({ coerce: true }).int().min(1).max(1),
 });
@@ -104,14 +108,17 @@ export const queryAgentFromWalletSchemaOutput = z.object({
           })
           .nullable()
           .optional(),
-        pricing: z
-          .array(
-            z.object({
-              quantity: z.number({ coerce: true }).int().min(1),
-              unit: z.string().max(250),
-            }),
-          )
-          .min(1),
+        AgentPricing: z.object({
+          pricingType: z.enum([PricingType.Fixed]),
+          Pricing: z
+            .array(
+              z.object({
+                amount: z.string(),
+                unit: z.string().max(250),
+              }),
+            )
+            .min(1),
+        }),
         image: z.string().max(250),
         metadataVersion: z.number({ coerce: true }).int().min(1).max(1),
       }),
@@ -223,10 +230,15 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
                 }
               : undefined,
             tags: parsedMetadata.data.tags.map((tag) => metadataToString(tag)!),
-            pricing: parsedMetadata.data.pricing.map((price) => ({
-              quantity: price.quantity,
-              unit: metadataToString(price.unit)!,
-            })),
+            AgentPricing: {
+              pricingType: parsedMetadata.data.AgentPricing.pricingType,
+              Pricing: parsedMetadata.data.AgentPricing.Pricing.map(
+                (price) => ({
+                  amount: price.amount.toString(),
+                  unit: metadataToString(price.unit)!,
+                }),
+              ),
+            },
             image: metadataToString(parsedMetadata.data.image)!,
             metadataVersion: parsedMetadata.data.metadata_version,
           },

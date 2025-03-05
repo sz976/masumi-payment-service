@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { Button } from "@/components/ui/button";
-import { Pagination } from "../ui/pagination";
+import { Button } from '@/components/ui/button';
+import { Pagination } from '../ui/pagination';
 import BlinkingUnderscore from '../BlinkingUnderscore';
 import { RegisterAgentModal } from './RegisterAgentModal';
 import { getRegistry } from '@/lib/api/generated';
@@ -19,7 +26,11 @@ interface RegisteredAgentsProps {
   }[];
 }
 
-export function RegisteredAgents({ paymentContractAddress, network, sellingWallets }: RegisteredAgentsProps) {
+export function RegisteredAgents({
+  paymentContractAddress,
+  network,
+  sellingWallets,
+}: RegisteredAgentsProps) {
   const [agents, setAgents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -28,50 +39,60 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
   const { state, apiClient } = useAppContext();
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  const fetchAgents = useCallback(async (nextCursor?: string) => {
-    if (!state.apiKey) return;
+  const fetchAgents = useCallback(
+    async (nextCursor?: string) => {
+      if (!state.apiKey) return;
 
-    const walletVKey = sellingWallets[0]?.walletVkey;
-
-    if (!walletVKey) {
-      console.error('No selling wallet vkey available');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      if (!paymentContractAddress) {
-        throw new Error('Payment contract address is required');
-      }
-
-      if (!network) {
-        throw new Error('Network is required');
-      }
+      const walletVKey = sellingWallets[0]?.walletVkey;
 
       if (!walletVKey) {
-        throw new Error('Selling wallet vkey is required');
+        console.error('No selling wallet vkey available');
+        return;
       }
 
-      const response = await getRegistry({ client: apiClient, query: { cursorId: nextCursor, network: network === 'PREPROD' ? 'Preprod' : 'Mainnet', smartContractAddress: paymentContractAddress } });
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (!paymentContractAddress) {
+          throw new Error('Payment contract address is required');
+        }
 
-      const agentsFound = response?.data?.data?.assets || [];
-      setAgents(prevAgents =>
-        nextCursor
-          ? [...prevAgents, ...agentsFound]
-          : agentsFound
-      );
-      setHasMore(response?.data?.data?.assets.length === 10);
-      setCursor(response?.data?.data?.assets[response?.data?.data?.assets.length - 1]?.id || undefined);
-    } catch (error) {
-      console.error('Failed to fetch agents:', error);
-      console.log(walletVKey, network, paymentContractAddress);
-      setError('Failed to fetch registered agents. Please try again later.');
-      toast.error('Failed to fetch registered agents');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [state.apiKey, sellingWallets, paymentContractAddress, network]);
+        if (!network) {
+          throw new Error('Network is required');
+        }
+
+        if (!walletVKey) {
+          throw new Error('Selling wallet vkey is required');
+        }
+
+        const response = await getRegistry({
+          client: apiClient,
+          query: {
+            cursorId: nextCursor,
+            network: network === 'PREPROD' ? 'Preprod' : 'Mainnet',
+            smartContractAddress: paymentContractAddress,
+          },
+        });
+
+        const agentsFound = response?.data?.data?.assets || [];
+        setAgents((prevAgents) =>
+          nextCursor ? [...prevAgents, ...agentsFound] : agentsFound,
+        );
+        setHasMore(response?.data?.data?.assets.length === 10);
+        setCursor(
+          response?.data?.data?.assets[response?.data?.data?.assets.length - 1]
+            ?.id || undefined,
+        );
+      } catch (error) {
+        console.error('Failed to fetch agents:', error);
+        setError('Failed to fetch registered agents. Please try again later.');
+        toast.error('Failed to fetch registered agents');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [state.apiKey, sellingWallets, paymentContractAddress, network, apiClient],
+  );
 
   useEffect(() => {
     fetchAgents();
@@ -122,7 +143,9 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
                 <TableBody>
                   {agents.map((agent) => (
                     <TableRow key={agent.agentIdentifier}>
-                      <TableCell className="font-medium">{agent.metadata.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {agent.metadata.name}
+                      </TableCell>
                       <TableCell>{agent.metadata.description}</TableCell>
                       <TableCell>{agent.metadata.api_url}</TableCell>
                       <TableCell>{agent.metadata.tags.join(', ')}</TableCell>
@@ -140,7 +163,7 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
           </div>
         )}
         {showRegisterModal && (
-          <RegisterAgentModal 
+          <RegisterAgentModal
             onClose={() => setShowRegisterModal(false)}
             onSuccess={handleRegisterSuccess}
             paymentContractAddress={paymentContractAddress}
@@ -151,4 +174,4 @@ export function RegisteredAgents({ paymentContractAddress, network, sellingWalle
       </CardContent>
     </Card>
   );
-} 
+}

@@ -14,6 +14,9 @@ CREATE TYPE "WalletType" AS ENUM ('Buyer', 'Seller');
 CREATE TYPE "RegistrationState" AS ENUM ('RegistrationRequested', 'RegistrationInitiated', 'RegistrationConfirmed', 'RegistrationFailed', 'DeregistrationRequested', 'DeregistrationInitiated', 'DeregistrationConfirmed', 'DeregistrationFailed');
 
 -- CreateEnum
+CREATE TYPE "PricingType" AS ENUM ('Fixed');
+
+-- CreateEnum
 CREATE TYPE "PaymentErrorType" AS ENUM ('NetworkError', 'Unknown');
 
 -- CreateEnum
@@ -56,15 +59,18 @@ CREATE TABLE "ApiKey" (
 );
 
 -- CreateTable
-CREATE TABLE "UsageCredit" (
+CREATE TABLE "UnitValue" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "amount" BIGINT NOT NULL,
     "unit" TEXT NOT NULL,
+    "amount" BIGINT NOT NULL,
     "apiKeyId" TEXT,
+    "agentFixedPricingId" TEXT,
+    "paymentRequestId" TEXT,
+    "purchaseRequestId" TEXT,
 
-    CONSTRAINT "UsageCredit_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "UnitValue_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -143,6 +149,7 @@ CREATE TABLE "RegistryRequest" (
     "authorContact" TEXT,
     "authorOrganization" TEXT,
     "tags" TEXT[],
+    "agentPricingId" TEXT NOT NULL,
     "agentIdentifier" TEXT,
     "state" "RegistrationState" NOT NULL,
     "currentTransactionId" TEXT,
@@ -155,11 +162,19 @@ CREATE TABLE "AgentPricing" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "unit" TEXT NOT NULL,
-    "quantity" BIGINT NOT NULL,
-    "registryRequestId" TEXT,
+    "pricingType" "PricingType" NOT NULL,
+    "agentFixedPricingId" TEXT,
 
     CONSTRAINT "AgentPricing_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AgentFixedPricing" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AgentFixedPricing_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -240,19 +255,6 @@ CREATE TABLE "PurchaseActionData" (
 );
 
 -- CreateTable
-CREATE TABLE "RequestAmount" (
-    "id" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "amount" BIGINT NOT NULL,
-    "unit" TEXT NOT NULL,
-    "paymentRequestId" TEXT,
-    "purchaseRequestId" TEXT,
-
-    CONSTRAINT "RequestAmount_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "PaymentSource" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -307,7 +309,13 @@ CREATE UNIQUE INDEX "HotWallet_paymentSourceId_walletVkey_key" ON "HotWallet"("p
 CREATE UNIQUE INDEX "WalletBase_paymentSourceId_walletVkey_type_key" ON "WalletBase"("paymentSourceId", "walletVkey", "type");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "RegistryRequest_agentPricingId_key" ON "RegistryRequest"("agentPricingId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "RegistryRequest_agentIdentifier_key" ON "RegistryRequest"("agentIdentifier");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AgentPricing_agentFixedPricingId_key" ON "AgentPricing"("agentFixedPricingId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PaymentRequest_nextActionId_key" ON "PaymentRequest"("nextActionId");
@@ -334,7 +342,16 @@ CREATE UNIQUE INDEX "PaymentSource_paymentSourceConfigId_key" ON "PaymentSource"
 CREATE UNIQUE INDEX "PaymentSource_network_smartContractAddress_key" ON "PaymentSource"("network", "smartContractAddress");
 
 -- AddForeignKey
-ALTER TABLE "UsageCredit" ADD CONSTRAINT "UsageCredit_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UnitValue" ADD CONSTRAINT "UnitValue_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "ApiKey"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UnitValue" ADD CONSTRAINT "UnitValue_agentFixedPricingId_fkey" FOREIGN KEY ("agentFixedPricingId") REFERENCES "AgentFixedPricing"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UnitValue" ADD CONSTRAINT "UnitValue_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UnitValue" ADD CONSTRAINT "UnitValue_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "PurchaseRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "HotWallet" ADD CONSTRAINT "HotWallet_secretId_fkey" FOREIGN KEY ("secretId") REFERENCES "WalletSecret"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -361,10 +378,13 @@ ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_paymentSourceId_fk
 ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_smartContractWalletId_fkey" FOREIGN KEY ("smartContractWalletId") REFERENCES "HotWallet"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_agentPricingId_fkey" FOREIGN KEY ("agentPricingId") REFERENCES "AgentPricing"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AgentPricing" ADD CONSTRAINT "AgentPricing_registryRequestId_fkey" FOREIGN KEY ("registryRequestId") REFERENCES "RegistryRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "AgentPricing" ADD CONSTRAINT "AgentPricing_agentFixedPricingId_fkey" FOREIGN KEY ("agentFixedPricingId") REFERENCES "AgentFixedPricing"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PaymentRequest" ADD CONSTRAINT "PaymentRequest_paymentSourceId_fkey" FOREIGN KEY ("paymentSourceId") REFERENCES "PaymentSource"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -401,12 +421,6 @@ ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_requestedById_fkey
 
 -- AddForeignKey
 ALTER TABLE "PurchaseRequest" ADD CONSTRAINT "PurchaseRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "RequestAmount" ADD CONSTRAINT "RequestAmount_paymentRequestId_fkey" FOREIGN KEY ("paymentRequestId") REFERENCES "PaymentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "RequestAmount" ADD CONSTRAINT "RequestAmount_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "PurchaseRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PaymentSource" ADD CONSTRAINT "PaymentSource_adminWalletId_fkey" FOREIGN KEY ("adminWalletId") REFERENCES "AdminWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;

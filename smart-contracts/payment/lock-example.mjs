@@ -123,8 +123,6 @@ const datum = {
       unlockTime,
       //refund time after specified time
       externalDisputeUnlockTime,
-      //is converted to false
-      mBool(false),
       0,
       0,
       {

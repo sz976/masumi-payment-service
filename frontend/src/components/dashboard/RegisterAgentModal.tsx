@@ -1,9 +1,20 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { toast } from 'react-toastify';
 import { shortenAddress } from '@/lib/utils';
@@ -32,10 +43,16 @@ const AGENT_PLACEHOLDERS = {
   requests_per_hour: 'e.g., 100',
   pricingUnit: 'e.g., usdm',
   pricingQuantity: 'e.g., 500000000',
-  tags: 'tag1, tag2'
+  tags: 'tag1, tag2',
 };
 
-export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress, sellingWallets, network }: RegisterAgentModalProps) {
+export function RegisterAgentModal({
+  onClose,
+  onSuccess,
+  paymentContractAddress,
+  sellingWallets,
+  network,
+}: RegisterAgentModalProps) {
   const { apiClient } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -50,13 +67,18 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
     requests_per_hour: '',
     pricingUnit: '',
     pricingQuantity: '',
-    tags: [] as string[]
+    tags: [] as string[],
   });
-  const [selectedWallet, setSelectedWallet] = useState(sellingWallets[0]?.walletVkey || '');
+  const [selectedWallet, setSelectedWallet] = useState(
+    sellingWallets[0]?.walletVkey || '',
+  );
   const [tagError, setTagError] = useState<string | null>(null);
 
   const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, tags: e.target.value.split(',').map(tag => tag.trim()) as string[] });
+    setFormData({
+      ...formData,
+      tags: e.target.value.split(',').map((tag) => tag.trim()) as string[],
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,27 +104,33 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
         author: {
           name: formData.authorName,
           contact: formData.authorContact || undefined,
-          organization: formData.authorOrganization || undefined
+          organization: formData.authorOrganization || undefined,
         },
         capability: {
           name: formData.capabilityName,
-          version: formData.capabilityVersion
+          version: formData.capabilityVersion,
         },
         requestsPerHour: formData.requests_per_hour,
-        pricing: [{
-          unit: formData.pricingUnit,
-          quantity: formData.pricingQuantity
-        }],
+        AgentPricing: {
+          pricingType: 'Fixed',
+          Pricing: [
+            {
+              unit: formData.pricingUnit,
+              amount: formData.pricingQuantity,
+            },
+          ],
+        },
         legal: {},
-        sellingWalletVkey: selectedWallet
+        sellingWalletVkey: selectedWallet,
       };
-      console.log(details);
       await postRegistry({ client: apiClient, body: details });
 
       onSuccess();
     } catch (error) {
       console.error('Failed to register agent:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to register agent');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to register agent',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +147,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <label className="text-sm font-medium">*Agent Name</label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder={AGENT_PLACEHOLDERS.name}
               required
             />
@@ -130,7 +160,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.api_url}
               value={formData.api_url}
-              onChange={(e) => setFormData({ ...formData, api_url: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, api_url: e.target.value })
+              }
               required
               type="url"
             />
@@ -141,7 +173,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Textarea
               placeholder={AGENT_PLACEHOLDERS.description}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               required
             />
           </div>
@@ -151,7 +185,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.authorName}
               value={formData.authorName}
-              onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, authorName: e.target.value })
+              }
               required
             />
           </div>
@@ -161,7 +197,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.authorContact}
               value={formData.authorContact}
-              onChange={(e) => setFormData({ ...formData, authorContact: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, authorContact: e.target.value })
+              }
             />
           </div>
 
@@ -170,7 +208,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.authorOrganization}
               value={formData.authorOrganization}
-              onChange={(e) => setFormData({ ...formData, authorOrganization: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, authorOrganization: e.target.value })
+              }
             />
           </div>
 
@@ -179,7 +219,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.capabilityName}
               value={formData.capabilityName}
-              onChange={(e) => setFormData({ ...formData, capabilityName: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, capabilityName: e.target.value })
+              }
               required
             />
           </div>
@@ -189,7 +231,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.capabilityVersion}
               value={formData.capabilityVersion}
-              onChange={(e) => setFormData({ ...formData, capabilityVersion: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, capabilityVersion: e.target.value })
+              }
               required
             />
           </div>
@@ -199,7 +243,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.requests_per_hour}
               value={formData.requests_per_hour}
-              onChange={(e) => setFormData({ ...formData, requests_per_hour: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, requests_per_hour: e.target.value })
+              }
               required
             />
           </div>
@@ -209,7 +255,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.pricingUnit}
               value={formData.pricingUnit}
-              onChange={(e) => setFormData({ ...formData, pricingUnit: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, pricingUnit: e.target.value })
+              }
               required
             />
           </div>
@@ -219,13 +267,17 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
             <Input
               placeholder={AGENT_PLACEHOLDERS.pricingQuantity}
               value={formData.pricingQuantity}
-              onChange={(e) => setFormData({ ...formData, pricingQuantity: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, pricingQuantity: e.target.value })
+              }
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Tags (comma-separated)</label>
+            <label className="text-sm font-medium">
+              Tags (comma-separated)
+            </label>
             <Input
               value={formData.tags.join(', ')}
               onChange={handleTagChange}
@@ -236,7 +288,9 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">*Select Selling Wallet</label>
+            <label className="text-sm font-medium">
+              *Select Selling Wallet
+            </label>
             <Select value={selectedWallet} onValueChange={setSelectedWallet}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a wallet" />
@@ -263,4 +317,4 @@ export function RegisterAgentModal({ onClose, onSuccess, paymentContractAddress,
       </DialogContent>
     </Dialog>
   );
-} 
+}

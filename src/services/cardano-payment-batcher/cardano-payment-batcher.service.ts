@@ -53,7 +53,7 @@ export async function batchLatestPaymentEntriesV1() {
                 onChainState: null,
               },
               include: {
-                Amounts: true,
+                PaidFunds: true,
                 SellerWallet: true,
                 SmartContractWallet: true,
                 NextAction: true,
@@ -183,11 +183,11 @@ export async function batchLatestPaymentEntriesV1() {
             const paymentRequest = paymentRequestsRemaining[index];
 
             //set min ada required;
-            const lovelaceRequired = paymentRequest.Amounts.findIndex(
+            const lovelaceRequired = paymentRequest.PaidFunds.findIndex(
               (amount) => amount.unit.toLowerCase() == 'lovelace',
             );
             if (lovelaceRequired == -1) {
-              paymentRequest.Amounts.push({
+              paymentRequest.PaidFunds.push({
                 unit: 'lovelace',
                 amount: minTransactionCalculation,
                 id: '',
@@ -195,10 +195,15 @@ export async function batchLatestPaymentEntriesV1() {
                 updatedAt: new Date(),
                 paymentRequestId: null,
                 purchaseRequestId: null,
+                apiKeyId: null,
+                agentFixedPricingId: null,
               });
             } else {
-              const result = paymentRequest.Amounts.splice(lovelaceRequired, 1);
-              paymentRequest.Amounts.push({
+              const result = paymentRequest.PaidFunds.splice(
+                lovelaceRequired,
+                1,
+              );
+              paymentRequest.PaidFunds.push({
                 unit: 'lovelace',
                 amount:
                   minTransactionCalculation > result[0].amount
@@ -209,10 +214,12 @@ export async function batchLatestPaymentEntriesV1() {
                 updatedAt: new Date(),
                 paymentRequestId: null,
                 purchaseRequestId: null,
+                apiKeyId: null,
+                agentFixedPricingId: null,
               });
             }
             let isFulfilled = true;
-            for (const paymentAmount of paymentRequest.Amounts) {
+            for (const paymentAmount of paymentRequest.PaidFunds) {
               const walletAmount = amounts.find(
                 (amount) => amount.unit == paymentAmount.unit,
               );
@@ -227,7 +234,7 @@ export async function batchLatestPaymentEntriesV1() {
             if (isFulfilled) {
               batchedPaymentRequests.push(paymentRequest);
               //deduct amounts from wallet
-              for (const paymentAmount of paymentRequest.Amounts) {
+              for (const paymentAmount of paymentRequest.PaidFunds) {
                 const walletAmount = amounts.find(
                   (amount) => amount.unit == paymentAmount.unit,
                 );
@@ -300,7 +307,6 @@ export async function batchLatestPaymentEntriesV1() {
                 resultTime: Number(submitResultTime),
                 unlockTime: Number(unlockTime),
                 externalDisputeUnlockTime: Number(externalDisputeUnlockTime),
-                refundRequested: false,
                 newCooldownTimeSeller: 0,
                 newCooldownTimeBuyer: 0,
                 state: SmartContractState.FundsLocked,
@@ -311,7 +317,7 @@ export async function batchLatestPaymentEntriesV1() {
                   address: walletPairing.scriptAddress,
                   datum,
                 },
-                paymentRequest.Amounts.map((amount) => ({
+                paymentRequest.PaidFunds.map((amount) => ({
                   unit: amount.unit,
                   quantity: amount.amount.toString(),
                 })),

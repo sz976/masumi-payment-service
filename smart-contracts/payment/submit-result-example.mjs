@@ -135,8 +135,6 @@ const datum = {
       submitResultTime,
       unlockTime,
       externalDisputeUnlockTime,
-      //is converted to true
-      mBool(false),
       sellerCooldownTime,
       0,
       {

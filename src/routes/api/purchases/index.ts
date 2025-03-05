@@ -90,7 +90,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
           status: z.nativeEnum(TransactionStatus),
         }),
       ),
-      Amounts: z.array(
+      PaidFunds: z.array(
         z.object({
           id: z.string(),
           createdAt: z.date(),
@@ -178,7 +178,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       include: {
         SellerWallet: true,
         SmartContractWallet: true,
-        Amounts: true,
+        PaidFunds: true,
         NextAction: true,
         PaymentSource: true,
         CurrentTransaction: true,
@@ -194,7 +194,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     return {
       purchases: result.map((purchase) => ({
         ...purchase,
-        Amounts: purchase.Amounts.map((amount) => ({
+        PaidFunds: purchase.PaidFunds.map((amount) => ({
           ...amount,
           amount: amount.amount.toString(),
         })),
@@ -232,10 +232,10 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe(
       'The address of the smart contract where the purchase will be made to',
     ),
-  amounts: z
+  Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
-    .describe('The amounts of the purchase'),
+    .describe('The amounts to be paid for the purchase'),
   paymentType: z
     .nativeEnum(PaymentType)
     .describe('The payment type of smart contract used'),
@@ -291,7 +291,7 @@ export const createPurchaseInitSchemaOutput = z.object({
       status: z.nativeEnum(TransactionStatus),
     })
     .nullable(),
-  Amounts: z.array(
+  PaidFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -333,7 +333,7 @@ const blockchainIdentifierDataSchema = z.object({
   purchaserIdentifier: z.string().min(15).max(25),
   sellerAddress: z.string().min(15).max(150),
   sellerIdentifier: z.string().min(15).max(25),
-  Amounts: z
+  PaidFunds: z
     .array(
       z.object({
         amount: z.string().min(1).max(25),
@@ -512,15 +512,16 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser identifier invalid',
       );
     }
-    const amountsMatch = parsedBlockchainIdentifierData.data.Amounts.every(
+    const amountsMatch = parsedBlockchainIdentifierData.data.PaidFunds.every(
       (amount) =>
-        input.amounts.some(
+        input.Amounts.some(
           (a) => a.amount == amount.amount && a.unit == amount.unit,
         ),
     );
     if (
       !amountsMatch ||
-      parsedBlockchainIdentifierData.data.Amounts.length != input.amounts.length
+      parsedBlockchainIdentifierData.data.PaidFunds.length !=
+        input.Amounts.length
     ) {
       throw createHttpError(
         400,
@@ -546,7 +547,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const initialPurchaseRequest =
       await tokenCreditService.handlePurchaseCreditInit({
         id: options.id,
-        cost: input.amounts.map((amount) => {
+        cost: input.Amounts.map((amount) => {
           if (amount.unit == '') {
             return { amount: BigInt(amount.amount), unit: 'lovelace' };
           } else {
@@ -566,7 +567,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...initialPurchaseRequest,
-      Amounts: initialPurchaseRequest.Amounts.map((amount) => ({
+      PaidFunds: initialPurchaseRequest.PaidFunds.map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),

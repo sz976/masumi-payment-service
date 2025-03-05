@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   HotWalletType,
   Network,
+  PricingType,
   RegistrationState,
   TransactionStatus,
 } from '@prisma/client';
@@ -53,12 +54,17 @@ export const queryRegistryRequestSchemaOutput = z.object({
       updatedAt: z.date(),
       lastCheckedAt: z.date().nullable(),
       agentIdentifier: z.string().nullable(),
-      Pricing: z.array(
-        z.object({
-          unit: z.string(),
-          quantity: z.string(),
-        }),
-      ),
+      AgentPricing: z.object({
+        pricingType: z.enum([PricingType.Fixed]),
+        Pricing: z
+          .array(
+            z.object({
+              amount: z.string(),
+              unit: z.string().max(250),
+            }),
+          )
+          .min(1),
+      }),
       SmartContractWallet: z.object({
         walletVkey: z.string(),
         walletAddress: z.string(),
@@ -118,17 +124,21 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
       include: {
         SmartContractWallet: true,
         CurrentTransaction: true,
-        Pricing: true,
+        Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
       },
     });
 
     return {
       assets: result.map((item) => ({
         ...item,
-        Pricing: item.Pricing.map((price) => ({
-          unit: price.unit,
-          quantity: price.quantity.toString(),
-        })),
+        AgentPricing: {
+          pricingType: PricingType.Fixed,
+          Pricing:
+            item.Pricing.FixedPricing?.Amounts.map((price) => ({
+              unit: price.unit,
+              amount: price.amount.toString(),
+            })) ?? [],
+        },
       })),
     };
   },
@@ -172,15 +182,19 @@ export const registerAgentSchemaInput = z.object({
     .string()
     .max(250)
     .describe('The request the agent can handle per hour'),
-  pricing: z
-    .array(
-      z.object({
-        unit: z.string().max(250),
-        quantity: z.string().max(25),
-      }),
-    )
-    .max(5)
-    .describe('Price for a default interaction'),
+  AgentPricing: z.object({
+    pricingType: z.enum([PricingType.Fixed]),
+    Pricing: z
+      .array(
+        z.object({
+          unit: z.string().max(250),
+          amount: z.string().max(25),
+        }),
+      )
+      .min(1)
+      .max(5)
+      .describe('Price for a default interaction'),
+  }),
   legal: z
     .object({
       privacyPolicy: z.string().max(250).optional(),
@@ -215,12 +229,15 @@ export const registerAgentSchemaOutput = z.object({
     walletVkey: z.string(),
     walletAddress: z.string(),
   }),
-  Pricing: z.array(
-    z.object({
-      unit: z.string(),
-      quantity: z.string(),
-    }),
-  ),
+  AgentPricing: z.object({
+    pricingType: z.enum([PricingType.Fixed]),
+    Pricing: z.array(
+      z.object({
+        unit: z.string(),
+        amount: z.string(),
+      }),
+    ),
+  }),
 });
 
 export const registerAgentPost = payAuthenticatedEndpointFactory.build({
@@ -278,6 +295,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         authorContact: input.author.contact,
         authorOrganization: input.author.organization,
         state: RegistrationState.RegistrationRequested,
+        agentIdentifier: null,
         SmartContractWallet: {
           connect: {
             id: sellingWallet.id,
@@ -290,26 +308,39 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         },
         tags: input.tags,
         Pricing: {
-          createMany: {
-            data: input.pricing.map((price) => ({
-              unit: price.unit,
-              quantity: parseInt(price.quantity),
-            })),
+          create: {
+            pricingType: input.AgentPricing.pricingType,
+            FixedPricing: {
+              create: {
+                Amounts: {
+                  createMany: {
+                    data: input.AgentPricing.Pricing.map((price) => ({
+                      unit: price.unit,
+                      amount: BigInt(price.amount),
+                    })),
+                  },
+                },
+              },
+            },
           },
         },
       },
       include: {
-        Pricing: true,
+        Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
         SmartContractWallet: true,
       },
     });
 
     return {
       ...result,
-      Pricing: result.Pricing.map((pricing) => ({
-        unit: pricing.unit,
-        quantity: pricing.quantity.toString(),
-      })),
+      AgentPricing: {
+        pricingType: PricingType.Fixed,
+        Pricing:
+          result.Pricing.FixedPricing?.Amounts.map((pricing) => ({
+            unit: pricing.unit,
+            amount: pricing.amount.toString(),
+          })) ?? [],
+      },
     };
   },
 });
@@ -348,12 +379,15 @@ export const unregisterAgentSchemaOutput = z.object({
     walletAddress: z.string(),
   }),
   state: z.nativeEnum(RegistrationState),
-  Pricing: z.array(
-    z.object({
-      unit: z.string(),
-      quantity: z.string(),
-    }),
-  ),
+  AgentPricing: z.object({
+    pricingType: z.enum([PricingType.Fixed]),
+    Pricing: z.array(
+      z.object({
+        unit: z.string(),
+        amount: z.string(),
+      }),
+    ),
+  }),
 });
 
 export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
@@ -432,17 +466,21 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         state: RegistrationState.DeregistrationRequested,
       },
       include: {
-        Pricing: true,
+        Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
         SmartContractWallet: true,
       },
     });
 
     return {
       ...result,
-      Pricing: result.Pricing.map((pricing) => ({
-        unit: pricing.unit,
-        quantity: pricing.quantity.toString(),
-      })),
+      AgentPricing: {
+        pricingType: PricingType.Fixed,
+        Pricing:
+          result.Pricing.FixedPricing?.Amounts.map((pricing) => ({
+            unit: pricing.unit,
+            amount: pricing.amount.toString(),
+          })) ?? [],
+      },
     };
   },
 });

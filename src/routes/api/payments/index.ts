@@ -92,7 +92,7 @@ export const queryPaymentsSchemaOutput = z.object({
           }),
         )
         .nullable(),
-      Amounts: z.array(
+      RequestedFunds: z.array(
         z.object({
           id: z.string(),
           createdAt: z.date(),
@@ -170,7 +170,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         BuyerWallet: true,
         SmartContractWallet: true,
         PaymentSource: true,
-        Amounts: true,
+        RequestedFunds: { include: { AgentFixedPricing: true } },
         NextAction: true,
         CurrentTransaction: true,
         TransactionHistory: {
@@ -191,7 +191,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         cooldownTimeOtherParty: Number(payment.buyerCoolDownTime),
         unlockTime: payment.unlockTime.toString(),
         externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-        Amounts: payment.Amounts.map((amount) => ({
+        RequestedFunds: payment.RequestedFunds.map((amount) => ({
           ...amount,
           amount: amount.amount.toString(),
         })),
@@ -209,7 +209,7 @@ export const createPaymentsSchemaInput = z.object({
     .min(15)
     .max(250)
     .describe('The identifier of the agent that will be paid'),
-  amounts: z
+  RequestedFunds: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
     .describe('The amounts of the payment'),
@@ -267,7 +267,7 @@ export const createPaymentSchemaOutput = z.object({
     errorType: z.nativeEnum(PaymentErrorType).nullable(),
     errorNote: z.string().nullable(),
   }),
-  Amounts: z.array(
+  RequestedFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -392,7 +392,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       purchaserIdentifier: input.identifierFromPurchaser,
       sellerAddress: sellingWallet.walletAddress,
       sellerIdentifier: cuid2.createId(),
-      Amounts: input.amounts.map((amount) => ({
+      RequestedFunds: input.RequestedFunds.map((amount) => ({
         amount: amount.amount,
         unit: amount.unit,
       })),
@@ -425,9 +425,9 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       data: {
         blockchainIdentifier: signedEncodedBlockchainIdentifier,
         PaymentSource: { connect: { id: specifiedPaymentContract.id } },
-        Amounts: {
+        RequestedFunds: {
           createMany: {
-            data: input.amounts.map((amount) => {
+            data: input.RequestedFunds.map((amount) => {
               if (amount.unit == '') {
                 return { amount: BigInt(amount.amount), unit: 'lovelace' };
               } else {
@@ -452,7 +452,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         metadata: input.metadata,
       },
       include: {
-        Amounts: true,
+        RequestedFunds: true,
         BuyerWallet: true,
         SmartContractWallet: true,
         PaymentSource: true,
@@ -469,7 +469,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       submitResultTime: payment.submitResultTime.toString(),
       unlockTime: payment.unlockTime.toString(),
       externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-      Amounts: payment.Amounts.map((amount) => ({
+      RequestedFunds: payment.RequestedFunds.map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),

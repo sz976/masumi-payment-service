@@ -50,7 +50,7 @@ export async function lockAndQueryPurchases({
               include: {
                 NextAction: true,
                 CurrentTransaction: true,
-                Amounts: true,
+                PaidFunds: true,
                 SellerWallet: true,
                 SmartContractWallet: {
                   include: {

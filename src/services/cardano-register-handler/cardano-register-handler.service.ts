@@ -1,4 +1,8 @@
-import { TransactionStatus, RegistrationState } from '@prisma/client';
+import {
+  TransactionStatus,
+  RegistrationState,
+  PricingType,
+} from '@prisma/client';
 import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Transaction } from '@meshsdk/core';
@@ -55,6 +59,15 @@ export async function registerAgentV1() {
             }),
           ],
           operations: registryRequests.map((request) => async () => {
+            if (request.Pricing.pricingType == PricingType.Fixed) {
+              throw new Error('Other than fixed pricing is not supported yet');
+            }
+            if (
+              request.Pricing.FixedPricing == null ||
+              request.Pricing.FixedPricing.Amounts.length == 0
+            ) {
+              throw new Error('No fixed pricing found, this is likely a bug');
+            }
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentSource.network,
               paymentSource.PaymentSourceConfig.rpcProviderApiKey,
@@ -133,10 +146,14 @@ export async function registerAgentV1() {
                     other: stringToMetadata(request.other),
                   },
                   tags: request.tags,
-                  pricing: request.Pricing.map((pricing) => ({
-                    unit: stringToMetadata(pricing.unit),
-                    quantity: pricing.quantity.toString(),
-                  })),
+                  pricing: {
+                    pricingType: request.Pricing.pricingType,
+                    Pricing:
+                      request.Pricing.FixedPricing?.Amounts.map((pricing) => ({
+                        unit: stringToMetadata(pricing.unit),
+                        amount: pricing.amount.toString(),
+                      })) ?? [],
+                  },
                   image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
                   metadata_version: stringToMetadata(
                     DEFAULTS.DEFAULT_METADATA_VERSION,
