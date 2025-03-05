@@ -30,7 +30,6 @@ const wallet = new MeshWallet({
 });
 
 const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
 
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
@@ -165,7 +164,6 @@ const invalidBefore =
   unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK.preprod) - 1;
 const invalidHereafter =
   unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK.preprod) + 1;
-//console.log(utxo);
 
 const unsignedTx = new Transaction({ initiator: wallet })
   .redeemValue({

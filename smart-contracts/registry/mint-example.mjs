@@ -25,7 +25,6 @@ const wallet = new MeshWallet({
 });
 
 const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
 
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 const paymentContractAddress =
@@ -64,7 +63,6 @@ const policyId = deserializePlutusScript(script.code, script.version)
   .hash()
   .toString();
 
-console.log('policyId', policyId);
 const tx = new Transaction({ initiator: wallet }).setTxInputs([
   //ensure our first utxo hash (serializedOutput) is used as first input
   firstUtxo,

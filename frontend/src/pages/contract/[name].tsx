@@ -176,10 +176,6 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
     }
   };
 
-  if (contract) {
-    console.log('contract', contract)
-  }
-
   const getIndex = (contract: any) => {
     const sortedPaymentSources = state.paymentSources.sort((a: any, b: any) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

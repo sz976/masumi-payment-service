@@ -44,7 +44,6 @@ export default function Settings() {
   const fetchApiKeys = useCallback(
     async (cursorId?: string) => {
       setIsLoading(true);
-      console.log('fetching api keys', cursorId || 'no cursor');
       try {
         const response = await getApiKey({
           client: apiClient,
@@ -88,7 +87,7 @@ export default function Settings() {
   const handleKeyClick = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _keyDetails: GetApiKeyResponse['data']['apiKeys'][0],
-  ) => {};
+  ) => { };
 
   const handleSignOut = () => {
     localStorage.removeItem('payment_api_key');
@@ -237,11 +236,10 @@ export default function Settings() {
                         </td>
                         <td className="py-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              key.status?.toLowerCase() === 'active'
+                            className={`px-2 py-1 rounded-full text-sm ${key.status?.toLowerCase() === 'active'
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-300 text-red-800'
-                            }`}
+                              }`}
                           >
                             {key.status}
                           </span>
@@ -249,13 +247,13 @@ export default function Settings() {
                         <td className="py-2">
                           {key.usageLimited
                             ? key.RemainingUsageCredits?.map((credit, i) => (
-                                <div
-                                  key={i}
-                                  className="text-sm text-muted-foreground"
-                                >
-                                  {credit.amount} {credit.unit}
-                                </div>
-                              ))
+                              <div
+                                key={i}
+                                className="text-sm text-muted-foreground"
+                              >
+                                {credit.amount} {credit.unit}
+                              </div>
+                            ))
                             : 'Unlimited'}
                         </td>
                         {/* <td className="py-2 text-right">
