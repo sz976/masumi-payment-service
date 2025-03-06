@@ -32,6 +32,7 @@ export async function lockAndQueryRegistryRequests({
               Pricing: {
                 include: { FixedPricing: { include: { Amounts: true } } },
               },
+              ExampleOutputs: true,
             },
           },
           HotWallets: {

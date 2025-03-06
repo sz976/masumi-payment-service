@@ -38,12 +38,13 @@ export const queryRegistryRequestSchemaOutput = z.object({
       id: z.string(),
       name: z.string(),
       description: z.string().nullable(),
-      apiUrl: z.string(),
-      capabilityName: z.string(),
-      capabilityVersion: z.string(),
-      requestsPerHour: z.string().nullable(),
+      apiBaseUrl: z.string(),
+      capabilityName: z.string().nullable(),
+      capabilityVersion: z.string().nullable(),
+      requestsPerHour: z.number().min(0).nullable(),
       authorName: z.string(),
-      authorContact: z.string().nullable(),
+      authorContactEmail: z.string().nullable(),
+      authorContactOther: z.string().nullable(),
       authorOrganization: z.string().nullable(),
       privacyPolicy: z.string().nullable(),
       terms: z.string().nullable(),
@@ -53,6 +54,15 @@ export const queryRegistryRequestSchemaOutput = z.object({
       createdAt: z.date(),
       updatedAt: z.date(),
       lastCheckedAt: z.date().nullable(),
+      ExampleOutputs: z
+        .array(
+          z.object({
+            name: z.string().max(60),
+            url: z.string().max(250),
+            mimeType: z.string().max(60),
+          }),
+        )
+        .max(25),
       agentIdentifier: z.string().nullable(),
       AgentPricing: z.object({
         pricingType: z.enum([PricingType.Fixed]),
@@ -125,6 +135,7 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
         SmartContractWallet: true,
         CurrentTransaction: true,
         Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
+        ExampleOutputs: true,
       },
     });
 
@@ -159,18 +170,22 @@ export const registerAgentSchemaInput = z.object({
     .string()
     .max(250)
     .describe('The payment key of a specific wallet used for the registration'),
-  exampleOutput: z
-    .string()
-    .max(250)
-    .optional()
-    .describe('Link to a example output of the agent'),
+  ExampleOutputs: z
+    .array(
+      z.object({
+        name: z.string().max(60),
+        url: z.string().max(250),
+        mimeType: z.string().max(60),
+      }),
+    )
+    .max(25),
   tags: z
     .array(z.string().max(63))
     .min(1)
     .max(15)
     .describe('Tags used in the registry metadata'),
   name: z.string().max(250).describe('Name of the agent'),
-  apiUrl: z
+  apiBaseUrl: z
     .string()
     .max(250)
     .describe('Base URL of the agent, to request interactions'),
@@ -179,8 +194,8 @@ export const registerAgentSchemaInput = z.object({
     .object({ name: z.string().max(250), version: z.string().max(250) })
     .describe('Provide information about the used AI model and version'),
   requestsPerHour: z
-    .string()
-    .max(250)
+    .number({ coerce: true })
+    .min(0)
     .describe('The request the agent can handle per hour'),
   AgentPricing: z.object({
     pricingType: z.enum([PricingType.Fixed]),
@@ -206,7 +221,8 @@ export const registerAgentSchemaInput = z.object({
   author: z
     .object({
       name: z.string().max(250),
-      contact: z.string().max(250).optional(),
+      contactEmail: z.string().max(250).optional(),
+      contactOther: z.string().max(250).optional(),
       organization: z.string().max(250).optional(),
     })
     .describe('Author information about the agent'),
@@ -215,11 +231,11 @@ export const registerAgentSchemaInput = z.object({
 export const registerAgentSchemaOutput = z.object({
   id: z.string(),
   name: z.string(),
-  apiUrl: z.string(),
-  capabilityName: z.string(),
-  capabilityVersion: z.string(),
+  apiBaseUrl: z.string(),
+  capabilityName: z.string().nullable(),
+  capabilityVersion: z.string().nullable(),
   description: z.string().nullable(),
-  requestsPerHour: z.string().nullable(),
+  requestsPerHour: z.number().min(0).nullable(),
   privacyPolicy: z.string().nullable(),
   terms: z.string().nullable(),
   other: z.string().nullable(),
@@ -229,6 +245,15 @@ export const registerAgentSchemaOutput = z.object({
     walletVkey: z.string(),
     walletAddress: z.string(),
   }),
+  ExampleOutputs: z
+    .array(
+      z.object({
+        name: z.string().max(60),
+        url: z.string().max(250),
+        mimeType: z.string().max(60),
+      }),
+    )
+    .max(25),
   AgentPricing: z.object({
     pricingType: z.enum([PricingType.Fixed]),
     Pricing: z.array(
@@ -287,15 +312,26 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
       data: {
         name: input.name,
         description: input.description,
-        apiUrl: input.apiUrl,
+        apiBaseUrl: input.apiBaseUrl,
         capabilityName: input.capability.name,
         capabilityVersion: input.capability.version,
         requestsPerHour: input.requestsPerHour,
         authorName: input.author.name,
-        authorContact: input.author.contact,
+        authorContactEmail: input.author.contactEmail,
+        authorContactOther: input.author.contactOther,
         authorOrganization: input.author.organization,
         state: RegistrationState.RegistrationRequested,
         agentIdentifier: null,
+        metadataVersion: DEFAULTS.DEFAULT_METADATA_VERSION,
+        ExampleOutputs: {
+          createMany: {
+            data: input.ExampleOutputs.map((exampleOutput) => ({
+              name: exampleOutput.name,
+              url: exampleOutput.url,
+              mimeType: exampleOutput.mimeType,
+            })),
+          },
+        },
         SmartContractWallet: {
           connect: {
             id: sellingWallet.id,
@@ -328,6 +364,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
       include: {
         Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
         SmartContractWallet: true,
+        ExampleOutputs: true,
       },
     });
 
@@ -365,11 +402,11 @@ export const unregisterAgentSchemaInput = z.object({
 export const unregisterAgentSchemaOutput = z.object({
   id: z.string(),
   name: z.string(),
-  apiUrl: z.string(),
-  capabilityName: z.string(),
-  capabilityVersion: z.string(),
+  apiBaseUrl: z.string(),
+  capabilityName: z.string().nullable(),
+  capabilityVersion: z.string().nullable(),
   description: z.string().nullable(),
-  requestsPerHour: z.string().nullable(),
+  requestsPerHour: z.number().min(0).nullable(),
   privacyPolicy: z.string().nullable(),
   terms: z.string().nullable(),
   other: z.string().nullable(),
@@ -379,6 +416,15 @@ export const unregisterAgentSchemaOutput = z.object({
     walletAddress: z.string(),
   }),
   state: z.nativeEnum(RegistrationState),
+  ExampleOutputs: z
+    .array(
+      z.object({
+        name: z.string().max(60),
+        url: z.string().max(250),
+        mimeType: z.string().max(60),
+      }),
+    )
+    .max(25),
   AgentPricing: z.object({
     pricingType: z.enum([PricingType.Fixed]),
     Pricing: z.array(
@@ -468,6 +514,7 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
       include: {
         Pricing: { include: { FixedPricing: { include: { Amounts: true } } } },
         SmartContractWallet: true,
+        ExampleOutputs: true,
       },
     });
 

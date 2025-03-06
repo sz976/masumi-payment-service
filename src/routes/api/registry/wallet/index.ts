@@ -15,23 +15,33 @@ const metadataSchema = z.object({
     .min(1)
     .or(z.array(z.string().min(1))),
   description: z.string().or(z.array(z.string())).optional(),
-  api_url: z
+  api_base_url: z
     .string()
     .min(1)
-    .url()
     .or(z.array(z.string().min(1))),
-  example_output: z.string().or(z.array(z.string())).optional(),
-  capability: z.object({
-    name: z.string().or(z.array(z.string())),
-    version: z.string().or(z.array(z.string())),
-  }),
-  requests_per_hour: z.string().or(z.array(z.string())).optional(),
+  example_output: z
+    .array(
+      z.object({
+        name: z.string().max(60),
+        mime_type: z.string().min(1).max(60),
+        url: z.string().or(z.array(z.string())),
+      }),
+    )
+    .optional(),
+  capability: z
+    .object({
+      name: z.string().or(z.array(z.string())),
+      version: z.string().max(60),
+    })
+    .optional(),
+  requests_per_hour: z.number({ coerce: true }).int().min(0).optional(),
   author: z.object({
     name: z
       .string()
       .min(1)
       .or(z.array(z.string().min(1))),
-    contact: z.string().or(z.array(z.string())).optional(),
+    contact_email: z.string().or(z.array(z.string())).optional(),
+    contact_other: z.string().or(z.array(z.string())).optional(),
     organization: z.string().or(z.array(z.string())).optional(),
   }),
   legal: z
@@ -55,7 +65,7 @@ const metadataSchema = z.object({
         }),
       )
       .min(1)
-      .max(5),
+      .max(25),
   }),
   image: z.string().or(z.array(z.string())),
   metadata_version: z.number({ coerce: true }).int().min(1).max(1),
@@ -87,17 +97,29 @@ export const queryAgentFromWalletSchemaOutput = z.object({
       metadata: z.object({
         name: z.string().max(250),
         description: z.string().max(250).nullable().optional(),
-        apiUrl: z.string().max(250),
-        exampleOutput: z.string().max(250).nullable().optional(),
+        apiBaseUrl: z.string().max(250),
+        ExampleOutputs: z
+          .array(
+            z.object({
+              name: z.string().max(60),
+              mimeType: z.string().max(60),
+              url: z.string().max(250),
+            }),
+          )
+          .max(25),
         tags: z.array(z.string().max(250)),
-        requestsPerHour: z.string().max(250).nullable().optional(),
-        capability: z.object({
-          name: z.string().max(250),
-          version: z.string().max(250),
-        }),
+        requestsPerHour: z.number().min(0).nullable().optional(),
+        capability: z
+          .object({
+            name: z.string().max(250).nullable().optional(),
+            version: z.string().max(250).nullable().optional(),
+          })
+          .nullable()
+          .optional(),
         author: z.object({
           name: z.string().max(250),
-          contact: z.string().max(250).nullable().optional(),
+          contactEmail: z.string().max(250).nullable().optional(),
+          contactOther: z.string().max(250).nullable().optional(),
           organization: z.string().max(250).nullable().optional(),
         }),
         legal: z
@@ -205,17 +227,29 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
           metadata: {
             name: metadataToString(parsedMetadata.data.name!)!,
             description: metadataToString(parsedMetadata.data.description),
-            apiUrl: metadataToString(parsedMetadata.data.api_url)!,
-            exampleOutput: metadataToString(parsedMetadata.data.example_output),
-            capability: {
-              name: metadataToString(parsedMetadata.data.capability.name)!,
-              version: metadataToString(
-                parsedMetadata.data.capability.version,
-              )!,
-            },
+            apiBaseUrl: metadataToString(parsedMetadata.data.api_base_url)!,
+            ExampleOutputs:
+              parsedMetadata.data.example_output?.map((exampleOutput) => ({
+                name: metadataToString(exampleOutput.name)!,
+                mimeType: metadataToString(exampleOutput.mime_type)!,
+                url: metadataToString(exampleOutput.url)!,
+              })) ?? [],
+            capability: parsedMetadata.data.capability
+              ? {
+                  name: metadataToString(parsedMetadata.data.capability.name)!,
+                  version: metadataToString(
+                    parsedMetadata.data.capability.version,
+                  )!,
+                }
+              : undefined,
             author: {
               name: metadataToString(parsedMetadata.data.author.name)!,
-              contact: metadataToString(parsedMetadata.data.author.contact),
+              contactEmail: metadataToString(
+                parsedMetadata.data.author.contact_email,
+              ),
+              contactOther: metadataToString(
+                parsedMetadata.data.author.contact_other,
+              ),
               organization: metadataToString(
                 parsedMetadata.data.author.organization,
               ),

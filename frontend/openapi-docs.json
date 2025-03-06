@@ -4300,14 +4300,35 @@
                                                                         "nullable": true,
                                                                         "maxLength": 250
                                                                     },
-                                                                    "apiUrl": {
+                                                                    "apiBaseUrl": {
                                                                         "type": "string",
                                                                         "maxLength": 250
                                                                     },
-                                                                    "exampleOutput": {
-                                                                        "type": "string",
-                                                                        "nullable": true,
-                                                                        "maxLength": 250
+                                                                    "ExampleOutputs": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "name": {
+                                                                                    "type": "string",
+                                                                                    "maxLength": 60
+                                                                                },
+                                                                                "mimeType": {
+                                                                                    "type": "string",
+                                                                                    "maxLength": 60
+                                                                                },
+                                                                                "url": {
+                                                                                    "type": "string",
+                                                                                    "maxLength": 250
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "name",
+                                                                                "mimeType",
+                                                                                "url"
+                                                                            ]
+                                                                        },
+                                                                        "maxItems": 25
                                                                     },
                                                                     "tags": {
                                                                         "type": "array",
@@ -4317,26 +4338,25 @@
                                                                         }
                                                                     },
                                                                     "requestsPerHour": {
-                                                                        "type": "string",
+                                                                        "type": "number",
                                                                         "nullable": true,
-                                                                        "maxLength": 250
+                                                                        "minimum": 0
                                                                     },
                                                                     "capability": {
                                                                         "type": "object",
+                                                                        "nullable": true,
                                                                         "properties": {
                                                                             "name": {
                                                                                 "type": "string",
+                                                                                "nullable": true,
                                                                                 "maxLength": 250
                                                                             },
                                                                             "version": {
                                                                                 "type": "string",
+                                                                                "nullable": true,
                                                                                 "maxLength": 250
                                                                             }
-                                                                        },
-                                                                        "required": [
-                                                                            "name",
-                                                                            "version"
-                                                                        ]
+                                                                        }
                                                                     },
                                                                     "author": {
                                                                         "type": "object",
@@ -4345,7 +4365,12 @@
                                                                                 "type": "string",
                                                                                 "maxLength": 250
                                                                             },
-                                                                            "contact": {
+                                                                            "contactEmail": {
+                                                                                "type": "string",
+                                                                                "nullable": true,
+                                                                                "maxLength": 250
+                                                                            },
+                                                                            "contactOther": {
                                                                                 "type": "string",
                                                                                 "nullable": true,
                                                                                 "maxLength": 250
@@ -4428,9 +4453,9 @@
                                                                 },
                                                                 "required": [
                                                                     "name",
-                                                                    "apiUrl",
+                                                                    "apiBaseUrl",
+                                                                    "ExampleOutputs",
                                                                     "tags",
-                                                                    "capability",
                                                                     "author",
                                                                     "AgentPricing",
                                                                     "image",
@@ -4467,8 +4492,8 @@
                                                     "metadata": {
                                                         "name": "name",
                                                         "description": "description",
-                                                        "apiUrl": "api_url",
-                                                        "exampleOutput": "example_output",
+                                                        "apiBaseUrl": "api_url",
+                                                        "ExampleOutputs": [],
                                                         "tags": [
                                                             "tag1",
                                                             "tag2"
@@ -4479,7 +4504,8 @@
                                                         },
                                                         "author": {
                                                             "name": "author_name",
-                                                            "contact": "author_contact",
+                                                            "contactEmail": "author_contact_email",
+                                                            "contactOther": "author_contact_other",
                                                             "organization": "author_organization"
                                                         },
                                                         "legal": {
@@ -4588,23 +4614,30 @@
                                                                 "type": "string",
                                                                 "nullable": true
                                                             },
-                                                            "apiUrl": {
+                                                            "apiBaseUrl": {
                                                                 "type": "string"
                                                             },
                                                             "capabilityName": {
-                                                                "type": "string"
-                                                            },
-                                                            "capabilityVersion": {
-                                                                "type": "string"
-                                                            },
-                                                            "requestsPerHour": {
                                                                 "type": "string",
                                                                 "nullable": true
+                                                            },
+                                                            "capabilityVersion": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "requestsPerHour": {
+                                                                "type": "number",
+                                                                "nullable": true,
+                                                                "minimum": 0
                                                             },
                                                             "authorName": {
                                                                 "type": "string"
                                                             },
-                                                            "authorContact": {
+                                                            "authorContactEmail": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "authorContactOther": {
                                                                 "type": "string",
                                                                 "nullable": true
                                                             },
@@ -4652,6 +4685,32 @@
                                                             "lastCheckedAt": {
                                                                 "type": "string",
                                                                 "nullable": true
+                                                            },
+                                                            "ExampleOutputs": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "name": {
+                                                                            "type": "string",
+                                                                            "maxLength": 60
+                                                                        },
+                                                                        "url": {
+                                                                            "type": "string",
+                                                                            "maxLength": 250
+                                                                        },
+                                                                        "mimeType": {
+                                                                            "type": "string",
+                                                                            "maxLength": 60
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "name",
+                                                                        "url",
+                                                                        "mimeType"
+                                                                    ]
+                                                                },
+                                                                "maxItems": 25
                                                             },
                                                             "agentIdentifier": {
                                                                 "type": "string",
@@ -4733,12 +4792,13 @@
                                                             "id",
                                                             "name",
                                                             "description",
-                                                            "apiUrl",
+                                                            "apiBaseUrl",
                                                             "capabilityName",
                                                             "capabilityVersion",
                                                             "requestsPerHour",
                                                             "authorName",
-                                                            "authorContact",
+                                                            "authorContactEmail",
+                                                            "authorContactOther",
                                                             "authorOrganization",
                                                             "privacyPolicy",
                                                             "terms",
@@ -4748,6 +4808,7 @@
                                                             "createdAt",
                                                             "updatedAt",
                                                             "lastCheckedAt",
+                                                            "ExampleOutputs",
                                                             "agentIdentifier",
                                                             "AgentPricing",
                                                             "SmartContractWallet",
@@ -4773,12 +4834,10 @@
                                                     "id": "asset_id",
                                                     "name": "name",
                                                     "description": "description",
-                                                    "apiUrl": "api_url",
                                                     "capabilityName": "capability_name",
                                                     "capabilityVersion": "capability_version",
-                                                    "requestsPerHour": "100",
+                                                    "requestsPerHour": 100,
                                                     "authorName": "author_name",
-                                                    "authorContact": "author_contact",
                                                     "authorOrganization": "author_organization",
                                                     "privacyPolicy": "link to privacy policy",
                                                     "terms": "link to terms",
@@ -4792,6 +4851,10 @@
                                                     "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "lastCheckedAt": "1970-01-20T20:00:36.260Z",
                                                     "agentIdentifier": "agent_identifier",
+                                                    "apiBaseUrl": "api_url",
+                                                    "ExampleOutputs": [],
+                                                    "authorContactEmail": "author_contact_email",
+                                                    "authorContactOther": "author_contact_other",
                                                     "AgentPricing": {
                                                         "pricingType": "Fixed",
                                                         "Pricing": [
@@ -4852,10 +4915,31 @@
                                         "maxLength": 250,
                                         "description": "The payment key of a specific wallet used for the registration"
                                     },
-                                    "exampleOutput": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "Link to a example output of the agent"
+                                    "ExampleOutputs": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "maxLength": 60
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "maxLength": 250
+                                                },
+                                                "mimeType": {
+                                                    "type": "string",
+                                                    "maxLength": 60
+                                                }
+                                            },
+                                            "required": [
+                                                "name",
+                                                "url",
+                                                "mimeType"
+                                            ]
+                                        },
+                                        "maxItems": 25
                                     },
                                     "tags": {
                                         "type": "array",
@@ -4872,7 +4956,7 @@
                                         "maxLength": 250,
                                         "description": "Name of the agent"
                                     },
-                                    "apiUrl": {
+                                    "apiBaseUrl": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "Base URL of the agent, to request interactions"
@@ -4901,8 +4985,9 @@
                                         "description": "Provide information about the used AI model and version"
                                     },
                                     "requestsPerHour": {
-                                        "type": "string",
-                                        "maxLength": 250,
+                                        "type": "number",
+                                        "nullable": true,
+                                        "minimum": 0,
                                         "description": "The request the agent can handle per hour"
                                     },
                                     "AgentPricing": {
@@ -4968,7 +5053,11 @@
                                                 "type": "string",
                                                 "maxLength": 250
                                             },
-                                            "contact": {
+                                            "contactEmail": {
+                                                "type": "string",
+                                                "maxLength": 250
+                                            },
+                                            "contactOther": {
                                                 "type": "string",
                                                 "maxLength": 250
                                             },
@@ -4986,9 +5075,10 @@
                                 "required": [
                                     "network",
                                     "sellingWalletVkey",
+                                    "ExampleOutputs",
                                     "tags",
                                     "name",
-                                    "apiUrl",
+                                    "apiBaseUrl",
                                     "description",
                                     "capability",
                                     "requestsPerHour",
@@ -4998,19 +5088,26 @@
                                 "example": {
                                     "network": "Preprod",
                                     "smartContractAddress": "addr_test1",
-                                    "exampleOutput": "example_output",
+                                    "ExampleOutputs": [
+                                        {
+                                            "name": "example_output_name",
+                                            "url": "https://example.com/example_output",
+                                            "mimeType": "application/json"
+                                        }
+                                    ],
                                     "tags": [
                                         "tag1",
                                         "tag2"
                                     ],
                                     "name": "Agent Name",
-                                    "apiUrl": "https://api.example.com",
                                     "description": "Agent Description",
                                     "author": {
                                         "name": "Author Name",
-                                        "contact": "author@example.com",
+                                        "contactEmail": "author@example.com",
+                                        "contactOther": "author_contact_other",
                                         "organization": "Author Organization"
                                     },
+                                    "apiBaseUrl": "https://api.example.com",
                                     "legal": {
                                         "privacyPolicy": "Privacy Policy URL",
                                         "terms": "Terms of Service URL",
@@ -5021,7 +5118,7 @@
                                         "name": "Capability Name",
                                         "version": "1.0.0"
                                     },
-                                    "requestsPerHour": "100",
+                                    "requestsPerHour": 3,
                                     "AgentPricing": {
                                         "pricingType": "Fixed",
                                         "Pricing": [
@@ -5056,22 +5153,25 @@
                                                 "name": {
                                                     "type": "string"
                                                 },
-                                                "apiUrl": {
+                                                "apiBaseUrl": {
                                                     "type": "string"
                                                 },
                                                 "capabilityName": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "nullable": true
                                                 },
                                                 "capabilityVersion": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "nullable": true
                                                 },
                                                 "description": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
                                                 "requestsPerHour": {
-                                                    "type": "string",
-                                                    "nullable": true
+                                                    "type": "number",
+                                                    "nullable": true,
+                                                    "minimum": 0
                                                 },
                                                 "privacyPolicy": {
                                                     "type": "string",
@@ -5119,6 +5219,32 @@
                                                         "walletAddress"
                                                     ]
                                                 },
+                                                "ExampleOutputs": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "maxLength": 60
+                                                            },
+                                                            "url": {
+                                                                "type": "string",
+                                                                "maxLength": 250
+                                                            },
+                                                            "mimeType": {
+                                                                "type": "string",
+                                                                "maxLength": 60
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "name",
+                                                            "url",
+                                                            "mimeType"
+                                                        ]
+                                                    },
+                                                    "maxItems": 25
+                                                },
                                                 "AgentPricing": {
                                                     "type": "object",
                                                     "properties": {
@@ -5156,7 +5282,7 @@
                                             "required": [
                                                 "id",
                                                 "name",
-                                                "apiUrl",
+                                                "apiBaseUrl",
                                                 "capabilityName",
                                                 "capabilityVersion",
                                                 "description",
@@ -5167,6 +5293,7 @@
                                                 "tags",
                                                 "state",
                                                 "SmartContractWallet",
+                                                "ExampleOutputs",
                                                 "AgentPricing"
                                             ]
                                         }
@@ -5179,14 +5306,14 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid2",
-                                            "apiUrl": "api_url",
+                                            "apiBaseUrl": "api_url",
                                             "tags": [
                                                 "tag1",
                                                 "tag2"
                                             ],
                                             "capabilityName": "capability_name",
                                             "capabilityVersion": "capability_version",
-                                            "requestsPerHour": "100",
+                                            "requestsPerHour": 100,
                                             "AgentPricing": {
                                                 "pricingType": "Fixed",
                                                 "Pricing": [
@@ -5196,6 +5323,7 @@
                                                     }
                                                 ]
                                             },
+                                            "ExampleOutputs": [],
                                             "SmartContractWallet": {
                                                 "walletVkey": "wallet_vkey",
                                                 "walletAddress": "wallet_address"
@@ -5283,22 +5411,25 @@
                                                 "name": {
                                                     "type": "string"
                                                 },
-                                                "apiUrl": {
+                                                "apiBaseUrl": {
                                                     "type": "string"
                                                 },
                                                 "capabilityName": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "nullable": true
                                                 },
                                                 "capabilityVersion": {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "nullable": true
                                                 },
                                                 "description": {
                                                     "type": "string",
                                                     "nullable": true
                                                 },
                                                 "requestsPerHour": {
-                                                    "type": "string",
-                                                    "nullable": true
+                                                    "type": "number",
+                                                    "nullable": true,
+                                                    "minimum": 0
                                                 },
                                                 "privacyPolicy": {
                                                     "type": "string",
@@ -5346,6 +5477,32 @@
                                                         "DeregistrationFailed"
                                                     ]
                                                 },
+                                                "ExampleOutputs": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "maxLength": 60
+                                                            },
+                                                            "url": {
+                                                                "type": "string",
+                                                                "maxLength": 250
+                                                            },
+                                                            "mimeType": {
+                                                                "type": "string",
+                                                                "maxLength": 60
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "name",
+                                                            "url",
+                                                            "mimeType"
+                                                        ]
+                                                    },
+                                                    "maxItems": 25
+                                                },
                                                 "AgentPricing": {
                                                     "type": "object",
                                                     "properties": {
@@ -5383,7 +5540,7 @@
                                             "required": [
                                                 "id",
                                                 "name",
-                                                "apiUrl",
+                                                "apiBaseUrl",
                                                 "capabilityName",
                                                 "capabilityVersion",
                                                 "description",
@@ -5394,6 +5551,7 @@
                                                 "tags",
                                                 "SmartContractWallet",
                                                 "state",
+                                                "ExampleOutputs",
                                                 "AgentPricing"
                                             ]
                                         }
@@ -5406,14 +5564,21 @@
                                         "status": "success",
                                         "data": {
                                             "id": "cuid2",
-                                            "apiUrl": "api_url",
+                                            "apiBaseUrl": "api_url",
                                             "tags": [
                                                 "tag1",
                                                 "tag2"
                                             ],
                                             "capabilityName": "capability_name",
                                             "capabilityVersion": "capability_version",
-                                            "requestsPerHour": "100",
+                                            "requestsPerHour": 100,
+                                            "ExampleOutputs": [
+                                                {
+                                                    "name": "example_output_name",
+                                                    "url": "https://example.com/example_output",
+                                                    "mimeType": "application/json"
+                                                }
+                                            ],
                                             "AgentPricing": {
                                                 "pricingType": "Fixed",
                                                 "Pricing": [

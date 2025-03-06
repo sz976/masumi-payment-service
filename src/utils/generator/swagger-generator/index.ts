@@ -1246,8 +1246,8 @@ export function generateOpenAPI() {
                         metadata: {
                           name: 'name',
                           description: 'description',
-                          apiUrl: 'api_url',
-                          exampleOutput: 'example_output',
+                          apiBaseUrl: 'api_url',
+                          ExampleOutputs: [],
                           tags: ['tag1', 'tag2'],
                           capability: {
                             name: 'capability_name',
@@ -1255,7 +1255,8 @@ export function generateOpenAPI() {
                           },
                           author: {
                             name: 'author_name',
-                            contact: 'author_contact',
+                            contactEmail: 'author_contact_email',
+                            contactOther: 'author_contact_other',
                             organization: 'author_organization',
                           },
                           legal: {
@@ -1321,12 +1322,10 @@ export function generateOpenAPI() {
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
-                        apiUrl: 'api_url',
                         capabilityName: 'capability_name',
                         capabilityVersion: 'capability_version',
-                        requestsPerHour: '100',
+                        requestsPerHour: 100,
                         authorName: 'author_name',
-                        authorContact: 'author_contact',
                         authorOrganization: 'author_organization',
                         privacyPolicy: 'link to privacy policy',
                         terms: 'link to terms',
@@ -1337,6 +1336,10 @@ export function generateOpenAPI() {
                         updatedAt: new Date(1713636260),
                         lastCheckedAt: new Date(1713636260),
                         agentIdentifier: 'agent_identifier',
+                        apiBaseUrl: 'api_url',
+                        ExampleOutputs: [],
+                        authorContactEmail: 'author_contact_email',
+                        authorContactOther: 'author_contact_other',
                         AgentPricing: {
                           pricingType: PricingType.Fixed,
                           Pricing: [
@@ -1378,16 +1381,23 @@ export function generateOpenAPI() {
               example: {
                 network: Network.Preprod,
                 smartContractAddress: 'addr_test1',
-                exampleOutput: 'example_output',
+                ExampleOutputs: [
+                  {
+                    name: 'example_output_name',
+                    url: 'https://example.com/example_output',
+                    mimeType: 'application/json',
+                  },
+                ],
                 tags: ['tag1', 'tag2'],
                 name: 'Agent Name',
-                apiUrl: 'https://api.example.com',
                 description: 'Agent Description',
                 author: {
                   name: 'Author Name',
-                  contact: 'author@example.com',
+                  contactEmail: 'author@example.com',
+                  contactOther: 'author_contact_other',
                   organization: 'Author Organization',
                 },
+                apiBaseUrl: 'https://api.example.com',
                 legal: {
                   privacyPolicy: 'Privacy Policy URL',
                   terms: 'Terms of Service URL',
@@ -1395,7 +1405,7 @@ export function generateOpenAPI() {
                 },
                 sellingWalletVkey: 'wallet_vkey',
                 capability: { name: 'Capability Name', version: '1.0.0' },
-                requestsPerHour: '100',
+                requestsPerHour: 3,
                 AgentPricing: {
                   pricingType: PricingType.Fixed,
                   Pricing: [
@@ -1423,11 +1433,11 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid2',
-                    apiUrl: 'api_url',
+                    apiBaseUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
                     capabilityName: 'capability_name',
                     capabilityVersion: 'capability_version',
-                    requestsPerHour: '100',
+                    requestsPerHour: 100,
                     AgentPricing: {
                       pricingType: PricingType.Fixed,
                       Pricing: [
@@ -1437,6 +1447,7 @@ export function generateOpenAPI() {
                         },
                       ],
                     },
+                    ExampleOutputs: [],
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',
@@ -1485,11 +1496,18 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid2',
-                    apiUrl: 'api_url',
+                    apiBaseUrl: 'api_url',
                     tags: ['tag1', 'tag2'],
                     capabilityName: 'capability_name',
                     capabilityVersion: 'capability_version',
-                    requestsPerHour: '100',
+                    requestsPerHour: 100,
+                    ExampleOutputs: [
+                      {
+                        name: 'example_output_name',
+                        url: 'https://example.com/example_output',
+                        mimeType: 'application/json',
+                      },
+                    ],
                     AgentPricing: {
                       pricingType: PricingType.Fixed,
                       Pricing: [

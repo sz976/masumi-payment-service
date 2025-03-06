@@ -128,16 +128,28 @@ export async function registerAgentV1() {
                 [assetName]: {
                   name: stringToMetadata(request.name),
                   description: stringToMetadata(request.description),
-                  api_url: stringToMetadata(request.apiUrl),
-                  example_output: stringToMetadata(request.other),
-                  capability: {
-                    name: stringToMetadata(request.capabilityName),
-                    version: stringToMetadata(request.capabilityVersion),
-                  },
-                  requests_per_hour: stringToMetadata(request.requestsPerHour),
+                  api_base_url: stringToMetadata(request.apiBaseUrl),
+                  example_output: request.ExampleOutputs.map(
+                    (exampleOutput) => ({
+                      name: stringToMetadata(exampleOutput.name),
+                      mime_type: stringToMetadata(exampleOutput.mimeType),
+                      url: stringToMetadata(exampleOutput.url),
+                    }),
+                  ),
+                  capability:
+                    request.capabilityName && request.capabilityVersion
+                      ? {
+                          name: stringToMetadata(request.capabilityName),
+                          version: stringToMetadata(request.capabilityVersion),
+                        }
+                      : undefined,
+                  requests_per_hour: request.requestsPerHour
+                    ? stringToMetadata(request.requestsPerHour.toString())
+                    : undefined,
                   author: {
                     name: stringToMetadata(request.authorName),
-                    contact: stringToMetadata(request.authorContact),
+                    contact_email: stringToMetadata(request.authorContactEmail),
+                    contact_other: stringToMetadata(request.authorContactOther),
                     organization: stringToMetadata(request.authorOrganization),
                   },
                   legal: {
@@ -155,9 +167,7 @@ export async function registerAgentV1() {
                       })) ?? [],
                   },
                   image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
-                  metadata_version: stringToMetadata(
-                    DEFAULTS.DEFAULT_METADATA_VERSION,
-                  ),
+                  metadata_version: request.metadataVersion.toString(),
                 },
               },
               version: '1',

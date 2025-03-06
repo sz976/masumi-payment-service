@@ -94,23 +94,25 @@ export function RegisterAgentModal({
     }
 
     try {
+      //TODO: update example outputs and contact email and change the requests per hour to float in the ui
       const details: PostRegistryData['body'] = {
         network: network === 'PREPROD' ? 'Preprod' : 'Mainnet',
         smartContractAddress: paymentContractAddress,
         tags: formData.tags,
         name: formData.name,
-        apiUrl: formData.api_url,
+        apiBaseUrl: formData.api_url,
         description: formData.description,
         author: {
           name: formData.authorName,
-          contact: formData.authorContact || undefined,
+          contactEmail: formData.authorContact || undefined,
           organization: formData.authorOrganization || undefined,
         },
         capability: {
           name: formData.capabilityName,
           version: formData.capabilityVersion,
         },
-        requestsPerHour: formData.requests_per_hour,
+        ExampleOutputs: [],
+        requestsPerHour: parseFloat(formData.requests_per_hour),
         AgentPricing: {
           pricingType: 'Fixed',
           Pricing: [

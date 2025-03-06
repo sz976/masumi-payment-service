@@ -83,7 +83,7 @@ export const CONFIG = {
 export const DEFAULTS = {
   TX_TIMEOUT_INTERVAL: 1000 * 60 * 15, // 5 minutes in seconds
   LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 15 minutes in seconds
-  DEFAULT_METADATA_VERSION: '1',
+  DEFAULT_METADATA_VERSION: 1,
   DEFAULT_IMAGE: 'ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f',
 
   ADMIN_WALLET1_PREPROD:
