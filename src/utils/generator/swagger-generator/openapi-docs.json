@@ -1635,7 +1635,6 @@
                                     "agentIdentifier": "agent_identifier",
                                     "network": "Preprod",
                                     "metadata": "(private) metadata to be stored with the payment request",
-                                    "smartContractAddress": "address",
                                     "RequestedFunds": [
                                         {
                                             "amount": "10000000",
@@ -1977,7 +1976,6 @@
                                 ],
                                 "example": {
                                     "network": "Preprod",
-                                    "smartContractAddress": "address",
                                     "blockchainIdentifier": "identifier",
                                     "submitResultHash": "hash"
                                 }
@@ -3146,7 +3144,6 @@
                                     "blockchainIdentifier": "blockchain_identifier",
                                     "network": "Preprod",
                                     "sellerVkey": "seller_vkey",
-                                    "smartContractAddress": "address",
                                     "Amounts": [
                                         {
                                             "amount": "10000000",
@@ -3522,7 +3519,6 @@
                                 ],
                                 "example": {
                                     "network": "Preprod",
-                                    "smartContractAddress": "address",
                                     "blockchainIdentifier": "blockchain_identifier"
                                 }
                             }
@@ -3888,7 +3884,6 @@
                                 ],
                                 "example": {
                                     "network": "Preprod",
-                                    "smartContractAddress": "address",
                                     "blockchainIdentifier": "blockchain_identifier"
                                 }
                             }
@@ -5087,7 +5082,6 @@
                                 ],
                                 "example": {
                                     "network": "Preprod",
-                                    "smartContractAddress": "addr_test1",
                                     "ExampleOutputs": [
                                         {
                                             "name": "example_output_name",
