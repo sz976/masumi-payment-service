@@ -491,7 +491,6 @@ export function generateOpenAPI() {
           limit: 10,
           cursorId: 'cuid_v2_of_last_cursor_entry',
           network: Network.Preprod,
-          smartContractAddress: 'addr_abcd1234567890',
         },
       }),
     },
@@ -586,7 +585,6 @@ export function generateOpenAPI() {
                 network: Network.Preprod,
                 metadata:
                   '(private) metadata to be stored with the payment request',
-                smartContractAddress: 'address',
                 RequestedFunds: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
@@ -676,7 +674,6 @@ export function generateOpenAPI() {
             schema: submitPaymentResultSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'identifier',
                 submitResultHash: 'hash',
               },
@@ -855,7 +852,6 @@ export function generateOpenAPI() {
           limit: 10,
           cursorId: 'cuid_v2_of_last_cursor_entry',
           network: Network.Preprod,
-          smartContractAddress: 'addr_abcd1234567890',
         },
       }),
     },
@@ -945,7 +941,6 @@ export function generateOpenAPI() {
                 blockchainIdentifier: 'blockchain_identifier',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
-                smartContractAddress: 'address',
                 Amounts: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
@@ -1041,7 +1036,6 @@ export function generateOpenAPI() {
             schema: requestPurchaseRefundSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'blockchain_identifier',
               },
             }),
@@ -1131,7 +1125,6 @@ export function generateOpenAPI() {
             schema: cancelPurchaseRefundRequestSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'blockchain_identifier',
               },
             }),
@@ -1220,7 +1213,6 @@ export function generateOpenAPI() {
         example: {
           walletVKey: 'wallet_vkey',
           network: Network.Preprod,
-          smartContractAddress: 'address',
         },
       }),
     },
@@ -1299,7 +1291,6 @@ export function generateOpenAPI() {
         example: {
           network: Network.Preprod,
           cursorId: 'cursor_id',
-          smartContractAddress: 'address',
         },
       }),
     },
@@ -1380,7 +1371,6 @@ export function generateOpenAPI() {
             schema: registerAgentSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'addr_test1',
                 ExampleOutputs: [
                   {
                     name: 'example_output_name',
@@ -1480,7 +1470,6 @@ export function generateOpenAPI() {
         example: {
           agentIdentifier: 'agentIdentifier',
           network: Network.Preprod,
-          smartContractAddress: 'address',
         },
       }),
     },
