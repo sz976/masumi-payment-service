@@ -59,7 +59,7 @@ export async function registerAgentV1() {
             }),
           ],
           operations: registryRequests.map((request) => async () => {
-            if (request.Pricing.pricingType == PricingType.Fixed) {
+            if (request.Pricing.pricingType != PricingType.Fixed) {
               throw new Error('Other than fixed pricing is not supported yet');
             }
             if (

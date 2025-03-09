@@ -52,7 +52,7 @@ export const queryPurchaseRequestSchemaInput = z.object({
 });
 
 export const queryPurchaseRequestSchemaOutput = z.object({
-  purchases: z.array(
+  Purchases: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -192,7 +192,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       throw createHttpError(404, 'Purchase not found');
     }
     return {
-      purchases: result.map((purchase) => ({
+      Purchases: result.map((purchase) => ({
         ...purchase,
         PaidFunds: purchase.PaidFunds.map((amount) => ({
           ...amount,

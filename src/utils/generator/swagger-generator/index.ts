@@ -268,7 +268,7 @@ export function generateOpenAPI() {
               .openapi({
                 example: {
                   data: {
-                    apiKeys: [
+                    ApiKeys: [
                       {
                         id: 'unique_cuid_v2_of_entry',
                         token: 'masumi_payment_api_key_secret',
@@ -506,7 +506,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    payments: [
+                    Payments: [
                       {
                         id: 'cuid_v2_auto_generated',
                         blockchainIdentifier: 'blockchain_identifier',
@@ -870,7 +870,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    purchases: [
+                    Purchases: [
                       {
                         id: 'cuid_v2_auto_generated',
                         blockchainIdentifier: 'blockchain_identifier',
@@ -1230,31 +1230,31 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    assets: [
+                    Assets: [
                       {
                         policyId: 'policy_id',
                         assetName: 'asset_name',
                         agentIdentifier: 'agent_identifier',
-                        metadata: {
+                        Metadata: {
                           name: 'name',
                           description: 'description',
                           apiBaseUrl: 'api_url',
                           ExampleOutputs: [],
-                          tags: ['tag1', 'tag2'],
-                          capability: {
+                          Tags: ['tag1', 'tag2'],
+                          Capability: {
                             name: 'capability_name',
                             version: 'capability_version',
                           },
-                          author: {
+                          Legal: {
+                            privacyPolicy: 'privacy_policy',
+                            terms: 'terms',
+                            other: 'other',
+                          },
+                          Author: {
                             name: 'author_name',
                             contactEmail: 'author_contact_email',
                             contactOther: 'author_contact_other',
                             organization: 'author_organization',
-                          },
-                          legal: {
-                            privacyPolicy: 'privacy_policy',
-                            terms: 'terms',
-                            other: 'other',
                           },
                           image: 'image',
                           AgentPricing: {
@@ -1308,29 +1308,35 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    assets: [
+                    Assets: [
                       {
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
-                        capabilityName: 'capability_name',
-                        capabilityVersion: 'capability_version',
                         requestsPerHour: 100,
-                        authorName: 'author_name',
-                        authorOrganization: 'author_organization',
-                        privacyPolicy: 'link to privacy policy',
-                        terms: 'link to terms',
-                        other: 'link to other',
+                        Capability: {
+                          name: 'capability_name',
+                          version: 'capability_version',
+                        },
+                        Author: {
+                          name: 'author_name',
+                          organization: 'author_organization',
+                          contactEmail: 'author_contact_email',
+                          contactOther: 'author_contact_other',
+                        },
+                        Legal: {
+                          privacyPolicy: 'privacy_policy',
+                          terms: 'terms',
+                          other: 'other',
+                        },
                         state: 'RegistrationRequested',
-                        tags: ['tag1', 'tag2'],
+                        Tags: ['tag1', 'tag2'],
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         lastCheckedAt: new Date(1713636260),
                         agentIdentifier: 'agent_identifier',
                         apiBaseUrl: 'api_url',
                         ExampleOutputs: [],
-                        authorContactEmail: 'author_contact_email',
-                        authorContactOther: 'author_contact_other',
                         AgentPricing: {
                           pricingType: PricingType.Fixed,
                           Pricing: [
@@ -1378,23 +1384,23 @@ export function generateOpenAPI() {
                     mimeType: 'application/json',
                   },
                 ],
-                tags: ['tag1', 'tag2'],
+                Tags: ['tag1', 'tag2'],
                 name: 'Agent Name',
                 description: 'Agent Description',
-                author: {
+                Author: {
                   name: 'Author Name',
                   contactEmail: 'author@example.com',
                   contactOther: 'author_contact_other',
                   organization: 'Author Organization',
                 },
                 apiBaseUrl: 'https://api.example.com',
-                legal: {
+                Legal: {
                   privacyPolicy: 'Privacy Policy URL',
                   terms: 'Terms of Service URL',
                   other: 'Other Legal Information URL',
                 },
                 sellingWalletVkey: 'wallet_vkey',
-                capability: { name: 'Capability Name', version: '1.0.0' },
+                Capability: { name: 'Capability Name', version: '1.0.0' },
                 requestsPerHour: 3,
                 AgentPricing: {
                   pricingType: PricingType.Fixed,
@@ -1424,9 +1430,16 @@ export function generateOpenAPI() {
                   data: {
                     id: 'cuid2',
                     apiBaseUrl: 'api_url',
-                    tags: ['tag1', 'tag2'],
-                    capabilityName: 'capability_name',
-                    capabilityVersion: 'capability_version',
+                    Tags: ['tag1', 'tag2'],
+                    Capability: {
+                      name: 'capability_name',
+                      version: 'capability_version',
+                    },
+                    Legal: {
+                      privacyPolicy: 'privacy_policy',
+                      terms: 'terms',
+                      other: 'other',
+                    },
                     requestsPerHour: 100,
                     AgentPricing: {
                       pricingType: PricingType.Fixed,
@@ -1438,6 +1451,12 @@ export function generateOpenAPI() {
                       ],
                     },
                     ExampleOutputs: [],
+                    Author: {
+                      name: 'author_name',
+                      organization: 'author_organization',
+                      contactEmail: 'author_contact_email',
+                      contactOther: 'author_contact_other',
+                    },
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',
@@ -1445,9 +1464,6 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacyPolicy: 'link to privacy policy',
-                    terms: 'link to terms',
-                    other: 'link to other',
                   },
                 },
               }),
@@ -1486,9 +1502,11 @@ export function generateOpenAPI() {
                   data: {
                     id: 'cuid2',
                     apiBaseUrl: 'api_url',
-                    tags: ['tag1', 'tag2'],
-                    capabilityName: 'capability_name',
-                    capabilityVersion: 'capability_version',
+                    Tags: ['tag1', 'tag2'],
+                    Capability: {
+                      name: 'capability_name',
+                      version: 'capability_version',
+                    },
                     requestsPerHour: 100,
                     ExampleOutputs: [
                       {
@@ -1497,6 +1515,17 @@ export function generateOpenAPI() {
                         mimeType: 'application/json',
                       },
                     ],
+                    Author: {
+                      name: 'author_name',
+                      organization: 'author_organization',
+                      contactEmail: 'author_contact_email',
+                      contactOther: 'author_contact_other',
+                    },
+                    Legal: {
+                      privacyPolicy: 'privacy_policy',
+                      terms: 'terms',
+                      other: 'other',
+                    },
                     AgentPricing: {
                       pricingType: PricingType.Fixed,
                       Pricing: [
@@ -1513,9 +1542,6 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacyPolicy: 'link to privacy policy',
-                    terms: 'link to terms',
-                    other: 'link to other',
                   },
                 },
               }),
@@ -1552,7 +1578,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    paymentSources: [
+                    PaymentSources: [
                       {
                         id: 'cuid_v2_auto_generated',
                         createdAt: new Date(1713636260),
@@ -1645,7 +1671,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    paymentSources: [
+                    ExtendedPaymentSources: [
                       {
                         id: 'cuid_v2_auto_generated',
                         createdAt: new Date(1713636260),
@@ -2022,13 +2048,16 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    utxos: [
+                    Utxos: [
                       {
                         txHash: 'tx_hash',
                         address: 'addr1qx2ej34k567890',
-                        amount: [{ unit: 'lovelace', quantity: 10000000 }],
-                        output_index: 1,
+                        Amounts: [{ unit: 'lovelace', quantity: 10000000 }],
+                        outputIndex: 1,
                         block: '1',
+                        dataHash: 'data_hash',
+                        inlineDatum: 'inline_datum',
+                        referenceScriptHash: 'reference_script_hash',
                       },
                     ],
                   },
@@ -2063,7 +2092,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: getRpcProviderKeysSchemaOutput.openapi({
               example: {
-                rpcProviderKeys: [
+                RpcProviderKeys: [
                   {
                     network: Network.Preprod,
                     id: 'unique_cuid_v2',

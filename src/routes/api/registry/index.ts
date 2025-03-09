@@ -33,24 +33,30 @@ export const queryRegistryRequestSchemaInput = z.object({
 });
 
 export const queryRegistryRequestSchemaOutput = z.object({
-  assets: z.array(
+  Assets: z.array(
     z.object({
       id: z.string(),
       name: z.string(),
       description: z.string().nullable(),
       apiBaseUrl: z.string(),
-      capabilityName: z.string().nullable(),
-      capabilityVersion: z.string().nullable(),
+      Capability: z.object({
+        name: z.string().nullable(),
+        version: z.string().nullable(),
+      }),
       requestsPerHour: z.number().min(0).nullable(),
-      authorName: z.string(),
-      authorContactEmail: z.string().nullable(),
-      authorContactOther: z.string().nullable(),
-      authorOrganization: z.string().nullable(),
-      privacyPolicy: z.string().nullable(),
-      terms: z.string().nullable(),
-      other: z.string().nullable(),
+      Author: z.object({
+        name: z.string(),
+        contactEmail: z.string().nullable(),
+        contactOther: z.string().nullable(),
+        organization: z.string().nullable(),
+      }),
+      Legal: z.object({
+        privacyPolicy: z.string().nullable(),
+        terms: z.string().nullable(),
+        other: z.string().nullable(),
+      }),
       state: z.nativeEnum(RegistrationState),
-      tags: z.array(z.string()),
+      Tags: z.array(z.string()),
       createdAt: z.date(),
       updatedAt: z.date(),
       lastCheckedAt: z.date().nullable(),
@@ -140,8 +146,23 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
     });
 
     return {
-      assets: result.map((item) => ({
+      Assets: result.map((item) => ({
         ...item,
+        Capability: {
+          name: item.capabilityName,
+          version: item.capabilityVersion,
+        },
+        Author: {
+          name: item.authorName,
+          contactEmail: item.authorContactEmail,
+          contactOther: item.authorContactOther,
+          organization: item.authorOrganization,
+        },
+        Legal: {
+          privacyPolicy: item.privacyPolicy,
+          terms: item.terms,
+          other: item.other,
+        },
         AgentPricing: {
           pricingType: PricingType.Fixed,
           Pricing:
@@ -150,6 +171,7 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
               amount: price.amount.toString(),
             })) ?? [],
         },
+        Tags: item.tags,
       })),
     };
   },
@@ -179,7 +201,7 @@ export const registerAgentSchemaInput = z.object({
       }),
     )
     .max(25),
-  tags: z
+  Tags: z
     .array(z.string().max(63))
     .min(1)
     .max(15)
@@ -190,7 +212,7 @@ export const registerAgentSchemaInput = z.object({
     .max(250)
     .describe('Base URL of the agent, to request interactions'),
   description: z.string().max(250).describe('Description of the agent'),
-  capability: z
+  Capability: z
     .object({ name: z.string().max(250), version: z.string().max(250) })
     .describe('Provide information about the used AI model and version'),
   requestsPerHour: z
@@ -210,7 +232,7 @@ export const registerAgentSchemaInput = z.object({
       .max(5)
       .describe('Price for a default interaction'),
   }),
-  legal: z
+  Legal: z
     .object({
       privacyPolicy: z.string().max(250).optional(),
       terms: z.string().max(250).optional(),
@@ -218,7 +240,7 @@ export const registerAgentSchemaInput = z.object({
     })
     .optional()
     .describe('Legal information about the agent'),
-  author: z
+  Author: z
     .object({
       name: z.string().max(250),
       contactEmail: z.string().max(250).optional(),
@@ -232,14 +254,24 @@ export const registerAgentSchemaOutput = z.object({
   id: z.string(),
   name: z.string(),
   apiBaseUrl: z.string(),
-  capabilityName: z.string().nullable(),
-  capabilityVersion: z.string().nullable(),
+  Capability: z.object({
+    name: z.string().nullable(),
+    version: z.string().nullable(),
+  }),
+  Legal: z.object({
+    privacyPolicy: z.string().nullable(),
+    terms: z.string().nullable(),
+    other: z.string().nullable(),
+  }),
+  Author: z.object({
+    name: z.string(),
+    contactEmail: z.string().nullable(),
+    contactOther: z.string().nullable(),
+    organization: z.string().nullable(),
+  }),
   description: z.string().nullable(),
   requestsPerHour: z.number().min(0).nullable(),
-  privacyPolicy: z.string().nullable(),
-  terms: z.string().nullable(),
-  other: z.string().nullable(),
-  tags: z.array(z.string()),
+  Tags: z.array(z.string()),
   state: z.nativeEnum(RegistrationState),
   SmartContractWallet: z.object({
     walletVkey: z.string(),
@@ -313,13 +345,13 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
         name: input.name,
         description: input.description,
         apiBaseUrl: input.apiBaseUrl,
-        capabilityName: input.capability.name,
-        capabilityVersion: input.capability.version,
+        capabilityName: input.Capability.name,
+        capabilityVersion: input.Capability.version,
         requestsPerHour: input.requestsPerHour,
-        authorName: input.author.name,
-        authorContactEmail: input.author.contactEmail,
-        authorContactOther: input.author.contactOther,
-        authorOrganization: input.author.organization,
+        authorName: input.Author.name,
+        authorContactEmail: input.Author.contactEmail,
+        authorContactOther: input.Author.contactOther,
+        authorOrganization: input.Author.organization,
         state: RegistrationState.RegistrationRequested,
         agentIdentifier: null,
         metadataVersion: DEFAULTS.DEFAULT_METADATA_VERSION,
@@ -342,7 +374,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             id: paymentSource.id,
           },
         },
-        tags: input.tags,
+        tags: input.Tags,
         Pricing: {
           create: {
             pricingType: input.AgentPricing.pricingType,
@@ -370,6 +402,21 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...result,
+      Capability: {
+        name: result.capabilityName,
+        version: result.capabilityVersion,
+      },
+      Legal: {
+        privacyPolicy: result.privacyPolicy,
+        terms: result.terms,
+        other: result.other,
+      },
+      Author: {
+        name: result.authorName,
+        contactEmail: result.authorContactEmail,
+        contactOther: result.authorContactOther,
+        organization: result.authorOrganization,
+      },
       AgentPricing: {
         pricingType: PricingType.Fixed,
         Pricing:
@@ -378,6 +425,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
             amount: pricing.amount.toString(),
           })) ?? [],
       },
+      Tags: result.tags,
     };
   },
 });
@@ -403,14 +451,24 @@ export const unregisterAgentSchemaOutput = z.object({
   id: z.string(),
   name: z.string(),
   apiBaseUrl: z.string(),
-  capabilityName: z.string().nullable(),
-  capabilityVersion: z.string().nullable(),
+  Capability: z.object({
+    name: z.string().nullable(),
+    version: z.string().nullable(),
+  }),
+  Author: z.object({
+    name: z.string(),
+    contactEmail: z.string().nullable(),
+    contactOther: z.string().nullable(),
+    organization: z.string().nullable(),
+  }),
+  Legal: z.object({
+    privacyPolicy: z.string().nullable(),
+    terms: z.string().nullable(),
+    other: z.string().nullable(),
+  }),
   description: z.string().nullable(),
   requestsPerHour: z.number().min(0).nullable(),
-  privacyPolicy: z.string().nullable(),
-  terms: z.string().nullable(),
-  other: z.string().nullable(),
-  tags: z.array(z.string()),
+  Tags: z.array(z.string()),
   SmartContractWallet: z.object({
     walletVkey: z.string(),
     walletAddress: z.string(),
@@ -520,6 +578,22 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
 
     return {
       ...result,
+      Capability: {
+        name: result.capabilityName,
+        version: result.capabilityVersion,
+      },
+      Author: {
+        name: result.authorName,
+        contactEmail: result.authorContactEmail,
+        contactOther: result.authorContactOther,
+        organization: result.authorOrganization,
+      },
+      Legal: {
+        privacyPolicy: result.privacyPolicy,
+        terms: result.terms,
+        other: result.other,
+      },
+      Tags: result.tags,
       AgentPricing: {
         pricingType: PricingType.Fixed,
         Pricing:

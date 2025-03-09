@@ -54,7 +54,7 @@ export const queryPaymentsSchemaInput = z.object({
 });
 
 export const queryPaymentsSchemaOutput = z.object({
-  payments: z.array(
+  Payments: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -184,7 +184,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
     }
 
     return {
-      payments: result.map((payment) => ({
+      Payments: result.map((payment) => ({
         ...payment,
         submitResultTime: payment.submitResultTime.toString(),
         cooldownTime: Number(payment.sellerCoolDownTime),

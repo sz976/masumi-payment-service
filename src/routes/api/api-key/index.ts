@@ -20,7 +20,7 @@ export const getAPIKeySchemaInput = z.object({
 });
 
 export const getAPIKeySchemaOutput = z.object({
-  apiKeys: z.array(
+  ApiKeys: z.array(
     z.object({
       id: z.string(),
       token: z.string(),
@@ -50,7 +50,7 @@ export const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
       include: { RemainingUsageCredits: true },
     });
     return {
-      apiKeys: result.map((data) => {
+      ApiKeys: result.map((data) => {
         return {
           ...data,
           RemainingUsageCredits: data.RemainingUsageCredits.map(

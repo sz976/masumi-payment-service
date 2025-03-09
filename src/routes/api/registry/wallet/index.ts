@@ -89,12 +89,12 @@ export const queryAgentFromWalletSchemaInput = z.object({
 });
 
 export const queryAgentFromWalletSchemaOutput = z.object({
-  assets: z.array(
+  Assets: z.array(
     z.object({
       policyId: z.string(),
       assetName: z.string(),
       agentIdentifier: z.string(),
-      metadata: z.object({
+      Metadata: z.object({
         name: z.string().max(250),
         description: z.string().max(250).nullable().optional(),
         apiBaseUrl: z.string().max(250),
@@ -107,22 +107,22 @@ export const queryAgentFromWalletSchemaOutput = z.object({
             }),
           )
           .max(25),
-        tags: z.array(z.string().max(250)),
+        Tags: z.array(z.string().max(250)),
         requestsPerHour: z.number().min(0).nullable().optional(),
-        capability: z
+        Capability: z
           .object({
             name: z.string().max(250).nullable().optional(),
             version: z.string().max(250).nullable().optional(),
           })
           .nullable()
           .optional(),
-        author: z.object({
+        Author: z.object({
           name: z.string().max(250),
           contactEmail: z.string().max(250).nullable().optional(),
           contactOther: z.string().max(250).nullable().optional(),
           organization: z.string().max(250).nullable().optional(),
         }),
-        legal: z
+        Legal: z
           .object({
             privacyPolicy: z.string().max(250).nullable().optional(),
             terms: z.string().max(250).nullable().optional(),
@@ -208,9 +208,9 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
     );
     const detailedAssets: {
       unit: string;
-      metadata: z.infer<
+      Metadata: z.infer<
         typeof queryAgentFromWalletSchemaOutput
-      >['assets'][0]['metadata'];
+      >['Assets'][0]['Metadata'];
     }[] = [];
 
     await Promise.all(
@@ -224,7 +224,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
         }
         detailedAssets.push({
           unit: asset.unit,
-          metadata: {
+          Metadata: {
             name: metadataToString(parsedMetadata.data.name!)!,
             description: metadataToString(parsedMetadata.data.description),
             apiBaseUrl: metadataToString(parsedMetadata.data.api_base_url)!,
@@ -234,7 +234,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
                 mimeType: metadataToString(exampleOutput.mime_type)!,
                 url: metadataToString(exampleOutput.url)!,
               })) ?? [],
-            capability: parsedMetadata.data.capability
+            Capability: parsedMetadata.data.capability
               ? {
                   name: metadataToString(parsedMetadata.data.capability.name)!,
                   version: metadataToString(
@@ -242,7 +242,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
                   )!,
                 }
               : undefined,
-            author: {
+            Author: {
               name: metadataToString(parsedMetadata.data.author.name)!,
               contactEmail: metadataToString(
                 parsedMetadata.data.author.contact_email,
@@ -254,7 +254,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
                 parsedMetadata.data.author.organization,
               ),
             },
-            legal: parsedMetadata.data.legal
+            Legal: parsedMetadata.data.legal
               ? {
                   privacyPolicy: metadataToString(
                     parsedMetadata.data.legal.privacy_policy,
@@ -263,7 +263,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
                   other: metadataToString(parsedMetadata.data.legal.other),
                 }
               : undefined,
-            tags: parsedMetadata.data.tags.map((tag) => metadataToString(tag)!),
+            Tags: parsedMetadata.data.tags.map((tag) => metadataToString(tag)!),
             AgentPricing: {
               pricingType: parsedMetadata.data.AgentPricing.pricingType,
               Pricing: parsedMetadata.data.AgentPricing.Pricing.map(
@@ -281,11 +281,12 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
     );
 
     return {
-      assets: detailedAssets.map((asset) => ({
+      Assets: detailedAssets.map((asset) => ({
         policyId: policyId,
         assetName: asset.unit.slice(policyId.length),
         agentIdentifier: asset.unit,
-        metadata: asset.metadata,
+        Metadata: asset.Metadata,
+        Tags: asset.Metadata.Tags,
       })),
     };
   },
