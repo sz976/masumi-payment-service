@@ -74,13 +74,13 @@ export function RegisteredAgents({
           },
         });
 
-        const agentsFound = response?.data?.data?.assets || [];
+        const agentsFound = response?.data?.data?.Assets || [];
         setAgents((prevAgents) =>
           nextCursor ? [...prevAgents, ...agentsFound] : agentsFound,
         );
-        setHasMore(response?.data?.data?.assets.length === 10);
+        setHasMore(response?.data?.data?.Assets.length === 10);
         setCursor(
-          response?.data?.data?.assets[response?.data?.data?.assets.length - 1]
+          response?.data?.data?.Assets[response?.data?.data?.Assets.length - 1]
             ?.id || undefined,
         );
       } catch (error) {

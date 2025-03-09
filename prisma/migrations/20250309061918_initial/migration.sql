@@ -137,17 +137,19 @@ CREATE TABLE "RegistryRequest" (
     "paymentSourceId" TEXT NOT NULL,
     "smartContractWalletId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "apiUrl" TEXT NOT NULL,
-    "capabilityName" TEXT NOT NULL,
-    "capabilityVersion" TEXT NOT NULL,
+    "apiBaseUrl" TEXT NOT NULL,
+    "capabilityName" TEXT,
+    "capabilityVersion" TEXT,
     "description" TEXT,
-    "requestsPerHour" TEXT,
+    "requestsPerHour" DOUBLE PRECISION,
     "privacyPolicy" TEXT,
     "terms" TEXT,
     "other" TEXT,
     "authorName" TEXT NOT NULL,
-    "authorContact" TEXT,
+    "authorContactEmail" TEXT,
+    "authorContactOther" TEXT,
     "authorOrganization" TEXT,
+    "metadataVersion" INTEGER NOT NULL,
     "tags" TEXT[],
     "agentPricingId" TEXT NOT NULL,
     "agentIdentifier" TEXT,
@@ -155,6 +157,19 @@ CREATE TABLE "RegistryRequest" (
     "currentTransactionId" TEXT,
 
     CONSTRAINT "RegistryRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExampleOutput" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "name" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "registryRequestId" TEXT,
+
+    CONSTRAINT "ExampleOutput_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -382,6 +397,9 @@ ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_agentPricingId_fke
 
 -- AddForeignKey
 ALTER TABLE "RegistryRequest" ADD CONSTRAINT "RegistryRequest_currentTransactionId_fkey" FOREIGN KEY ("currentTransactionId") REFERENCES "Transaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExampleOutput" ADD CONSTRAINT "ExampleOutput_registryRequestId_fkey" FOREIGN KEY ("registryRequestId") REFERENCES "RegistryRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AgentPricing" ADD CONSTRAINT "AgentPricing_agentFixedPricingId_fkey" FOREIGN KEY ("agentFixedPricingId") REFERENCES "AgentFixedPricing"("id") ON DELETE SET NULL ON UPDATE CASCADE;

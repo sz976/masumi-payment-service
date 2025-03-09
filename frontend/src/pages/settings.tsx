@@ -27,7 +27,7 @@ export default function Settings() {
   const [showApiKey, setShowApiKey] = useState(false);
   const { state, dispatch } = useAppContext();
   const router = useRouter();
-  const [apiKeys, setApiKeys] = useState<GetApiKeyResponse['data']['apiKeys']>(
+  const [apiKeys, setApiKeys] = useState<GetApiKeyResponse['data']['ApiKeys']>(
     [],
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function Settings() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState<
-    GetApiKeyResponse['data']['apiKeys'][0] | null
+    GetApiKeyResponse['data']['ApiKeys'][0] | null
   >(null);
   const { apiClient } = useAppContext();
 
@@ -53,7 +53,7 @@ export default function Settings() {
           },
         });
 
-        const data = response?.data?.data?.apiKeys;
+        const data = response?.data?.data?.ApiKeys;
 
         const newKeys = data || [];
 
@@ -86,7 +86,7 @@ export default function Settings() {
   //TODO: Implement key details
   const handleKeyClick = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _keyDetails: GetApiKeyResponse['data']['apiKeys'][0],
+    _keyDetails: GetApiKeyResponse['data']['ApiKeys'][0],
   ) => {};
 
   const handleSignOut = () => {

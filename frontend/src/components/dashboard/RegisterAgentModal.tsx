@@ -98,16 +98,16 @@ export function RegisterAgentModal({
       const details: PostRegistryData['body'] = {
         network: network === 'PREPROD' ? 'Preprod' : 'Mainnet',
         smartContractAddress: paymentContractAddress,
-        tags: formData.tags,
+        Tags: formData.tags,
         name: formData.name,
         apiBaseUrl: formData.api_url,
         description: formData.description,
-        author: {
+        Author: {
           name: formData.authorName,
           contactEmail: formData.authorContact || undefined,
           organization: formData.authorOrganization || undefined,
         },
-        capability: {
+        Capability: {
           name: formData.capabilityName,
           version: formData.capabilityVersion,
         },
@@ -122,7 +122,7 @@ export function RegisterAgentModal({
             },
           ],
         },
-        legal: {},
+        Legal: {},
         sellingWalletVkey: selectedWallet,
       };
       await postRegistry({ client: apiClient, body: details });

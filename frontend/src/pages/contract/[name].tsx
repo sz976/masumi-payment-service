@@ -107,7 +107,7 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
         client: apiClient,
       });
 
-      const updatedContract = sources.data?.data?.paymentSources.find(
+      const updatedContract = sources.data?.data?.PaymentSources.find(
         (c: any) => c.id === contract.id,
       );
 
@@ -190,7 +190,7 @@ export default function ContractPage({ initialContract }: ContractPageProps) {
       const sources = await getPaymentSource({
         client: apiClient,
       });
-      const updatedContract = sources.data?.data?.paymentSources.find(
+      const updatedContract = sources.data?.data?.PaymentSources.find(
         (c: any) => c.id === contract.id,
       );
 

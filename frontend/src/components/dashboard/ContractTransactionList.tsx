@@ -30,8 +30,8 @@ import {
 type TransactionType = string;
 
 type Transaction =
-  | (GetPurchaseResponse['data']['purchases'][0] & { type: 'purchase' })
-  | (GetPaymentResponse['data']['payments'][0] & { type: 'payment' });
+  | (GetPurchaseResponse['data']['Purchases'][0] & { type: 'purchase' })
+  | (GetPaymentResponse['data']['Payments'][0] & { type: 'payment' });
 
 type TransactionListProps = {
   contractAddress?: string;
@@ -86,7 +86,7 @@ export function ContractTransactionList({
             limit: 10,
           },
         });
-        purchases.data?.data?.purchases.forEach((purchase) => {
+        purchases.data?.data?.Purchases.forEach((purchase) => {
           combined.push({
             type: 'purchase',
             ...purchase,
@@ -103,7 +103,7 @@ export function ContractTransactionList({
             limit: 10,
           },
         });
-        payments.data?.data?.payments.forEach((payment) => {
+        payments.data?.data?.Payments.forEach((payment) => {
           combined.push({
             type: 'payment',
             ...payment,
@@ -118,8 +118,8 @@ export function ContractTransactionList({
           cursor ? [...prev, ...newTransactions] : newTransactions,
         );
         setHasMore(
-          purchases.data?.data?.purchases.length === 10 ||
-            payments.data?.data?.payments.length === 10,
+          purchases.data?.data?.Purchases.length === 10 ||
+            payments.data?.data?.Payments.length === 10,
         );
         setCursorIdentifier(
           newTransactions[newTransactions.length - 1]?.id ?? null,
