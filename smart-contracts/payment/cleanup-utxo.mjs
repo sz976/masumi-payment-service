@@ -19,6 +19,7 @@ const wallet = new MeshWallet({
     words: fs.readFileSync('wallet_1.sk').toString().split(' '),
   },
 });
+console.log('Utxo cleanup starting...');
 
 const address = (await wallet.getUnusedAddresses())[0];
 
@@ -31,6 +32,7 @@ const signedTx = await wallet.signTx(unsignedTx, true);
 const txHash = await wallet.submitTx(signedTx);
 
 console.log(`UTXO cleanup via:
-    Tx ID: ${txHash}
-    
+    Tx ID: view on https://${
+      network === 'preprod' ? 'preprod.' : ''
+    }cardanoscan.io/transaction/${txHash}
 `);

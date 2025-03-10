@@ -1,25 +1,30 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 type ImportWalletModalProps = {
   type: 'hot' | 'cold';
   onClose: () => void;
-}
+};
 
 type ImportData = {
   seedPhrase: string;
   network: string;
   smartContract?: string;
   blockfrostKey?: string;
-}
+};
 
 export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
   const [importData, setImportData] = useState<ImportData>({
     seedPhrase: '',
     network: 'mainnet',
     smartContract: '',
-    blockfrostKey: ''
+    blockfrostKey: '',
   });
   const [error, setError] = useState<string>('');
 
@@ -42,14 +47,16 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
         return;
       }
 
-      if (importData.smartContract === 'custom' && !importData.blockfrostKey?.trim()) {
+      if (
+        importData.smartContract === 'custom' &&
+        !importData.blockfrostKey?.trim()
+      ) {
         setError('Blockfrost API key is required for custom smart contracts');
         return;
       }
     }
 
     try {
-      console.log('Importing wallet:', { type, ...importData });
       onClose();
     } catch (error) {
       console.error('Failed to import wallet:', error);
@@ -61,15 +68,13 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import {type.charAt(0).toUpperCase() + type.slice(1)} Wallet</DialogTitle>
+          <DialogTitle>
+            Import {type.charAt(0).toUpperCase() + type.slice(1)} Wallet
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {error && (
-            <div className="text-sm text-destructive">
-              {error}
-            </div>
-          )}
+          {error && <div className="text-sm text-destructive">{error}</div>}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -78,7 +83,9 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
             <textarea
               className="w-full p-2 rounded-md bg-background border min-h-[100px]"
               value={importData.seedPhrase}
-              onChange={(e) => setImportData({ ...importData, seedPhrase: e.target.value })}
+              onChange={(e) =>
+                setImportData({ ...importData, seedPhrase: e.target.value })
+              }
               placeholder="Enter your seed phrase"
               required
             />
@@ -91,7 +98,9 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
             <select
               className="w-full p-2 rounded-md bg-background border"
               value={importData.network}
-              onChange={(e) => setImportData({ ...importData, network: e.target.value })}
+              onChange={(e) =>
+                setImportData({ ...importData, network: e.target.value })
+              }
               required
             >
               <option value="mainnet">Mainnet</option>
@@ -108,7 +117,12 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
                 <select
                   className="w-full p-2 rounded-md bg-background border"
                   value={importData.smartContract}
-                  onChange={(e) => setImportData({ ...importData, smartContract: e.target.value })}
+                  onChange={(e) =>
+                    setImportData({
+                      ...importData,
+                      smartContract: e.target.value,
+                    })
+                  }
                   required
                 >
                   <option value="">Select Smart Contract</option>
@@ -120,13 +134,19 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
               {importData.smartContract === 'custom' && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Blockfrost API Key <span className="text-destructive">*</span>
+                    Blockfrost API Key{' '}
+                    <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="text"
                     className="w-full p-2 rounded-md bg-background border"
                     value={importData.blockfrostKey}
-                    onChange={(e) => setImportData({ ...importData, blockfrostKey: e.target.value })}
+                    onChange={(e) =>
+                      setImportData({
+                        ...importData,
+                        blockfrostKey: e.target.value,
+                      })
+                    }
                     placeholder="Enter your Blockfrost API key"
                     required
                   />
@@ -140,11 +160,9 @@ export function ImportWalletModal({ type, onClose }: ImportWalletModalProps) {
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleImport}>
-            Import Wallet
-          </Button>
+          <Button onClick={handleImport}>Import Wallet</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
-} 
+}

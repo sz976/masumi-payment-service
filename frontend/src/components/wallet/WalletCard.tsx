@@ -1,22 +1,28 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useEffect, useState, useCallback } from "react";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useState, useCallback } from 'react';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { Copy } from "lucide-react";
+import { Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import BlinkingUnderscore from "../BlinkingUnderscore";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import BlinkingUnderscore from '../BlinkingUnderscore';
 import { TransakWidget } from './TransakWidget';
-import { getUtxos, getWallet } from "@/lib/api/generated";
-import { SwapDialog } from "./SwapDialog";
+import { getUtxos, getWallet } from '@/lib/api/generated';
+import { SwapDialog } from './SwapDialog';
 
 export function WalletCard({
   type,
   address,
   walletId,
   onRemove,
-  contract
+  contract,
 }: {
   type: string;
   address: string;
@@ -52,7 +58,9 @@ export function WalletCard({
   const [usdmBalance, setUsdmBalance] = useState<number | null>(null);
   const [fetchingBalance, setFetchingBalance] = useState<boolean>(true);
   const [balanceError, setBalanceError] = useState<unknown>(null);
-  const [localAddress, setLocalAddress] = useState<string | null>(address || null);
+  const [localAddress, setLocalAddress] = useState<string | null>(
+    address || null,
+  );
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
   const { state } = useAppContext();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -65,10 +73,17 @@ export function WalletCard({
 
   const walletType = type === 'selling' ? 'Selling' : 'Purchasing';
 
-  const networkRpcProviderApiKey = contract.network?.toLowerCase() === "preprod" ? process.env.NEXT_PUBLIC_PREPROD_BLOCKFROST_API_KEY : process.env.NEXT_PUBLIC_DEV_BLOCKFROST_API_KEY;
+  const networkRpcProviderApiKey =
+    contract.network?.toLowerCase() === 'preprod'
+      ? process.env.NEXT_PUBLIC_PREPROD_BLOCKFROST_API_KEY
+      : process.env.NEXT_PUBLIC_DEV_BLOCKFROST_API_KEY;
 
-  const rpcProviderApiKey = contract?.NetworkHandlerConfig?.rpcProviderApiKey || state.rpcProviderApiKeys?.find(key => key.network === contract.network)?.rpcProviderApiKey || networkRpcProviderApiKey || "";
-
+  const rpcProviderApiKey =
+    contract?.NetworkHandlerConfig?.rpcProviderApiKey ||
+    state.rpcProviderApiKeys?.find((key) => key.network === contract.network)
+      ?.rpcProviderApiKey ||
+    networkRpcProviderApiKey ||
+    '';
 
   const fetchWalletAddress = useCallback(async () => {
     try {
@@ -78,8 +93,8 @@ export function WalletCard({
         query: {
           walletType,
           id: walletId!,
-          includeSecret: "true"
-        }
+          includeSecret: 'true',
+        },
       });
 
       const data = response.data?.data;
@@ -94,7 +109,7 @@ export function WalletCard({
 
   useEffect(() => {
     if (!localAddress && walletId) {
-      fetchWalletAddress().then(fetchedAddress => {
+      fetchWalletAddress().then((fetchedAddress) => {
         if (fetchedAddress) {
           setLocalAddress(fetchedAddress);
         }
@@ -102,54 +117,65 @@ export function WalletCard({
     }
   }, [fetchWalletAddress, localAddress, walletId]);
 
-  const fetchBalancePreprod = useCallback(async (address: string) => {
-    try {
-      setFetchingBalance(true);
-      const result = await getUtxos({
-        client: apiClient,
-        //no cache
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        query: {
-          address: address,
-          network: 'Preprod',
-        }
-      });
-      const usdmPolicyId = "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad";
-      const usdmHex = "0014df105553444d";
+  const fetchBalancePreprod = useCallback(
+    async (address: string) => {
+      try {
+        setFetchingBalance(true);
+        const result = await getUtxos({
+          client: apiClient,
+          //no cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          },
+          query: {
+            address: address,
+            network: 'Preprod',
+          },
+        });
+        const usdmPolicyId =
+          'c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad';
+        const usdmHex = '0014df105553444d';
 
-      const lovelace = result?.data?.data?.utxos?.reduce((acc, utxo) => {
-        return acc + utxo.amount.reduce((acc, asset) => {
-          if (asset.unit === 'lovelace' || asset.unit === '') {
-            return acc + (asset.quantity ?? 0);
-          }
-          return acc;
-        }, 0)
-      }, 0);
-      const usdm = result?.data?.data?.utxos?.reduce((acc, utxo) => {
-        return acc + utxo.amount.reduce((acc, asset) => {
-          if (asset.unit === usdmPolicyId + usdmHex) {
-            return acc + (asset.quantity ?? 0);
-          }
-          return acc;
-        }, 0)
-      }, 0);
-      setAdaBalance((lovelace || 0) / 1000000);
-      setUsdmBalance((usdm || 0) / 10000000);
-      setFetchingBalance(false);
-      return { ada: (lovelace || 0) / 1000000, usdm: (usdm || 0) / 10000000 };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Unknown error fetching balance';
-      setBalanceError(errorMessage);
-      console.error("Error fetching balance:", errorMessage);
-      throw error;
-    }
-  }, [apiClient]);
+        const lovelace = result?.data?.data?.Utxos?.reduce((acc, utxo) => {
+          return (
+            acc +
+            utxo.Amounts.reduce((acc, asset) => {
+              if (asset.unit === 'lovelace' || asset.unit === '') {
+                return acc + (asset.quantity ?? 0);
+              }
+              return acc;
+            }, 0)
+          );
+        }, 0);
+        const usdm = result?.data?.data?.Utxos?.reduce((acc, utxo) => {
+          return (
+            acc +
+            utxo.Amounts.reduce((acc, asset) => {
+              if (asset.unit === usdmPolicyId + usdmHex) {
+                return acc + (asset.quantity ?? 0);
+              }
+              return acc;
+            }, 0)
+          );
+        }, 0);
+        setAdaBalance((lovelace || 0) / 1000000);
+        setUsdmBalance((usdm || 0) / 10000000);
+        setFetchingBalance(false);
+        return { ada: (lovelace || 0) / 1000000, usdm: (usdm || 0) / 10000000 };
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Unknown error fetching balance';
+        setBalanceError(errorMessage);
+        console.error('Error fetching balance:', errorMessage);
+        throw error;
+      }
+    },
+    [apiClient],
+  );
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -160,9 +186,10 @@ export function WalletCard({
         setAdaBalance(data?.ada || 0);
         setUsdmBalance(data?.usdm || 0);
       } catch (error) {
-        const errorMessage = error instanceof Error
-          ? error.message
-          : 'Unknown error fetching balance';
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Unknown error fetching balance';
         console.error('Error fetching wallet balances:', errorMessage);
         setBalanceError(errorMessage);
       } finally {
@@ -183,9 +210,10 @@ export function WalletCard({
       setAdaBalance(data?.ada || 0);
       setUsdmBalance(data?.usdm || 0);
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Unknown error fetching balance';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error fetching balance';
       console.error('Error fetching wallet balances:', errorMessage);
       setBalanceError(errorMessage);
     } finally {
@@ -212,8 +240,8 @@ export function WalletCard({
         query: {
           walletType,
           id: walletId!,
-          includeSecret: "true"
-        }
+          includeSecret: 'true',
+        },
       });
 
       const data = response.data?.data;
@@ -227,7 +255,6 @@ export function WalletCard({
     }
   };
 
-
   const shortenAddress = (addr: string) => {
     return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
   };
@@ -239,7 +266,6 @@ export function WalletCard({
   };
 
   const getDisplayContent = () => {
-
     return (
       <>
         <div className="flex justify-between items-center">
@@ -248,7 +274,12 @@ export function WalletCard({
               <span className="text-muted-foreground">Fetching address...</span>
             ) : (
               <>
-                Address: {localAddress ? shortenAddress(localAddress) : <BlinkingUnderscore />}
+                Address:{' '}
+                {localAddress ? (
+                  shortenAddress(localAddress)
+                ) : (
+                  <BlinkingUnderscore />
+                )}
                 {localAddress && (
                   <Button
                     variant="ghost"
@@ -267,7 +298,9 @@ export function WalletCard({
         <div className="grid gap-2">
           {balanceError ? (
             <div className="space-y-2">
-              <div className="text-sm text-destructive">{balanceError as string}</div>
+              <div className="text-sm text-destructive">
+                {balanceError as string}
+              </div>
               <Button
                 variant="secondary"
                 size="sm"
@@ -279,8 +312,12 @@ export function WalletCard({
             </div>
           ) : !fetchingBalance ? (
             <>
-              <div className="text-sm">ADA Balance: {adaBalance?.toLocaleString() || "..."} ₳</div>
-              <div className="text-sm">USDM Balance: {usdmBalance?.toLocaleString() || "..."} USDM</div>
+              <div className="text-sm">
+                ADA Balance: {adaBalance?.toLocaleString() || '...'} ₳
+              </div>
+              <div className="text-sm">
+                USDM Balance: {usdmBalance?.toLocaleString() || '...'} USDM
+              </div>
               <Button
                 variant="secondary"
                 size="sm"
@@ -303,10 +340,19 @@ export function WalletCard({
               <Button variant="secondary" size="sm" onClick={handleTopUp}>
                 Top Up
               </Button>
-              <Button variant="secondary" size="sm" onClick={handleExport} disabled={isExporting}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
                 {isExporting ? 'Exporting...' : 'Export'}
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowSwapDialog(true)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowSwapDialog(true)}
+              >
                 Swap
               </Button>
             </>
@@ -321,7 +367,6 @@ export function WalletCard({
               e.stopPropagation();
               setShowDeleteDialog(true);
             }}
-
             style={{ maxWidth: '100px' }}
           >
             Remove Wallet
@@ -344,7 +389,8 @@ export function WalletCard({
           <DialogHeader>
             <DialogTitle>Remove Wallet</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove this wallet? This action cannot be undone.
+              Are you sure you want to remove this wallet? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">
@@ -373,7 +419,8 @@ export function WalletCard({
           <DialogHeader>
             <DialogTitle>Wallet Secret</DialogTitle>
             <DialogDescription>
-              Please store this secret phrase securely. Anyone with access to this phrase can control the wallet.
+              Please store this secret phrase securely. Anyone with access to
+              this phrase can control the wallet.
             </DialogDescription>
           </DialogHeader>
 
@@ -381,7 +428,6 @@ export function WalletCard({
             <div className="p-4 bg-muted rounded-md">
               <p className="text-sm break-all font-mono">{walletSecret}</p>
             </div>
-
           </div>
 
           <div className="flex justify-end space-x-2">

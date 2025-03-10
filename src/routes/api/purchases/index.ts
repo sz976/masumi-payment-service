@@ -17,6 +17,7 @@ import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/aut
 import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
+import { logger } from '@/utils/logger';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -52,7 +53,7 @@ export const queryPurchaseRequestSchemaInput = z.object({
 });
 
 export const queryPurchaseRequestSchemaOutput = z.object({
-  purchases: z.array(
+  Purchases: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -90,7 +91,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
           status: z.nativeEnum(TransactionStatus),
         }),
       ),
-      Amounts: z.array(
+      PaidFunds: z.array(
         z.object({
           id: z.string(),
           createdAt: z.date(),
@@ -178,7 +179,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       include: {
         SellerWallet: true,
         SmartContractWallet: true,
-        Amounts: true,
+        PaidFunds: true,
         NextAction: true,
         PaymentSource: true,
         CurrentTransaction: true,
@@ -192,9 +193,9 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       throw createHttpError(404, 'Purchase not found');
     }
     return {
-      purchases: result.map((purchase) => ({
+      Purchases: result.map((purchase) => ({
         ...purchase,
-        Amounts: purchase.Amounts.map((amount) => ({
+        PaidFunds: purchase.PaidFunds.map((amount) => ({
           ...amount,
           amount: amount.amount.toString(),
         })),
@@ -232,10 +233,10 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe(
       'The address of the smart contract where the purchase will be made to',
     ),
-  amounts: z
+  Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
-    .describe('The amounts of the purchase'),
+    .describe('The amounts to be paid for the purchase'),
   paymentType: z
     .nativeEnum(PaymentType)
     .describe('The payment type of smart contract used'),
@@ -291,7 +292,7 @@ export const createPurchaseInitSchemaOutput = z.object({
       status: z.nativeEnum(TransactionStatus),
     })
     .nullable(),
-  Amounts: z.array(
+  PaidFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -333,7 +334,7 @@ const blockchainIdentifierDataSchema = z.object({
   purchaserIdentifier: z.string().min(15).max(25),
   sellerAddress: z.string().min(15).max(150),
   sellerIdentifier: z.string().min(15).max(25),
-  Amounts: z
+  RequestedFunds: z
     .array(
       z.object({
         amount: z.string().min(1).max(25),
@@ -461,6 +462,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         JSON.parse(parsedBlockchainIdentifier.data.data),
       );
     if (!parsedBlockchainIdentifierData.success) {
+      const error = parsedBlockchainIdentifierData.error;
+      logger.error('Error parsing blockchain identifier', { error });
       throw createHttpError(400, 'Invalid blockchain identifier, data invalid');
     }
 
@@ -512,15 +515,16 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser identifier invalid',
       );
     }
-    const amountsMatch = parsedBlockchainIdentifierData.data.Amounts.every(
-      (amount) =>
-        input.amounts.some(
+    const amountsMatch =
+      parsedBlockchainIdentifierData.data.RequestedFunds.every((amount) =>
+        input.Amounts.some(
           (a) => a.amount == amount.amount && a.unit == amount.unit,
         ),
-    );
+      );
     if (
       !amountsMatch ||
-      parsedBlockchainIdentifierData.data.Amounts.length != input.amounts.length
+      parsedBlockchainIdentifierData.data.RequestedFunds.length !=
+        input.Amounts.length
     ) {
       throw createHttpError(
         400,
@@ -546,7 +550,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const initialPurchaseRequest =
       await tokenCreditService.handlePurchaseCreditInit({
         id: options.id,
-        cost: input.amounts.map((amount) => {
+        cost: input.Amounts.map((amount) => {
           if (amount.unit == '') {
             return { amount: BigInt(amount.amount), unit: 'lovelace' };
           } else {
@@ -566,7 +570,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...initialPurchaseRequest,
-      Amounts: initialPurchaseRequest.Amounts.map((amount) => ({
+      PaidFunds: initialPurchaseRequest.PaidFunds.map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),

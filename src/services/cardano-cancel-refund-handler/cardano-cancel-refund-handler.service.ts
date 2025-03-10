@@ -123,7 +123,6 @@ export async function cancelRefundsV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: false,
               newCooldownTimeSeller: 0,
               newCooldownTimeBuyer: newCooldownTime(
                 paymentContract.cooldownTime,

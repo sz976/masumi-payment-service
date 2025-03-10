@@ -3,22 +3,26 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unescaped-entities */
 
-
-
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import swappableTokens from "@/assets/swappableTokens.json";
-import { FaExchangeAlt } from "react-icons/fa";
-import { getUtxos, getWallet } from "@/lib/api/generated";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { toast } from "react-toastify";
-import BlinkingUnderscore from "../BlinkingUnderscore";
-import { MaestroProvider } from '@meshsdk/core'
-import { shortenAddress } from "@/lib/utils";
-import { executeSwap } from "@/lib/api/swap";
-import { Token } from "@/types/token";
-import { Spinner } from "../ui/spinner";
+import { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import swappableTokens from '@/assets/swappableTokens.json';
+import { FaExchangeAlt } from 'react-icons/fa';
+import { getUtxos, getWallet } from '@/lib/api/generated';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { toast } from 'react-toastify';
+import BlinkingUnderscore from '../BlinkingUnderscore';
+import { MaestroProvider } from '@meshsdk/core';
+import { shortenAddress } from '@/lib/utils';
+import { executeSwap } from '@/lib/api/swap';
+import { Token } from '@/types/token';
+import { Spinner } from '../ui/spinner';
 interface SwapDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,7 +33,15 @@ interface SwapDialogProps {
   walletId: string;
 }
 
-export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrostApiKey, walletType, walletId }: SwapDialogProps) {
+export function SwapDialog({
+  isOpen,
+  onClose,
+  walletAddress,
+  network,
+  blockfrostApiKey,
+  walletType,
+  walletId,
+}: SwapDialogProps) {
   const { state, apiClient } = useAppContext();
   const [adaBalance, setAdaBalance] = useState<number>(0);
   const [usdmBalance, setUsdmBalance] = useState<number>(0);
@@ -45,24 +57,34 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
   const [isSwapping, setIsSwapping] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
 
-  const adaIndex = swappableTokens.findIndex(token => token.symbol === 'ADA');
-  const usdmIndex = swappableTokens.findIndex(token => token.symbol === 'USDM');
+  const adaIndex = swappableTokens.findIndex((token) => token.symbol === 'ADA');
+  const usdmIndex = swappableTokens.findIndex(
+    (token) => token.symbol === 'USDM',
+  );
 
-  const [selectedFromToken, setSelectedFromToken] = useState(swappableTokens[adaIndex]);
-  const [selectedToToken, setSelectedToToken] = useState(swappableTokens[usdmIndex]);
+  const [selectedFromToken, setSelectedFromToken] = useState(
+    swappableTokens[adaIndex],
+  );
+  const [selectedToToken, setSelectedToToken] = useState(
+    swappableTokens[usdmIndex],
+  );
 
-  const isDev = process.env.NEXT_PUBLIC_DEV === "Isaac";
-  const devWalletAddress = process.env.NEXT_PUBLIC_DEV_WALLET_ADDRESS || "";
+  const isDev = process.env.NEXT_PUBLIC_DEV === 'Isaac';
+  const devWalletAddress = process.env.NEXT_PUBLIC_DEV_WALLET_ADDRESS || '';
 
   const effectiveWalletAddress = isDev ? devWalletAddress : walletAddress;
 
   const [tokenRates, setTokenRates] = useState<Record<string, number>>({});
 
-  const [swapStatus, setSwapStatus] = useState<'idle' | 'processing' | 'submitted' | 'confirmed'>('idle');
+  const [swapStatus, setSwapStatus] = useState<
+    'idle' | 'processing' | 'submitted' | 'confirmed'
+  >('idle');
 
   const fetchTokenRates = async () => {
     try {
-      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd");
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd',
+      );
       const data = await response.json();
       setAdaToUsdRate(data?.cardano?.usd || 0);
 
@@ -82,7 +104,7 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
       }
       setTokenRates(rates);
     } catch (error) {
-      console.error("Failed to fetch rates", error);
+      console.error('Failed to fetch rates', error);
     }
   };
 
@@ -103,58 +125,70 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
 
   const fetchBalance = async () => {
     try {
-
       const result = await getUtxos({
         client: apiClient,
         //no cache
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          Pragma: 'no-cache',
+          Expires: '0',
         },
         query: {
           address: effectiveWalletAddress,
           network: 'Preprod',
-        }
+        },
       });
-      const usdmPolicyId = "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad";
-      const usdmHex = "0014df105553444d";
+      const usdmPolicyId =
+        'c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad';
+      const usdmHex = '0014df105553444d';
 
-      const lovelace = result?.data?.data?.utxos?.reduce((acc, utxo) => {
-        return acc + utxo.amount.reduce((acc, asset) => {
-          if (asset.unit === 'lovelace' || asset.unit === '') {
-            return acc + (asset.quantity ?? 0);
-          }
-          return acc;
-        }, 0)
-      }, 0) ?? 0;
-      const usdm = result?.data?.data?.utxos?.reduce((acc, utxo) => {
-        return acc + utxo.amount.reduce((acc, asset) => {
-          if (asset.unit === usdmPolicyId + usdmHex) {
-            return acc + (asset.quantity ?? 0);
-          }
-          return acc;
-        }, 0)
-      }, 0) ?? 0;
+      const lovelace =
+        result?.data?.data?.Utxos?.reduce((acc, utxo) => {
+          return (
+            acc +
+            utxo.Amounts.reduce((acc, asset) => {
+              if (asset.unit === 'lovelace' || asset.unit === '') {
+                return acc + (asset.quantity ?? 0);
+              }
+              return acc;
+            }, 0)
+          );
+        }, 0) ?? 0;
+      const usdm =
+        result?.data?.data?.Utxos?.reduce((acc, utxo) => {
+          return (
+            acc +
+            utxo.Amounts.reduce((acc, asset) => {
+              if (asset.unit === usdmPolicyId + usdmHex) {
+                return acc + (asset.quantity ?? 0);
+              }
+              return acc;
+            }, 0)
+          );
+        }, 0) ?? 0;
       const nmkrPolicyId =
         '5dac8536653edc12f6f5e1045d8164b9f59998d3bdc300fc92843489';
       const nmkrHex = '4e4d4b52';
-      const nmkr = result?.data?.data?.utxos?.reduce((acc, utxo) => {
-        return acc + utxo.amount.reduce((acc, asset) => {
-          if (asset.unit === nmkrPolicyId + nmkrHex) {
-            return acc + (asset.quantity ?? 0);
-          }
-          return acc;
-        }, 0)
-      }, 0) ?? 0;
+      const nmkr =
+        result?.data?.data?.Utxos?.reduce((acc, utxo) => {
+          return (
+            acc +
+            utxo.Amounts.reduce((acc, asset) => {
+              if (asset.unit === nmkrPolicyId + nmkrHex) {
+                return acc + (asset.quantity ?? 0);
+              }
+              return acc;
+            }, 0)
+          );
+        }, 0) ?? 0;
 
       setAdaBalance(lovelace / 1000000);
       setUsdmBalance(usdm / 10000000);
       setNmkrBalance(nmkr / 1000000);
       setBalanceError(null);
     } catch (error) {
-      console.error("Failed to fetch balance", error);
-      setBalanceError("Failed to fetch balance");
+      console.error('Failed to fetch balance', error);
+      setBalanceError('Failed to fetch balance');
     } finally {
       setIsFetchingDetails(false);
     }
@@ -167,27 +201,33 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
         setMnemonic(process.env.NEXT_PUBLIC_DEV_WALLET_MNEMONIC || null);
       } else {
         if (!state?.apiKey) {
-          throw new Error("No API key found");
+          throw new Error('No API key found');
         }
 
         if (!walletId) {
-          throw new Error("No wallet ID found");
+          throw new Error('No wallet ID found');
         }
 
         if (!walletType) {
-          throw new Error("No wallet type found");
+          throw new Error('No wallet type found');
         }
 
-        const type = walletType?.toLowerCase() === "purchasing" ? "Purchasing" : "Selling";
+        const type =
+          walletType?.toLowerCase() === 'purchasing' ? 'Purchasing' : 'Selling';
 
-        const response = await getWallet({ client: apiClient, query: { walletType: type, id: walletId, includeSecret: "true" } });
+        const response = await getWallet({
+          client: apiClient,
+          query: { walletType: type, id: walletId, includeSecret: 'true' },
+        });
 
         const fetchedMnemonic = response.data?.data?.Secret?.mnemonic || null;
         setMnemonic(fetchedMnemonic);
       }
     } catch (error: any) {
-      console.error("Failed to fetch mnemonic", error);
-      toast.error("Failed to fetch mnemonic: " + error?.message, { theme: "dark" });
+      console.error('Failed to fetch mnemonic', error);
+      toast.error('Failed to fetch mnemonic: ' + error?.message, {
+        theme: 'dark',
+      });
       setMnemonic(null);
     } finally {
       setLoading(false);
@@ -195,10 +235,18 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
     }
   };
 
-  const canSwap = isDev ? true : (adaBalance > 0 && selectedFromToken.symbol !== selectedToToken.symbol && network?.toLowerCase() !== "preprod" && mnemonic !== null);
+  const canSwap = isDev
+    ? true
+    : adaBalance > 0 &&
+      selectedFromToken.symbol !== selectedToToken.symbol &&
+      network?.toLowerCase() !== 'preprod' &&
+      mnemonic !== null;
 
   const handleSwitch = () => {
-    if (selectedFromToken.symbol === 'ADA' || selectedToToken.symbol === 'ADA') {
+    if (
+      selectedFromToken.symbol === 'ADA' ||
+      selectedToToken.symbol === 'ADA'
+    ) {
       setSelectedFromToken(selectedToToken);
       setSelectedToToken(selectedFromToken);
     }
@@ -216,7 +264,10 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
       }
     } else {
       setSelectedToToken(selectedToken);
-      if (selectedToken.symbol !== 'ADA' && selectedFromToken.symbol !== 'ADA') {
+      if (
+        selectedToken.symbol !== 'ADA' &&
+        selectedFromToken.symbol !== 'ADA'
+      ) {
         setSelectedFromToken(swappableTokens[adaIndex]);
       } else if (selectedToken.symbol === selectedFromToken.symbol) {
         setSelectedFromToken(selectedToToken);
@@ -258,9 +309,15 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
   };
 
   const getConversionRate = () => {
-    if (selectedFromToken.symbol === 'ADA' && selectedToToken.symbol === 'USDM') {
+    if (
+      selectedFromToken.symbol === 'ADA' &&
+      selectedToToken.symbol === 'USDM'
+    ) {
       return adaToUsdRate;
-    } else if (selectedFromToken.symbol === 'USDM' && selectedToToken.symbol === 'ADA') {
+    } else if (
+      selectedFromToken.symbol === 'USDM' &&
+      selectedToToken.symbol === 'ADA'
+    ) {
       return 1 / adaToUsdRate;
     } else if (selectedFromToken.symbol === 'ADA') {
       return tokenRates[selectedToToken.symbol] || 0;
@@ -276,13 +333,14 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
   const conversionRate = getConversionRate();
   const toAmount = fromAmount * conversionRate;
 
-  const formattedDollarValue = selectedFromToken.symbol === 'USDM'
-    ? `~$${fromAmount.toFixed(2)}`
-    : `$${toAmount.toFixed(2)}`;
+  const formattedDollarValue =
+    selectedFromToken.symbol === 'USDM'
+      ? `~$${fromAmount.toFixed(2)}`
+      : `$${toAmount.toFixed(2)}`;
 
   const maestroProvider = new MaestroProvider({
     network: 'Mainnet',
-    apiKey: process.env.NEXT_PUBLIC_MAESTRO_API_KEY || "",
+    apiKey: process.env.NEXT_PUBLIC_MAESTRO_API_KEY || '',
   });
 
   const handleSwapClick = () => {
@@ -295,7 +353,7 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
     setError(null);
     try {
       if (!mnemonic) {
-        throw new Error("Mnemonic not available");
+        throw new Error('Mnemonic not available');
       }
       setTimeout(() => {
         setSwapStatus('processing');
@@ -307,24 +365,27 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
         isFromAda: selectedFromToken.symbol === 'ADA',
         fromToken: selectedFromToken as Token,
         toToken: selectedToToken as Token,
-        poolId: selectedFromToken.poolId || selectedToToken.poolId || ""
+        poolId: selectedFromToken.poolId || selectedToToken.poolId || '',
       });
 
       setSwapStatus('submitted');
-      toast.info("Swap submitted!", { theme: "dark" });
+      toast.info('Swap submitted!', { theme: 'dark' });
       await fetchBalance();
 
       maestroProvider.onTxConfirmed(result.txHash, async () => {
         setSwapStatus('confirmed');
-        toast.success("Swap transaction confirmed!", { theme: "dark" });
+        toast.success('Swap transaction confirmed!', { theme: 'dark' });
         await fetchBalance();
         setIsSwapping(false);
         setTimeout(() => setSwapStatus('idle'), 2000);
       });
     } catch (error: any) {
       console.error(error);
-      toast.error(`Swap failed: ${error?.response?.data?.error || error?.message}`, { theme: "dark" });
-      setError(error?.response?.data?.error || error?.message || "Swap failed");
+      toast.error(
+        `Swap failed: ${error?.response?.data?.error || error?.message}`,
+        { theme: 'dark' },
+      );
+      setError(error?.response?.data?.error || error?.message || 'Swap failed');
       setIsSwapping(false);
       setSwapStatus('idle');
     }
@@ -349,15 +410,20 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
         <DialogHeader>
           <DialogTitle>Swap Tokens</DialogTitle>
           <DialogDescription>
-            {isDev ? <>
-              <b>DEV WALLET</b>
-              <br />
-              <i>{shortenAddress(effectiveWalletAddress)}</i>
-            </> : <>
-              {network?.toLowerCase() === "preprod" ? "PREPROD" : "MAINNET"} Network
-              <br />
-              <i>{shortenAddress(effectiveWalletAddress)}</i>
-            </>}
+            {isDev ? (
+              <>
+                <b>DEV WALLET</b>
+                <br />
+                <i>{shortenAddress(effectiveWalletAddress)}</i>
+              </>
+            ) : (
+              <>
+                {network?.toLowerCase() === 'preprod' ? 'PREPROD' : 'MAINNET'}{' '}
+                Network
+                <br />
+                <i>{shortenAddress(effectiveWalletAddress)}</i>
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
         {isFetchingDetails ? (
@@ -366,18 +432,27 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
           </div>
         ) : (
           <>
-            {!isDev ? <>
-              {adaBalance === 0 && (
-                <div className="text-red-500 mb-4">Cannot swap zero balance</div>
-              )}
-              {network?.toLowerCase() === "preprod" && (
-                <div className="text-red-500 mb-4">Can't perform swap on <b>{network?.toUpperCase()}</b> network</div>
-              )}
-            </> : <></>}
+            {!isDev ? (
+              <>
+                {adaBalance === 0 && (
+                  <div className="text-red-500 mb-4">
+                    Cannot swap zero balance
+                  </div>
+                )}
+                {network?.toLowerCase() === 'preprod' && (
+                  <div className="text-red-500 mb-4">
+                    Can't perform swap on <b>{network?.toUpperCase()}</b>{' '}
+                    network
+                  </div>
+                )}
+              </>
+            ) : (
+              <></>
+            )}
             <div
               style={{
-                opacity: (canSwap && !isSwapping) ? 1 : 0.4,
-                pointerEvents: (canSwap && !isSwapping) ? "auto" : "none",
+                opacity: canSwap && !isSwapping ? 1 : 0.4,
+                pointerEvents: canSwap && !isSwapping ? 'auto' : 'none',
               }}
             >
               <div className="flex flex-col space-y-4">
@@ -386,7 +461,9 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                     <div className="flex items-center space-x-2">
                       <select
                         value={swappableTokens.indexOf(selectedFromToken)}
-                        onChange={(e) => handleTokenChange('from', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleTokenChange('from', parseInt(e.target.value))
+                        }
                         className="bg-transparent text-white"
                       >
                         {swappableTokens.map((token, index) => (
@@ -395,23 +472,31 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                           </option>
                         ))}
                       </select>
-                      <img src={selectedFromToken.icon} alt="Token" className="w-6 h-6 rounded-full" />
+                      <img
+                        src={selectedFromToken.icon}
+                        alt="Token"
+                        className="w-6 h-6 rounded-full"
+                      />
                     </div>
                     <div className="text-xs text-gray-500">
-                      Balance: {getBalanceForToken(selectedFromToken.symbol).toFixed(6)}
+                      Balance:{' '}
+                      {getBalanceForToken(selectedFromToken.symbol).toFixed(6)}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
                     <div className="relative w-full">
                       <input
                         type="number"
-                        className={`w-24 text-right bg-transparent border-b border-gray-500 focus:outline-none appearance-none text-[24px] font-bold mb-2 ${fromAmount > getMaxAmount(selectedFromToken.symbol) ? 'text-red-500' : ''
-                          }`}
+                        className={`w-24 text-right bg-transparent border-b border-gray-500 focus:outline-none appearance-none text-[24px] font-bold mb-2 ${
+                          fromAmount > getMaxAmount(selectedFromToken.symbol)
+                            ? 'text-red-500'
+                            : ''
+                        }`}
                         placeholder="0"
                         value={fromAmount || ''}
                         onChange={handleFromAmountChange}
                         step="0.2"
-                        style={{ MozAppearance: "textfield" }}
+                        style={{ MozAppearance: 'textfield' }}
                       />
                       <span
                         className="absolute right-0 -top-5 text-xs text-gray-500 cursor-pointer hover:text-gray-400"
@@ -420,12 +505,17 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                         Max: {getMaxAmount(selectedFromToken.symbol).toFixed(6)}
                       </span>
                     </div>
-                    <span className="block text-xs text-muted-foreground">{formattedDollarValue}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {formattedDollarValue}
+                    </span>
                   </div>
                 </div>
                 <div className="relative flex items-center">
                   <div className="flex-grow border-t border-gray-600"></div>
-                  <Button onClick={handleSwitch} className="mx-4 p-2 w-10 h-10 flex items-center justify-center transform rotate-90">
+                  <Button
+                    onClick={handleSwitch}
+                    className="mx-4 p-2 w-10 h-10 flex items-center justify-center transform rotate-90"
+                  >
                     <FaExchangeAlt className="w-5 h-5" />
                   </Button>
                   <div className="flex-grow border-t border-gray-600"></div>
@@ -435,7 +525,9 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                     <div className="flex items-center space-x-2">
                       <select
                         value={swappableTokens.indexOf(selectedToToken)}
-                        onChange={(e) => handleTokenChange('to', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleTokenChange('to', parseInt(e.target.value))
+                        }
                         className="bg-transparent text-white"
                       >
                         {swappableTokens.map((token, index) => (
@@ -444,10 +536,15 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                           </option>
                         ))}
                       </select>
-                      <img src={selectedToToken.icon} alt="Token" className="w-6 h-6 rounded-full" />
+                      <img
+                        src={selectedToToken.icon}
+                        alt="Token"
+                        className="w-6 h-6 rounded-full"
+                      />
                     </div>
                     <div className="text-xs text-gray-500">
-                      Balance: {getBalanceForToken(selectedToToken.symbol).toFixed(6)}
+                      Balance:{' '}
+                      {getBalanceForToken(selectedToToken.symbol).toFixed(6)}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
@@ -461,20 +558,30 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                   </div>
                 </div>
                 <div className="text-center text-sm text-muted-foreground">
-                  1 {selectedFromToken.symbol} ≈ {conversionRate.toFixed(5)} {selectedToToken.symbol}
+                  1 {selectedFromToken.symbol} ≈ {conversionRate.toFixed(5)}{' '}
+                  {selectedToToken.symbol}
                 </div>
                 <Button
                   variant="default"
                   className="w-full"
                   onClick={handleSwapClick}
-                  disabled={!canSwap || isSwapping || fromAmount <= 0 || fromAmount > getMaxAmount(selectedFromToken.symbol)}
+                  disabled={
+                    !canSwap ||
+                    isSwapping ||
+                    fromAmount <= 0 ||
+                    fromAmount > getMaxAmount(selectedFromToken.symbol)
+                  }
                 >
-                  {isSwapping ? "Swap in Progress..." : "Swap"} {isSwapping && <Spinner size="sm" className="ml-1" />}
+                  {isSwapping ? 'Swap in Progress...' : 'Swap'}{' '}
+                  {isSwapping && <Spinner size="sm" className="ml-1" />}
                 </Button>
                 {error && <div className="text-red-500 mt-2">{error}</div>}
 
                 {showConfirmation && (
-                  <Dialog open={showConfirmation} onOpenChange={() => setShowConfirmation(false)}>
+                  <Dialog
+                    open={showConfirmation}
+                    onOpenChange={() => setShowConfirmation(false)}
+                  >
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle>Confirm Swap</DialogTitle>
@@ -482,11 +589,15 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                           Are you sure you want to swap:
                         </DialogDescription>
                         <div className="mt-2 font-medium">
-                          {fromAmount} {selectedFromToken.symbol} → {toAmount.toFixed(6)} {selectedToToken.symbol}
+                          {fromAmount} {selectedFromToken.symbol} →{' '}
+                          {toAmount.toFixed(6)} {selectedToToken.symbol}
                         </div>
                       </DialogHeader>
                       <div className="flex justify-end space-x-2 mt-4">
-                        <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowConfirmation(false)}
+                        >
                           Cancel
                         </Button>
                         <Button onClick={handleConfirmSwap}>
@@ -503,9 +614,14 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
                 <div
                   className={`h-full transition-all duration-1000 ease-in-out ${getProgressBarColor()}`}
                   style={{
-                    width: swapStatus === 'processing' ? '20%' :
-                      swapStatus === 'submitted' ? '66%' :
-                        swapStatus === 'confirmed' ? '100%' : '0%'
+                    width:
+                      swapStatus === 'processing'
+                        ? '20%'
+                        : swapStatus === 'submitted'
+                          ? '66%'
+                          : swapStatus === 'confirmed'
+                            ? '100%'
+                            : '0%',
                   }}
                 />
               </div>
@@ -515,4 +631,4 @@ export function SwapDialog({ isOpen, onClose, walletAddress, network, blockfrost
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -119,7 +119,6 @@ export async function requestRefundsV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: true,
               newCooldownTimeSeller: 0,
               newCooldownTimeBuyer: newCooldownTime(
                 paymentContract.cooldownTime,

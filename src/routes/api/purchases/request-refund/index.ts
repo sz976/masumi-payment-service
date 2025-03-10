@@ -55,7 +55,7 @@ export const requestPurchaseRefundSchemaOutput = z.object({
       status: z.nativeEnum(TransactionStatus),
     })
     .nullable(),
-  Amounts: z.array(
+  PaidFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -130,7 +130,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
             NextAction: true,
             CurrentTransaction: true,
             TransactionHistory: true,
-            Amounts: true,
+            PaidFunds: true,
             PaymentSource: true,
           },
         },
@@ -177,7 +177,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
         NextAction: true,
         CurrentTransaction: true,
         TransactionHistory: true,
-        Amounts: true,
+        PaidFunds: true,
         PaymentSource: true,
         SellerWallet: true,
         SmartContractWallet: true,
@@ -188,7 +188,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
       submitResultTime: result.submitResultTime.toString(),
       unlockTime: result.unlockTime.toString(),
       externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-      Amounts: result.Amounts.map((amount) => ({
+      PaidFunds: result.PaidFunds.map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),

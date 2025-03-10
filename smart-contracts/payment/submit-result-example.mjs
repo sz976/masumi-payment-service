@@ -32,8 +32,6 @@ const wallet = new MeshWallet({
 });
 
 const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
-
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
@@ -135,8 +133,6 @@ const datum = {
       submitResultTime,
       unlockTime,
       externalDisputeUnlockTime,
-      //is converted to true
-      mBool(false),
       sellerCooldownTime,
       0,
       {

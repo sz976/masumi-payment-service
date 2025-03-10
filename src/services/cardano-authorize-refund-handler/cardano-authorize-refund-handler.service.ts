@@ -120,7 +120,6 @@ export async function authorizeRefundV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: true,
               newCooldownTimeSeller: newCooldownTime(
                 paymentContract.cooldownTime,
               ),
