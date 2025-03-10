@@ -1,17 +1,26 @@
-import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { getPaymentSource, patchPaymentSource } from "@/lib/api/generated";
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { getPaymentSource, patchPaymentSource } from '@/lib/api/generated';
 
 type AddWalletModalProps = {
   type: 'purchasing' | 'selling';
   onClose: () => void;
   contractId: string;
-}
+};
 
-export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProps) {
+export function AddWalletModal({
+  type,
+  onClose,
+  contractId,
+}: AddWalletModalProps) {
   const [mnemonic, setMnemonic] = useState('');
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,22 +38,25 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
         client: apiClient,
         body: {
           id: contractId,
-          [`${type === 'purchasing' ? 'AddPurchasingWallets' : 'AddSellingWallets'}`]: [
-            {
-              walletMnemonic: mnemonic,
-              note: note || undefined
-            }
-          ]
-        }
+          [`${type === 'purchasing' ? 'AddPurchasingWallets' : 'AddSellingWallets'}`]:
+            [
+              {
+                walletMnemonic: mnemonic,
+                note: note || undefined,
+              },
+            ],
+        },
       });
 
       const sourceData = await getPaymentSource({
         client: apiClient,
       });
 
-      const sources = sourceData?.data?.data?.paymentSources || [];
+      const sources = sourceData?.data?.data?.PaymentSources || [];
 
-      const updatedContract = sources.find((c: { id: string }) => c.id === contractId);
+      const updatedContract = sources.find(
+        (c: { id: string }) => c.id === contractId,
+      );
       if (!updatedContract) {
         throw new Error('Updated contract not found in response');
       }
@@ -52,8 +64,8 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
         payload: state.paymentSources.map((c) =>
-          c.id === contractId ? updatedContract : c
-        )
+          c.id === contractId ? updatedContract : c,
+        ),
       });
 
       onClose();
@@ -67,7 +79,9 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Add {type.charAt(0).toUpperCase() + type.slice(1)} Wallet</DialogTitle>
+        <DialogTitle>
+          Add {type.charAt(0).toUpperCase() + type.slice(1)} Wallet
+        </DialogTitle>
         <DialogDescription>
           Enter the wallet mnemonic phrase and an optional note.
         </DialogDescription>
@@ -88,7 +102,7 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
             className="w-full min-h-[100px] p-2 rounded-md bg-background border"
             value={mnemonic}
             onChange={(e) => setMnemonic(e.target.value)}
-            placeholder="Enter your 24-word mnemonic phrase"
+            placeholder="Enter your mnemonic phrase"
             required
           />
         </div>
@@ -111,14 +125,11 @@ export function AddWalletModal({ type, onClose, contractId }: AddWalletModalProp
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={!mnemonic || isLoading}
-          >
-            {isLoading ? "Adding..." : "Add Wallet"}
+          <Button type="submit" disabled={!mnemonic || isLoading}>
+            {isLoading ? 'Adding...' : 'Add Wallet'}
           </Button>
         </div>
       </form>
     </DialogContent>
   );
-} 
+}

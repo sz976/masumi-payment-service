@@ -1,4 +1,8 @@
-import { TransactionStatus, RegistrationState } from '@prisma/client';
+import {
+  TransactionStatus,
+  RegistrationState,
+  PricingType,
+} from '@prisma/client';
 import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Transaction } from '@meshsdk/core';
@@ -29,6 +33,10 @@ export async function registerAgentV1() {
       paymentSourcesWithWalletLocked.map(async (paymentSource) => {
         if (paymentSource.RegistryRequest.length == 0) return;
 
+        logger.info(
+          `Registering ${paymentSource.RegistryRequest.length} agents for payment source ${paymentSource.id}`,
+        );
+
         const network = convertNetwork(paymentSource.network);
 
         const registryRequests = paymentSource.RegistryRequest;
@@ -51,6 +59,15 @@ export async function registerAgentV1() {
             }),
           ],
           operations: registryRequests.map((request) => async () => {
+            if (request.Pricing.pricingType != PricingType.Fixed) {
+              throw new Error('Other than fixed pricing is not supported yet');
+            }
+            if (
+              request.Pricing.FixedPricing == null ||
+              request.Pricing.FixedPricing.Amounts.length == 0
+            ) {
+              throw new Error('No fixed pricing found, this is likely a bug');
+            }
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentSource.network,
               paymentSource.PaymentSourceConfig.rpcProviderApiKey,
@@ -111,16 +128,28 @@ export async function registerAgentV1() {
                 [assetName]: {
                   name: stringToMetadata(request.name),
                   description: stringToMetadata(request.description),
-                  api_url: stringToMetadata(request.apiUrl),
-                  example_output: stringToMetadata(request.other),
-                  capability: {
-                    name: stringToMetadata(request.capabilityName),
-                    version: stringToMetadata(request.capabilityVersion),
-                  },
-                  requests_per_hour: stringToMetadata(request.requestsPerHour),
+                  api_base_url: stringToMetadata(request.apiBaseUrl),
+                  example_output: request.ExampleOutputs.map(
+                    (exampleOutput) => ({
+                      name: stringToMetadata(exampleOutput.name),
+                      mime_type: stringToMetadata(exampleOutput.mimeType),
+                      url: stringToMetadata(exampleOutput.url),
+                    }),
+                  ),
+                  capability:
+                    request.capabilityName && request.capabilityVersion
+                      ? {
+                          name: stringToMetadata(request.capabilityName),
+                          version: stringToMetadata(request.capabilityVersion),
+                        }
+                      : undefined,
+                  requests_per_hour: request.requestsPerHour
+                    ? stringToMetadata(request.requestsPerHour.toString())
+                    : undefined,
                   author: {
                     name: stringToMetadata(request.authorName),
-                    contact: stringToMetadata(request.authorContact),
+                    contact_email: stringToMetadata(request.authorContactEmail),
+                    contact_other: stringToMetadata(request.authorContactOther),
                     organization: stringToMetadata(request.authorOrganization),
                   },
                   legal: {
@@ -129,14 +158,16 @@ export async function registerAgentV1() {
                     other: stringToMetadata(request.other),
                   },
                   tags: request.tags,
-                  pricing: request.Pricing.map((pricing) => ({
-                    unit: stringToMetadata(pricing.unit),
-                    quantity: pricing.quantity.toString(),
-                  })),
+                  agentPricing: {
+                    pricingType: request.Pricing.pricingType,
+                    fixedPricing:
+                      request.Pricing.FixedPricing?.Amounts.map((pricing) => ({
+                        unit: stringToMetadata(pricing.unit),
+                        amount: pricing.amount.toString(),
+                      })) ?? [],
+                  },
                   image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
-                  metadata_version: stringToMetadata(
-                    DEFAULTS.DEFAULT_METADATA_VERSION,
-                  ),
+                  metadata_version: request.metadataVersion.toString(),
                 },
               },
               version: '1',
@@ -194,7 +225,9 @@ export async function registerAgentV1() {
           const request = registryRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error registering agent`, { error: error });
+            logger.error(`Error registering agent ${request.id}`, {
+              error: error,
+            });
             await prisma.registryRequest.update({
               where: { id: request.id },
               data: {

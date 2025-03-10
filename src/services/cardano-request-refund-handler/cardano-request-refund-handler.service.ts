@@ -47,6 +47,9 @@ export async function requestRefundsV1() {
 
         const network = convertNetwork(paymentContract.network);
 
+        logger.info(
+          `Requesting ${paymentContract.PurchaseRequests.length} refunds for payment source ${paymentContract.id}`,
+        );
         const blockchainProvider = new BlockfrostProvider(
           paymentContract.PaymentSourceConfig.rpcProviderApiKey,
           undefined,
@@ -116,7 +119,6 @@ export async function requestRefundsV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: true,
               newCooldownTimeSeller: 0,
               newCooldownTimeBuyer: newCooldownTime(
                 paymentContract.cooldownTime,
@@ -209,7 +211,7 @@ export async function requestRefundsV1() {
               },
             });
 
-            logger.debug(`Created withdrawal transaction:
+            logger.debug(`Created refund request transaction:
                   Tx ID: ${txHash}
                   View (after a bit) on https://${
                     network === 'preprod' ? 'preprod.' : ''
@@ -225,7 +227,9 @@ export async function requestRefundsV1() {
           const request = purchaseRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error requesting refund`, { error: error });
+            logger.error(`Error requesting refund ${request.id}`, {
+              error: error,
+            });
             await prisma.purchaseRequest.update({
               where: { id: request.id },
               data: {

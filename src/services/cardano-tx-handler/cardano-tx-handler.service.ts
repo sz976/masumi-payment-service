@@ -30,6 +30,7 @@ import {
 } from '@/utils/logic/state-transitions';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { deserializeDatum } from '@meshsdk/core';
+import { SmartContractState } from '@/utils/generator/contract-generator';
 
 const updateMutex = new Sema(1);
 export async function checkLatestTransactions(
@@ -40,97 +41,7 @@ export async function checkLatestTransactions(
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
   if (!acquiredMutex) return await updateMutex.acquire();
-  try {
-    await prisma.paymentActionData.updateMany({
-      where: {
-        requestedAction: {
-          in: [
-            PaymentAction.WithdrawInitiated,
-            PaymentAction.SubmitResultInitiated,
-            PaymentAction.AuthorizeRefundInitiated,
-          ],
-        },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        requestedAction: PaymentAction.WaitingForExternalAction,
-        errorNote: 'Timeout waiting for transaction',
-        errorType: PaymentErrorType.Unknown,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out payment actions', { error: error });
-  }
-  try {
-    await prisma.purchaseActionData.updateMany({
-      where: {
-        requestedAction: {
-          in: [
-            PurchasingAction.FundsLockingInitiated,
-            PurchasingAction.WithdrawRefundInitiated,
-            PurchasingAction.SetRefundRequestedInitiated,
-            PurchasingAction.UnSetRefundRequestedInitiated,
-          ],
-        },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        requestedAction: PurchasingAction.WaitingForExternalAction,
-        errorNote: 'Timeout waiting for transaction',
-        errorType: PurchaseErrorType.Unknown,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out purchase actions', { error: error });
-  }
-  try {
-    await prisma.registryRequest.updateMany({
-      where: {
-        state: { in: [RegistrationState.RegistrationInitiated] },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        state: RegistrationState.RegistrationFailed,
-      },
-    });
-    await prisma.registryRequest.updateMany({
-      where: {
-        state: { in: [RegistrationState.DeregistrationInitiated] },
-        updatedAt: {
-          lt: new Date(
-            Date.now() -
-              //15 minutes for timeouts, check every tx older than 1 minute
-              1000 * 60 * 15,
-          ),
-        },
-      },
-      data: {
-        state: RegistrationState.DeregistrationFailed,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating timed out registry requests', {
-      error: error,
-    });
-  }
+
   try {
     //only support web3 cardano v1 for now
     const paymentContracts = await prisma.$transaction(
@@ -197,6 +108,9 @@ export async function checkLatestTransactions(
                   RegistrationState.DeregistrationInitiated,
                 ],
               },
+              CurrentTransaction: {
+                isNot: null,
+              },
               agentIdentifier: { not: null },
               updatedAt: {
                 lt: new Date(
@@ -206,30 +120,54 @@ export async function checkLatestTransactions(
                 ),
               },
             },
+            include: {
+              CurrentTransaction: { include: { BlocksWallet: true } },
+            },
           });
           const checkedRegistryRequests = await advancedRetryAll({
             operations: registryRequests.map((registryRequest) => async () => {
               const owner = await blockfrost.assetsAddresses(
                 registryRequest.agentIdentifier!,
+                { order: 'desc' },
               );
+
               if (
                 registryRequest.state == RegistrationState.RegistrationInitiated
               ) {
-                if (owner.length == 1 && owner[0].quantity == '1') {
+                if (owner.length >= 1 && owner[0].quantity == '1') {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
                       state: RegistrationState.RegistrationConfirmed,
+                      CurrentTransaction: {
+                        update: {
+                          status: TransactionStatus.Confirmed,
+                          BlocksWallet:
+                            registryRequest.CurrentTransaction?.BlocksWallet !=
+                            null
+                              ? { disconnect: true }
+                              : undefined,
+                        },
+                      },
                     },
                   });
-                } else if (
-                  registryRequest.updatedAt <
-                  new Date(Date.now() - 1000 * 60 * 15)
-                ) {
+                  if (
+                    registryRequest.CurrentTransaction?.BlocksWallet != null
+                  ) {
+                    await prisma.hotWallet.update({
+                      where: {
+                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                      },
+                      data: {
+                        lockedAt: null,
+                      },
+                    });
+                  }
+                } else {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
-                      state: RegistrationState.RegistrationFailed,
+                      updatedAt: new Date(),
                     },
                   });
                 }
@@ -237,21 +175,40 @@ export async function checkLatestTransactions(
                 registryRequest.state ==
                 RegistrationState.DeregistrationInitiated
               ) {
-                if (owner.length == 0) {
+                if (owner.length == 0 || owner[0].quantity == '0') {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
                       state: RegistrationState.DeregistrationConfirmed,
+                      CurrentTransaction: {
+                        update: {
+                          status: TransactionStatus.Confirmed,
+                          BlocksWallet:
+                            registryRequest.CurrentTransaction?.BlocksWallet !=
+                            null
+                              ? { disconnect: true }
+                              : undefined,
+                        },
+                      },
                     },
                   });
-                } else if (
-                  registryRequest.updatedAt <
-                  new Date(Date.now() - 1000 * 60 * 15)
-                ) {
+                  if (
+                    registryRequest.CurrentTransaction?.BlocksWallet != null
+                  ) {
+                    await prisma.hotWallet.update({
+                      where: {
+                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                      },
+                      data: {
+                        lockedAt: null,
+                      },
+                    });
+                  }
+                } else {
                   await prisma.registryRequest.update({
                     where: { id: registryRequest.id },
                     data: {
-                      state: RegistrationState.DeregistrationFailed,
+                      updatedAt: new Date(),
                     },
                   });
                 }
@@ -260,7 +217,7 @@ export async function checkLatestTransactions(
             errorResolvers: [
               delayErrorResolver({
                 configuration: {
-                  maxRetries: 2,
+                  maxRetries: 5,
                   backoffMultiplier: 2,
                   initialDelayMs: 500,
                   maxDelayMs: 1500,
@@ -453,6 +410,7 @@ export async function checkLatestTransactions(
                       include: {
                         SmartContractWallet: true,
                         SellerWallet: true,
+                        CurrentTransaction: { include: { BlocksWallet: true } },
                       },
                     });
                     if (dbEntry == null) {
@@ -541,12 +499,16 @@ export async function checkLatestTransactions(
                       );
                       return;
                     }
-                    if (decodedNewContract.refundRequested != false) {
+                    if (
+                      decodedNewContract.state ==
+                        SmartContractState.RefundRequested ||
+                      decodedNewContract.state == SmartContractState.Disputed
+                    ) {
                       logger.warn(
                         'Refund was requested. This likely is a spoofing attempt.',
                         {
                           purchaseRequest: dbEntry,
-                          refundRequested: decodedNewContract.refundRequested,
+                          state: decodedNewContract.state,
                         },
                       );
                       return;
@@ -652,13 +614,24 @@ export async function checkLatestTransactions(
                         resultHash: decodedNewContract.resultHash,
                       },
                     });
-                    if (dbEntry.currentTransactionId != null) {
+                    if (
+                      dbEntry.currentTransactionId != null &&
+                      dbEntry.CurrentTransaction?.BlocksWallet != null
+                    ) {
                       await prisma.transaction.update({
                         where: {
                           id: dbEntry.currentTransactionId!,
                         },
                         data: {
                           BlocksWallet: { disconnect: true },
+                        },
+                      });
+                      await prisma.hotWallet.update({
+                        where: {
+                          id: dbEntry.SmartContractWallet.id,
+                        },
+                        data: {
+                          lockedAt: null,
                         },
                       });
                     }
@@ -686,9 +659,10 @@ export async function checkLatestTransactions(
                         },
                       },
                       include: {
-                        Amounts: true,
+                        RequestedFunds: true,
                         BuyerWallet: true,
                         SmartContractWallet: true,
+                        CurrentTransaction: { include: { BlocksWallet: true } },
                       },
                     });
                     if (dbEntry == null) {
@@ -765,12 +739,16 @@ export async function checkLatestTransactions(
                       newState = OnChainState.FundsOrDatumInvalid;
                       errorNote.push(errorMessage);
                     }
-                    if (decodedNewContract.refundRequested != false) {
+                    if (
+                      decodedNewContract.state ==
+                        SmartContractState.RefundRequested ||
+                      decodedNewContract.state == SmartContractState.Disputed
+                    ) {
                       const errorMessage =
                         'Refund was requested. This likely is a spoofing attempt.';
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
-                        refundRequested: decodedNewContract.refundRequested,
+                        state: decodedNewContract.state,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
@@ -863,7 +841,7 @@ export async function checkLatestTransactions(
                     }
 
                     const valueMatches = checkPaymentAmountsMatch(
-                      dbEntry.Amounts,
+                      dbEntry.RequestedFunds,
                       output.amount,
                     );
                     if (valueMatches == false) {
@@ -872,14 +850,14 @@ export async function checkLatestTransactions(
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
                         amounts: output.amount,
-                        amountsDb: dbEntry.Amounts,
+                        amountsDb: dbEntry.RequestedFunds,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
                       errorNote.push(errorMessage);
                     }
                     const paymentCountMatches =
-                      dbEntry.Amounts.filter(
+                      dbEntry.RequestedFunds.filter(
                         (x) => x.unit != 'lovelace' && x.unit != '',
                       ).length ==
                       output.amount.filter(
@@ -891,7 +869,7 @@ export async function checkLatestTransactions(
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
                         amounts: output.amount,
-                        amountsDb: dbEntry.Amounts,
+                        amountsDb: dbEntry.RequestedFunds,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
@@ -940,6 +918,7 @@ export async function checkLatestTransactions(
                             },
                           },
                         },
+                        //no wallet was locked, we do not need to unlock it
                       },
                     });
                   },
@@ -1010,7 +989,7 @@ export async function checkLatestTransactions(
                 include: {
                   BuyerWallet: true,
                   SmartContractWallet: true,
-                  Amounts: true,
+                  RequestedFunds: true,
                   NextAction: true,
                   CurrentTransaction: true,
                   TransactionHistory: true,
@@ -1030,7 +1009,7 @@ export async function checkLatestTransactions(
                     SellerWallet: true,
                     NextAction: true,
                     CurrentTransaction: true,
-                    Amounts: true,
+                    PaidFunds: true,
                     TransactionHistory: true,
                   },
                 },
@@ -1145,7 +1124,9 @@ export async function checkLatestTransactions(
                 } else {
                   //Ensure the amounts match, to prevent state change attacks
                   const valueMatches = checkPaymentAmountsMatch(
-                    paymentRequest?.Amounts ?? purchasingRequest?.Amounts ?? [],
+                    paymentRequest?.RequestedFunds ??
+                      purchasingRequest?.PaidFunds ??
+                      [],
                     valueOutputs[0].amount,
                   );
                   newState =
@@ -1161,7 +1142,11 @@ export async function checkLatestTransactions(
                 newState = OnChainState.DisputedWithdrawn;
               } else if (redeemerVersion == 5) {
                 //SubmitResult
-                if (decodedNewContract!.refundRequested) {
+                if (
+                  decodedNewContract!.state ==
+                    SmartContractState.RefundRequested ||
+                  decodedNewContract!.state == SmartContractState.Disputed
+                ) {
                   newState = OnChainState.Disputed;
                 } else {
                   newState = OnChainState.ResultSubmitted;
@@ -1177,49 +1162,47 @@ export async function checkLatestTransactions(
                 );
                 continue;
               }
-
-              const results = await Promise.allSettled([
-                inputTxHashMatchPaymentRequest
-                  ? handlePaymentTransactionCardanoV1(
-                      tx.tx.tx_hash,
-                      newState,
-                      paymentContract.id,
-                      decodedOldContract.blockchainIdentifier,
-                      decodedNewContract?.resultHash ??
-                        decodedOldContract.resultHash,
-                      paymentRequest?.NextAction?.requestedAction ??
-                        PurchasingAction.None,
-                      Number(paymentRequest?.buyerCoolDownTime ?? 0),
-                      Number(paymentRequest?.sellerCoolDownTime ?? 0),
-                    )
-                  : Promise.resolve(),
-                inputTxHashMatchPurchasingRequest
-                  ? handlePurchasingTransactionCardanoV1(
-                      tx.tx.tx_hash,
-                      newState,
-                      paymentContract.id,
-                      decodedOldContract.blockchainIdentifier,
-                      decodedNewContract?.resultHash ??
-                        decodedOldContract.resultHash,
-                      purchasingRequest?.NextAction?.requestedAction ??
-                        PurchasingAction.None,
-                      Number(purchasingRequest?.buyerCoolDownTime ?? 0),
-                      Number(purchasingRequest?.sellerCoolDownTime ?? 0),
-                    )
-                  : Promise.resolve(),
-              ]);
-              results.forEach((x) => {
-                if (x.status == 'fulfilled') {
-                  logger.debug('Transaction handled successfully', {
-                    txHash: tx.tx.tx_hash,
-                  });
-                } else {
-                  logger.warn('Transaction failed', {
-                    txHash: tx.tx.tx_hash,
-                    error: x.reason,
-                  });
+              try {
+                if (inputTxHashMatchPaymentRequest) {
+                  await handlePaymentTransactionCardanoV1(
+                    tx.tx.tx_hash,
+                    newState,
+                    paymentContract.id,
+                    decodedOldContract.blockchainIdentifier,
+                    decodedNewContract?.resultHash ??
+                      decodedOldContract.resultHash,
+                    paymentRequest?.NextAction?.requestedAction ??
+                      PurchasingAction.None,
+                    Number(paymentRequest?.buyerCoolDownTime ?? 0),
+                    Number(paymentRequest?.sellerCoolDownTime ?? 0),
+                  );
                 }
-              });
+              } catch (error) {
+                logger.error('Error handling payment transaction', {
+                  error: error,
+                });
+              }
+              try {
+                if (inputTxHashMatchPurchasingRequest) {
+                  await handlePurchasingTransactionCardanoV1(
+                    tx.tx.tx_hash,
+                    newState,
+                    paymentContract.id,
+                    decodedOldContract.blockchainIdentifier,
+                    decodedNewContract?.resultHash ??
+                      decodedOldContract.resultHash,
+                    purchasingRequest?.NextAction?.requestedAction ??
+                      PurchasingAction.None,
+                    Number(purchasingRequest?.buyerCoolDownTime ?? 0),
+                    Number(purchasingRequest?.sellerCoolDownTime ?? 0),
+                  );
+                }
+              } catch (error) {
+                logger.error('Error handling purchasing transaction', {
+                  error: error,
+                });
+              }
+
               await prisma.paymentSource.update({
                 where: { id: paymentContract.id },
                 data: { lastIdentifierChecked: tx.tx.tx_hash },
@@ -1292,6 +1275,9 @@ async function handlePaymentTransactionCardanoV1(
             blockchainIdentifier: blockchainIdentifier,
           },
         },
+        include: {
+          CurrentTransaction: { include: { BlocksWallet: true } },
+        },
       });
 
       if (paymentRequest == null) {
@@ -1330,18 +1316,27 @@ async function handlePaymentTransactionCardanoV1(
           resultHash: resultHash,
         },
       });
-      if (paymentRequest.currentTransactionId != null) {
+      if (
+        paymentRequest.currentTransactionId != null &&
+        paymentRequest.CurrentTransaction?.BlocksWallet != null
+      ) {
         await prisma.transaction.update({
           where: {
             id: paymentRequest.currentTransactionId!,
           },
           data: { BlocksWallet: { disconnect: true } },
         });
+        await prisma.hotWallet.update({
+          where: {
+            id: paymentRequest.CurrentTransaction.BlocksWallet.id,
+          },
+          data: { lockedAt: null },
+        });
       }
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      timeout: 1000,
+      timeout: 100000,
       maxWait: 10000,
     },
   );
@@ -1366,6 +1361,9 @@ async function handlePurchasingTransactionCardanoV1(
             paymentSourceId: paymentContractId,
             blockchainIdentifier: blockchainIdentifier,
           },
+        },
+        include: {
+          CurrentTransaction: { include: { BlocksWallet: true } },
         },
       });
 
@@ -1404,12 +1402,21 @@ async function handlePurchasingTransactionCardanoV1(
           resultHash: resultHash,
         },
       });
-      if (purchasingRequest.currentTransactionId != null) {
+      if (
+        purchasingRequest.currentTransactionId != null &&
+        purchasingRequest.CurrentTransaction?.BlocksWallet != null
+      ) {
         await prisma.transaction.update({
           where: {
             id: purchasingRequest.currentTransactionId!,
           },
           data: { BlocksWallet: { disconnect: true } },
+        });
+        await prisma.hotWallet.update({
+          where: {
+            id: purchasingRequest.CurrentTransaction.BlocksWallet.id,
+          },
+          data: { lockedAt: null },
         });
       }
     },

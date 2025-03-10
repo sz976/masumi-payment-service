@@ -66,13 +66,13 @@ ADMIN_KEY="abcdef_this_should_be_very_secure"
 BLOCKFROST_API_KEY_PREPROD="your_blockfrost_api_key"
 ```
 
-or
+*optionally for mainnet add or replace `BLOCKFROST_API_KEY_PREPROD`
 
 ```sh
-BLOCKFROST_API_KEY_MAINNET="your_blockfrost_api_key"
+BLOCKFROST_API_KEY_MAINNET="your_blockfrost_api_key_for_mainnet"
 ```
 
-if you want to run ont the mainnet. We recommend you to start on Preprod first.
+if you want to run on mainnet. We recommend you to start on Preprod first.
 
 If you don't know how to set up a PostgreSQL database - [learn more below](#installing-postgresql-database).
 
@@ -97,7 +97,7 @@ Congratulations! You have successfully run the Masumi Payment Service in Docker.
 
 ### Run in Development Mode instead
 
-### Step 1: Building the Admin Interface
+#### Step 1: Building the Admin Interface
 
 ```sh
 cd frontend
@@ -106,7 +106,7 @@ npm run build
 cd ..
 ```
 
-## Step 2: Running the Node
+#### Step 2: Running the Node
 
 Start the node with:
 

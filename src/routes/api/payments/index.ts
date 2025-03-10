@@ -54,7 +54,7 @@ export const queryPaymentsSchemaInput = z.object({
 });
 
 export const queryPaymentsSchemaOutput = z.object({
-  payments: z.array(
+  Payments: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -92,7 +92,7 @@ export const queryPaymentsSchemaOutput = z.object({
           }),
         )
         .nullable(),
-      Amounts: z.array(
+      RequestedFunds: z.array(
         z.object({
           id: z.string(),
           createdAt: z.date(),
@@ -170,7 +170,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         BuyerWallet: true,
         SmartContractWallet: true,
         PaymentSource: true,
-        Amounts: true,
+        RequestedFunds: { include: { AgentFixedPricing: true } },
         NextAction: true,
         CurrentTransaction: true,
         TransactionHistory: {
@@ -184,14 +184,14 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
     }
 
     return {
-      payments: result.map((payment) => ({
+      Payments: result.map((payment) => ({
         ...payment,
         submitResultTime: payment.submitResultTime.toString(),
         cooldownTime: Number(payment.sellerCoolDownTime),
         cooldownTimeOtherParty: Number(payment.buyerCoolDownTime),
         unlockTime: payment.unlockTime.toString(),
         externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-        Amounts: payment.Amounts.map((amount) => ({
+        RequestedFunds: payment.RequestedFunds.map((amount) => ({
           ...amount,
           amount: amount.amount.toString(),
         })),
@@ -209,7 +209,7 @@ export const createPaymentsSchemaInput = z.object({
     .min(15)
     .max(250)
     .describe('The identifier of the agent that will be paid'),
-  amounts: z
+  RequestedFunds: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
     .describe('The amounts of the payment'),
@@ -225,7 +225,7 @@ export const createPaymentsSchemaInput = z.object({
     ),
   submitResultTime: ez
     .dateIn()
-    .default(new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString())
+    .default(new Date(1000 * 60 * 60 * 12).toISOString())
     .describe(
       'The time after which the payment has to be submitted to the smart contract',
     ),
@@ -267,7 +267,7 @@ export const createPaymentSchemaOutput = z.object({
     errorType: z.nativeEnum(PaymentErrorType).nullable(),
     errorNote: z.string().nullable(),
   }),
-  Amounts: z.array(
+  RequestedFunds: z.array(
     z.object({
       id: z.string(),
       createdAt: z.date(),
@@ -352,14 +352,25 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       smartContractAddress,
       input.network,
     );
-    const assetId = input.agentIdentifier;
-    const policyAsset = assetId.startsWith(policyId)
-      ? assetId
-      : policyId + assetId;
-    const assetInWallet = await provider.assetsAddresses(policyAsset, {
-      order: 'desc',
-      count: 1,
-    });
+    if (input.agentIdentifier.startsWith(policyId) == false) {
+      throw createHttpError(
+        404,
+        'The agentIdentifier is not of the specified payment source',
+      );
+    }
+    let assetInWallet = [];
+    try {
+      assetInWallet = await provider.assetsAddresses(input.agentIdentifier, {
+        order: 'desc',
+        count: 1,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        throw createHttpError(404, 'Agent identifier not found');
+      }
+      throw createHttpError(500, 'Error fetching asset in wallet');
+    }
+
     if (assetInWallet.length == 0) {
       throw createHttpError(404, 'Agent identifier not found');
     }
@@ -381,7 +392,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       purchaserIdentifier: input.identifierFromPurchaser,
       sellerAddress: sellingWallet.walletAddress,
       sellerIdentifier: cuid2.createId(),
-      Amounts: input.amounts.map((amount) => ({
+      RequestedFunds: input.RequestedFunds.map((amount) => ({
         amount: amount.amount,
         unit: amount.unit,
       })),
@@ -414,9 +425,9 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       data: {
         blockchainIdentifier: signedEncodedBlockchainIdentifier,
         PaymentSource: { connect: { id: specifiedPaymentContract.id } },
-        Amounts: {
+        RequestedFunds: {
           createMany: {
-            data: input.amounts.map((amount) => {
+            data: input.RequestedFunds.map((amount) => {
               if (amount.unit == '') {
                 return { amount: BigInt(amount.amount), unit: 'lovelace' };
               } else {
@@ -441,7 +452,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         metadata: input.metadata,
       },
       include: {
-        Amounts: true,
+        RequestedFunds: true,
         BuyerWallet: true,
         SmartContractWallet: true,
         PaymentSource: true,
@@ -458,7 +469,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       submitResultTime: payment.submitResultTime.toString(),
       unlockTime: payment.unlockTime.toString(),
       externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-      Amounts: payment.Amounts.map((amount) => ({
+      RequestedFunds: payment.RequestedFunds.map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),

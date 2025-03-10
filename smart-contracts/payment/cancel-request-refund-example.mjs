@@ -30,7 +30,6 @@ const wallet = new MeshWallet({
 });
 
 const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
 
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
@@ -118,7 +117,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 const hash = decodedDatum.value[3];
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
-const refundTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[6];
 const sellerCooldownTime = decodedDatum.value[8];
 const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
 
@@ -132,9 +131,7 @@ const datum = {
       hash.toString('hex'),
       submitResultTime,
       unlockTime,
-      refundTime,
-      //is converted to true
-      mBool(false),
+      externalDisputeUnlockTime,
       0,
       buyerCooldownTime,
       {
@@ -167,7 +164,6 @@ const invalidBefore =
   unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK.preprod) - 1;
 const invalidHereafter =
   unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK.preprod) + 1;
-//console.log(utxo);
 
 const unsignedTx = new Transaction({ initiator: wallet })
   .redeemValue({

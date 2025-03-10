@@ -51,6 +51,9 @@ export async function authorizeRefundV1() {
       paymentContractsWithWalletLocked.map(async (paymentContract) => {
         const network = convertNetwork(paymentContract.network);
 
+        logger.info(
+          `Authorizing ${paymentContract.PaymentRequests.length} refunds for payment source ${paymentContract.id}`,
+        );
         const blockchainProvider = new BlockfrostProvider(
           paymentContract.PaymentSourceConfig.rpcProviderApiKey,
         );
@@ -117,7 +120,6 @@ export async function authorizeRefundV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: true,
               newCooldownTimeSeller: newCooldownTime(
                 paymentContract.cooldownTime,
               ),
@@ -221,7 +223,9 @@ export async function authorizeRefundV1() {
           const request = paymentRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error authorizing refund`, { error: error });
+            logger.error(`Error authorizing refund ${request.id}`, {
+              error: error,
+            });
             await prisma.paymentRequest.update({
               where: { id: request.id },
               data: {

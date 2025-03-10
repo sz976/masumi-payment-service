@@ -50,6 +50,10 @@ export async function submitResultV1() {
       paymentContractsWithWalletLocked.map(async (paymentContract) => {
         if (paymentContract.PaymentRequests.length == 0) return;
 
+        logger.info(
+          `Submitting ${paymentContract.PaymentRequests.length} results for payment source ${paymentContract.id}`,
+        );
+
         const network = convertNetwork(paymentContract.network);
 
         const blockchainProvider = new BlockfrostProvider(
@@ -120,14 +124,15 @@ export async function submitResultV1() {
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              refundRequested: decodedContract.refundRequested,
               newCooldownTimeSeller: newCooldownTime(
                 paymentContract.cooldownTime,
               ),
               newCooldownTimeBuyer: 0,
-              state: decodedContract.refundRequested
-                ? SmartContractState.Disputed
-                : SmartContractState.ResultSubmitted,
+              state:
+                decodedContract.state == SmartContractState.Disputed ||
+                decodedContract.state == SmartContractState.RefundRequested
+                  ? SmartContractState.Disputed
+                  : SmartContractState.ResultSubmitted,
             });
 
             const redeemer = {
@@ -213,7 +218,7 @@ export async function submitResultV1() {
                 },
               });
 
-              logger.debug(`Created withdrawal transaction:
+              logger.debug(`Created submit result transaction:
                   Tx ID: ${txHash}
                   View (after a bit) on https://${
                     network === 'preprod' ? 'preprod.' : ''
@@ -250,7 +255,9 @@ export async function submitResultV1() {
           const request = paymentRequests[index];
           if (result.success == false || result.result != true) {
             const error = result.error;
-            logger.error(`Error submitting result`, { error: error });
+            logger.error(`Error submitting result ${request.id}`, {
+              error: error,
+            });
             await prisma.paymentRequest.update({
               where: { id: request.id },
               data: {

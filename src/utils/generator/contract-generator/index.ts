@@ -1,4 +1,4 @@
-import { Data, mBool, PlutusScript } from '@meshsdk/core';
+import { Data, PlutusScript } from '@meshsdk/core';
 import {
   deserializePlutusScript,
   resolvePlutusScriptAddress,
@@ -163,7 +163,6 @@ export function getDatum({
   resultTime,
   unlockTime,
   externalDisputeUnlockTime,
-  refundRequested,
   newCooldownTimeSeller,
   newCooldownTimeBuyer,
   state,
@@ -175,7 +174,6 @@ export function getDatum({
   resultTime: number;
   unlockTime: number;
   externalDisputeUnlockTime: number;
-  refundRequested: boolean;
   newCooldownTimeSeller: number;
   newCooldownTimeBuyer: number;
   state: SmartContractState;
@@ -191,7 +189,6 @@ export function getDatum({
         resultTime,
         unlockTime,
         externalDisputeUnlockTime,
-        mBool(refundRequested),
         newCooldownTimeSeller,
         newCooldownTimeBuyer,
         getSmartContractStateDatum(state),

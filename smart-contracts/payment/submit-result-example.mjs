@@ -32,8 +32,6 @@ const wallet = new MeshWallet({
 });
 
 const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
-
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
@@ -93,7 +91,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '269445855f4dfd2b228caba7c705fdb4af30ea6938674a6571d97ebd5022467a',
+  '11b667184d319bd678d752e0bf300cbab3daf9963c27502df7767513541788b2',
 );
 
 if (!utxo) {
@@ -121,7 +119,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 const hash = 'abc_hash_of_the_result2';
 const submitResultTime = decodedDatum.value[4];
 const unlockTime = decodedDatum.value[5];
-const refundTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[6];
 const sellerCooldownTime = Date.now() + 1000 * 60 * 35;
 
 const datum = {
@@ -130,13 +128,11 @@ const datum = {
     fields: [
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
-      'test_1238091298389124991297247921793h214bfubasfjklnasvjnsacoinasoidnoiadsnoaiusfniuasdnbiuanwdiu12312ono1i2u4niou12n4iuon21oi4n213321io123n123',
+      'test',
       hash,
       submitResultTime,
       unlockTime,
-      refundTime,
-      //is converted to true
-      mBool(false),
+      externalDisputeUnlockTime,
       sellerCooldownTime,
       0,
       {

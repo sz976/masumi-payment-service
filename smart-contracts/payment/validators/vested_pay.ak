@@ -38,7 +38,6 @@ pub type Datum {
   submit_result_time: POSIXTime,
   unlock_time: POSIXTime,
   external_dispute_unlock_time: POSIXTime,
-  refund_requested: Bool,
   seller_cooldown_time: POSIXTime,
   buyer_cooldown_time: POSIXTime,
   state: State,
@@ -47,17 +46,17 @@ pub type Datum {
 pub type Action {
   //this will only work after the unlock time
   Withdraw
-  //this will set the refund_requested to True and auto approved after the refund time, can only be called before the unlock_time
+  //this will set the state to RefundRequested, can only be called before the unlock_time
   SetRefundRequested
   //this will cancel any refund request and unlock the funds (immediately if the unlock time is over)
   UnSetRefundRequested
-  //is implicitly allowed if the refund was requested and the refund time is over (and not denied)
+  //is implicitly allowed if the refund was requested and the refund time is over (and not denied) or if the submit_result_time is over and no result was submitted
   WithdrawRefund
-  //multi sig 2/3
+  //multi sig 2/3 to withdraw the disputed funds via network admins
   WithdrawDisputed
-  //submits the result hash to the contract and denies any refund
+  //submits the result hash to the contract and thereby denies any pending (or future) refund
   SubmitResult
-  //handled the dispute offchain and withdraw any deny of a refund
+  //this will approve a refund withdrawal, can only be called in case of a disputed state
   AuthorizeRefund
 }
 
@@ -82,7 +81,6 @@ validator vested_pay(
       submit_result_time,
       unlock_time,
       external_dispute_unlock_time,
-      refund_requested,
       seller_cooldown_time,
       buyer_cooldown_time,
       state,
@@ -142,9 +140,7 @@ validator vested_pay(
             fee_permille,
           )
 
-        expect bytearray.is_empty(result_hash) == False
-
-        refund_requested == False
+        bytearray.is_empty(result_hash) == False
       }
 
       SetRefundRequested -> {
@@ -157,7 +153,6 @@ validator vested_pay(
         expect must_be_signed_by(self, buyer)
         expect output_value_is_preserved(input.output.value, output.value)
 
-        //expect refund_requested == False
         expect must_end_before(validity_range, unlock_time)
         expect must_start_after(validity_range, buyer_cooldown_time)
 
@@ -184,7 +179,6 @@ validator vested_pay(
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
-          new_datum.refund_requested,
           new_datum.seller_cooldown_time == 0,
           new_datum.buyer_cooldown_time >= cooldown_time,
           new_datum.state == new_state,
@@ -230,7 +224,6 @@ validator vested_pay(
           }
 
         //we always allow to cancel the refund request
-        //expect refund_requested
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
@@ -239,7 +232,6 @@ validator vested_pay(
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
-          new_datum.refund_requested == False,
           new_datum.seller_cooldown_time == 0,
           new_datum.buyer_cooldown_time >= cooldown_time,
           new_datum.state == new_state,
@@ -247,7 +239,6 @@ validator vested_pay(
       }
       //multi sig 2/X to withdraw the disputed funds via network admins
       WithdrawDisputed -> {
-        expect refund_requested
         expect bytearray.is_empty(result_hash) == False
 
         expect must_start_after(validity_range, external_dispute_unlock_time)
@@ -297,7 +288,7 @@ validator vested_pay(
           }
 
         let new_state =
-          if refund_requested {
+          if state == RefundRequested {
             Disputed
           } else {
             ResultSubmitted
@@ -310,7 +301,6 @@ validator vested_pay(
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
-          new_datum.refund_requested == refund_requested,
           new_datum.seller_cooldown_time >= cooldown_time,
           new_datum.buyer_cooldown_time == 0,
           new_datum.state == new_state,
@@ -340,7 +330,6 @@ validator vested_pay(
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
-          new_datum.refund_requested == refund_requested,
           new_datum.seller_cooldown_time >= cooldown_time,
           new_datum.buyer_cooldown_time == 0,
           new_datum.state == RefundRequested,
@@ -414,14 +403,14 @@ test output_value_is_preserved_fails_2() {
   output_value_is_preserved(input_value, output_value) == False
 }
 
-test output_value_is_preserved_fails_3() {
+test output_value_is_preserved_fails_0() {
   let input_value: Value = assets.from_lovelace(105)
 
   let output_value: Value = assets.from_lovelace(100)
   output_value_is_preserved(input_value, output_value) == False
 }
 
-test output_value_is_preserved_fails_4() {
+test output_value_is_preserved_fails_3() {
   let input_value: Value =
     assets.from_lovelace(100)
       |> assets.add("foo", "bar", 42)
@@ -432,6 +421,7 @@ test output_value_is_preserved_fails_4() {
       |> assets.add("foo", "baz", 100)
   output_value_is_preserved(input_value, output_value) == False
 }
+
 test output_value_is_preserved_fails_4() {
   let input_value: Value =
     assets.from_lovelace(100)
@@ -442,7 +432,8 @@ test output_value_is_preserved_fails_4() {
       |> assets.add("foo", "bar", 43)
   output_value_is_preserved(input_value, output_value) == False
 }
-test output_value_is_preserved_fails_4() {
+
+test output_value_is_preserved_fails_5() {
   let input_value: Value =
     assets.from_lovelace(100)
       |> assets.add("foo", "bar", 42)

@@ -10,7 +10,7 @@ export function decodeV1ContractDatum(decodedDatum: any) {
     }
     const fields = decodedDatum.fields;
 
-    if (fields?.length != 11) {
+    if (fields?.length != 10) {
       //invalid transaction
       return null;
     }
@@ -57,25 +57,19 @@ export function decodeV1ContractDatum(decodedDatum: any) {
     const unlockTime = parseInt(fields[5].int);
     const externalDisputeUnlockTime = parseInt(fields[6].int);
 
-    const refundRequested = valueToBool(fields[7]);
-    if (refundRequested == null) {
+    if (fields[7] == null || fields[7].int == null) {
       //invalid transaction
       return null;
     }
+    const buyerCooldownTime = parseInt(fields[7].int);
 
     if (fields[8] == null || fields[8].int == null) {
       //invalid transaction
       return null;
     }
-    const buyerCooldownTime = parseInt(fields[8].int);
+    const sellerCooldownTime = parseInt(fields[8].int);
 
-    if (fields[9] == null || fields[9].int == null) {
-      //invalid transaction
-      return null;
-    }
-    const sellerCooldownTime = parseInt(fields[9].int);
-
-    const state = valueToStatus(fields[10]);
+    const state = valueToStatus(fields[9]);
     if (state == null) {
       //invalid transaction
       return null;
@@ -90,7 +84,6 @@ export function decodeV1ContractDatum(decodedDatum: any) {
       resultTime,
       unlockTime,
       externalDisputeUnlockTime,
-      refundRequested,
       buyerCooldownTime,
       sellerCooldownTime,
     };
@@ -106,7 +99,7 @@ export function newCooldownTime(cooldownTime: number) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function valueToStatus(value: any) {
+export function valueToStatus(value: any) {
   if (value == null) {
     return null;
   }
@@ -131,7 +124,7 @@ function valueToStatus(value: any) {
   return null;
 }
 
-function valueToBool(value: unknown) {
+export function valueToBool(value: unknown) {
   if (value == null) {
     return null;
   }

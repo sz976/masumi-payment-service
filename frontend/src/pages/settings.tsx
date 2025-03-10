@@ -1,85 +1,99 @@
-import BlinkingUnderscore from "@/components/BlinkingUnderscore";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect, useCallback } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { useRouter } from "next/router";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { toast } from "react-toastify";
-import { ApiKeyGenerateModal } from "@/components/ApiKeyGenerateModal";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { getApiKey, GetApiKeyResponse, deleteApiKey, patchApiKey } from "@/lib/api/generated";
-
+import BlinkingUnderscore from '@/components/BlinkingUnderscore';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { useRouter } from 'next/router';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { ApiKeyGenerateModal } from '@/components/ApiKeyGenerateModal';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import {
+  getApiKey,
+  GetApiKeyResponse,
+  deleteApiKey,
+  patchApiKey,
+} from '@/lib/api/generated';
 
 export default function Settings() {
   const [showApiKey, setShowApiKey] = useState(false);
   const { state, dispatch } = useAppContext();
   const router = useRouter();
-  const [apiKeys, setApiKeys] = useState<GetApiKeyResponse['data']['apiKeys']>([]);
+  const [apiKeys, setApiKeys] = useState<GetApiKeyResponse['data']['ApiKeys']>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedKey, setSelectedKey] = useState<GetApiKeyResponse['data']['apiKeys'][0] | null>(null);
+  const [selectedKey, setSelectedKey] = useState<
+    GetApiKeyResponse['data']['ApiKeys'][0] | null
+  >(null);
   const { apiClient } = useAppContext();
 
-  const fetchApiKeys = useCallback(async (cursorId?: string) => {
-    setIsLoading(true);
-    console.log("fetching api keys", cursorId || "no cursor");
-    try {
+  const fetchApiKeys = useCallback(
+    async (cursorId?: string) => {
+      setIsLoading(true);
+      try {
+        const response = await getApiKey({
+          client: apiClient,
+          query: {
+            limit: 10,
+            cursorToken: cursorId,
+          },
+        });
 
+        const data = response?.data?.data?.ApiKeys;
 
-      const response = await getApiKey({
-        client: apiClient,
-        query: {
-          limit: 10,
-          cursorApiKey: cursorId
-        }
-      })
+        const newKeys = data || [];
 
+        setApiKeys((prevKeys) => {
+          if (cursorId) {
+            const existingIds = new Set(prevKeys.map((key) => key.token));
+            const uniqueNewKeys = newKeys.filter(
+              (key) => !existingIds.has(key.token),
+            );
+            return [...prevKeys, ...uniqueNewKeys];
+          }
+          return newKeys;
+        });
 
-      const data = response?.data?.data?.apiKeys;
-
-      const newKeys = data || [];
-
-      setApiKeys(prevKeys => {
-        if (cursorId) {
-          const existingIds = new Set(prevKeys.map((key) => key.token));
-          const uniqueNewKeys = newKeys.filter((key) => !existingIds.has(key.token));
-          return [...prevKeys, ...uniqueNewKeys];
-        }
-        return newKeys;
-      });
-
-      setHasMore(newKeys.length === 10);
-      setCursor(newKeys[newKeys.length - 1]?.token || null);
-    } catch (error) {
-      console.error('Failed to fetch API keys:', error);
-      toast.error('Failed to fetch API keys');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiClient]);
+        setHasMore(newKeys.length === 10);
+        setCursor(newKeys[newKeys.length - 1]?.token || null);
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+        toast.error('Failed to fetch API keys');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [apiClient],
+  );
 
   useEffect(() => {
     fetchApiKeys();
   }, [fetchApiKeys]);
-
-  const handleKeyClick = (keyDetails: GetApiKeyResponse['data']['apiKeys'][0]) => {
-    console.log(keyDetails);
-  };
+  //TODO: Implement key details
+  const handleKeyClick = (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _keyDetails: GetApiKeyResponse['data']['ApiKeys'][0],
+  ) => {};
 
   const handleSignOut = () => {
-    localStorage.removeItem("payment_api_key");
-    dispatch({ type: 'SET_API_KEY', payload: "" });
+    localStorage.removeItem('payment_api_key');
+    dispatch({ type: 'SET_API_KEY', payload: '' });
     router.push('/');
   };
-
-
 
   const toggleApiKeyVisibility = () => {
     setShowApiKey(!showApiKey);
@@ -96,9 +110,9 @@ export default function Settings() {
       await deleteApiKey({
         client: apiClient,
         body: {
-          token: apiKey
-        }
-      })
+          id: apiKey,
+        },
+      });
 
       await fetchApiKeys();
       toast.success('API key deleted successfully');
@@ -120,6 +134,17 @@ export default function Settings() {
     }
   };
 
+  const handleCopyToken = async (token: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(token);
+      toast.success('Token copied to clipboard', { theme: 'dark' });
+    } catch (error) {
+      console.error('Failed to copy token:', error);
+      toast.error('Failed to copy token', { theme: 'dark' });
+    }
+  };
+
   return (
     <MainLayout>
       <div className="flex flex-col gap-4">
@@ -136,7 +161,7 @@ export default function Settings() {
                     showApiKey ? (
                       state.apiKey
                     ) : (
-                      "•"?.repeat(state.apiKey.length)
+                      '•'?.repeat(state.apiKey.length)
                     )
                   ) : (
                     <BlinkingUnderscore />
@@ -146,18 +171,19 @@ export default function Settings() {
                   variant="outline"
                   size="icon"
                   onClick={toggleApiKeyVisibility}
-                  title={showApiKey ? "Hide API Key" : "Show API Key"}
+                  title={showApiKey ? 'Hide API Key' : 'Show API Key'}
                 >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showApiKey ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-4">
-              <Button
-                variant="destructive"
-                onClick={handleSignOut}
-              >
+              <Button variant="destructive" onClick={handleSignOut}>
                 Sign Out
               </Button>
             </div>
@@ -166,7 +192,11 @@ export default function Settings() {
         <Card>
           <CardHeader className="flex justify-between w-full flex-row items-center py-4 border-b border-[#fff2]">
             <CardTitle>Manage API Keys</CardTitle>
-            <Button className="w-fit m-0" style={{ margin: "0px" }} onClick={handleGenerateClick}>
+            <Button
+              className="w-fit m-0"
+              style={{ margin: '0px' }}
+              onClick={handleGenerateClick}
+            >
               Generate New API Key →
             </Button>
           </CardHeader>
@@ -177,7 +207,9 @@ export default function Settings() {
                   <thead>
                     <tr>
                       <th className="text-left py-2">Key Name</th>
-                      <th className="text-left py-2">Value (hover to expose)</th>
+                      <th className="text-left py-2">
+                        Value (hover to expose, click to copy)
+                      </th>
                       <th className="text-left py-2">Status</th>
                       <th className="text-left py-2">Usage Credits</th>
                       {/* <th className="text-right py-2">Actions</th> */}
@@ -192,26 +224,38 @@ export default function Settings() {
                       >
                         <td className="py-2">{key.permission}</td>
                         <td
-                          className="py-2 font-mono"
+                          className="py-2 font-mono cursor-copy"
                           onMouseEnter={() => setHoveredKey(key.token)}
                           onMouseLeave={() => setHoveredKey(null)}
+                          onClick={(e) => handleCopyToken(key.token, e)}
+                          title="Click to copy"
                         >
-                          {hoveredKey === key.token ? key.token : "•".repeat(32)}
+                          {hoveredKey === key.token
+                            ? key.token
+                            : '•'.repeat(32)}
                         </td>
                         <td className="py-2">
-                          <span className={`px-2 py-1 rounded-full text-sm ${key.status === "Active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-300 text-red-800"
-                            }`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm ${
+                              key.status?.toLowerCase() === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-300 text-red-800'
+                            }`}
+                          >
                             {key.status}
                           </span>
                         </td>
                         <td className="py-2">
-                          {key.usageLimited ? key.RemainingUsageCredits?.map((credit, i) => (
-                            <div key={i} className="text-sm text-muted-foreground">
-                              {credit.amount} {credit.unit}
-                            </div>
-                          )) : "Unlimited"}
+                          {key.usageLimited
+                            ? key.RemainingUsageCredits?.map((credit, i) => (
+                                <div
+                                  key={i}
+                                  className="text-sm text-muted-foreground"
+                                >
+                                  {credit.amount} {credit.unit}
+                                </div>
+                              ))
+                            : 'Unlimited'}
                         </td>
                         {/* <td className="py-2 text-right">
                           <div className="flex justify-end gap-2">
@@ -255,9 +299,9 @@ export default function Settings() {
                       Loading...
                     </div>
                   ) : hasMore ? (
-                    "Load More"
+                    'Load More'
                   ) : (
-                    "No More Data"
+                    'No More Data'
                   )}
                 </Button>
               </div>
@@ -275,20 +319,15 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle>Delete API Key</DialogTitle>
             <DialogDescription className="text-destructive">
-              Are you sure you want to delete this API key? This action cannot be undone.
+              Are you sure you want to delete this API key? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-            >
+            <Button variant="destructive" onClick={handleConfirmDelete}>
               Delete
             </Button>
           </div>
@@ -302,17 +341,21 @@ export default function Settings() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Switch
-                checked={selectedKey?.status === "Active"}
+                checked={selectedKey?.status === 'Active'}
                 onCheckedChange={async () => {
                   if (!selectedKey) return;
                   try {
                     await patchApiKey({
                       client: apiClient,
                       body: {
+                        id: selectedKey.id,
                         token: selectedKey.token,
-                        status: selectedKey.status === "Active" ? "Revoked" : "Active"
-                      }
-                    })
+                        status:
+                          selectedKey.status === 'Active'
+                            ? 'Revoked'
+                            : 'Active',
+                      },
+                    });
                     await fetchApiKeys();
                     setShowUpdateModal(false);
                     setSelectedKey(null);
@@ -327,10 +370,7 @@ export default function Settings() {
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowUpdateModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowUpdateModal(false)}>
               Close
             </Button>
           </div>
@@ -338,4 +378,4 @@ export default function Settings() {
       </Dialog>
     </MainLayout>
   );
-} 
+}

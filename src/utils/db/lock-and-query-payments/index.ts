@@ -19,9 +19,7 @@ export async function lockAndQueryPayments({
   onChainState?: OnChainState | { in: OnChainState[] } | undefined;
   resultHash?: string | { not: string } | undefined;
   requestedResultHash?: string | { not: null } | undefined;
-  refundTime?: { lte: number } | undefined | { gte: number };
   unlockTime?: { lte: number } | undefined | { gte: number };
-  smartContractWalletPendingTransaction?: undefined | null | string;
 }) {
   return await prisma.$transaction(
     async (prisma) => {
@@ -53,7 +51,7 @@ export async function lockAndQueryPayments({
             include: {
               NextAction: true,
               CurrentTransaction: true,
-              Amounts: true,
+              RequestedFunds: true,
               BuyerWallet: true,
               SmartContractWallet: {
                 include: {
@@ -82,14 +80,16 @@ export async function lockAndQueryPayments({
           }
 
           const wallet = paymentRequest.SmartContractWallet;
-          if (wallet && !sellingWallets.some((w) => w.id === wallet.id)) {
+          if (
+            wallet != null &&
+            !sellingWallets.some((w) => w.id === wallet.id)
+          ) {
             const result = await prisma.hotWallet.update({
               where: { id: wallet.id },
               data: { lockedAt: new Date() },
             });
             wallet.pendingTransactionId = result.pendingTransactionId;
             sellingWallets.push(wallet);
-
             paymentRequests.push(paymentRequest);
           }
         }
