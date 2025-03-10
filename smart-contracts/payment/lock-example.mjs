@@ -33,17 +33,11 @@ const wallet = new MeshWallet({
   },
 });
 
-const address = (await wallet.getUnusedAddresses())[0];
-console.log(address);
-
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
 const admin2 = fs.readFileSync('wallet_4.addr').toString();
 const admin3 = fs.readFileSync('wallet_5.addr').toString();
-console.log(resolvePaymentKeyHash(admin1));
-console.log(resolvePaymentKeyHash(admin2));
-console.log(resolvePaymentKeyHash(admin3));
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
     2,
@@ -123,8 +117,6 @@ const datum = {
       unlockTime,
       //refund time after specified time
       externalDisputeUnlockTime,
-      //is converted to false
-      mBool(false),
       0,
       0,
       {

@@ -1,13 +1,18 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { X } from "lucide-react";
-import { postPaymentSource, getPaymentSource } from "@/lib/api/generated";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { X } from 'lucide-react';
+import { postPaymentSource, getPaymentSource } from '@/lib/api/generated';
 
 type CreateContractModalProps = {
   onClose: () => void;
-}
+};
 
 type FormData = {
   network: 'Mainnet' | 'Preprod';
@@ -28,7 +33,7 @@ type FormData = {
     walletMnemonic: string;
     note?: string;
   }[];
-}
+};
 
 const initialFormData: FormData = {
   network: 'Preprod',
@@ -39,7 +44,7 @@ const initialFormData: FormData = {
   feePermille: 50,
   collectionWallet: { walletAddress: '', note: '' },
   purchasingWallets: [{ walletMnemonic: '', note: '' }],
-  sellingWallets: [{ walletMnemonic: '', note: '' }]
+  sellingWallets: [{ walletMnemonic: '', note: '' }],
 };
 
 export function CreateContractModal({ onClose }: CreateContractModalProps) {
@@ -61,7 +66,7 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
         return;
       }
 
-      if (!formData.adminWallets.some(w => w.walletAddress.trim())) {
+      if (!formData.adminWallets.some((w) => w.walletAddress.trim())) {
         setError('At least one admin wallet is required');
         return;
       }
@@ -84,30 +89,36 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
       await postPaymentSource({
         client: apiClient,
         body: {
-          AdminWallets: formData.adminWallets.filter(w => w.walletAddress.trim()).slice(0, 3) as [
+          AdminWallets: formData.adminWallets
+            .filter((w) => w.walletAddress.trim())
+            .slice(0, 3) as [
             { walletAddress: string },
             { walletAddress: string },
-            { walletAddress: string }
+            { walletAddress: string },
           ],
           network: formData.network,
           paymentType: formData.paymentType,
           feeRatePermille: formData.feePermille,
           FeeReceiverNetworkWallet: formData.feeReceiverWallet,
-          PurchasingWallets: formData.purchasingWallets.filter(w => w.walletMnemonic.trim()).map(w => ({
-            walletMnemonic: w.walletMnemonic,
-            collectionAddress: formData.collectionWallet.walletAddress.trim(),
-            note: w.note || ''
-          })),
-          SellingWallets: formData.sellingWallets.filter(w => w.walletMnemonic.trim()).map(w => ({
-            walletMnemonic: w.walletMnemonic,
-            collectionAddress: formData.collectionWallet.walletAddress.trim(),
-            note: w.note || ''
-          })),
+          PurchasingWallets: formData.purchasingWallets
+            .filter((w) => w.walletMnemonic.trim())
+            .map((w) => ({
+              walletMnemonic: w.walletMnemonic,
+              collectionAddress: formData.collectionWallet.walletAddress.trim(),
+              note: w.note || '',
+            })),
+          SellingWallets: formData.sellingWallets
+            .filter((w) => w.walletMnemonic.trim())
+            .map((w) => ({
+              walletMnemonic: w.walletMnemonic,
+              collectionAddress: formData.collectionWallet.walletAddress.trim(),
+              note: w.note || '',
+            })),
           PaymentSourceConfig: {
             rpcProviderApiKey: formData.blockfrostApiKey,
-            rpcProvider: 'Blockfrost'
+            rpcProvider: 'Blockfrost',
           },
-        }
+        },
       });
 
       //TODO: refetch all
@@ -116,18 +127,22 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
         query: {
           cursorId: undefined,
           take: 100,
-        }
+        },
       });
 
       dispatch({
         type: 'SET_PAYMENT_SOURCES',
-        payload: sourcesData?.data?.data?.paymentSources || []
+        payload: sourcesData?.data?.data?.PaymentSources || [],
       });
 
       onClose();
     } catch (error: unknown) {
       console.error('Failed to create payment source:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create payment source. Please try again.');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create payment source. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -136,21 +151,27 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
   const addAdminWallet = () => {
     setFormData({
       ...formData,
-      adminWallets: [...formData.adminWallets, { walletAddress: '' }]
+      adminWallets: [...formData.adminWallets, { walletAddress: '' }],
     });
   };
 
   const addPurchasingWallet = () => {
     setFormData({
       ...formData,
-      purchasingWallets: [...formData.purchasingWallets, { walletMnemonic: '' }]
+      purchasingWallets: [
+        ...formData.purchasingWallets,
+        { walletMnemonic: '' },
+      ],
     });
   };
 
   const addSellingWallet = () => {
     setFormData({
       ...formData,
-      sellingWallets: [...formData.sellingWallets, { walletMnemonic: '', note: '' }]
+      sellingWallets: [
+        ...formData.sellingWallets,
+        { walletMnemonic: '', note: '' },
+      ],
     });
   };
 
@@ -162,11 +183,7 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {error && (
-            <div className="text-sm text-destructive">
-              {error}
-            </div>
-          )}
+          {error && <div className="text-sm text-destructive">{error}</div>}
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Configuration</h3>
@@ -179,7 +196,12 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                 <select
                   className="w-full p-2 rounded-md bg-background border"
                   value={formData.network}
-                  onChange={(e) => setFormData({ ...formData, network: e.target.value as 'Mainnet' | 'Preprod' })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      network: e.target.value as 'Mainnet' | 'Preprod',
+                    })
+                  }
                 >
                   <option value="PREPROD">Preprod</option>
                   <option value="MAINNET">Mainnet</option>
@@ -194,7 +216,12 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
                   value={formData.blockfrostApiKey}
-                  onChange={(e) => setFormData({ ...formData, blockfrostApiKey: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      blockfrostApiKey: e.target.value,
+                    })
+                  }
                   placeholder="Using default Blockfrost API key"
                 />
               </div>
@@ -207,7 +234,12 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                   type="number"
                   className="w-full p-2 rounded-md bg-background border"
                   value={formData.feePermille}
-                  onChange={(e) => setFormData({ ...formData, feePermille: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      feePermille: parseInt(e.target.value),
+                    })
+                  }
                   min="0"
                   max="1000"
                 />
@@ -217,8 +249,15 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Admin Wallets <span className="text-muted-foreground">(*3 expected)</span></h3>
-              <Button type="button" variant="secondary" onClick={addAdminWallet}>
+              <h3 className="text-lg font-semibold">
+                Admin Wallets{' '}
+                <span className="text-muted-foreground">(*3 expected)</span>
+              </h3>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addAdminWallet}
+              >
                 Add Admin Wallet
               </Button>
             </div>
@@ -253,10 +292,12 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                 type="text"
                 className="w-full p-2 rounded-md bg-background border"
                 value={formData.feeReceiverWallet.walletAddress}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  feeReceiverWallet: { walletAddress: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    feeReceiverWallet: { walletAddress: e.target.value },
+                  })
+                }
                 placeholder="Enter fee receiver wallet address"
               />
             </div>
@@ -273,20 +314,30 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                 type="text"
                 className="w-full p-2 rounded-md bg-background border"
                 value={formData.collectionWallet.walletAddress}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  collectionWallet: { ...formData.collectionWallet, walletAddress: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    collectionWallet: {
+                      ...formData.collectionWallet,
+                      walletAddress: e.target.value,
+                    },
+                  })
+                }
                 placeholder="Enter collection wallet address"
               />
               <input
                 type="text"
                 className="w-full p-2 rounded-md bg-background border"
                 value={formData.collectionWallet.note || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  collectionWallet: { ...formData.collectionWallet, note: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    collectionWallet: {
+                      ...formData.collectionWallet,
+                      note: e.target.value,
+                    },
+                  })
+                }
                 placeholder="Note (optional)"
               />
             </div>
@@ -295,7 +346,11 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Purchasing Wallets</h3>
-              <Button type="button" variant="secondary" onClick={addPurchasingWallet}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addPurchasingWallet}
+              >
                 Add Purchasing Wallet
               </Button>
             </div>
@@ -311,8 +366,13 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => {
-                        const newWallets = formData.purchasingWallets.filter((_, i) => i !== index);
-                        setFormData({ ...formData, purchasingWallets: newWallets });
+                        const newWallets = formData.purchasingWallets.filter(
+                          (_, i) => i !== index,
+                        );
+                        setFormData({
+                          ...formData,
+                          purchasingWallets: newWallets,
+                        });
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -327,11 +387,13 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                     onChange={(e) => {
                       const newWallets = [...formData.purchasingWallets];
                       newWallets[index].walletMnemonic = e.target.value;
-                      setFormData({ ...formData, purchasingWallets: newWallets });
+                      setFormData({
+                        ...formData,
+                        purchasingWallets: newWallets,
+                      });
                     }}
                     placeholder="Enter wallet mnemonic"
                   />
-
                 </div>
                 <input
                   type="text"
@@ -351,7 +413,11 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Selling Wallets</h3>
-              <Button type="button" variant="secondary" onClick={addSellingWallet}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addSellingWallet}
+              >
                 Add Selling Wallet
               </Button>
             </div>
@@ -367,8 +433,13 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => {
-                        const newWallets = formData.sellingWallets.filter((_, i) => i !== index);
-                        setFormData({ ...formData, sellingWallets: newWallets });
+                        const newWallets = formData.sellingWallets.filter(
+                          (_, i) => i !== index,
+                        );
+                        setFormData({
+                          ...formData,
+                          sellingWallets: newWallets,
+                        });
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -387,7 +458,6 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
                     }}
                     placeholder="Enter wallet mnemonic"
                   />
-
                 </div>
                 <input
                   type="text"
@@ -416,4 +486,4 @@ export function CreateContractModal({ onClose }: CreateContractModalProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

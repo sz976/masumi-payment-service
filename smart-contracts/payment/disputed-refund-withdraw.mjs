@@ -44,7 +44,6 @@ const wallet3 = new MeshWallet({
   },
 });
 const address = (await wallet1.getUnusedAddresses())[0];
-console.log(address);
 
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 

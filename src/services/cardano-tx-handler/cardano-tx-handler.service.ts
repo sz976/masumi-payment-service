@@ -30,6 +30,7 @@ import {
 } from '@/utils/logic/state-transitions';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { deserializeDatum } from '@meshsdk/core';
+import { SmartContractState } from '@/utils/generator/contract-generator';
 
 const updateMutex = new Sema(1);
 export async function checkLatestTransactions(
@@ -498,12 +499,16 @@ export async function checkLatestTransactions(
                       );
                       return;
                     }
-                    if (decodedNewContract.refundRequested != false) {
+                    if (
+                      decodedNewContract.state ==
+                        SmartContractState.RefundRequested ||
+                      decodedNewContract.state == SmartContractState.Disputed
+                    ) {
                       logger.warn(
                         'Refund was requested. This likely is a spoofing attempt.',
                         {
                           purchaseRequest: dbEntry,
-                          refundRequested: decodedNewContract.refundRequested,
+                          state: decodedNewContract.state,
                         },
                       );
                       return;
@@ -654,7 +659,7 @@ export async function checkLatestTransactions(
                         },
                       },
                       include: {
-                        Amounts: true,
+                        RequestedFunds: true,
                         BuyerWallet: true,
                         SmartContractWallet: true,
                         CurrentTransaction: { include: { BlocksWallet: true } },
@@ -734,12 +739,16 @@ export async function checkLatestTransactions(
                       newState = OnChainState.FundsOrDatumInvalid;
                       errorNote.push(errorMessage);
                     }
-                    if (decodedNewContract.refundRequested != false) {
+                    if (
+                      decodedNewContract.state ==
+                        SmartContractState.RefundRequested ||
+                      decodedNewContract.state == SmartContractState.Disputed
+                    ) {
                       const errorMessage =
                         'Refund was requested. This likely is a spoofing attempt.';
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
-                        refundRequested: decodedNewContract.refundRequested,
+                        state: decodedNewContract.state,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
@@ -832,7 +841,7 @@ export async function checkLatestTransactions(
                     }
 
                     const valueMatches = checkPaymentAmountsMatch(
-                      dbEntry.Amounts,
+                      dbEntry.RequestedFunds,
                       output.amount,
                     );
                     if (valueMatches == false) {
@@ -841,14 +850,14 @@ export async function checkLatestTransactions(
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
                         amounts: output.amount,
-                        amountsDb: dbEntry.Amounts,
+                        amountsDb: dbEntry.RequestedFunds,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
                       errorNote.push(errorMessage);
                     }
                     const paymentCountMatches =
-                      dbEntry.Amounts.filter(
+                      dbEntry.RequestedFunds.filter(
                         (x) => x.unit != 'lovelace' && x.unit != '',
                       ).length ==
                       output.amount.filter(
@@ -860,7 +869,7 @@ export async function checkLatestTransactions(
                       logger.warn(errorMessage, {
                         paymentRequest: dbEntry,
                         amounts: output.amount,
-                        amountsDb: dbEntry.Amounts,
+                        amountsDb: dbEntry.RequestedFunds,
                       });
                       newAction = PaymentAction.WaitingForManualAction;
                       newState = OnChainState.FundsOrDatumInvalid;
@@ -980,7 +989,7 @@ export async function checkLatestTransactions(
                 include: {
                   BuyerWallet: true,
                   SmartContractWallet: true,
-                  Amounts: true,
+                  RequestedFunds: true,
                   NextAction: true,
                   CurrentTransaction: true,
                   TransactionHistory: true,
@@ -1000,7 +1009,7 @@ export async function checkLatestTransactions(
                     SellerWallet: true,
                     NextAction: true,
                     CurrentTransaction: true,
-                    Amounts: true,
+                    PaidFunds: true,
                     TransactionHistory: true,
                   },
                 },
@@ -1115,7 +1124,9 @@ export async function checkLatestTransactions(
                 } else {
                   //Ensure the amounts match, to prevent state change attacks
                   const valueMatches = checkPaymentAmountsMatch(
-                    paymentRequest?.Amounts ?? purchasingRequest?.Amounts ?? [],
+                    paymentRequest?.RequestedFunds ??
+                      purchasingRequest?.PaidFunds ??
+                      [],
                     valueOutputs[0].amount,
                   );
                   newState =
@@ -1131,7 +1142,11 @@ export async function checkLatestTransactions(
                 newState = OnChainState.DisputedWithdrawn;
               } else if (redeemerVersion == 5) {
                 //SubmitResult
-                if (decodedNewContract!.refundRequested) {
+                if (
+                  decodedNewContract!.state ==
+                    SmartContractState.RefundRequested ||
+                  decodedNewContract!.state == SmartContractState.Disputed
+                ) {
                   newState = OnChainState.Disputed;
                 } else {
                   newState = OnChainState.ResultSubmitted;

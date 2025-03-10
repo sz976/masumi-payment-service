@@ -59,6 +59,7 @@ import {
   Permission,
   ApiKeyStatus,
   RPCProvider,
+  PricingType,
 } from '@prisma/client';
 import {
   authorizePaymentRefundSchemaInput,
@@ -252,7 +253,7 @@ export function generateOpenAPI() {
       query: getAPIKeySchemaInput.openapi({
         example: {
           limit: 10,
-          cursorApiKey: 'identifier',
+          cursorToken: 'identifier',
         },
       }),
     },
@@ -267,8 +268,9 @@ export function generateOpenAPI() {
               .openapi({
                 example: {
                   data: {
-                    apiKeys: [
+                    ApiKeys: [
                       {
+                        id: 'unique_cuid_v2_of_entry',
                         token: 'masumi_payment_api_key_secret',
                         permission: Permission.Admin,
                         usageLimited: true,
@@ -369,9 +371,12 @@ export function generateOpenAPI() {
           'application/json': {
             schema: updateAPIKeySchemaInput.openapi({
               example: {
-                id: 'id_or_apiKey_unique_cuid_v2_of_entry_to_update',
-                token: 'id_or_apiKey_api_key_to_update',
-                UsageCredits: [{ unit: 'lovelace', amount: '10000000' }],
+                id: 'unique_cuid_v2_of_entry_to_update',
+                token: 'api_key_to_change_to',
+                UsageCreditsToAddOrRemove: [
+                  { unit: 'lovelace', amount: '10000000' },
+                  { unit: 'usdm', amount: '-10000000' },
+                ],
                 status: ApiKeyStatus.Active,
               },
             }),
@@ -429,7 +434,6 @@ export function generateOpenAPI() {
             schema: deleteAPIKeySchemaInput.openapi({
               example: {
                 id: 'id_or_apiKey_unique_cuid_v2_of_entry_to_delete',
-                token: 'id_or_apiKey_api_key_to_delete',
               },
             }),
           },
@@ -450,6 +454,11 @@ export function generateOpenAPI() {
                   data: {
                     id: 'unique_cuid_v2_of_entry_to_delete',
                     token: 'masumi_registry_api_key_secret',
+                    status: ApiKeyStatus.Revoked,
+                    permission: Permission.Admin,
+                    usageLimited: true,
+                    networkLimit: [Network.Preprod, Network.Mainnet],
+                    deletedAt: new Date(1713636260),
                   },
                 },
               }),
@@ -482,7 +491,6 @@ export function generateOpenAPI() {
           limit: 10,
           cursorId: 'cuid_v2_of_last_cursor_entry',
           network: Network.Preprod,
-          smartContractAddress: 'addr_abcd1234567890',
         },
       }),
     },
@@ -498,7 +506,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    payments: [
+                    Payments: [
                       {
                         id: 'cuid_v2_auto_generated',
                         blockchainIdentifier: 'blockchain_identifier',
@@ -521,7 +529,7 @@ export function generateOpenAPI() {
                         },
                         CurrentTransaction: null,
                         TransactionHistory: [],
-                        Amounts: [
+                        RequestedFunds: [
                           {
                             id: 'amount_id',
                             createdAt: new Date(1713636260),
@@ -577,8 +585,7 @@ export function generateOpenAPI() {
                 network: Network.Preprod,
                 metadata:
                   '(private) metadata to be stored with the payment request',
-                smartContractAddress: 'address',
-                amounts: [{ amount: '10000000', unit: 'lovelace' }],
+                RequestedFunds: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
                 identifierFromPurchaser: 'unique_key_from_purchaser',
@@ -616,7 +623,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -667,7 +674,6 @@ export function generateOpenAPI() {
             schema: submitPaymentResultSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'identifier',
                 submitResultHash: 'hash',
               },
@@ -707,7 +713,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -796,7 +802,7 @@ export function generateOpenAPI() {
                       errorType: null,
                       errorNote: null,
                     },
-                    Amounts: [
+                    RequestedFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -846,7 +852,6 @@ export function generateOpenAPI() {
           limit: 10,
           cursorId: 'cuid_v2_of_last_cursor_entry',
           network: Network.Preprod,
-          smartContractAddress: 'addr_abcd1234567890',
         },
       }),
     },
@@ -865,7 +870,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    purchases: [
+                    Purchases: [
                       {
                         id: 'cuid_v2_auto_generated',
                         blockchainIdentifier: 'blockchain_identifier',
@@ -887,7 +892,7 @@ export function generateOpenAPI() {
                         externalDisputeUnlockTime: (1713636260).toString(),
                         submitResultTime: new Date(1713636260).toISOString(),
                         unlockTime: (1713636260).toString(),
-                        Amounts: [],
+                        PaidFunds: [],
                         PaymentSource: {
                           id: 'payment_source_id',
                           network: Network.Preprod,
@@ -936,8 +941,7 @@ export function generateOpenAPI() {
                 blockchainIdentifier: 'blockchain_identifier',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
-                smartContractAddress: 'address',
-                amounts: [{ amount: '10000000', unit: 'lovelace' }],
+                Amounts: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
@@ -981,7 +985,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1032,7 +1036,6 @@ export function generateOpenAPI() {
             schema: requestPurchaseRefundSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'blockchain_identifier',
               },
             }),
@@ -1072,7 +1075,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1122,7 +1125,6 @@ export function generateOpenAPI() {
             schema: cancelPurchaseRefundRequestSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'address',
                 blockchainIdentifier: 'blockchain_identifier',
               },
             }),
@@ -1162,7 +1164,7 @@ export function generateOpenAPI() {
                       errorNote: null,
                     },
                     CurrentTransaction: null,
-                    Amounts: [
+                    PaidFunds: [
                       {
                         id: 'amount_id',
                         createdAt: new Date(1713636260),
@@ -1211,7 +1213,6 @@ export function generateOpenAPI() {
         example: {
           walletVKey: 'wallet_vkey',
           network: Network.Preprod,
-          smartContractAddress: 'address',
         },
       }),
     },
@@ -1229,38 +1230,42 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    assets: [
+                    Assets: [
                       {
                         policyId: 'policy_id',
                         assetName: 'asset_name',
                         agentIdentifier: 'agent_identifier',
-                        metadata: {
+                        Metadata: {
                           name: 'name',
                           description: 'description',
-                          apiUrl: 'api_url',
-                          exampleOutput: 'example_output',
-                          tags: ['tag1', 'tag2'],
-                          capability: {
+                          apiBaseUrl: 'api_url',
+                          ExampleOutputs: [],
+                          Tags: ['tag1', 'tag2'],
+                          Capability: {
                             name: 'capability_name',
                             version: 'capability_version',
                           },
-                          author: {
-                            name: 'author_name',
-                            contact: 'author_contact',
-                            organization: 'author_organization',
-                          },
-                          legal: {
+                          Legal: {
                             privacyPolicy: 'privacy_policy',
                             terms: 'terms',
                             other: 'other',
                           },
+                          Author: {
+                            name: 'author_name',
+                            contactEmail: 'author_contact_email',
+                            contactOther: 'author_contact_other',
+                            organization: 'author_organization',
+                          },
                           image: 'image',
-                          pricing: [
-                            {
-                              quantity: 1000000,
-                              unit: 'unit',
-                            },
-                          ],
+                          AgentPricing: {
+                            pricingType: PricingType.Fixed,
+                            Pricing: [
+                              {
+                                amount: '1000000',
+                                unit: 'unit',
+                              },
+                            ],
+                          },
                           metadataVersion: 1,
                         },
                       },
@@ -1286,7 +1291,6 @@ export function generateOpenAPI() {
         example: {
           network: Network.Preprod,
           cursorId: 'cursor_id',
-          smartContractAddress: 'address',
         },
       }),
     },
@@ -1304,33 +1308,44 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    assets: [
+                    Assets: [
                       {
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
-                        apiUrl: 'api_url',
-                        capabilityName: 'capability_name',
-                        capabilityVersion: 'capability_version',
-                        requestsPerHour: '100',
-                        authorName: 'author_name',
-                        authorContact: 'author_contact',
-                        authorOrganization: 'author_organization',
-                        privacyPolicy: 'link to privacy policy',
-                        terms: 'link to terms',
-                        other: 'link to other',
+                        requestsPerHour: 100,
+                        Capability: {
+                          name: 'capability_name',
+                          version: 'capability_version',
+                        },
+                        Author: {
+                          name: 'author_name',
+                          organization: 'author_organization',
+                          contactEmail: 'author_contact_email',
+                          contactOther: 'author_contact_other',
+                        },
+                        Legal: {
+                          privacyPolicy: 'privacy_policy',
+                          terms: 'terms',
+                          other: 'other',
+                        },
                         state: 'RegistrationRequested',
-                        tags: ['tag1', 'tag2'],
+                        Tags: ['tag1', 'tag2'],
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         lastCheckedAt: new Date(1713636260),
                         agentIdentifier: 'agent_identifier',
-                        Pricing: [
-                          {
-                            unit: 'unit',
-                            quantity: '1000000',
-                          },
-                        ],
+                        apiBaseUrl: 'api_url',
+                        ExampleOutputs: [],
+                        AgentPricing: {
+                          pricingType: PricingType.Fixed,
+                          Pricing: [
+                            {
+                              unit: 'unit',
+                              amount: '1000000',
+                            },
+                          ],
+                        },
                         SmartContractWallet: {
                           walletVkey: 'wallet_vkey',
                           walletAddress: 'wallet_address',
@@ -1362,31 +1377,40 @@ export function generateOpenAPI() {
             schema: registerAgentSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                smartContractAddress: 'addr_test1',
-                exampleOutput: 'example_output',
-                tags: ['tag1', 'tag2'],
+                ExampleOutputs: [
+                  {
+                    name: 'example_output_name',
+                    url: 'https://example.com/example_output',
+                    mimeType: 'application/json',
+                  },
+                ],
+                Tags: ['tag1', 'tag2'],
                 name: 'Agent Name',
-                apiUrl: 'https://api.example.com',
                 description: 'Agent Description',
-                author: {
+                Author: {
                   name: 'Author Name',
-                  contact: 'author@example.com',
+                  contactEmail: 'author@example.com',
+                  contactOther: 'author_contact_other',
                   organization: 'Author Organization',
                 },
-                legal: {
+                apiBaseUrl: 'https://api.example.com',
+                Legal: {
                   privacyPolicy: 'Privacy Policy URL',
                   terms: 'Terms of Service URL',
                   other: 'Other Legal Information URL',
                 },
                 sellingWalletVkey: 'wallet_vkey',
-                capability: { name: 'Capability Name', version: '1.0.0' },
-                requestsPerHour: '100',
-                pricing: [
-                  {
-                    unit: 'usdm',
-                    quantity: '500000000',
-                  },
-                ],
+                Capability: { name: 'Capability Name', version: '1.0.0' },
+                requestsPerHour: 3,
+                AgentPricing: {
+                  pricingType: PricingType.Fixed,
+                  Pricing: [
+                    {
+                      unit: 'usdm',
+                      amount: '500000000',
+                    },
+                  ],
+                },
               },
             }),
           },
@@ -1405,17 +1429,34 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid2',
-                    apiUrl: 'api_url',
-                    tags: ['tag1', 'tag2'],
-                    capabilityName: 'capability_name',
-                    capabilityVersion: 'capability_version',
-                    requestsPerHour: '100',
-                    Pricing: [
-                      {
-                        unit: 'usdm',
-                        quantity: '500000000',
-                      },
-                    ],
+                    apiBaseUrl: 'api_url',
+                    Tags: ['tag1', 'tag2'],
+                    Capability: {
+                      name: 'capability_name',
+                      version: 'capability_version',
+                    },
+                    Legal: {
+                      privacyPolicy: 'privacy_policy',
+                      terms: 'terms',
+                      other: 'other',
+                    },
+                    requestsPerHour: 100,
+                    AgentPricing: {
+                      pricingType: PricingType.Fixed,
+                      Pricing: [
+                        {
+                          unit: 'usdm',
+                          amount: '500000000',
+                        },
+                      ],
+                    },
+                    ExampleOutputs: [],
+                    Author: {
+                      name: 'author_name',
+                      organization: 'author_organization',
+                      contactEmail: 'author_contact_email',
+                      contactOther: 'author_contact_other',
+                    },
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',
@@ -1423,9 +1464,6 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacyPolicy: 'link to privacy policy',
-                    terms: 'link to terms',
-                    other: 'link to other',
                   },
                 },
               }),
@@ -1448,7 +1486,6 @@ export function generateOpenAPI() {
         example: {
           agentIdentifier: 'agentIdentifier',
           network: Network.Preprod,
-          smartContractAddress: 'address',
         },
       }),
     },
@@ -1464,17 +1501,40 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid2',
-                    apiUrl: 'api_url',
-                    tags: ['tag1', 'tag2'],
-                    capabilityName: 'capability_name',
-                    capabilityVersion: 'capability_version',
-                    requestsPerHour: '100',
-                    Pricing: [
+                    apiBaseUrl: 'api_url',
+                    Tags: ['tag1', 'tag2'],
+                    Capability: {
+                      name: 'capability_name',
+                      version: 'capability_version',
+                    },
+                    requestsPerHour: 100,
+                    ExampleOutputs: [
                       {
-                        unit: 'usdm',
-                        quantity: '500000000',
+                        name: 'example_output_name',
+                        url: 'https://example.com/example_output',
+                        mimeType: 'application/json',
                       },
                     ],
+                    Author: {
+                      name: 'author_name',
+                      organization: 'author_organization',
+                      contactEmail: 'author_contact_email',
+                      contactOther: 'author_contact_other',
+                    },
+                    Legal: {
+                      privacyPolicy: 'privacy_policy',
+                      terms: 'terms',
+                      other: 'other',
+                    },
+                    AgentPricing: {
+                      pricingType: PricingType.Fixed,
+                      Pricing: [
+                        {
+                          unit: 'usdm',
+                          amount: '500000000',
+                        },
+                      ],
+                    },
                     SmartContractWallet: {
                       walletVkey: 'wallet_vkey',
                       walletAddress: 'wallet_address',
@@ -1482,9 +1542,6 @@ export function generateOpenAPI() {
                     state: 'RegistrationRequested',
                     description: 'description',
                     name: 'name',
-                    privacyPolicy: 'link to privacy policy',
-                    terms: 'link to terms',
-                    other: 'link to other',
                   },
                 },
               }),
@@ -1521,7 +1578,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    paymentSources: [
+                    PaymentSources: [
                       {
                         id: 'cuid_v2_auto_generated',
                         createdAt: new Date(1713636260),
@@ -1614,7 +1671,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    paymentSources: [
+                    ExtendedPaymentSources: [
                       {
                         id: 'cuid_v2_auto_generated',
                         createdAt: new Date(1713636260),
@@ -1991,13 +2048,16 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    utxos: [
+                    Utxos: [
                       {
                         txHash: 'tx_hash',
                         address: 'addr1qx2ej34k567890',
-                        amount: [{ unit: 'lovelace', quantity: 10000000 }],
-                        output_index: 1,
+                        Amounts: [{ unit: 'lovelace', quantity: 10000000 }],
+                        outputIndex: 1,
                         block: '1',
+                        dataHash: 'data_hash',
+                        inlineDatum: 'inline_datum',
+                        referenceScriptHash: 'reference_script_hash',
                       },
                     ],
                   },
@@ -2032,7 +2092,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: getRpcProviderKeysSchemaOutput.openapi({
               example: {
-                rpcProviderKeys: [
+                RpcProviderKeys: [
                   {
                     network: Network.Preprod,
                     id: 'unique_cuid_v2',

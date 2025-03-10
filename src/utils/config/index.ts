@@ -83,7 +83,7 @@ export const CONFIG = {
 export const DEFAULTS = {
   TX_TIMEOUT_INTERVAL: 1000 * 60 * 15, // 5 minutes in seconds
   LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 15 minutes in seconds
-  DEFAULT_METADATA_VERSION: '1',
+  DEFAULT_METADATA_VERSION: 1,
   DEFAULT_IMAGE: 'ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f',
 
   ADMIN_WALLET1_PREPROD:
@@ -95,10 +95,7 @@ export const DEFAULTS = {
   FEE_WALLET_PREPROD:
     'addr_test1qqfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqt4u496',
   FEE_PERMILLE_PREPROD: 50, //equals simulated 5% fee for the network
-  PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wzlwhustapq9ck0zdz8dahhwd350nzlpg785nz7hs0tqjtgdy4230',
-  REGISTRY_POLICY_ID_PREPROD:
-    '0520e542b4704586b7899e8af207501fd1cfb4d12fc419ede7986de8',
+
   COOLDOWN_TIME_PREPROD: 1000 * 60 * 7,
 
   ADMIN_WALLET1_MAINNET:
@@ -110,9 +107,14 @@ export const DEFAULTS = {
   FEE_WALLET_MAINNET:
     'addr1qyfuahzn3rpnlah2ctcdjxdfl4230ygdar00qxc32guetexyg7nun6hggw9g2gpnayzf22sksr0aqdgkdcvqpc2stwtqgrp4f9',
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
+
+  PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
+    'addr_test1wq6r27mhqc754xelkw294dd20g4989r3r6ah23328w327gssudk7y',
+  REGISTRY_POLICY_ID_PREPROD:
+    'da1995c45c5fe0f32cf609fb073e6ee7d213ba42a3457fc2f6093508',
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1wxlwhustapq9ck0zdz8dahhwd350nzlpg785nz7hs0tqjtgkvpk72',
+    'addr1wy6r27mhqc754xelkw294dd20g4989r3r6ah23328w327gst5e23p',
   REGISTRY_POLICY_ID_MAINNET:
-    'ec878babd6cbd840ae7745a74356b271a24a4391fd6a27e855572fc4',
+    '05f6641139953b326b3f10c7df2bfa5bd6399e401e4256ccae0e8d0e',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };

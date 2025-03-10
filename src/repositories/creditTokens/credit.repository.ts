@@ -144,7 +144,7 @@ async function handlePurchaseCreditInit({
       const purchaseRequest = await prisma.purchaseRequest.create({
         data: {
           requestedBy: { connect: { id: id } },
-          Amounts: {
+          PaidFunds: {
             create: Array.from(totalCost.entries()).map(([unit, amount]) => ({
               amount: amount,
               unit: unit,
@@ -181,7 +181,7 @@ async function handlePurchaseCreditInit({
           SellerWallet: true,
           SmartContractWallet: true,
           PaymentSource: true,
-          Amounts: true,
+          PaidFunds: true,
           NextAction: true,
           CurrentTransaction: true,
         },
