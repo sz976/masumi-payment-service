@@ -158,9 +158,9 @@ export async function registerAgentV1() {
                     other: stringToMetadata(request.other),
                   },
                   tags: request.tags,
-                  pricing: {
+                  agentPricing: {
                     pricingType: request.Pricing.pricingType,
-                    Pricing:
+                    fixedPricing:
                       request.Pricing.FixedPricing?.Amounts.map((pricing) => ({
                         unit: stringToMetadata(pricing.unit),
                         amount: pricing.amount.toString(),

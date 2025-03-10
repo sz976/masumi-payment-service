@@ -167,9 +167,10 @@ model RegistryRequest {
 
   description     String?
   requestsPerHour Float?
-  privacyPolicy   String?
-  terms           String?
-  other           String?
+
+  privacyPolicy String?
+  terms         String?
+  other         String?
 
   authorName         String
   authorContactEmail String?

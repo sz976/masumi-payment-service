@@ -17,6 +17,7 @@ import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/aut
 import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
+import { logger } from '@/utils/logger';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -333,7 +334,7 @@ const blockchainIdentifierDataSchema = z.object({
   purchaserIdentifier: z.string().min(15).max(25),
   sellerAddress: z.string().min(15).max(150),
   sellerIdentifier: z.string().min(15).max(25),
-  PaidFunds: z
+  RequestedFunds: z
     .array(
       z.object({
         amount: z.string().min(1).max(25),
@@ -461,6 +462,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         JSON.parse(parsedBlockchainIdentifier.data.data),
       );
     if (!parsedBlockchainIdentifierData.success) {
+      const error = parsedBlockchainIdentifierData.error;
+      logger.error('Error parsing blockchain identifier', { error });
       throw createHttpError(400, 'Invalid blockchain identifier, data invalid');
     }
 
@@ -512,15 +515,15 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser identifier invalid',
       );
     }
-    const amountsMatch = parsedBlockchainIdentifierData.data.PaidFunds.every(
-      (amount) =>
+    const amountsMatch =
+      parsedBlockchainIdentifierData.data.RequestedFunds.every((amount) =>
         input.Amounts.some(
           (a) => a.amount == amount.amount && a.unit == amount.unit,
         ),
-    );
+      );
     if (
       !amountsMatch ||
-      parsedBlockchainIdentifierData.data.PaidFunds.length !=
+      parsedBlockchainIdentifierData.data.RequestedFunds.length !=
         input.Amounts.length
     ) {
       throw createHttpError(
