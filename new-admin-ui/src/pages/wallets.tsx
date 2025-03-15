@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Plus, ChevronDown, Settings, Copy, RefreshCw, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddWalletDialog } from "@/components/wallets/AddWalletDialog";
+import { SwapDialog } from "@/components/wallets/SwapDialog";
 import Link from "next/link";
 import { useAppContext } from "@/lib/contexts/AppContext";
 import { getPaymentSource, getUtxos } from "@/lib/api/generated";
@@ -15,6 +16,7 @@ import Head from "next/head";
 import { useRate } from "@/lib/hooks/useRate";
 import { Spinner } from "@/components/ui/spinner";
 import { TransakWidget } from "@/components/wallets/TransakWidget";
+import { FaExchangeAlt } from "react-icons/fa";
 
 interface Wallet {
   id: string;
@@ -49,6 +51,7 @@ export default function WalletsPage() {
   const { apiClient } = useAppContext();
   const { rate, isLoading: isLoadingRate } = useRate();
   const [selectedWalletForTopup, setSelectedWalletForTopup] = useState<Wallet | null>(null);
+  const [selectedWalletForSwap, setSelectedWalletForSwap] = useState<Wallet | null>(null);
 
   const fetchWalletBalance = async (wallet: Wallet) => {
     try {
@@ -293,9 +296,9 @@ export default function WalletsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => refreshWalletBalance(wallet)}
+                            onClick={() => setSelectedWalletForSwap(wallet)}
                           >
-                            <RefreshCw className="h-4 w-4" />
+                            <FaExchangeAlt className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
@@ -353,6 +356,16 @@ export default function WalletsPage() {
           toast.success('Top up successful');
           refreshWalletBalance(selectedWalletForTopup!);
         }}
+      />
+
+      <SwapDialog
+        isOpen={!!selectedWalletForSwap}
+        onClose={() => setSelectedWalletForSwap(null)}
+        walletAddress={selectedWalletForSwap?.walletAddress || ''}
+        network="Preprod"
+        blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
+        walletType={selectedWalletForSwap?.type || ''}
+        walletId={selectedWalletForSwap?.id || ''}
       />
     </MainLayout>
   );

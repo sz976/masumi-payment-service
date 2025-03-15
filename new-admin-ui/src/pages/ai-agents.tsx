@@ -144,7 +144,7 @@ export default function AIAgentsPage() {
         <div className="rounded-lg border">
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b">
                 <th className="w-12 p-4">
                   <Checkbox 
                     checked={agents.length > 0 && selectedAgents.length === agents.length}
