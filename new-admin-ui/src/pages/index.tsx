@@ -171,25 +171,6 @@ export default function Overview() {
     toast.success('Address copied to clipboard');
   };
 
-  const refreshWalletBalance = async (wallet: WalletWithBalance) => {
-    try {
-      const balance = await fetchWalletBalance(wallet);
-      setWallets(prev => prev.map(w => 
-        w.id === wallet.id ? { ...w, balance } : w
-      ));
-
-      const newTotal = wallets.reduce((sum, w) => {
-        const amount = w.id === wallet.id ? balance : (w.balance || "0");
-        return sum + (parseInt(amount) || 0);
-      }, 0);
-      setTotalBalance(newTotal.toString());
-
-      toast.success('Balance updated');
-    } catch {
-      toast.error('Failed to update balance');
-    }
-  };
-
   const formatUsdValue = (adaAmount: string) => {
     if (!rate || !adaAmount) return '—';
     const ada = parseInt(adaAmount) / 1000000;  
@@ -202,7 +183,6 @@ export default function Overview() {
         <title>Masumi | Admin Interface</title>
       </Head>
       <MainLayout>
-        {/* Dashboard Title */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-semibold mb-1">Dashboard</h1>
@@ -215,9 +195,7 @@ export default function Overview() {
           </p>
         </div>
 
-        {/* Dashboard Section */}
         <div className="mb-8">
-          {/* Stat Cards */}
           <div className="grid grid-cols-4 gap-4">
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">Total AI agents</div>
@@ -242,7 +220,6 @@ export default function Overview() {
         </div>
 
         <div className="grid grid-cols-2 gap-6">
-          {/* AI Agents Section */}
           <div className="border rounded-lg">
             <div className="p-6">
               <div className="flex justify-between items-center mb-2">
@@ -289,7 +266,6 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Wallets Section */}
           <div className="border rounded-lg">
             <div className="p-6">
               <div className="flex justify-between items-center mb-2">
@@ -305,7 +281,6 @@ export default function Overview() {
                 Manage your buying and selling wallets.
               </p>
               
-              {/* Wallets Table */}
               <div className="mb-4">
                 <div className="grid grid-cols-[80px_1fr_1.5fr_120px] gap-4 text-sm text-muted-foreground mb-2">
                   <div>Type</div>
