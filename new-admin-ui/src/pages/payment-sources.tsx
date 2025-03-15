@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, ChevronDown, Settings, Copy } from "lucide-react";
+import { Plus, ChevronDown, Settings, Copy, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddPaymentSourceDialog } from "@/components/payment-sources/AddPaymentSourceDialog";
 import Link from "next/link";
@@ -141,11 +141,13 @@ export default function PaymentSourcesPage() {
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
+          <div className="relative flex-1">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search"
+              placeholder="Search Payment Source"
               value={searchQuery}
+              className="max-w-xs pl-10"
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
