@@ -456,7 +456,7 @@ export function SwapDialog({
               }}
             >
               <div className="flex flex-col space-y-4">
-                <div className="flex justify-between items-center bg-black p-4 rounded-md">
+                <div className="flex justify-between items-center bg-secondary p-4 rounded-md">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center space-x-2">
                       <select
@@ -464,7 +464,7 @@ export function SwapDialog({
                         onChange={(e) =>
                           handleTokenChange('from', parseInt(e.target.value))
                         }
-                        className="bg-transparent text-white"
+                        className="bg-transparent text-foreground"
                       >
                         {swappableTokens.map((token, index) => (
                           <option key={token.symbol} value={index}>
@@ -478,7 +478,7 @@ export function SwapDialog({
                         className="w-6 h-6 rounded-full"
                       />
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       Balance:{' '}
                       {getBalanceForToken(selectedFromToken.symbol).toFixed(6)}
                     </div>
@@ -487,7 +487,7 @@ export function SwapDialog({
                     <div className="relative w-full">
                       <input
                         type="number"
-                        className={`w-24 text-right bg-transparent border-b border-gray-500 focus:outline-none appearance-none text-[24px] font-bold mb-2 ${
+                        className={`w-24 text-right bg-transparent border-b border-muted-foreground/50 focus:outline-none appearance-none text-[24px] font-bold mb-2 text-foreground ${
                           fromAmount > getMaxAmount(selectedFromToken.symbol)
                             ? 'text-red-500'
                             : ''
@@ -499,7 +499,7 @@ export function SwapDialog({
                         style={{ MozAppearance: 'textfield' }}
                       />
                       <span
-                        className="absolute right-0 -top-5 text-xs text-gray-500 cursor-pointer hover:text-gray-400"
+                        className="absolute right-0 -top-5 text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                         onClick={handleMaxClick}
                       >
                         Max: {getMaxAmount(selectedFromToken.symbol).toFixed(6)}
@@ -511,16 +511,16 @@ export function SwapDialog({
                   </div>
                 </div>
                 <div className="relative flex items-center">
-                  <div className="flex-grow border-t border-gray-600"></div>
+                  <div className="flex-grow border-t border-border"></div>
                   <Button
                     onClick={handleSwitch}
                     className="mx-4 p-2 w-10 h-10 flex items-center justify-center transform rotate-90"
                   >
                     <FaExchangeAlt className="w-5 h-5" />
                   </Button>
-                  <div className="flex-grow border-t border-gray-600"></div>
+                  <div className="flex-grow border-t border-border"></div>
                 </div>
-                <div className="flex justify-between items-center bg-black p-4 rounded-md">
+                <div className="flex justify-between items-center bg-secondary p-4 rounded-md">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center space-x-2">
                       <select
@@ -528,7 +528,7 @@ export function SwapDialog({
                         onChange={(e) =>
                           handleTokenChange('to', parseInt(e.target.value))
                         }
-                        className="bg-transparent text-white"
+                        className="bg-transparent text-foreground"
                       >
                         {swappableTokens.map((token, index) => (
                           <option key={token.symbol} value={index}>
@@ -542,7 +542,7 @@ export function SwapDialog({
                         className="w-6 h-6 rounded-full"
                       />
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       Balance:{' '}
                       {getBalanceForToken(selectedToToken.symbol).toFixed(6)}
                     </div>
@@ -550,7 +550,7 @@ export function SwapDialog({
                   <div className="flex flex-col items-end">
                     <input
                       type="text"
-                      className="w-24 text-right bg-transparent focus:outline-none appearance-none"
+                      className="w-24 text-right bg-transparent focus:outline-none appearance-none text-foreground"
                       placeholder="0"
                       value={toAmount.toFixed(6)}
                       readOnly
