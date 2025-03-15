@@ -3,7 +3,7 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import { GetStaticProps } from 'next';
 import Head from "next/head";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Copy, RefreshCw, ChevronRight } from "lucide-react";
+import { MoreVertical, Copy, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { getPaymentSource, getRegistry, getUtxos } from "@/lib/api/generated";
@@ -11,8 +11,10 @@ import { toast } from "react-toastify";
 import Link from "next/link";
 import { AddWalletDialog } from "@/components/wallets/AddWalletDialog";
 import { AddAIAgentDialog } from "@/components/ai-agents/AddAIAgentDialog";
+import { SwapDialog } from "@/components/wallets/SwapDialog";
 import { useRate } from "@/lib/hooks/useRate";
 import { Spinner } from "@/components/ui/spinner";
+import { FaExchangeAlt } from "react-icons/fa";
 
 interface AIAgent {
   id: string;
@@ -70,6 +72,7 @@ export default function Overview() {
   const [totalBalance, setTotalBalance] = useState("0");
   const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
   const [isAddAgentDialogOpen, setIsAddAgentDialogOpen] = useState(false);
+  const [selectedWalletForSwap, setSelectedWalletForSwap] = useState<WalletWithBalance | null>(null);
   const { rate, isLoading: isLoadingRate } = useRate();
 
   const fetchAgents = useCallback(async () => {
@@ -348,9 +351,9 @@ export default function Overview() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8"
-                            onClick={() => refreshWalletBalance(wallet)}
+                            onClick={() => setSelectedWalletForSwap(wallet)}
                           >
-                            <RefreshCw className="h-4 w-4" />
+                            <FaExchangeAlt className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -387,6 +390,16 @@ export default function Overview() {
         open={isAddAgentDialogOpen}
         onClose={() => setIsAddAgentDialogOpen(false)}
         onSuccess={fetchAgents}
+      />
+
+      <SwapDialog
+        isOpen={!!selectedWalletForSwap}
+        onClose={() => setSelectedWalletForSwap(null)}
+        walletAddress={selectedWalletForSwap?.walletAddress || ''}
+        network="Preprod"
+        blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
+        walletType={selectedWalletForSwap?.type || ''}
+        walletId={selectedWalletForSwap?.id || ''}
       />
     </>
   );

@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, ChevronDown, Settings, Copy, RefreshCw, Search } from "lucide-react";
+import { Plus, ChevronDown, Settings, Copy, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddWalletDialog } from "@/components/wallets/AddWalletDialog";
 import { SwapDialog } from "@/components/wallets/SwapDialog";
