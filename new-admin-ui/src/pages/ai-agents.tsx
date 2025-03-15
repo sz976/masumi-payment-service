@@ -130,10 +130,10 @@ export default function AIAgentsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="search"
-              placeholder="Search"
+              placeholder="Search AI agent"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="max-w-xs pl-10"
             />
           </div>
           <Button variant="outline" size="icon" className="h-10 w-10">

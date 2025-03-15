@@ -218,7 +218,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
 
-        {/* Navigation Links */}
         <nav className={cn(
           "flex flex-col gap-1 mt-4",
           collapsed ? "px-0 items-center" : "p-2"
@@ -251,7 +250,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           ))}
         </nav>
 
-        {/* Footer */}
         <div className={cn(
           "absolute bottom-4 left-0 right-0",
           collapsed ? "px-2" : "px-4"
@@ -283,19 +281,20 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div 
         className="flex flex-col min-h-screen w-full transition-all duration-300" 
         style={{ marginLeft: collapsed ? "96px" : "240px" }}
       >
-        {/* Top Navigation */}
         <div className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
           <div className="max-w-[1400px] mx-auto w-full">
             <div className="h-14 px-4 flex items-center justify-between gap-4">
-              <div className="flex flex-1 max-w-[190px] justify-between relative items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer items-center" onClick={() => setIsSearchOpen(true)}>
+              <div className="flex flex-1 max-w-[190px] justify-start gap-1 relative items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer items-center" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <div className="pl-2">
-                  {`Search (${isMac ? '⌘' : 'Ctrl'} + K)`}
+                  {`Search... `}
+                </div>
+                <div className="pl-4">
+                  {`(${isMac ? '⌘' : 'Ctrl'} + K)`}
                 </div>
               </div>
 
@@ -329,7 +328,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
 
-        {/* Page Content */}
         <main className="flex-1 relative z-10">
           <div className="max-w-[1400px] mx-auto w-full">
             <div className="p-8 px-4">

@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, ChevronDown, Settings, Copy, RefreshCw } from "lucide-react";
+import { Plus, ChevronDown, Settings, Copy, RefreshCw, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddWalletDialog } from "@/components/wallets/AddWalletDialog";
 import Link from "next/link";
@@ -186,12 +186,14 @@ export default function WalletsPage() {
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
+          <div className="relative flex-1">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search"
+              placeholder="Search wallet"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-xs pl-10"
             />
           </div>
           <Button variant="outline" className="flex items-center gap-2">

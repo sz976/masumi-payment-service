@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Search } from 'lucide-react';
 
 interface ApiKey {
   id: string;
@@ -112,15 +113,17 @@ export default function ApiKeys() {
         </div>
 
         <div className="space-y-6">
-          {/* Search and Actions */}
           <div className="flex justify-between items-center">
-            <Input
-              type="search"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64"
-            />
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search API key"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xs pl-10"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline"
@@ -136,7 +139,6 @@ export default function ApiKeys() {
             </div>
           </div>
 
-          {/* API Keys Table */}
           <div className="border rounded-lg">
             <table className="w-full">
               <thead>

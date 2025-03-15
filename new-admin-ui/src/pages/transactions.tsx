@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
-import { LuSearch, LuSettings, LuCopy } from 'react-icons/lu';
+import { LuSettings, LuCopy } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,7 +12,7 @@ import { getPayment, getPurchase } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-
+import { Search } from 'lucide-react';
 interface Transaction {
   id: string;
   type: 'payment' | 'purchase';
@@ -205,7 +205,6 @@ export default function Transactions() {
         </div>
 
         <div className="space-y-6">
-          {/* Tabs */}
           <div className="flex gap-6 border-b">
             {tabs.map(tab => (
               <button
@@ -231,16 +230,15 @@ export default function Transactions() {
             ))}
           </div>
 
-          {/* Search and Filters */}
           <div className="flex items-center justify-between">
-            <div className="relative w-[300px]">
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by ID, status, or hash"
-                className="pl-10"
+                className="max-w-xs pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" className="gap-2 text-sm">
@@ -250,7 +248,6 @@ export default function Transactions() {
             </div>
           </div>
 
-          {/* Transactions Table */}
           <div className="border rounded-lg">
             <table className="w-full">
               <thead>
