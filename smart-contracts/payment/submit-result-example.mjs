@@ -129,6 +129,7 @@ const datum = {
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
       'test',
+      '',
       hash,
       submitResultTime,
       unlockTime,

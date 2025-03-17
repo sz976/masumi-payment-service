@@ -112,7 +112,6 @@ export function RegisterAgentModal({
           version: formData.capabilityVersion,
         },
         ExampleOutputs: [],
-        requestsPerHour: parseFloat(formData.requests_per_hour),
         AgentPricing: {
           pricingType: 'Fixed',
           Pricing: [
