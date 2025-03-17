@@ -409,6 +409,7 @@ export type GetPaymentResponses = {
                 externalDisputeUnlockTime: string;
                 requestedById: string;
                 resultHash: string;
+                inputHash: string;
                 cooldownTime: number;
                 cooldownTimeOtherParty: number;
                 onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
@@ -416,6 +417,7 @@ export type GetPaymentResponses = {
                     requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'SubmitResultRequested' | 'SubmitResultInitiated' | 'WithdrawRequested' | 'WithdrawInitiated' | 'AuthorizeRefundRequested' | 'AuthorizeRefundInitiated';
                     errorType: 'NetworkError' | 'Unknown';
                     errorNote: string | null;
+                    resultHash: string | null;
                 };
                 CurrentTransaction: {
                     id: string;
@@ -461,6 +463,7 @@ export type GetPaymentResponse = GetPaymentResponses[keyof GetPaymentResponses];
 
 export type PostPaymentData = {
     body?: {
+        inputHash: string;
         /**
          * The network the payment will be received on
          */
@@ -540,10 +543,12 @@ export type PostPaymentResponses = {
             externalDisputeUnlockTime: string;
             lastCheckedAt: string | null;
             requestedById: string;
+            inputHash: string;
             resultHash: string;
             onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
             NextAction: {
                 requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'SubmitResultRequested' | 'SubmitResultInitiated' | 'WithdrawRequested' | 'WithdrawInitiated' | 'AuthorizeRefundRequested' | 'AuthorizeRefundInitiated';
+                resultHash: string | null;
                 errorType: 'NetworkError' | 'Unknown';
                 errorNote: string | null;
             };
@@ -632,11 +637,13 @@ export type PostPaymentSubmitResultResponses = {
             lastCheckedAt: string | null;
             requestedById: string;
             resultHash: string;
+            inputHash: string;
             onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
             NextAction: {
                 requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'SubmitResultRequested' | 'SubmitResultInitiated' | 'WithdrawRequested' | 'WithdrawInitiated' | 'AuthorizeRefundRequested' | 'AuthorizeRefundInitiated';
                 errorType: 'NetworkError' | 'Unknown';
                 errorNote: string | null;
+                resultHash: string | null;
             };
             RequestedFunds: Array<{
                 id: string;
@@ -719,11 +726,13 @@ export type PostPaymentAuthorizeRefundResponses = {
             lastCheckedAt: string | null;
             requestedById: string;
             resultHash: string;
+            inputHash: string;
             onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
             NextAction: {
                 requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'SubmitResultRequested' | 'SubmitResultInitiated' | 'WithdrawRequested' | 'WithdrawInitiated' | 'AuthorizeRefundRequested' | 'AuthorizeRefundInitiated';
                 errorType: 'NetworkError' | 'Unknown';
                 errorNote: string | null;
+                resultHash: string | null;
             };
             RequestedFunds: Array<{
                 id: string;
@@ -818,8 +827,10 @@ export type GetPurchaseResponses = {
                 onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
                 cooldownTime: number;
                 cooldownTimeOtherParty: number;
+                inputHash: string;
                 resultHash: string;
                 NextAction: {
+                    inputHash: string;
                     requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'FundsLockingRequested' | 'FundsLockingInitiated' | 'SetRefundRequestedRequested' | 'SetRefundRequestedInitiated' | 'UnSetRefundRequestedRequested' | 'UnSetRefundRequestedInitiated' | 'WithdrawRefundRequested' | 'WithdrawRefundInitiated';
                     errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown';
                     errorNote: string | null;
@@ -878,6 +889,7 @@ export type PostPurchaseData = {
          * The network the transaction will be made on
          */
         network: 'Preprod' | 'Mainnet';
+        inputHash: string;
         /**
          * The verification key of the seller
          */
@@ -958,6 +970,7 @@ export type PostPurchaseResponses = {
             externalDisputeUnlockTime: string;
             requestedById: string;
             resultHash: string;
+            inputHash: string;
             onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
             NextAction: {
                 requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'FundsLockingRequested' | 'FundsLockingInitiated' | 'SetRefundRequestedRequested' | 'SetRefundRequestedInitiated' | 'UnSetRefundRequestedRequested' | 'UnSetRefundRequestedInitiated' | 'WithdrawRefundRequested' | 'WithdrawRefundInitiated';
@@ -1230,7 +1243,6 @@ export type GetRegistryWalletResponses = {
                         url: string;
                     }>;
                     Tags: Array<string>;
-                    requestsPerHour?: number | null;
                     Capability?: {
                         name?: string | null;
                         version?: string | null;
@@ -1309,7 +1321,6 @@ export type DeleteRegistryResponses = {
                 other: string | null;
             };
             description: string | null;
-            requestsPerHour: number | null;
             Tags: Array<string>;
             SmartContractWallet: {
                 walletVkey: string;
@@ -1370,7 +1381,6 @@ export type GetRegistryResponses = {
                     name: string | null;
                     version: string | null;
                 };
-                requestsPerHour: number | null;
                 Author: {
                     name: string;
                     contactEmail: string | null;
@@ -1457,10 +1467,6 @@ export type PostRegistryData = {
             name: string;
             version: string;
         };
-        /**
-         * The request the agent can handle per hour
-         */
-        requestsPerHour: number | null;
         AgentPricing: {
             pricingType: 'Fixed';
             /**
@@ -1520,7 +1526,6 @@ export type PostRegistryResponses = {
                 organization: string | null;
             };
             description: string | null;
-            requestsPerHour: number | null;
             Tags: Array<string>;
             state: 'RegistrationRequested' | 'RegistrationInitiated' | 'RegistrationConfirmed' | 'RegistrationFailed' | 'DeregistrationRequested' | 'DeregistrationInitiated' | 'DeregistrationConfirmed' | 'DeregistrationFailed';
             SmartContractWallet: {

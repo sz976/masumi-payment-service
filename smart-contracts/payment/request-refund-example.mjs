@@ -128,6 +128,7 @@ const datum = {
     fields: [
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
+      '',
       'test',
       hash.toString('hex'),
       submitResultTime,
