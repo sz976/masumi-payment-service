@@ -119,7 +119,6 @@ export const queryAgentFromWalletSchemaOutput = z.object({
           )
           .max(25),
         Tags: z.array(z.string().max(250)),
-        requestsPerHour: z.number().min(0).nullable().optional(),
         Capability: z
           .object({
             name: z.string().max(250).nullable().optional(),
