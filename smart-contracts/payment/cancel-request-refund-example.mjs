@@ -128,6 +128,7 @@ const datum = {
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
       'test',
+      '',
       hash.toString('hex'),
       submitResultTime,
       unlockTime,
