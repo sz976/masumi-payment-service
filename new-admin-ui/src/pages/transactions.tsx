@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LuSettings, LuCopy } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import { toast } from 'react-toastify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
+import { Tabs } from '@/components/ui/tabs';
+
 interface Transaction {
   id: string;
   type: 'payment' | 'purchase';
@@ -61,6 +63,7 @@ export default function Transactions() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [cursorId, setCursorId] = useState<string | null>(null);
+  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const refundRequestsCount = transactions.filter(
     transaction => transaction.onChainState === 'RefundRequested'
@@ -205,30 +208,11 @@ export default function Transactions() {
         </div>
 
         <div className="space-y-6">
-          <div className="flex gap-6 border-b">
-            {tabs.map(tab => (
-              <button
-                key={tab.name}
-                onClick={() => setActiveTab(tab.name)}
-                className={cn(
-                  "pb-4 relative text-sm",
-                  activeTab === tab.name ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  {tab.name}
-                  {tab.count && (
-                    <span className="bg-destructive text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                      {tab.count}
-                    </span>
-                  )}
-                </div>
-                {activeTab === tab.name && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-            ))}
-          </div>
+          <Tabs 
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
 
           <div className="flex items-center justify-between">
             <div className="relative flex-1">

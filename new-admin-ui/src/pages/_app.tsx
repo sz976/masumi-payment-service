@@ -11,6 +11,10 @@ import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { getHealth, getPaymentSource, getRpcApiKeys } from "@/lib/api/generated";
 import { ThemeProvider } from "@/lib/contexts/ThemeContext";
 import { Spinner } from "@/components/ui/spinner";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 function App({ Component, pageProps, router }: AppProps) {
   return (
@@ -24,8 +28,20 @@ function App({ Component, pageProps, router }: AppProps) {
 
 function ThemedApp({ Component, pageProps, router }: AppProps) {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { state, dispatch } = useAppContext();
   const { apiClient } = useAppContext();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchPaymentSources = useCallback(async () => {
     try {
@@ -126,6 +142,27 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
         </div>
       </div>
     </div>;
+  }
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center bg-background text-foreground">
+          <div className="text-center space-y-4 p-4">
+            <div className="text-lg text-muted-foreground">
+              Please use a desktop device to <br /> access the Masumi Admin Interface
+            </div>
+            <Button variant="muted">
+              <Link href="https://docs.masumi.io" target="_blank">
+                Learn more
+              </Link>
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   return (

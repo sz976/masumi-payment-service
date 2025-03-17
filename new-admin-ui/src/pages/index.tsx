@@ -15,6 +15,7 @@ import { SwapDialog } from "@/components/wallets/SwapDialog";
 import { useRate } from "@/lib/hooks/useRate";
 import { Spinner } from "@/components/ui/spinner";
 import { FaExchangeAlt } from "react-icons/fa";
+import useFormatBalance from "@/lib/hooks/useFormatBalance";
 
 interface AIAgent {
   id: string;
@@ -199,11 +200,11 @@ export default function Overview() {
           <div className="grid grid-cols-4 gap-4">
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">Total AI agents</div>
-              <div className="text-2xl font-semibold">{agents.length}</div>
+              {isLoadingAgents ? <Spinner size={20} addContainer /> : <div className="text-2xl font-semibold">{agents.length}</div>}
             </div>
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">Total wallets</div>
-              <div className="text-2xl font-semibold">{wallets.length}</div>
+              {isLoadingWallets ? <Spinner size={20} addContainer /> : <div className="text-2xl font-semibold">{wallets.length}</div>}
             </div>
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">Active transactions</div>
@@ -211,10 +212,12 @@ export default function Overview() {
             </div>
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">Total balance</div>
-              <div className="text-2xl font-semibold">{(parseInt(totalBalance) / 1000000).toFixed(2)} ₳</div>
-              <div className="text-sm text-muted-foreground">
-                {isLoadingRate ? '...' : formatUsdValue(totalBalance)}
-              </div>
+              {isLoadingWallets ? <Spinner size={20} addContainer /> : <>
+                <div className="text-2xl font-semibold">₳ {useFormatBalance((parseInt(totalBalance) / 1000000).toFixed(2)?.toString())}</div>
+                <div className="text-sm text-muted-foreground">
+                  {(isLoadingRate && !totalBalance) ? '...' : `~ $${useFormatBalance(formatUsdValue(totalBalance))}`}
+                </div>
+              </>}
             </div>
           </div>
         </div>
@@ -321,7 +324,7 @@ export default function Overview() {
                           <span className="font-mono text-sm text-muted-foreground">{wallet.walletAddress.slice(0, 12)}...</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">{wallet.balance ? `${(parseInt(wallet.balance) / 1000000).toFixed(2)} ₳` : '—'}</span>
+                          <span className="text-sm">{wallet.balance ? `₳${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}` : '—'}</span>
                           <Button 
                             variant="ghost" 
                             size="icon" 

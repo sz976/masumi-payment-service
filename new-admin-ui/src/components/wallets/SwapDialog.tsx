@@ -23,6 +23,7 @@ import { shortenAddress } from '@/lib/utils';
 import { executeSwap } from '@/lib/api/swap';
 import { Token } from '@/types/token';
 import { Spinner } from '../ui/spinner';
+import useFormatBalance from '@/lib/hooks/useFormatBalance';
 interface SwapDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -480,7 +481,7 @@ export function SwapDialog({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Balance:{' '}
-                      {getBalanceForToken(selectedFromToken.symbol).toFixed(6)}
+                      {useFormatBalance(getBalanceForToken(selectedFromToken.symbol).toFixed(6))}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
@@ -502,7 +503,7 @@ export function SwapDialog({
                         className="absolute right-0 -top-5 text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                         onClick={handleMaxClick}
                       >
-                        Max: {getMaxAmount(selectedFromToken.symbol).toFixed(6)}
+                        Max: {useFormatBalance(getMaxAmount(selectedFromToken.symbol).toFixed(2))}
                       </span>
                     </div>
                     <span className="block text-xs text-muted-foreground">
@@ -544,7 +545,7 @@ export function SwapDialog({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Balance:{' '}
-                      {getBalanceForToken(selectedToToken.symbol).toFixed(6)}
+                      {useFormatBalance(getBalanceForToken(selectedToToken.symbol).toFixed(6))}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">

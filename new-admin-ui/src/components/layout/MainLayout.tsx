@@ -45,6 +45,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     }
     return false;
   });
+  const sideBarWidth = 260;
+  const sideBarWidthCollapsed = 96;
   const [activeNetwork, setActiveNetwork] = useState("preprod");
   const [isMac, setIsMac] = useState(false);
   const { searchQuery, setSearchQuery, searchResults, handleSearch } = useSearch();
@@ -147,11 +149,16 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex bg-background w-full" style={{ overflowY: 'scroll', overflowX: 'hidden', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} onClick={(e) => e.stopPropagation()}>
-      <aside className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r transition-[width] duration-300",
-        "bg-[#FAFAFA] dark:bg-background",
-        collapsed ? "w-[96px]" : "w-[240px]"
-      )}>
+      <aside 
+        className={cn(
+          "fixed left-0 top-0 z-40 h-screen border-r transition-[width] duration-300",
+          "bg-[#FAFAFA] dark:bg-[#18181B]",
+        )}
+        data-collapsed={collapsed}
+        style={{
+          width: collapsed ? `${sideBarWidthCollapsed}px` : `${sideBarWidth}px`
+        }}
+      >
         <div className="flex flex-col space-y-6">
           <div className={cn(
             "flex gap-2 border-b p-2.5 px-4 w-full",
@@ -283,7 +290,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       <div 
         className="flex flex-col min-h-screen w-full transition-all duration-300" 
-        style={{ marginLeft: collapsed ? "96px" : "240px" }}
+        style={{ marginLeft: collapsed ? `${sideBarWidthCollapsed}px` : `${sideBarWidth}px` }}
       >
         <div className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
           <div className="max-w-[1400px] mx-auto w-full">
@@ -339,7 +346,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DialogContent className="sm:max-w-[600px] p-0">
-          <Command>
+          <Command className="py-2">
             <CommandInput 
               placeholder="Type to search..." 
               value={searchQuery}
@@ -347,6 +354,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 setSearchQuery(value);
                 handleSearch(value);
               }}
+              className="p-1 px-2 mb-2"
             />
             <CommandList>
               <CommandEmpty>No results found.</CommandEmpty>

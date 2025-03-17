@@ -17,7 +17,7 @@ import { useRate } from "@/lib/hooks/useRate";
 import { Spinner } from "@/components/ui/spinner";
 import { TransakWidget } from "@/components/wallets/TransakWidget";
 import { FaExchangeAlt } from "react-icons/fa";
-
+import useFormatBalance from "@/lib/hooks/useFormatBalance";
 interface Wallet {
   id: string;
   walletVkey: string;
@@ -284,9 +284,9 @@ export default function WalletsPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         {!isLoadingRate ? <div className="flex flex-col items-center gap-2">
-                          <div className="text-sm">{wallet.balance ? `${(parseInt(wallet.balance) / 1000000).toFixed(2)}` : '—'}</div>
+                          <div className="text-sm">{wallet.balance ? `${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}` : '—'}</div>
                           {wallet.balance && <div className="text-xs text-muted-foreground">
-                            {formatUsdValue(wallet.balance || '0')}
+                            {useFormatBalance(formatUsdValue(wallet.balance || '0'))}
                           </div>}
                         </div> : <Spinner size={16} />}
                         {isLoading ? (
