@@ -109,12 +109,12 @@ export const DEFAULTS = {
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
 
   PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wr4wn4kdgw2dpadx8lhe5k3ksfc9jc8jmnndmd3as9feaxc4crytk',
+    'addr_test1wp7je4555s7cdqvlcgdnkj34rrpryy8wsst9yvz7e74p2ugy69qgn',
   REGISTRY_POLICY_ID_PREPROD:
-    '47a846da5666b09446dd4b791c0d873bd85ec83df61ece4bb9b519a6',
+    'e6c57104dfa95943ffab95eafe1f12ed9a8da791678bfbf765b05649',
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1w84wn4kdgw2dpadx8lhe5k3ksfc9jc8jmnndmd3as9feaxcwshcyn',
+    'addr1w97je4555s7cdqvlcgdnkj34rrpryy8wsst9yvz7e74p2uglj3u8k',
   REGISTRY_POLICY_ID_MAINNET:
-    '4f7d566652ea6d699943264f3d2925da92eec83dd93a54570dec33e9',
+    '1d2fcf188632b7dfc3d881c2215a0e94db3b6823996f64a86ec263ff',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };

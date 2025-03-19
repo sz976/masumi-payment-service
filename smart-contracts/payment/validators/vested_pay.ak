@@ -151,8 +151,7 @@ validator vested_pay(
         expect or {
             state == FundsLocked,
             state == ResultSubmitted,
-            //allow to set the field again, to in theory signal a dispute when the result hash is updated
-            state == RefundRequested,
+            //allow to set the field again, to signal a dispute when the result hash is updated
             state == Disputed,
           }
 
@@ -276,16 +275,16 @@ validator vested_pay(
         expect or {
             state == FundsLocked,
             state == RefundRequested,
-            //allow to set the field again, to in theory update to a new result
+            //allow to set the field again, to update to a new result
             state == ResultSubmitted,
             state == Disputed,
           }
 
         let new_state =
-          if state == RefundRequested {
-            Disputed
-          } else {
+          if state == FundsLocked || state == ResultSubmitted {
             ResultSubmitted
+          } else {
+            Disputed
           }
 
         and {
@@ -351,13 +350,7 @@ fn validate_no_reference_script_attacked_to_script(
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {
-  assets.flatten(input_value)
-    |> list.all(
-        fn(asset) {
-          let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
-          out_value == asset.3rd
-        },
-      )
+  input_value == output_value
 }
 
 test output_value_is_preserved_succeeds() {
