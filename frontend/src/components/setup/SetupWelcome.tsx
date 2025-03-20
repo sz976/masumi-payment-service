@@ -9,14 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import router from "next/router";
-
-function WelcomeScreen({ onStart }: { onStart: () => void }) {
+import { Spinner } from "@/components/ui/spinner";
+function WelcomeScreen({ onStart, networkType }: { onStart: () => void; networkType: string }) {
+  const networkDisplay = networkType === 'mainnet' ? 'Mainnet' : 'Preprod';
+  
   return (
     <div className="text-center space-y-4 max-w-[600px]">
       <h1 className="text-4xl font-bold">Welcome!</h1>
-      <h2 className="text-3xl font-bold">Let's set up your<br />Preprod environment</h2>
+      <h2 className="text-3xl font-bold">Let&apos;s set up your<br />{networkDisplay} environment</h2>
       
-      <p className="text-sm text-muted-foreground mt-4 mb-8">
+      <p className="text-sm text-muted-foreground mt-4 mb-8 text-center max-w-md">
         Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
         Fermentum aliquam nisl orci id egestas non maecenas.
       </p>
@@ -30,14 +32,6 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         </Button>
       </div>
     </div>
-  );
-}
-
-function LoadingDots() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-spin">
-      <path d="M8 1.5C4.41015 1.5 1.5 4.41015 1.5 8C1.5 11.5899 4.41015 14.5 8 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
   );
 }
 
@@ -55,7 +49,6 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
   };
 
   useEffect(() => {
-    // Simulate wallet generation
     const timer = setTimeout(() => {
       setBuyingWallet("126f48bb1824c271b64c8716bc2478b1624c781266b4cb716b24c7216b");
       setSellingWallet("126f48bb1824c271b64c8716bc2478b1624c781266b4cb716b24c7216b");
@@ -83,7 +76,7 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
           </div>
           {isGenerating ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <LoadingDots />
+              <Spinner size={16} />
               Generating...
             </div>
           ) : (
@@ -144,7 +137,7 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
             </div>
           {isGenerating ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <LoadingDots />
+              <Spinner size={16} />
               Generating...
             </div>
           ) : (
@@ -350,13 +343,13 @@ function AddAiAgentScreen({ onNext }: { onNext: () => void }) {
   );
 }
 
-function SuccessScreen({ onComplete }: { onComplete: () => void }) {
+function SuccessScreen({ onComplete, networkType }: { onComplete: () => void; networkType: string }) {
   return (
     <div className="text-center space-y-4 max-w-[600px]">
       <div className="flex justify-center mb-6">
         <span role="img" aria-label="celebration" className="text-4xl">🎉</span>
       </div>
-      <h1 className="text-4xl font-bold">Your Preprod environment<br />is all set!</h1>
+      <h1 className="text-4xl font-bold">Your {networkType === 'mainnet' ? 'Mainnet' : 'Preprod'} environment<br />is all set!</h1>
       
       <p className="text-sm text-muted-foreground mt-4 mb-8">
         Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
@@ -372,26 +365,29 @@ function SuccessScreen({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-export function SetupWelcome() {
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
+export function SetupWelcome({ networkType }: { networkType: string }) {
+  const [currentStep, setCurrentStep] = useState(0);
 
   const handleComplete = () => {
-    // Handle completion logic here
-    router.replace('/');
-    console.log('Setup completed');
+    router.push('/');
   };
 
+  const steps = [
+    <WelcomeScreen key="welcome" onStart={() => setCurrentStep(1)} networkType={networkType} />,
+    <SeedPhrasesScreen key="seed" onNext={() => setCurrentStep(2)} />,
+    <AddAiAgentScreen key="ai" onNext={() => setCurrentStep(3)} />,
+    <SuccessScreen key="success" onComplete={handleComplete} networkType={networkType} />
+  ];
+
   return (
-    <>
-      <Header title={`Preprod Setup${step === 1 ? '' : step > 3 ? '' : ` · ${step}/${totalSteps}`}`} />
-      <main className="flex flex-col items-center justify-center min-h-screen py-32">
-        {step === 1 && <WelcomeScreen onStart={() => setStep(2)} />}
-        {step === 2 && <SeedPhrasesScreen onNext={() => setStep(3)} />}
-        {step === 3 && <AddAiAgentScreen onNext={() => setStep(4)} />}
-        {step === 4 && <SuccessScreen onComplete={handleComplete} />}
+    <div className="min-h-screen flex flex-col w-full">
+      <Header />
+      <main className="flex-1 container w-full max-w-[1200px] mx-auto py-32 px-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+          {steps[currentStep]}
+        </div>
       </main>
       <Footer />
-    </>
+    </div>
   );
 } 

@@ -1,25 +1,48 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppProvider, initialAppState } from '@/lib/contexts/AppContext';
-import { useEffect, useState, useCallback } from 'react';
-import '@/styles/globals.css';
-import '@/styles/styles.scss';
-import type { AppProps } from 'next/app';
-import { useAppContext } from '@/lib/contexts/AppContext';
+import { AppProvider, initialAppState } from "@/lib/contexts/AppContext";
+import { useEffect, useState, useCallback } from "react";
+import "@/styles/globals.css";
+import "@/styles/styles.scss"
+import type { AppProps } from "next/app";
+import { useAppContext } from "@/lib/contexts/AppContext";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useRouter } from 'next/router';
-import { ApiKeyDialog } from '@/components/ApiKeyDialog';
-import {
-  getHealth,
-  getPaymentSource,
-  getRpcApiKeys,
-} from '@/lib/api/generated';
+import { ApiKeyDialog } from "@/components/ApiKeyDialog";
+import { getHealth, getPaymentSource, getRpcApiKeys } from "@/lib/api/generated";
+import { ThemeProvider } from "@/lib/contexts/ThemeContext";
+import { Spinner } from "@/components/ui/spinner";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-function InitializeApp() {
+function App({ Component, pageProps, router }: AppProps) {
+  return (
+    <ThemeProvider>
+      <AppProvider initialState={initialAppState}>
+        <ThemedApp Component={Component} pageProps={pageProps} router={router} />
+      </AppProvider>
+    </ThemeProvider>
+  );
+}
+
+function ThemedApp({ Component, pageProps, router }: AppProps) {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { state, dispatch } = useAppContext();
-  const router = useRouter();
   const { apiClient } = useAppContext();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const fetchPaymentSources = useCallback(async () => {
     try {
       const sourceResponse = await getPaymentSource({
@@ -28,14 +51,13 @@ function InitializeApp() {
       const { data } = sourceResponse;
 
       const sources = data?.data?.PaymentSources || [];
-      const sortedByCreatedAt = sources.sort(
-        (a: any, b: any) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      const sortedByCreatedAt = sources.sort((a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       const reversed = [...sortedByCreatedAt]?.reverse();
       const sourcesMapped = reversed?.map((source: any, index: number) => ({
         ...source,
-        index: index + 1,
+        index: index + 1
       }));
       const reversedBack = [...sourcesMapped]?.reverse();
 
@@ -65,7 +87,7 @@ function InitializeApp() {
       try {
         await getHealth({ client: apiClient });
 
-        const hexedKey = localStorage.getItem('payment_api_key');
+        const hexedKey = localStorage.getItem("payment_api_key");
         if (!hexedKey) {
           setIsHealthy(true);
           return;
@@ -74,11 +96,12 @@ function InitializeApp() {
         const storedApiKey = Buffer.from(hexedKey, 'hex').toString('utf-8');
         apiClient.setConfig({
           headers: {
-            token: storedApiKey,
-          },
+            'token': storedApiKey
+          }
         });
         dispatch({ type: 'SET_API_KEY', payload: storedApiKey });
         setIsHealthy(true);
+
       } catch (error) {
         console.error('Health check failed:', error);
         setIsHealthy(false);
@@ -91,21 +114,10 @@ function InitializeApp() {
   useEffect(() => {
     if (isHealthy && router.pathname === '/' && state.apiKey) {
       fetchPaymentSources();
-    } else if (
-      isHealthy &&
-      state.apiKey &&
-      router.pathname?.includes('/contract/') &&
-      !state.paymentSources?.length
-    ) {
+    } else if (isHealthy && state.apiKey && router.pathname?.includes("/contract/") && !state.paymentSources?.length) {
       fetchPaymentSources();
     }
-  }, [
-    router.pathname,
-    isHealthy,
-    fetchPaymentSources,
-    state.apiKey,
-    state.paymentSources?.length,
-  ]);
+  }, [router.pathname, isHealthy, fetchPaymentSources, state.apiKey, state.paymentSources?.length]);
 
   useEffect(() => {
     if (isHealthy && state.apiKey) {
@@ -114,50 +126,48 @@ function InitializeApp() {
   }, [isHealthy, state.apiKey, fetchRpcApiKeys]);
 
   if (isHealthy === null) {
-    return (
-      <div className="flex items-center justify-center bg-[#000] fixed top-0 left-0 w-full h-full z-50">
-        <div className="text-center space-y-4">
-          <div className="text-lg">Checking system status...</div>
-          <div className="text-sm text-muted-foreground">Please wait...</div>
-        </div>
+    return <div className="flex items-center justify-center bg-background text-foreground fixed top-0 left-0 w-full h-full z-50">
+      <div className="text-center space-y-4">
+        <Spinner size={20} addContainer />
       </div>
-    );
+    </div>;
   }
 
   if (isHealthy === false) {
+    return <div className="flex items-center justify-center bg-background text-foreground fixed top-0 left-0 w-full h-full z-50">
+      <div className="text-center space-y-4">
+        <div className="text-lg text-destructive">System Unavailable</div>
+        <div className="text-sm text-muted-foreground">
+          Unable to connect to required services. Please try again later.
+        </div>
+      </div>
+    </div>;
+  }
+
+  if (isMobile) {
     return (
-      <div className="flex items-center justify-center bg-[#000] fixed top-0 left-0 w-full h-full z-50">
-        <div className="text-center space-y-4">
-          <div className="text-lg text-destructive">System Unavailable</div>
-          <div className="text-sm text-muted-foreground">
-            Unable to connect to required services. Please try again later.
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center bg-background text-foreground">
+          <div className="text-center space-y-4 p-4">
+            <div className="text-lg text-muted-foreground">
+              Please use a desktop device to <br /> access the Masumi Admin Interface
+            </div>
+            <Button variant="muted">
+              <Link href="https://docs.masumi.io" target="_blank">
+                Learn more
+              </Link>
+            </Button>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
-  return null;
-}
-
-function ComponentHolder({ Component, pageProps }: AppProps) {
-  const { state } = useAppContext();
   return (
-    <div className="dark">
+    <>
       {state.apiKey ? <Component {...pageProps} /> : <ApiKeyDialog />}
-    </div>
-  );
-}
-
-function AppContent({ Component, pageProps, router }: AppProps) {
-  return (
-    <AppProvider initialState={initialAppState}>
-      <InitializeApp />
-      <ComponentHolder
-        Component={Component}
-        pageProps={pageProps}
-        router={router}
-      />
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -170,8 +180,8 @@ function AppContent({ Component, pageProps, router }: AppProps) {
         pauseOnHover
         theme="dark"
       />
-    </AppProvider>
+    </>
   );
 }
 
-export default AppContent;
+export default App;

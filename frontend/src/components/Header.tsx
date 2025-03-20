@@ -1,30 +1,28 @@
-import { Button } from "./ui/button";
-import masumiLogo from "@/assets/masumi_logo.png";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import logo from "@/assets/masumi_logo.png";
+import Link from "next/link";
 import { MessageSquare } from "lucide-react";
 
-interface HeaderProps {
-  title?: string;
-}
-
-export function Header({ title }: HeaderProps) {
+export function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 border-b border-border bg-background/80 backdrop-blur-sm justify-center">
-      <div className={`p-4 grid grid-cols-${title ? '3' : '2'} items-center max-w-10xl mx-auto`}>
-        <div className="flex items-center">
-          <img src={masumiLogo?.src} alt="Masumi" className="h-4" />
-        </div>
-        {title && (
-          <div className="flex items-center justify-center">
-            <span className="text-sm font-medium">{title}</span>
-          </div>
-        )}
-        <div className="flex justify-end">
-          <Button 
+    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-md">
+      <div className="max-w-[1400px] mx-auto w-full">
+        <div className="h-14 px-4 flex items-center justify-between gap-4">
+          <Image
+            src={logo}
+            alt="Masumi Logo"
+            width={120}
+            height={32}
+            className="w-auto"
+          />
+          <Button
             variant="outline"
-            className="text-sm flex items-center gap-2"
           >
-            Support
-            <MessageSquare className="h-4 w-4" />
+            <Link href="https://support.masumi.io" target="_blank" className="flex items-center gap-2">
+              Support
+              <MessageSquare className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </div>
