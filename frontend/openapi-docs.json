@@ -6062,6 +6062,324 @@
                         }
                     }
                 }
+            }
+        },
+        "/payment-source-extended/": {
+            "get": {
+                "description": "Gets the payment contracts including the status.",
+                "summary": "REQUIRES API KEY Authentication (+ADMIN)",
+                "tags": [
+                    "payment-source"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 10,
+                            "description": "The number of payment sources to return"
+                        },
+                        "required": false,
+                        "description": "The number of payment sources to return",
+                        "name": "take",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "Used to paginate through the payment sources"
+                        },
+                        "required": false,
+                        "description": "Used to paginate through the payment sources",
+                        "name": "cursorId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment source status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "ExtendedPaymentSources": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "updatedAt": {
+                                                                "type": "string"
+                                                            },
+                                                            "network": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "Preprod",
+                                                                    "Mainnet"
+                                                                ]
+                                                            },
+                                                            "smartContractAddress": {
+                                                                "type": "string"
+                                                            },
+                                                            "paymentType": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "Web3CardanoV1"
+                                                                ]
+                                                            },
+                                                            "PaymentSourceConfig": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "rpcProviderApiKey": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "rpcProvider": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "Blockfrost"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "rpcProviderApiKey",
+                                                                    "rpcProvider"
+                                                                ]
+                                                            },
+                                                            "lastIdentifierChecked": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "syncInProgress": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "lastCheckedAt": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "AdminWallets": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "walletAddress": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "order": {
+                                                                            "type": "number"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "walletAddress",
+                                                                        "order"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "PurchasingWallets": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "walletVkey": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "walletAddress": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "collectionAddress": {
+                                                                            "type": "string",
+                                                                            "nullable": true
+                                                                        },
+                                                                        "note": {
+                                                                            "type": "string",
+                                                                            "nullable": true
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "id",
+                                                                        "walletVkey",
+                                                                        "walletAddress",
+                                                                        "collectionAddress",
+                                                                        "note"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "SellingWallets": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "walletVkey": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "walletAddress": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "collectionAddress": {
+                                                                            "type": "string",
+                                                                            "nullable": true
+                                                                        },
+                                                                        "note": {
+                                                                            "type": "string",
+                                                                            "nullable": true
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "id",
+                                                                        "walletVkey",
+                                                                        "walletAddress",
+                                                                        "collectionAddress",
+                                                                        "note"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "FeeReceiverNetworkWallet": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "walletAddress": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "walletAddress"
+                                                                ]
+                                                            },
+                                                            "feeRatePermille": {
+                                                                "type": "number",
+                                                                "minimum": 0,
+                                                                "maximum": 1000
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "createdAt",
+                                                            "updatedAt",
+                                                            "network",
+                                                            "smartContractAddress",
+                                                            "paymentType",
+                                                            "PaymentSourceConfig",
+                                                            "lastIdentifierChecked",
+                                                            "syncInProgress",
+                                                            "lastCheckedAt",
+                                                            "AdminWallets",
+                                                            "PurchasingWallets",
+                                                            "SellingWallets",
+                                                            "FeeReceiverNetworkWallet",
+                                                            "feeRatePermille"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "ExtendedPaymentSources"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "data"
+                                    ],
+                                    "example": {
+                                        "status": "success",
+                                        "data": {
+                                            "ExtendedPaymentSources": [
+                                                {
+                                                    "id": "cuid_v2_auto_generated",
+                                                    "createdAt": "1970-01-20T20:00:36.260Z",
+                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
+                                                    "network": "Mainnet",
+                                                    "paymentType": "Web3CardanoV1",
+                                                    "feeRatePermille": 50,
+                                                    "syncInProgress": true,
+                                                    "smartContractAddress": "address_of_the_smart_contract",
+                                                    "AdminWallets": [
+                                                        {
+                                                            "walletAddress": "wallet_address",
+                                                            "order": 0
+                                                        },
+                                                        {
+                                                            "walletAddress": "wallet_address",
+                                                            "order": 1
+                                                        },
+                                                        {
+                                                            "walletAddress": "wallet_address",
+                                                            "order": 2
+                                                        }
+                                                    ],
+                                                    "FeeReceiverNetworkWallet": {
+                                                        "walletAddress": "wallet_address"
+                                                    },
+                                                    "lastCheckedAt": "1970-01-20T20:00:36.260Z",
+                                                    "lastIdentifierChecked": "identifier",
+                                                    "PaymentSourceConfig": {
+                                                        "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
+                                                        "rpcProvider": "Blockfrost"
+                                                    },
+                                                    "PurchasingWallets": [
+                                                        {
+                                                            "collectionAddress": null,
+                                                            "note": "note",
+                                                            "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
+                                                            "id": "unique_cuid_v2_auto_generated"
+                                                        },
+                                                        {
+                                                            "collectionAddress": "send_refunds_to_this_address",
+                                                            "note": "note",
+                                                            "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
+                                                            "id": "unique_cuid_v2_auto_generated"
+                                                        }
+                                                    ],
+                                                    "SellingWallets": [
+                                                        {
+                                                            "collectionAddress": "null_will_use_selling_wallet_as_revenue_address",
+                                                            "note": "note",
+                                                            "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
+                                                            "id": "unique_cuid_v2_auto_generated"
+                                                        },
+                                                        {
+                                                            "collectionAddress": "send_revenue_to_this_address",
+                                                            "note": "note",
+                                                            "walletVkey": "wallet_vkey",
+                                                            "walletAddress": "wallet_address",
+                                                            "id": "unique_cuid_v2_auto_generated"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             },
             "post": {
                 "description": "Creates a payment source.",
@@ -7031,324 +7349,6 @@
                                         "status": "success",
                                         "data": {
                                             "id": "unique_cuid_v2_auto_generated"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/payment-source-extended/": {
-            "get": {
-                "description": "Gets the payment contracts including the status.",
-                "summary": "REQUIRES API KEY Authentication (+ADMIN)",
-                "tags": [
-                    "payment-source"
-                ],
-                "security": [
-                    {
-                        "API-Key": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "number",
-                            "minimum": 1,
-                            "maximum": 100,
-                            "default": 10,
-                            "description": "The number of payment sources to return"
-                        },
-                        "required": false,
-                        "description": "The number of payment sources to return",
-                        "name": "take",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "Used to paginate through the payment sources"
-                        },
-                        "required": false,
-                        "description": "Used to paginate through the payment sources",
-                        "name": "cursorId",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Payment source status",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "ExtendedPaymentSources": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "network": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "Preprod",
-                                                                    "Mainnet"
-                                                                ]
-                                                            },
-                                                            "smartContractAddress": {
-                                                                "type": "string"
-                                                            },
-                                                            "paymentType": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "Web3CardanoV1"
-                                                                ]
-                                                            },
-                                                            "PaymentSourceConfig": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "rpcProviderApiKey": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "rpcProvider": {
-                                                                        "type": "string",
-                                                                        "enum": [
-                                                                            "Blockfrost"
-                                                                        ]
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "rpcProviderApiKey",
-                                                                    "rpcProvider"
-                                                                ]
-                                                            },
-                                                            "lastIdentifierChecked": {
-                                                                "type": "string",
-                                                                "nullable": true
-                                                            },
-                                                            "syncInProgress": {
-                                                                "type": "boolean"
-                                                            },
-                                                            "lastCheckedAt": {
-                                                                "type": "string",
-                                                                "nullable": true
-                                                            },
-                                                            "AdminWallets": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "walletAddress": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "order": {
-                                                                            "type": "number"
-                                                                        }
-                                                                    },
-                                                                    "required": [
-                                                                        "walletAddress",
-                                                                        "order"
-                                                                    ]
-                                                                }
-                                                            },
-                                                            "PurchasingWallets": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "id": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "walletVkey": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "walletAddress": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "collectionAddress": {
-                                                                            "type": "string",
-                                                                            "nullable": true
-                                                                        },
-                                                                        "note": {
-                                                                            "type": "string",
-                                                                            "nullable": true
-                                                                        }
-                                                                    },
-                                                                    "required": [
-                                                                        "id",
-                                                                        "walletVkey",
-                                                                        "walletAddress",
-                                                                        "collectionAddress",
-                                                                        "note"
-                                                                    ]
-                                                                }
-                                                            },
-                                                            "SellingWallets": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "id": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "walletVkey": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "walletAddress": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "collectionAddress": {
-                                                                            "type": "string",
-                                                                            "nullable": true
-                                                                        },
-                                                                        "note": {
-                                                                            "type": "string",
-                                                                            "nullable": true
-                                                                        }
-                                                                    },
-                                                                    "required": [
-                                                                        "id",
-                                                                        "walletVkey",
-                                                                        "walletAddress",
-                                                                        "collectionAddress",
-                                                                        "note"
-                                                                    ]
-                                                                }
-                                                            },
-                                                            "FeeReceiverNetworkWallet": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "walletAddress": {
-                                                                        "type": "string"
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "walletAddress"
-                                                                ]
-                                                            },
-                                                            "feeRatePermille": {
-                                                                "type": "number",
-                                                                "minimum": 0,
-                                                                "maximum": 1000
-                                                            }
-                                                        },
-                                                        "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
-                                                            "network",
-                                                            "smartContractAddress",
-                                                            "paymentType",
-                                                            "PaymentSourceConfig",
-                                                            "lastIdentifierChecked",
-                                                            "syncInProgress",
-                                                            "lastCheckedAt",
-                                                            "AdminWallets",
-                                                            "PurchasingWallets",
-                                                            "SellingWallets",
-                                                            "FeeReceiverNetworkWallet",
-                                                            "feeRatePermille"
-                                                        ]
-                                                    }
-                                                }
-                                            },
-                                            "required": [
-                                                "ExtendedPaymentSources"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "status",
-                                        "data"
-                                    ],
-                                    "example": {
-                                        "status": "success",
-                                        "data": {
-                                            "ExtendedPaymentSources": [
-                                                {
-                                                    "id": "cuid_v2_auto_generated",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
-                                                    "network": "Mainnet",
-                                                    "paymentType": "Web3CardanoV1",
-                                                    "feeRatePermille": 50,
-                                                    "syncInProgress": true,
-                                                    "smartContractAddress": "address_of_the_smart_contract",
-                                                    "AdminWallets": [
-                                                        {
-                                                            "walletAddress": "wallet_address",
-                                                            "order": 0
-                                                        },
-                                                        {
-                                                            "walletAddress": "wallet_address",
-                                                            "order": 1
-                                                        },
-                                                        {
-                                                            "walletAddress": "wallet_address",
-                                                            "order": 2
-                                                        }
-                                                    ],
-                                                    "FeeReceiverNetworkWallet": {
-                                                        "walletAddress": "wallet_address"
-                                                    },
-                                                    "lastCheckedAt": "1970-01-20T20:00:36.260Z",
-                                                    "lastIdentifierChecked": "identifier",
-                                                    "PaymentSourceConfig": {
-                                                        "rpcProviderApiKey": "rpc_provider_api_key_blockfrost",
-                                                        "rpcProvider": "Blockfrost"
-                                                    },
-                                                    "PurchasingWallets": [
-                                                        {
-                                                            "collectionAddress": null,
-                                                            "note": "note",
-                                                            "walletVkey": "wallet_vkey",
-                                                            "walletAddress": "wallet_address",
-                                                            "id": "unique_cuid_v2_auto_generated"
-                                                        },
-                                                        {
-                                                            "collectionAddress": "send_refunds_to_this_address",
-                                                            "note": "note",
-                                                            "walletVkey": "wallet_vkey",
-                                                            "walletAddress": "wallet_address",
-                                                            "id": "unique_cuid_v2_auto_generated"
-                                                        }
-                                                    ],
-                                                    "SellingWallets": [
-                                                        {
-                                                            "collectionAddress": "null_will_use_selling_wallet_as_revenue_address",
-                                                            "note": "note",
-                                                            "walletVkey": "wallet_vkey",
-                                                            "walletAddress": "wallet_address",
-                                                            "id": "unique_cuid_v2_auto_generated"
-                                                        },
-                                                        {
-                                                            "collectionAddress": "send_revenue_to_this_address",
-                                                            "note": "note",
-                                                            "walletVkey": "wallet_vkey",
-                                                            "walletAddress": "wallet_address",
-                                                            "id": "unique_cuid_v2_auto_generated"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
                                         }
                                     }
                                 }
