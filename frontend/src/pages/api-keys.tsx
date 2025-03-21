@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination } from '@/components/ui/pagination';
 
 interface ApiKey {
   id: string;
@@ -41,6 +42,8 @@ export default function ApiKeys() {
   const [keyToDelete, setKeyToDelete] = useState<ApiKey | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const tabs = [
     { name: 'All', count: null },
@@ -76,22 +79,51 @@ export default function ApiKeys() {
     setFilteredApiKeys(filtered);
   }, [allApiKeys, searchQuery, activeTab]);
 
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = async (cursor?: string | null) => {
     try {
-      setIsLoading(true);
-      const response = await getApiKey({ client: apiClient });
-      if (response?.data?.data?.ApiKeys) {
-        setAllApiKeys(response.data.data.ApiKeys);
-        setFilteredApiKeys(response.data.data.ApiKeys);
-      } else {
+      if (!cursor) {
+        setIsLoading(true);
         setAllApiKeys([]);
-        setFilteredApiKeys([]);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const response = await getApiKey({ 
+        client: apiClient,
+        query: {
+          limit: 10,
+          cursorToken: cursor || undefined
+        }
+      });
+
+      if (response?.data?.data?.ApiKeys) {
+        const newKeys = response.data.data.ApiKeys;
+        if (cursor) {
+          setAllApiKeys(prev => [...prev, ...newKeys]);
+        } else {
+          setAllApiKeys(newKeys);
+        }
+        
+        setHasMore(newKeys.length === 10);
+      } else {
+        if (!cursor) {
+          setAllApiKeys([]);
+        }
+        setHasMore(false);
       }
     } catch (error) {
       console.error('Error fetching API keys:', error);
       toast.error('Failed to fetch API keys');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && allApiKeys.length > 0) {
+      const lastKey = allApiKeys[allApiKeys.length - 1];
+      fetchApiKeys(lastKey.token);
     }
   };
 
@@ -184,7 +216,11 @@ export default function ApiKeys() {
           <Tabs 
             tabs={tabs}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              setAllApiKeys([]);
+              fetchApiKeys();
+            }}
           />
 
           <div className="flex justify-between items-center">
@@ -326,8 +362,12 @@ export default function ApiKeys() {
             </table>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            Total: {filteredApiKeys.length}
+          <div className="flex flex-col gap-4 items-center">
+            {!isLoading && <Pagination
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              onLoadMore={handleLoadMore}
+            />}
           </div>
         </div>
       </div>

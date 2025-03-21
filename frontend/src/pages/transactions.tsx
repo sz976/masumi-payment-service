@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Transaction {
   id: string;
@@ -63,6 +64,7 @@ export default function Transactions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cursorId, setCursorId] = useState<string | null>(null);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -104,13 +106,15 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  useEffect(() => {
-    filterTransactions();
-  }, [filterTransactions, searchQuery, activeTab]);
-
   const fetchTransactions = async (cursor?: string) => {
-    setIsLoading(true);
     try {
+      if (!cursor) {
+        setIsLoading(true);
+        setAllTransactions([]); 
+      } else {
+        setIsLoadingMore(true);
+      }
+
       const combined: Transaction[] = [];
 
       const purchases = await getPurchase({
@@ -155,14 +159,21 @@ export default function Transactions() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      setAllTransactions(prev => cursor ? [...prev, ...newTransactions] : newTransactions);
-      setHasMore(newTransactions.length === 10);
+      if (cursor) {
+        setAllTransactions(prev => [...prev, ...newTransactions]);
+      } else {
+        setAllTransactions(newTransactions);
+      }
+
+      
+      setHasMore(newTransactions.length === 20); 
       setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
       toast.error('Failed to load transactions');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -170,8 +181,12 @@ export default function Transactions() {
     fetchTransactions();
   }, []);
 
+  useEffect(() => {
+    filterTransactions();
+  }, [filterTransactions, searchQuery, activeTab]);
+
   const handleLoadMore = () => {
-    if (cursorId && !isLoading) {
+    if (!isLoadingMore && hasMore && cursorId) {
       fetchTransactions(cursorId);
     }
   };
@@ -239,7 +254,13 @@ export default function Transactions() {
           <Tabs 
             tabs={tabs}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              setAllTransactions([]); 
+              setCursorId(null);
+              setHasMore(true);
+              fetchTransactions(); 
+            }}
           />
 
           <div className="flex items-center justify-between">
@@ -353,9 +374,14 @@ export default function Transactions() {
               </tbody>
             </table>
           </div>
-        </div>
-        <div className="text-sm text-muted-foreground mt-4">
-          Total: {filteredTransactions.length}
+
+          <div className="flex flex-col gap-4 items-center">
+            {!isLoading && <Pagination
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              onLoadMore={handleLoadMore}
+            />}
+          </div>
         </div>
       </div>
 

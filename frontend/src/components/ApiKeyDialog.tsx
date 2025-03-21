@@ -8,6 +8,7 @@ import { Footer } from "./Footer";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import Link from "next/link";
 
 interface ApiError {
   message: string;
@@ -77,10 +78,14 @@ export function ApiKeyDialog() {
         <h1 className="text-4xl font-bold mb-4">Enter your Admin Key</h1>
 
         <p className="text-sm text-muted-foreground mb-8 text-center max-w-md">
-          Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. Fermentum aliquam nisl orci id egestas non maecenas. 
+          Your admin key is needed to access the dashboard. This key is required to manage your ai agents, payment settings and view transactions.
         </p>
 
-        <Button variant="muted" className="text-sm mb-8 hover:underline" onClick={() => router.push('/docs')}>Learn more</Button>
+        <Button variant="muted" className="text-sm mb-8 hover:underline" asChild>
+          <Link href={"https://docs.masumi.network/"} target="_blank">
+            Learn more
+          </Link>
+        </Button>
 
         <form onSubmit={(e) => {
           e.preventDefault();

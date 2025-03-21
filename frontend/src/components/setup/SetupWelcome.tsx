@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react/no-unescaped-entities */
 
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
@@ -26,8 +27,7 @@ function WelcomeScreen({ onStart, networkType }: { onStart: () => void; networkT
       <h2 className="text-3xl font-bold">Let&apos;s set up your<br />{networkDisplay} environment</h2>
       
       <p className="text-sm text-muted-foreground mt-4 mb-8 text-center max-w-md">
-        Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
-        Fermentum aliquam nisl orci id egestas non maecenas.
+        We'll help you set up your payment environment by creating secure wallets, configuring payment sources, and setting up your first AI agent.
       </p>
 
       <div className="flex items-center justify-center gap-4 mt-8">
@@ -604,8 +604,7 @@ function AddAiAgentScreen({ onNext }: { onNext: () => void }) {
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Add AI agent</h1>
         <p className="text-sm text-muted-foreground">
-          Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
-          Fermentum aliquam nisl orci id egestas non maecenas.
+          Create your first AI agent by providing its details below. This agent will be available for users to interact with and generate revenue through your payment system.
         </p>
         <button className="text-sm text-primary hover:underline">Learn more</button>
       </div>
@@ -715,8 +714,7 @@ function SuccessScreen({ onComplete, networkType }: { onComplete: () => void; ne
       <h1 className="text-4xl font-bold">Your {networkType === 'mainnet' ? 'Mainnet' : 'Preprod'} environment<br />is all set!</h1>
       
       <p className="text-sm text-muted-foreground mt-4 mb-8">
-        Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
-        Fermentum aliquam nisl orci id egestas non maecenas.
+        You've successfully configured your payment environment, created secure wallets, and set up your first AI agent. You can now start managing your Agentic AI services and receiving payments through the dashboard.
       </p>
 
       <div className="flex items-center justify-center">

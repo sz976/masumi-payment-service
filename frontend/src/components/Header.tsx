@@ -19,7 +19,7 @@ export function Header() {
           <Button
             variant="outline"
           >
-            <Link href="https://support.masumi.io" target="_blank" className="flex items-center gap-2">
+            <Link href="https://www.masumi.network/contact" target="_blank" className="flex items-center gap-2">
               Support
               <MessageSquare className="ml-2 h-4 w-4" />
             </Link>

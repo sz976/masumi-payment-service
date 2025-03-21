@@ -19,6 +19,7 @@ import useFormatBalance from "@/lib/hooks/useFormatBalance";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FaRegClock } from "react-icons/fa";
 import { Tabs } from "@/components/ui/tabs";
+import { Pagination } from "@/components/ui/pagination";
 
 interface AIAgent {
   id: string;
@@ -79,6 +80,8 @@ export default function AIAgentsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { apiClient, state } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const tabs = [
     { name: 'All', count: null },
@@ -117,29 +120,51 @@ export default function AIAgentsPage() {
     setFilteredAgents(filtered);
   }, [allAgents, searchQuery, activeTab]);
 
-  useEffect(() => {
-    filterAgents();
-  }, [filterAgents, searchQuery, activeTab]);
-
-  const fetchAgents = async () => {
+  const fetchAgents = async (cursor?: string | null) => {
     try {
-      setIsLoading(true);
+      if (!cursor) {
+        setIsLoading(true);
+        setAllAgents([]);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       const response = await getRegistry({
         client: apiClient,
         query: {
           network: state.network,
+          cursorId: cursor || undefined
         }
       });
 
       if (response.data?.data?.Assets) {
-        setAllAgents(response.data.data.Assets);
-        setFilteredAgents(response.data.data.Assets);
+        const newAgents = response.data.data.Assets;
+        if (cursor) {
+          setAllAgents(prev => [...prev, ...newAgents]);
+        } else {
+          setAllAgents(newAgents);
+        }
+        
+        setHasMore(newAgents.length === 10);
+      } else {
+        if (!cursor) {
+          setAllAgents([]);
+        }
+        setHasMore(false);
       }
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast.error('Failed to load AI agents');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && allAgents.length > 0) {
+      const lastAgent = allAgents[allAgents.length - 1];
+      fetchAgents(lastAgent.id);
     }
   };
 
@@ -149,11 +174,17 @@ export default function AIAgentsPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchAgents();
-    }, 30000); // 30 seconds
+      if (!isLoadingMore) {
+        fetchAgents();
+      }
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isLoadingMore]);
+
+  useEffect(() => {
+    filterAgents();
+  }, [filterAgents, searchQuery, activeTab]);
 
   const handleSelectAgent = (id: string) => {
     setSelectedAgents(prev => 
@@ -250,149 +281,163 @@ export default function AIAgentsPage() {
           </Button>
         </div>
 
-        <Tabs 
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <div className="space-y-6">
+          <Tabs 
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              setAllAgents([]); 
+              fetchAgents(); 
+            }}
+          />
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              type="search"
-              placeholder="Search by name, description, tags, or wallet..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-xs pl-10"
-            />
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="search"
+                placeholder="Search by name, description, tags, or wallet..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xs pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="w-12 p-4">
+                    <Checkbox 
+                      checked={allAgents.length > 0 && selectedAgents.length === allAgents.length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">Name</th>
+                  <th className="p-4 text-left text-sm font-medium">Added</th>
+                  <th className="p-4 text-left text-sm font-medium">Linked wallet</th>
+                  <th className="p-4 text-left text-sm font-medium">Price, ADA</th>
+                  <th className="p-4 text-left text-sm font-medium">Tags</th>
+                  <th className="p-4 text-left text-sm font-medium">Status</th>
+                  <th className="w-20 p-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8}>
+                      <Spinner size={20} addContainer />
+                    </td>
+                  </tr>
+                ) : filteredAgents.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8">
+                      {searchQuery ? 'No AI agents found matching your search' : 'No AI agents found'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAgents.map((agent) => (
+                    <tr key={agent.id} className="border-b" style={{
+                      opacity: agent.state === "DeregistrationConfirmed" ? "0.4" : "1",
+                    }}>
+                      <td className="p-4">
+                        <Checkbox 
+                          checked={selectedAgents.includes(agent.id)}
+                          onCheckedChange={() => handleSelectAgent(agent.id)}
+                        />
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm font-medium">{agent.name}</div>
+                        <div className="text-xs text-muted-foreground">{agent.description}</div>
+                      </td>
+                      <td className="p-4 text-sm">{formatDate(agent.createdAt)}</td>
+                      <td className="p-4">
+                        <div className="text-xs font-medium">Selling wallet</div>
+                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
+                          {agent.SmartContractWallet.walletAddress}
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm">
+                        {useFormatPrice(agent.AgentPricing.Pricing[0]?.amount)}
+                      </td>
+                      <td className="p-4">
+                        {agent.Tags.length > 0 && (
+                          <Badge variant="secondary">
+                            {agent.Tags.length} tags
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <Badge 
+                          variant={getStatusBadgeVariant(agent.state)}
+                          className={cn(
+                            agent.state === 'RegistrationConfirmed' && "bg-green-50 text-green-700 hover:bg-green-50/80"
+                          )}
+                        >
+                          {parseAgentStatus(agent.state)}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        {agent.state !== "RegistrationConfirmed" ? (
+                          <>
+                            {(agent.state === "RegistrationInitiated" || agent.state === "DeregistrationInitiated") && (
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <Spinner size={16} />
+                              </div>
+                            )}
+                            {(agent.state === "RegistrationRequested" || agent.state === "DeregistrationRequested") && (
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <FaRegClock size={12} />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(agent)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-4 items-center">
+            {!isLoading && <Pagination
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              onLoadMore={handleLoadMore}
+            />}
           </div>
         </div>
 
-        <div className="rounded-lg border">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="w-12 p-4">
-                  <Checkbox 
-                    checked={allAgents.length > 0 && selectedAgents.length === allAgents.length}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </th>
-                <th className="p-4 text-left text-sm font-medium">Name</th>
-                <th className="p-4 text-left text-sm font-medium">Added</th>
-                <th className="p-4 text-left text-sm font-medium">Linked wallet</th>
-                <th className="p-4 text-left text-sm font-medium">Price, ADA</th>
-                <th className="p-4 text-left text-sm font-medium">Tags</th>
-                <th className="p-4 text-left text-sm font-medium">Status</th>
-                <th className="w-20 p-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8}>
-                    <Spinner size={20} addContainer />
-                  </td>
-                </tr>
-              ) : filteredAgents.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8">
-                    {searchQuery ? 'No AI agents found matching your search' : 'No AI agents found'}
-                  </td>
-                </tr>
-              ) : (
-                filteredAgents.map((agent) => (
-                  <tr key={agent.id} className="border-b" style={{
-                    opacity: agent.state === "DeregistrationConfirmed" ? "0.4" : "1",
-                  }}>
-                    <td className="p-4">
-                      <Checkbox 
-                        checked={selectedAgents.includes(agent.id)}
-                        onCheckedChange={() => handleSelectAgent(agent.id)}
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="text-sm font-medium">{agent.name}</div>
-                      <div className="text-xs text-muted-foreground">{agent.description}</div>
-                    </td>
-                    <td className="p-4 text-sm">{formatDate(agent.createdAt)}</td>
-                    <td className="p-4">
-                      <div className="text-xs font-medium">Selling wallet</div>
-                      <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-                        {agent.SmartContractWallet.walletAddress}
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm">
-                      {useFormatPrice(agent.AgentPricing.Pricing[0]?.amount)}
-                    </td>
-                    <td className="p-4">
-                      {agent.Tags.length > 0 && (
-                        <Badge variant="secondary">
-                          {agent.Tags.length} tags
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <Badge 
-                        variant={getStatusBadgeVariant(agent.state)}
-                        className={cn(
-                          agent.state === 'RegistrationConfirmed' && "bg-green-50 text-green-700 hover:bg-green-50/80"
-                        )}
-                      >
-                        {parseAgentStatus(agent.state)}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      {agent.state !== "RegistrationConfirmed" ? (
-                        <>
-                        {(agent.state === "RegistrationInitiated" || agent.state === "DeregistrationInitiated") && <div className="flex items-center justify-center w-8 h-8">
-                          <Spinner size={16} />
-                        </div>}
-                        {(agent.state === "RegistrationRequested" || agent.state === "DeregistrationRequested") && <div className="flex items-center justify-center w-8 h-8">
-                          <FaRegClock size={12} />
-                        </div>}
-                        </>
-                      ) : (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteClick(agent)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <AddAIAgentDialog 
+          open={isAddDialogOpen} 
+          onClose={() => setIsAddDialogOpen(false)}
+          onSuccess={fetchAgents}
+        />
 
-        <div className="text-sm text-muted-foreground">
-          Total: {filteredAgents.length}
-        </div>
+        <ConfirmDialog
+          open={isDeleteDialogOpen}
+          onClose={() => {
+            setIsDeleteDialogOpen(false);
+            setSelectedAgentToDelete(null);
+          }}
+          title="Delete AI Agent"
+          description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
+          onConfirm={handleDeleteConfirm}
+          isLoading={isDeleting}
+        />
       </div>
-
-      <AddAIAgentDialog 
-        open={isAddDialogOpen} 
-        onClose={() => setIsAddDialogOpen(false)}
-        onSuccess={fetchAgents}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onClose={() => {
-          setIsDeleteDialogOpen(false);
-          setSelectedAgentToDelete(null);
-        }}
-        title="Delete AI Agent"
-        description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
-        onConfirm={handleDeleteConfirm}
-        isLoading={isDeleting}
-      />
     </MainLayout>
   );
 } 

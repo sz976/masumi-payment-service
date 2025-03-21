@@ -271,8 +271,8 @@ export function MainLayout({ children }: MainLayoutProps) {
               "flex gap-4 text-xs text-muted-foreground",
               collapsed && "hidden"
             )}>
-              <Link href="/about">About</Link>
-              <Link href="/terms">Terms & Conditions</Link>
+              <Link href="https://www.masumi.network/about" target="_blank">About</Link>
+              <Link href="https://www.house-of-communication.com/de/en/footer/privacy-policy.html" target="_blank">Privacy Policy</Link>
             </div>
             <Button
               variant="ghost"
@@ -312,13 +312,13 @@ export function MainLayout({ children }: MainLayoutProps) {
 
               <div className="flex items-center gap-4">
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/knowledge-base" className="flex items-center gap-2">
+                  <Link href="https://docs.masumi.network" target="_blank" className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
-                    Knowledge base
+                    Documentation
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/support" className="flex items-center gap-2">
+                  <Link href="https://www.masumi.network/contact" target="_blank" className="flex items-center gap-2">
                     <MessageSquare className="h-4 w-4" />
                     Support
                   </Link>

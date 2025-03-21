@@ -7,11 +7,11 @@ export function Footer() {
     <footer className="fixed bottom-0 left-0 right-0 p-4 flex justify-center items-center bg-background/80 backdrop-blur-md border-t">
       <div className="max-w-[1200px] mx-auto w-full flex justify-between items-center">
         <div className="flex gap-4">
-          <a href="/about" className="text-sm text-muted-foreground hover:text-foreground">
+          <a href="https://www.masumi.network/about" target="_blank" className="text-sm text-muted-foreground hover:text-foreground">
             About
           </a>
-          <a href="/terms" className="text-sm text-muted-foreground hover:text-foreground">
-            Terms & Conditions
+          <a href="https://www.house-of-communication.com/de/en/footer/privacy-policy.html" target="_blank" className="text-sm text-muted-foreground hover:text-foreground">
+            Privacy Policy
           </a>
         </div>
         <div>
