@@ -1750,7 +1750,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'post',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description: 'Creates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
     tags: ['payment-source'],
@@ -1875,7 +1875,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'patch',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description: 'Updates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
     tags: ['payment-source'],
@@ -1995,7 +1995,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'delete',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description:
       'Deletes a payment source. WARNING will also delete all associated wallets and transactions.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
