@@ -121,7 +121,7 @@ export default function Overview() {
     } catch {
       return "0";
     }
-  }, [apiClient]);
+  }, [apiClient, state.network]);
 
   const fetchWallets = useCallback(async () => {
     try {

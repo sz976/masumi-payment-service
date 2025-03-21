@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { postPaymentSource } from "@/lib/api/generated";
+import { postPaymentSource, postWallet } from "@/lib/api/generated";
 import { toast } from "react-toastify";
 import { X } from "lucide-react";
 
@@ -16,43 +16,39 @@ type FormData = {
   network: 'Mainnet' | 'Preprod';
   paymentType: 'Web3CardanoV1';
   blockfrostApiKey: string;
-  adminWallets: { walletAddress: string }[];
   feeReceiverWallet: { walletAddress: string };
   feePermille: number | null;
-  collectionWallet: {
-    walletAddress: string;
-    note?: string;
-  };
   purchasingWallets: {
     walletMnemonic: string;
     note?: string;
+    collectionAddress?: string;
   }[];
   sellingWallets: {
     walletMnemonic: string;
     note?: string;
+    collectionAddress?: string;
   }[];
 }
 
 export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentSourceDialogProps) {
   const { apiClient, state } = useAppContext();
-
-  const initialFormData: FormData = {
+  const [formData, setFormData] = useState<FormData>({
     network: state.network,
     paymentType: 'Web3CardanoV1',
     blockfrostApiKey: '',
-    adminWallets: [{ walletAddress: '' }],
     feeReceiverWallet: { walletAddress: '' },
     feePermille: 50,
-    collectionWallet: { walletAddress: '', note: '' },
-    purchasingWallets: [{ walletMnemonic: '', note: '' }],
-    sellingWallets: [{ walletMnemonic: '', note: '' }]
-  };
-  const [formData, setFormData] = useState<FormData>({
-    ...initialFormData,
+    purchasingWallets: [{ walletMnemonic: '', note: '', collectionAddress: '' }],
+    sellingWallets: [{ walletMnemonic: '', note: '', collectionAddress: '' }]
   });
+
   useEffect(() => {
-    setFormData({...initialFormData });
-  }, [state.network, initialFormData]);
+    setFormData(prev => ({
+      ...prev,
+      network: state.network
+    }));
+  }, [state.network]);
+
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,24 +62,37 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
         return;
       }
 
-      if (!formData.adminWallets.some(w => w.walletAddress.trim())) {
-        setError('At least one admin wallet is required');
-        return;
-      }
-
       if (!formData.feeReceiverWallet.walletAddress.trim()) {
         setError('Fee receiver wallet is required');
         return;
       }
 
-      if (!formData.collectionWallet.walletAddress.trim()) {
-        setError('Collection wallet is required');
-        return;
+      // Create three admin wallets
+      const adminWallets = [];
+      for (let i = 0; i < 3; i++) {
+        try {
+          const response = await postWallet({
+            client: apiClient,
+            body: {
+              network: formData.network
+            }
+          });
+
+          if (!response?.data?.walletAddress) {
+            throw new Error(`Failed to create admin wallet ${i + 1}`);
+          }
+
+          adminWallets.push({ walletAddress: response.data.walletAddress });
+          
+          // Store the mnemonic securely - you might want to show this to the user
+          console.log(`Admin Wallet ${i + 1} Mnemonic:`, response.data.walletMnemonic);
+        } catch (error) {
+          throw new Error(`Failed to create admin wallet ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
 
-      if (formData.adminWallets.length != 3) {
-        setError('Exactly 3 admin wallets are required');
-        return;
+      if (adminWallets.length !== 3) {
+        throw new Error('Failed to create all required admin wallets');
       }
 
       await postPaymentSource({
@@ -96,7 +105,7 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
             rpcProvider: 'Blockfrost'
           },
           feeRatePermille: formData.feePermille,
-          AdminWallets: formData.adminWallets.filter(w => w.walletAddress.trim()).slice(0, 3) as [
+          AdminWallets: adminWallets as [
             { walletAddress: string },
             { walletAddress: string },
             { walletAddress: string }
@@ -104,12 +113,12 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
           FeeReceiverNetworkWallet: formData.feeReceiverWallet,
           PurchasingWallets: formData.purchasingWallets.filter(w => w.walletMnemonic.trim()).map(w => ({
             walletMnemonic: w.walletMnemonic,
-            collectionAddress: formData.collectionWallet.walletAddress.trim(),
+            collectionAddress: w.collectionAddress?.trim() || null,
             note: w.note || ''
           })),
           SellingWallets: formData.sellingWallets.filter(w => w.walletMnemonic.trim()).map(w => ({
             walletMnemonic: w.walletMnemonic,
-            collectionAddress: formData.collectionWallet.walletAddress.trim(),
+            collectionAddress: w.collectionAddress?.trim() || null,
             note: w.note || ''
           }))
         }
@@ -126,24 +135,17 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
     }
   };
 
-  const addAdminWallet = () => {
-    setFormData({
-      ...formData,
-      adminWallets: [...formData.adminWallets, { walletAddress: '' }]
-    });
-  };
-
   const addPurchasingWallet = () => {
     setFormData({
       ...formData,
-      purchasingWallets: [...formData.purchasingWallets, { walletMnemonic: '', note: '' }]
+      purchasingWallets: [...formData.purchasingWallets, { walletMnemonic: '', note: '', collectionAddress: '' }]
     });
   };
 
   const addSellingWallet = () => {
     setFormData({
       ...formData,
-      sellingWallets: [...formData.sellingWallets, { walletMnemonic: '', note: '' }]
+      sellingWallets: [...formData.sellingWallets, { walletMnemonic: '', note: '', collectionAddress: '' }]
     });
   };
 
@@ -209,34 +211,6 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Admin Wallets <span className="text-muted-foreground">(*3 required)</span></h3>
-              <Button type="button" variant="secondary" onClick={addAdminWallet}>
-                Add Admin Wallet
-              </Button>
-            </div>
-
-            {formData.adminWallets.map((wallet, index) => (
-              <div key={index} className="space-y-2">
-                <label className="text-sm font-medium">
-                  Admin Wallet Address {index + 1}
-                </label>
-                <input
-                  type="text"
-                  className="w-full p-2 rounded-md bg-background border"
-                  value={wallet.walletAddress}
-                  onChange={(e) => {
-                    const newWallets = [...formData.adminWallets];
-                    newWallets[index].walletAddress = e.target.value;
-                    setFormData({ ...formData, adminWallets: newWallets });
-                  }}
-                  placeholder="Enter wallet address"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-4">
             <h3 className="text-lg font-semibold">Fee Receiver Wallet</h3>
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -251,35 +225,6 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
                   feeReceiverWallet: { walletAddress: e.target.value }
                 })}
                 placeholder="Enter fee receiver wallet address"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Collection Wallet</h3>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Wallet Address <span className="text-destructive">*</span>
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 rounded-md bg-background border"
-                value={formData.collectionWallet.walletAddress}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  collectionWallet: { ...formData.collectionWallet, walletAddress: e.target.value }
-                })}
-                placeholder="Enter collection wallet address"
-              />
-              <input
-                type="text"
-                className="w-full p-2 rounded-md bg-background border"
-                value={formData.collectionWallet.note || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  collectionWallet: { ...formData.collectionWallet, note: e.target.value }
-                })}
-                placeholder="Note (optional)"
               />
             </div>
           </div>
@@ -335,6 +280,17 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
                   }}
                   placeholder="Note (optional)"
                 />
+                <input
+                  type="text"
+                  className="w-full p-2 rounded-md bg-background border"
+                  value={wallet.collectionAddress || ''}
+                  onChange={(e) => {
+                    const newWallets = [...formData.purchasingWallets];
+                    newWallets[index].collectionAddress = e.target.value;
+                    setFormData({ ...formData, purchasingWallets: newWallets });
+                  }}
+                  placeholder="Collection Address (optional)"
+                />
               </div>
             ))}
           </div>
@@ -389,6 +345,17 @@ export function AddPaymentSourceDialog({ open, onClose, onSuccess }: AddPaymentS
                     setFormData({ ...formData, sellingWallets: newWallets });
                   }}
                   placeholder="Note (optional)"
+                />
+                <input
+                  type="text"
+                  className="w-full p-2 rounded-md bg-background border"
+                  value={wallet.collectionAddress || ''}
+                  onChange={(e) => {
+                    const newWallets = [...formData.sellingWallets];
+                    newWallets[index].collectionAddress = e.target.value;
+                    setFormData({ ...formData, sellingWallets: newWallets });
+                  }}
+                  placeholder="Collection Address (optional)"
                 />
               </div>
             ))}

@@ -1,15 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
-import { Download, Eye, Copy, X } from "lucide-react";
+import { Download, Copy, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import router from "next/router";
 import { Spinner } from "@/components/ui/spinner";
+import Link from "next/link";
+import { useAppContext } from "@/lib/contexts/AppContext";
+import { postWallet, postPaymentSource } from "@/lib/api/generated";
+import { shortenAddress } from "@/lib/utils";
+
 function WelcomeScreen({ onStart, networkType }: { onStart: () => void; networkType: string }) {
   const networkDisplay = networkType === 'mainnet' ? 'Mainnet' : 'Preprod';
   
@@ -25,7 +32,9 @@ function WelcomeScreen({ onStart, networkType }: { onStart: () => void; networkT
 
       <div className="flex items-center justify-center gap-4 mt-8">
         <Button variant="secondary" className="text-sm">
-          Skip for now
+          <Link href={"/"} replace>
+            Skip for now
+          </Link>
         </Button>
         <Button className="text-sm" onClick={onStart}>
           Start setup
@@ -35,38 +44,95 @@ function WelcomeScreen({ onStart, networkType }: { onStart: () => void; networkT
   );
 }
 
-function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
+function SeedPhrasesScreen({ onNext }: { 
+  onNext: (
+    buyingWallet: { address: string; mnemonic: string },
+    sellingWallet: { address: string; mnemonic: string }
+  ) => void 
+}) {
+  const { apiClient, state } = useAppContext();
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(true);
-  const [buyingWallet, setBuyingWallet] = useState("");
-  const [sellingWallet, setSellingWallet] = useState("");
-  const [buyingSeed] = useState("*".repeat(96));
-  const [sellingSeed] = useState("*".repeat(96));
+  const [buyingWallet, setBuyingWallet] = useState<{
+    address: string;
+    mnemonic: string;
+  } | null>(null);
+  const [sellingWallet, setSellingWallet] = useState<{
+    address: string;
+    mnemonic: string;
+  } | null>(null);
+  const [error, setError] = useState<string>("");
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Seedphrase copied successfully");
+    toast.success("Copied to clipboard");
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setBuyingWallet("126f48bb1824c271b64c8716bc2478b1624c781266b4cb716b24c7216b");
-      setSellingWallet("126f48bb1824c271b64c8716bc2478b1624c781266b4cb716b24c7216b");
-      setIsGenerating(false);
-    }, 5000);
+    const generateWallets = async () => {
+      try {
+        setIsGenerating(true);
+        setError("");
 
-    return () => clearTimeout(timer);
-  }, []);
+        const buyingResponse:any = await postWallet({
+          client: apiClient,
+          body: {
+            network: state.network
+          }
+        });
+
+        if (!buyingResponse?.data?.data?.walletMnemonic || !buyingResponse?.data?.data?.walletAddress) {
+          throw new Error("Failed to generate buying wallet");
+        }
+
+        setBuyingWallet({
+          address: buyingResponse.data.data.walletAddress,
+          mnemonic: buyingResponse.data.data.walletMnemonic
+        });
+
+        const sellingResponse:any = await postWallet({
+          client: apiClient,
+          body: {
+            network: state.network
+          }
+        });
+
+        if (!sellingResponse?.data?.data?.walletMnemonic || !sellingResponse?.data?.data?.walletAddress) {
+          throw new Error("Failed to generate selling wallet");
+        }
+
+        setSellingWallet({
+          address: sellingResponse.data.data.walletAddress,
+          mnemonic: sellingResponse.data.data.walletMnemonic
+        });
+
+      } catch (error) {
+        console.error('Error generating wallets:', error);
+        setError(error instanceof Error ? error.message : 'Failed to generate wallets');
+        toast.error('Failed to generate wallets');
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+
+    generateWallets();
+  }, [apiClient, state.network]);
 
   return (
     <div className="space-y-6 max-w-[600px] w-full">
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Save seed phrases</h1>
         <p className="text-sm text-muted-foreground">
-          Lorem ipsum dolor sit amet consectetur. Cras mi quam eget nec leo et in mi proin. 
-          Fermentum aliquam nisl orci id egestas non maecenas.
+          Please save these seed phrases securely. You will need them to access your wallets.
+          These cannot be recovered if lost.
         </p>
       </div>
+
+      {error && (
+        <div className="text-sm text-destructive text-center">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6 w-full">
         <div className="rounded-lg border border-border p-4 space-y-4">
@@ -79,18 +145,18 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
               <Spinner size={16} />
               Generating...
             </div>
-          ) : (
+          ) : buyingWallet && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Button 
                   variant="ghost" 
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => handleCopy(buyingWallet)}
+                  onClick={() => handleCopy(buyingWallet.address)}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
-                {buyingWallet}
+                {shortenAddress(buyingWallet.address)}
               </div>
               <div className="border-t border-border my-4" />
               <div>
@@ -101,27 +167,29 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
                       variant="ghost" 
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleCopy(buyingSeed)}
+                      onClick={() => handleCopy(buyingWallet.mnemonic)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <div className="flex-1 font-mono text-sm text-muted-foreground break-all">
-                      {buyingSeed}
+                    <div className="flex-1 font-mono text-sm text-muted-foreground">
+                      {buyingWallet.mnemonic}
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button 
                       className="text-sm flex items-center gap-2 bg-black text-white hover:bg-black/90"
+                      onClick={() => {
+                        const blob = new Blob([buyingWallet.mnemonic], { type: 'text/plain' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'buying-wallet-seed.txt';
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      }}
                     >
                       <Download className="h-4 w-4" />
                       Download
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                    >
-                      <Eye className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -131,27 +199,27 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
         </div>
 
         <div className="rounded-lg border border-border p-4 space-y-4">
-        <div className="flex items-center gap-2">
-             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#FFF7ED] text-[#C2410C] dark:bg-[#C2410C]/10 dark:text-[#FFF7ED]">Selling</span>
-              <h3 className="text-sm font-medium">Selling wallet</h3>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#FFF7ED] text-[#C2410C] dark:bg-[#C2410C]/10 dark:text-[#FFF7ED]">Selling</span>
+            <h3 className="text-sm font-medium">Selling wallet</h3>
+          </div>
           {isGenerating ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner size={16} />
               Generating...
             </div>
-          ) : (
+          ) : sellingWallet && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Button 
                   variant="ghost" 
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => handleCopy(sellingWallet)}
+                  onClick={() => handleCopy(sellingWallet.address)}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
-                {sellingWallet}
+                {shortenAddress(sellingWallet.address)}
               </div>
               <div className="border-t border-border my-4" />
               <div>
@@ -162,27 +230,29 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
                       variant="ghost" 
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleCopy(sellingSeed)}
+                      onClick={() => handleCopy(sellingWallet.mnemonic)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <div className="flex-1 font-mono text-sm text-muted-foreground break-all">
-                      {sellingSeed}
+                    <div className="flex-1 font-mono text-sm text-muted-foreground">
+                      {sellingWallet.mnemonic}
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button 
                       className="text-sm flex items-center gap-2 bg-black text-white hover:bg-black/90"
+                      onClick={() => {
+                        const blob = new Blob([sellingWallet.mnemonic], { type: 'text/plain' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'selling-wallet-seed.txt';
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      }}
                     >
                       <Download className="h-4 w-4" />
                       Download
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                    >
-                      <Eye className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -204,17 +274,308 @@ function SeedPhrasesScreen({ onNext }: { onNext: () => void }) {
         </div>
 
         <div className="flex items-center justify-center gap-4 pt-4">
-          {isGenerating && (
-            <Button variant="secondary" className="text-sm">
+          <Button variant="secondary" className="text-sm">
+            <Link href={"/settings"} replace>
               Skip for now
-            </Button>
-          )}
+            </Link>
+          </Button>
           <Button 
             className="text-sm" 
-            disabled={isGenerating || !isConfirmed}
-            onClick={onNext}
+            disabled={isGenerating || !isConfirmed || !buyingWallet || !sellingWallet}
+            onClick={() => {
+              if (buyingWallet && sellingWallet) {
+                onNext(buyingWallet, sellingWallet);
+              }
+            }}
           >
             {isGenerating ? "Generating..." : "Next"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentSourceSetupScreen({ onNext, buyingWallet, sellingWallet }: { 
+  onNext: () => void;
+  buyingWallet: { address: string; mnemonic: string } | null;
+  sellingWallet: { address: string; mnemonic: string } | null;
+}) {
+  const { apiClient, state } = useAppContext();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [formData, setFormData] = useState({
+    blockfrostApiKey: '',
+    feeReceiverWallet: { walletAddress: '' },
+    feePermille: 50,
+  });
+  const [adminWallets, setAdminWallets] = useState<Array<{
+    address: string;
+    mnemonic: string;
+  }>>([]);
+  const [isGeneratingAdminWallets, setIsGeneratingAdminWallets] = useState(true);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  useEffect(() => {
+    const generateAdminWallets = async () => {
+      try {
+        setIsGeneratingAdminWallets(true);
+        setError("");
+
+        const wallets = [];
+        for (let i = 0; i < 3; i++) {
+          const response:any = await postWallet({
+            client: apiClient,
+            body: {
+              network: state.network
+            }
+          });
+
+          if (!response?.data?.data?.walletMnemonic || !response?.data?.data?.walletAddress) {
+            throw new Error(`Failed to generate admin wallet ${i + 1}`);
+          }
+
+          wallets.push({
+            address: response.data.data.walletAddress,
+            mnemonic: response.data.data.walletMnemonic
+          });
+        }
+
+        setAdminWallets(wallets);
+      } catch (error) {
+        console.error('Error generating admin wallets:', error);
+        setError(error instanceof Error ? error.message : 'Failed to generate admin wallets');
+        toast.error('Failed to generate admin wallets');
+      } finally {
+        setIsGeneratingAdminWallets(false);
+      }
+    };
+
+    generateAdminWallets();
+  }, [apiClient, state.network]);
+
+  const handleSubmit = async () => {
+    if (!buyingWallet || !sellingWallet) {
+      setError('Buying and selling wallets are required');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      if (!formData.blockfrostApiKey.trim()) {
+        setError('Blockfrost API key is required');
+        return;
+      }
+
+      if (!formData.feeReceiverWallet.walletAddress.trim()) {
+        setError('Fee receiver wallet is required');
+        return;
+      }
+
+      if (adminWallets.length !== 3) {
+        setError('Three admin wallets are required');
+        return;
+      }
+
+      const response = await postPaymentSource({
+        client: apiClient,
+        body: {
+          network: state.network,
+          paymentType: 'Web3CardanoV1',
+          PaymentSourceConfig: {
+            rpcProviderApiKey: formData.blockfrostApiKey,
+            rpcProvider: 'Blockfrost'
+          },
+          feeRatePermille: formData.feePermille,
+          AdminWallets: adminWallets.map(w => ({ walletAddress: w.address })) as [
+            { walletAddress: string },
+            { walletAddress: string },
+            { walletAddress: string }
+          ],
+          FeeReceiverNetworkWallet: formData.feeReceiverWallet,
+          PurchasingWallets: [{
+            walletMnemonic: buyingWallet.mnemonic,
+            collectionAddress: null,
+            note: 'Setup Buying Wallet'
+          }],
+          SellingWallets: [{
+            walletMnemonic: sellingWallet.mnemonic,
+            collectionAddress: null,
+            note: 'Setup Selling Wallet'
+          }]
+        }
+      });
+
+      if(response.status !== 200) {
+        setError('Failed to create payment source');
+        toast.error('Failed to create payment source');
+        return;
+      }
+
+      toast.success('Payment source created successfully');
+      onNext();
+    } catch (error) {
+      console.error('Error creating payment source:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create payment source');
+      toast.error('Failed to create payment source');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-[600px] w-full">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold">Setup Payment Source</h1>
+        <p className="text-sm text-muted-foreground">
+          Configure your payment source with the generated wallets.
+        </p>
+      </div>
+
+      {error && (
+        <div className="text-sm text-destructive text-center">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {/* I'm Generating admin wallets */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Admin Wallets</h3>
+          {isGeneratingAdminWallets ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Spinner size={16} />
+              Please wait...
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {adminWallets.map((wallet, index) => (
+                <div key={index} className="rounded-lg border border-border p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black text-white dark:bg-white/10 dark:text-white">
+                      Admin Wallet {index + 1}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleCopy(wallet.address)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    {shortenAddress(wallet?.address || "")}
+                  </div>
+                  <div className="border-t border-border my-4" />
+                  <div>
+                    <div className="text-sm font-medium mb-2">Seed phrase</div>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleCopy(wallet.mnemonic)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <div className="flex-1 font-mono text-sm text-muted-foreground">
+                          {wallet.mnemonic}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="text-sm flex items-center gap-2 bg-black text-white hover:bg-black/90"
+                          onClick={() => {
+                            const blob = new Blob([wallet.mnemonic], { type: 'text/plain' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `admin-wallet-${index + 1}-seed.txt`;
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Configuration Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Configuration</h3>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Blockfrost API Key <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 rounded-md bg-background border"
+                value={formData.blockfrostApiKey}
+                onChange={(e) => setFormData({ ...formData, blockfrostApiKey: e.target.value })}
+                placeholder="Enter your Blockfrost API key"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Fee Receiver Wallet Address <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 rounded-md bg-background border"
+                value={formData.feeReceiverWallet.walletAddress}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  feeReceiverWallet: { walletAddress: e.target.value }
+                })}
+                placeholder="Enter fee receiver wallet address"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Fee Permille <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="number"
+                className="w-full p-2 rounded-md bg-background border"
+                value={formData.feePermille}
+                onChange={(e) => setFormData({ ...formData, feePermille: parseInt(e.target.value) || 50 })}
+                min="0"
+                max="1000"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 pt-4">
+          <Button variant="secondary" className="text-sm">
+            <Link href={"/settings"} replace>
+              Skip for now
+            </Link>
+          </Button>
+          <Button 
+            className="text-sm" 
+            disabled={isLoading || isGeneratingAdminWallets}
+            onClick={handleSubmit}
+          >
+            {isLoading ? "Creating..." : "Create Payment Source"}
           </Button>
         </div>
       </div>
@@ -332,7 +693,9 @@ function AddAiAgentScreen({ onNext }: { onNext: () => void }) {
 
         <div className="flex items-center justify-center gap-4 pt-4">
           <Button variant="secondary" className="text-sm">
-            Skip for now
+            <Link href={"/"} replace>
+              Skip for now
+            </Link>
           </Button>
           <Button className="text-sm" onClick={onNext}>
             Add
@@ -367,6 +730,13 @@ function SuccessScreen({ onComplete, networkType }: { onComplete: () => void; ne
 
 export function SetupWelcome({ networkType }: { networkType: string }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [wallets, setWallets] = useState<{
+    buying: { address: string; mnemonic: string } | null;
+    selling: { address: string; mnemonic: string } | null;
+  }>({
+    buying: null,
+    selling: null
+  });
 
   const handleComplete = () => {
     router.push('/');
@@ -374,8 +744,20 @@ export function SetupWelcome({ networkType }: { networkType: string }) {
 
   const steps = [
     <WelcomeScreen key="welcome" onStart={() => setCurrentStep(1)} networkType={networkType} />,
-    <SeedPhrasesScreen key="seed" onNext={() => setCurrentStep(2)} />,
-    <AddAiAgentScreen key="ai" onNext={() => setCurrentStep(3)} />,
+    <SeedPhrasesScreen 
+      key="seed" 
+      onNext={(buying, selling) => {
+        setWallets({ buying, selling });
+        setCurrentStep(2);
+      }} 
+    />,
+    <PaymentSourceSetupScreen 
+      key="payment-source" 
+      onNext={() => setCurrentStep(3)} 
+      buyingWallet={wallets.buying}
+      sellingWallet={wallets.selling}
+    />,
+    <AddAiAgentScreen key="ai" onNext={() => setCurrentStep(4)} />,
     <SuccessScreen key="success" onComplete={handleComplete} networkType={networkType} />
   ];
 

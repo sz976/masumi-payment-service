@@ -6,24 +6,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getApiKey } from '@/lib/api/generated';
+import { getApiKey, deleteApiKey } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { AddApiKeyDialog } from '@/components/api-keys/AddApiKeyDialog';
-import { DeleteApiKeyDialog } from '@/components/api-keys/DeleteApiKeyDialog';
+import { UpdateApiKeyDialog } from '@/components/api-keys/UpdateApiKeyDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Spinner } from '@/components/ui/spinner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ApiKey {
   id: string;
   token: string;
-  name: string;
   permission: 'Read' | 'ReadAndPay' | 'Admin';
   usageLimited: boolean;
   networkLimit: ('Preprod' | 'Mainnet')[];
@@ -31,10 +26,7 @@ interface ApiKey {
     unit: string;
     amount: string;
   }>;
-  requestsMade: number;
-  usedAda: number;
-  usedUsdm: number;
-  status: string;
+  status: 'Active' | 'Revoked';
 }
 
 export default function ApiKeys() {
@@ -45,7 +37,9 @@ export default function ApiKeys() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [keyToDelete, setKeyToDelete] = useState<string | null>(null);
+  const [keyToUpdate, setKeyToUpdate] = useState<ApiKey | null>(null);
+  const [keyToDelete, setKeyToDelete] = useState<ApiKey | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
 
   const tabs = [
@@ -69,10 +63,13 @@ export default function ApiKeys() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(key => {
-        const nameMatch = key.name?.toLowerCase().includes(query) || false;
+        const nameMatch = key.id?.toLowerCase().includes(query) || false;
         const tokenMatch = key.token?.toLowerCase().includes(query) || false;
+        const permissionMatch = key.permission?.toLowerCase().includes(query) || false;
+        const statusMatch = key.status?.toLowerCase().includes(query) || false;
+        const networkMatch = key.networkLimit?.some(network => network.toLowerCase().includes(query)) || false;
 
-        return nameMatch || tokenMatch;
+        return nameMatch || tokenMatch || permissionMatch || statusMatch || networkMatch;
       });
     }
 
@@ -84,15 +81,8 @@ export default function ApiKeys() {
       setIsLoading(true);
       const response = await getApiKey({ client: apiClient });
       if (response?.data?.data?.ApiKeys) {
-        const transformedKeys = response.data.data.ApiKeys.map(key => ({
-          ...key,
-          name: 'Service type name',
-          requestsMade: 0,
-          usedAda: 0,
-          usedUsdm: 0
-        }));
-        setAllApiKeys(transformedKeys);
-        setFilteredApiKeys(transformedKeys);
+        setAllApiKeys(response.data.data.ApiKeys);
+        setFilteredApiKeys(response.data.data.ApiKeys);
       } else {
         setAllApiKeys([]);
         setFilteredApiKeys([]);
@@ -138,6 +128,44 @@ export default function ApiKeys() {
     }
   };
 
+  const handleDeleteApiKey = async () => {
+    if (!keyToDelete || !keyToDelete.id) return;
+
+    try {
+      setIsDeleting(true);
+      console.log('Deleting API key:', keyToDelete);
+      
+      const response = await deleteApiKey({
+        client: apiClient,
+        body: {
+          id: keyToDelete.id
+        }
+      });
+
+      if (response?.status !== 200) {
+        throw new Error('Failed to delete API key');
+      }
+
+      toast.success('API key deleted successfully');
+      fetchApiKeys();
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+      let message = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const apiError = error as { response?: { data?: { error?: { message?: string } } } };
+        message = apiError.response?.data?.error?.message || message;
+      }
+      
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+      setKeyToDelete(null);
+    }
+  };
+
   return (
     <MainLayout>
       <Head>
@@ -147,7 +175,7 @@ export default function ApiKeys() {
         <div className="mb-6">
           <h1 className="text-xl font-semibold mb-1">API keys</h1>
           <p className="text-sm text-muted-foreground">
-            Lorem ipsum dolor sit amet consectetur. Arcu tempus iaculis.{' '}
+            Manage your API keys for accessing the payment service.{' '}
             <a href="#" className="text-primary hover:underline">Learn more</a>
           </p>
         </div>
@@ -172,12 +200,6 @@ export default function ApiKeys() {
             </div>
             <div className="flex items-center gap-2">
               <Button 
-                variant="outline"
-                onClick={() => setSelectedKeys([])}
-              >
-                Clear selection
-              </Button>
-              <Button 
                 onClick={() => setIsAddDialogOpen(true)}
               >
                 Add API key
@@ -195,26 +217,25 @@ export default function ApiKeys() {
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">Name</th>
-                  <th className="p-4 text-left text-sm font-medium">Key ID</th>
-                  <th className="p-4 text-left text-sm font-medium">Limit, ADA</th>
-                  <th className="p-4 text-left text-sm font-medium">Limit, USDM</th>
-                  <th className="p-4 text-left text-sm font-medium">Requests made</th>
-                  <th className="p-4 text-left text-sm font-medium">Used, ADA</th>
-                  <th className="p-4 text-left text-sm font-medium">Used, USDM</th>
+                  <th className="p-4 text-left text-sm font-medium">ID</th>
+                  <th className="p-4 text-left text-sm font-medium">Key</th>
+                  <th className="p-4 text-left text-sm font-medium">Permission</th>
+                  <th className="p-4 text-left text-sm font-medium">Networks</th>
+                  <th className="p-4 text-left text-sm font-medium">Usage Limits</th>
+                  <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="w-12 p-4"></th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={9}>
+                    <td colSpan={8}>
                       <Spinner size={20} addContainer />
                     </td>
                   </tr>
                 ) : filteredApiKeys.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-8">
+                    <td colSpan={8} className="text-center py-8">
                       {searchQuery ? 'No API keys found matching your search' : 'No API keys found'}
                     </td>
                   </tr>
@@ -228,7 +249,7 @@ export default function ApiKeys() {
                         />
                       </td>
                       <td className="p-4">
-                        <div className="text-sm">Service type name</div>
+                        <div className="text-sm">{key.id}</div>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -248,32 +269,55 @@ export default function ApiKeys() {
                           </span>
                         </div>
                       </td>
-                      <td className="p-4 text-sm">10.00</td>
-                      <td className="p-4 text-sm">10.00</td>
-                      <td className="p-4 text-sm">{key.requestsMade}</td>
-                      <td className="p-4 text-sm">{key.usedAda.toFixed(2)}</td>
-                      <td className="p-4 text-sm">{key.usedUsdm.toFixed(2)}</td>
+                      <td className="p-4 text-sm">{key.permission}</td>
+                      <td className="p-4 text-sm">
+                        <div className="flex gap-1">
+                          {key.networkLimit.map((network) => (
+                            <span key={network} className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-100/10 px-2 py-1 text-xs">
+                              {network}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm">
+                        {key.usageLimited ? (
+                          <div className="space-y-1">
+                            {key.RemainingUsageCredits.map((credit, index) => (
+                              <div key={index}>
+                                {credit.amount} {credit.unit}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          'Unlimited'
+                        )}
+                      </td>
+                      <td className="p-4 text-sm">
+                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
+                          key.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {key.status}
+                        </span>
+                      </td>
                       <td className="p-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                              •••
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onSelect={() => {
-                              console.log('Regenerate clicked');
-                            }}>
-                              Regenerate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onSelect={() => setKeyToDelete(key.id)}
-                              className="text-red-600"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Select 
+                          onValueChange={(value) => {
+                            if (value === 'update') {
+                              setKeyToUpdate(key);
+                            } else if (value === 'delete') {
+                              setKeyToDelete(key);
+                            }
+                          }}
+                          value=""
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Actions" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="update">Update</SelectItem>
+                            <SelectItem value="delete" className="text-red-600">Delete</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                     </tr>
                   ))
@@ -294,11 +338,22 @@ export default function ApiKeys() {
         onSuccess={fetchApiKeys}
       />
 
-      <DeleteApiKeyDialog
+      {keyToUpdate && (
+        <UpdateApiKeyDialog
+          open={true}
+          onClose={() => setKeyToUpdate(null)}
+          onSuccess={fetchApiKeys}
+          apiKey={keyToUpdate}
+        />
+      )}
+
+      <ConfirmDialog
         open={!!keyToDelete}
         onClose={() => setKeyToDelete(null)}
-        onSuccess={fetchApiKeys}
-        apiKey={{ id: keyToDelete || '' }}
+        title="Delete API Key"
+        description="Are you sure you want to delete this API key? This action cannot be undone."
+        onConfirm={handleDeleteApiKey}
+        isLoading={isDeleting}
       />
     </MainLayout>
   );

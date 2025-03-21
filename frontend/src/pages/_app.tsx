@@ -85,7 +85,13 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
   useEffect(() => {
     const init = async () => {
       try {
-        await getHealth({ client: apiClient });
+        const response = await getHealth({ client: apiClient });
+
+        if(response.status !== 200) {
+          console.log(response)
+          setIsHealthy(false)
+          return
+        }
 
         const hexedKey = localStorage.getItem("payment_api_key");
         if (!hexedKey) {

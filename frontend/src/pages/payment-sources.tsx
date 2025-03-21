@@ -1,19 +1,22 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, Copy, Search } from "lucide-react";
+import { Plus, Copy, Search, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { AddPaymentSourceDialog } from "@/components/payment-sources/AddPaymentSourceDialog";
 import Link from "next/link";
 import { useAppContext } from "@/lib/contexts/AppContext";
-import { getPaymentSource } from "@/lib/api/generated";
+import { getPaymentSource, deletePaymentSource } from "@/lib/api/generated";
 import { toast } from "react-toastify";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn, shortenAddress } from "@/lib/utils";
 import Head from "next/head";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs } from "@/components/ui/tabs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Wallet {
   id: string;
@@ -55,6 +58,8 @@ export default function PaymentSourcesPage() {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [paymentSources, setPaymentSources] = useState<PaymentSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sourceToDelete, setSourceToDelete] = useState<PaymentSource | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { apiClient } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
   const [filteredPaymentSources, setFilteredPaymentSources] = useState<PaymentSource[]>([]);
@@ -116,6 +121,43 @@ export default function PaymentSourcesPage() {
 
     setFilteredPaymentSources(filtered);
   }, [paymentSources, searchQuery, activeTab]);
+
+  const handleDeleteSource = async () => {
+    if (!sourceToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      
+      const response = await deletePaymentSource({
+        client: apiClient,
+        query: {
+          id: sourceToDelete.id
+        }
+      });
+
+      if (!response.data?.data?.id) {
+        throw new Error('Failed to delete payment source');
+      }
+
+      toast.success('Payment source deleted successfully');
+      fetchPaymentSources();
+    } catch (error: any) {
+      console.error('Error deleting payment source:', error);
+      let message = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const apiError = error as { response?: { data?: { error?: { message?: string } } } };
+        message = apiError.response?.data?.error?.message || message;
+      }
+      
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+      setSourceToDelete(null);
+    }
+  };
 
   useEffect(() => {
     fetchPaymentSources();
@@ -278,7 +320,14 @@ export default function PaymentSourcesPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <Button variant="ghost" size="sm">•••</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setSourceToDelete(source)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                     </td>
                   </tr>
                 ))
@@ -296,6 +345,15 @@ export default function PaymentSourcesPage() {
         open={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onSuccess={fetchPaymentSources}
+      />
+
+      <ConfirmDialog
+        open={!!sourceToDelete}
+        onClose={() => setSourceToDelete(null)}
+        title="Delete Payment Source"
+        description={`Are you sure you want to delete this payment source? This will also delete all associated wallets and transactions. This action cannot be undone.`}
+        onConfirm={handleDeleteSource}
+        isLoading={isDeleting}
       />
     </MainLayout>
   );
