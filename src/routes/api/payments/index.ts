@@ -447,7 +447,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
             requestedAction: PaymentAction.WaitingForExternalAction,
           },
         },
-        inputHash: '',
+        inputHash: input.inputHash,
         resultHash: '',
         SmartContractWallet: { connect: { id: sellingWallet.id } },
         submitResultTime: input.submitResultTime.getTime(),
