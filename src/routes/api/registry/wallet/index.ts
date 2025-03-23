@@ -45,7 +45,6 @@ const metadataSchema = z.object({
         .or(z.array(z.string().max(60)).min(1).max(1)),
     })
     .optional(),
-  requests_per_hour: z.number({ coerce: true }).int().min(0).optional(),
   author: z.object({
     name: z
       .string()
