@@ -360,7 +360,16 @@ fn validate_no_reference_script_attacked_to_script(
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {
-  input_value == output_value
+  expect list.length(input_value |> assets.flatten()) == list.length(output_value |> assets.flatten())
+  list.all(input_value |> assets.flatten(), fn(asset) {
+    if asset.1st == assets.ada_policy_id && asset.2nd == assets.ada_asset_name {
+      let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
+      out_value >= asset.3rd
+    } else {
+      let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
+      out_value == asset.3rd
+    }
+  })
 }
 
 test output_value_is_preserved_succeeds() {
