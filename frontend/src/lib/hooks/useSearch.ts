@@ -5,7 +5,13 @@ export interface SearchableItem {
   id: string;
   title: string;
   description?: string;
-  type: 'page' | 'action' | 'wallet' | 'agent' | 'payment-source' | 'transaction';
+  type:
+    | 'page'
+    | 'action'
+    | 'wallet'
+    | 'agent'
+    | 'payment-source'
+    | 'transaction';
   href: string;
   keywords?: string[];
   elementId?: string;
@@ -15,79 +21,88 @@ const searchableItems: SearchableItem[] = [
   { id: 'dashboard', title: 'Dashboard', type: 'page', href: '/' },
   { id: 'ai-agents', title: 'AI Agents', type: 'page', href: '/ai-agents' },
   { id: 'wallets', title: 'Wallets', type: 'page', href: '/wallets' },
-  { id: 'transactions', title: 'Transactions', type: 'page', href: '/transactions' },
-  { id: 'payment-sources', title: 'Payment Sources', type: 'page', href: '/payment-sources' },
+  {
+    id: 'transactions',
+    title: 'Transactions',
+    type: 'page',
+    href: '/transactions',
+  },
+  {
+    id: 'payment-sources',
+    title: 'Payment Sources',
+    type: 'page',
+    href: '/payment-sources',
+  },
   { id: 'api-keys', title: 'API Keys', type: 'page', href: '/api-keys' },
   { id: 'settings', title: 'Settings', type: 'page', href: '/settings' },
 
-
-  { 
-    id: 'add-ai-agent', 
-    title: 'Add AI Agent', 
-    type: 'action', 
+  {
+    id: 'add-ai-agent',
+    title: 'Add AI Agent',
+    type: 'action',
     href: '/ai-agents',
     elementId: 'add-ai-agent-button',
-    keywords: ['create agent', 'new agent']
+    keywords: ['create agent', 'new agent'],
   },
-  { 
-    id: 'add-wallet', 
-    title: 'Add Wallet', 
-    type: 'action', 
+  {
+    id: 'add-wallet',
+    title: 'Add Wallet',
+    type: 'action',
     href: '/wallets',
     elementId: 'add-wallet-button',
-    keywords: ['create wallet', 'new wallet']
+    keywords: ['create wallet', 'new wallet'],
   },
-  { 
-    id: 'add-payment-source', 
-    title: 'Add Payment Source', 
-    type: 'action', 
+  {
+    id: 'add-payment-source',
+    title: 'Add Payment Source',
+    type: 'action',
     href: '/payment-sources',
     elementId: 'add-payment-source-button',
-    keywords: ['create payment source', 'new payment source']
+    keywords: ['create payment source', 'new payment source'],
   },
-  { 
-    id: 'add-api-key', 
-    title: 'Add API Key', 
-    type: 'action', 
+  {
+    id: 'add-api-key',
+    title: 'Add API Key',
+    type: 'action',
     href: '/api-keys',
     elementId: 'add-api-key-button',
-    keywords: ['create api key', 'new api key']
+    keywords: ['create api key', 'new api key'],
   },
-  { 
-    id: 'toggle-theme', 
-    title: 'Toggle Theme', 
+  {
+    id: 'toggle-theme',
+    title: 'Toggle Theme',
     description: 'Change between light and dark mode',
-    type: 'action', 
+    type: 'action',
     href: '/settings',
     elementId: 'settings-theme-toggle',
-    keywords: ['dark mode', 'light mode', 'theme', 'appearance']
+    keywords: ['dark mode', 'light mode', 'theme', 'appearance'],
   },
-  { 
-    id: 'notifications', 
-    title: 'Notifications', 
-    type: 'action', 
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    type: 'action',
     href: '/',
     elementId: 'notifications-button',
-    keywords: ['alerts', 'messages']
+    keywords: ['alerts', 'messages'],
   },
-  { 
-    id: 'incoming-transactions', 
-    title: 'Incoming Transactions', 
-    type: 'transaction', 
+  {
+    id: 'incoming-transactions',
+    title: 'Incoming Transactions',
+    type: 'transaction',
     href: '/transactions?type=incoming',
-    keywords: ['received', 'incoming payments']
+    keywords: ['received', 'incoming payments'],
   },
-  { 
-    id: 'outgoing-transactions', 
-    title: 'Outgoing Transactions', 
-    type: 'transaction', 
+  {
+    id: 'outgoing-transactions',
+    title: 'Outgoing Transactions',
+    type: 'transaction',
     href: '/transactions?type=outgoing',
-    keywords: ['sent', 'outgoing payments']
+    keywords: ['sent', 'outgoing payments'],
   },
 ];
 
 export function useSearch() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchableItem[]>([]);
   const { state } = useAppContext();
 
@@ -99,34 +114,37 @@ export function useSearch() {
 
     const queryLower = query.toLowerCase();
 
-    const staticResults = searchableItems.filter(item => 
-      item.title.toLowerCase().includes(queryLower) ||
-      item.description?.toLowerCase().includes(queryLower) ||
-      item.keywords?.some(keyword => keyword.toLowerCase().includes(queryLower))
+    const staticResults = searchableItems.filter(
+      (item) =>
+        item.title.toLowerCase().includes(queryLower) ||
+        item.description?.toLowerCase().includes(queryLower) ||
+        item.keywords?.some((keyword) =>
+          keyword.toLowerCase().includes(queryLower),
+        ),
     );
 
     const dynamicResults: SearchableItem[] = [];
 
-    state.paymentSources?.forEach(source => {
-      source.purchasingWallets?.forEach(wallet => {
+    state.paymentSources?.forEach((source) => {
+      source.purchasingWallets?.forEach((wallet) => {
         dynamicResults.push({
           id: wallet.walletMnemonic,
           title: 'Buying Wallet',
-          description: wallet.note || `Address: ${wallet.walletMnemonic}`,
+          description: wallet.note ?? `Address: ${wallet.walletMnemonic}`,
           type: 'wallet',
           href: `/wallets?searched=${wallet.walletMnemonic}`,
-          elementId: `wallet-${wallet.walletMnemonic}`
+          elementId: `wallet-${wallet.walletMnemonic}`,
         });
       });
 
-      source.sellingWallets?.forEach(wallet => {
+      source.sellingWallets?.forEach((wallet) => {
         dynamicResults.push({
           id: wallet.walletMnemonic,
           title: 'Selling Wallet',
-          description: wallet.note || `Address: ${wallet.walletMnemonic}`,
+          description: wallet.note ?? `Address: ${wallet.walletMnemonic}`,
           type: 'wallet',
           href: `/wallets?searched=${wallet.walletMnemonic}`,
-          elementId: `wallet-${wallet.walletMnemonic}`
+          elementId: `wallet-${wallet.walletMnemonic}`,
         });
       });
 
@@ -136,13 +154,14 @@ export function useSearch() {
         description: `Contract: ${source.smartContractAddress}`,
         type: 'payment-source',
         href: `/payment-sources?searched=${source.id}`,
-        elementId: `payment-source-${source.id}`
+        elementId: `payment-source-${source.id}`,
       });
     });
 
-    const filteredDynamicResults = dynamicResults.filter(item =>
-      item.title.toLowerCase().includes(queryLower) ||
-      item.description?.toLowerCase().includes(queryLower)
+    const filteredDynamicResults = dynamicResults.filter(
+      (item) =>
+        item.title.toLowerCase().includes(queryLower) ||
+        item.description?.toLowerCase().includes(queryLower),
     );
 
     setSearchResults([...staticResults, ...filteredDynamicResults]);
@@ -152,6 +171,6 @@ export function useSearch() {
     searchQuery,
     setSearchQuery,
     searchResults,
-    handleSearch
+    handleSearch,
   };
-} 
+}

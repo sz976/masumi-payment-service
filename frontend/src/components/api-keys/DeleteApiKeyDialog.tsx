@@ -1,8 +1,13 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { deleteApiKey } from "@/lib/api/generated";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { deleteApiKey } from '@/lib/api/generated';
 
 interface DeleteApiKeyDialogProps {
   open: boolean;
@@ -23,23 +28,28 @@ interface ApiErrorResponse {
   };
 }
 
-export function DeleteApiKeyDialog({ open, onClose, onSuccess, apiKey }: DeleteApiKeyDialogProps) {
+export function DeleteApiKeyDialog({
+  open,
+  onClose,
+  onSuccess,
+  apiKey,
+}: DeleteApiKeyDialogProps) {
   const { apiClient } = useAppContext();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const handleDelete = async () => {
     if (!apiKey.id) return;
-    
+
     try {
       setIsDeleting(true);
       setError(null);
-      
+
       const response = await deleteApiKey({
         client: apiClient,
         body: {
-          id: apiKey.id
-        }
+          id: apiKey.id,
+        },
       });
 
       if (response.status !== 200) {
@@ -50,14 +60,14 @@ export function DeleteApiKeyDialog({ open, onClose, onSuccess, apiKey }: DeleteA
       onClose();
     } catch (e) {
       let message = 'An unexpected error occurred';
-      
+
       if (e instanceof Error) {
         message = e.message;
       } else if (typeof e === 'object' && e !== null) {
         const apiError = e as { response?: ApiErrorResponse };
-        message = apiError.response?.data?.error?.message || message;
+        message = apiError.response?.data?.error?.message ?? message;
       }
-      
+
       setError(message);
       throw e;
     } finally {
@@ -71,10 +81,11 @@ export function DeleteApiKeyDialog({ open, onClose, onSuccess, apiKey }: DeleteA
         <DialogHeader>
           <DialogTitle>Delete API Key</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete this API key? This action cannot be undone.
+            Are you sure you want to delete this API key? This action cannot be
+            undone.
           </p>
 
           {error && (
@@ -87,7 +98,11 @@ export function DeleteApiKeyDialog({ open, onClose, onSuccess, apiKey }: DeleteA
             <Button variant="outline" onClick={onClose} disabled={isDeleting}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
@@ -95,4 +110,4 @@ export function DeleteApiKeyDialog({ open, onClose, onSuccess, apiKey }: DeleteA
       </DialogContent>
     </Dialog>
   );
-} 
+}

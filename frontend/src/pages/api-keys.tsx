@@ -14,7 +14,13 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 
 interface ApiKey {
@@ -56,23 +62,33 @@ export default function ApiKeys() {
     let filtered = [...allApiKeys];
 
     if (activeTab === 'Read') {
-      filtered = filtered.filter(key => key.permission === 'Read');
+      filtered = filtered.filter((key) => key.permission === 'Read');
     } else if (activeTab === 'ReadAndPay') {
-      filtered = filtered.filter(key => key.permission === 'ReadAndPay');
+      filtered = filtered.filter((key) => key.permission === 'ReadAndPay');
     } else if (activeTab === 'Admin') {
-      filtered = filtered.filter(key => key.permission === 'Admin');
+      filtered = filtered.filter((key) => key.permission === 'Admin');
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(key => {
+      filtered = filtered.filter((key) => {
         const nameMatch = key.id?.toLowerCase().includes(query) || false;
         const tokenMatch = key.token?.toLowerCase().includes(query) || false;
-        const permissionMatch = key.permission?.toLowerCase().includes(query) || false;
+        const permissionMatch =
+          key.permission?.toLowerCase().includes(query) || false;
         const statusMatch = key.status?.toLowerCase().includes(query) || false;
-        const networkMatch = key.networkLimit?.some(network => network.toLowerCase().includes(query)) || false;
+        const networkMatch =
+          key.networkLimit?.some((network) =>
+            network.toLowerCase().includes(query),
+          ) || false;
 
-        return nameMatch || tokenMatch || permissionMatch || statusMatch || networkMatch;
+        return (
+          nameMatch ||
+          tokenMatch ||
+          permissionMatch ||
+          statusMatch ||
+          networkMatch
+        );
       });
     }
 
@@ -88,22 +104,22 @@ export default function ApiKeys() {
         setIsLoadingMore(true);
       }
 
-      const response = await getApiKey({ 
+      const response = await getApiKey({
         client: apiClient,
         query: {
           limit: 10,
-          cursorToken: cursor || undefined
-        }
+          cursorToken: cursor || undefined,
+        },
       });
 
       if (response?.data?.data?.ApiKeys) {
         const newKeys = response.data.data.ApiKeys;
         if (cursor) {
-          setAllApiKeys(prev => [...prev, ...newKeys]);
+          setAllApiKeys((prev) => [...prev, ...newKeys]);
         } else {
           setAllApiKeys(newKeys);
         }
-        
+
         setHasMore(newKeys.length === 10);
       } else {
         if (!cursor) {
@@ -136,10 +152,8 @@ export default function ApiKeys() {
   }, [filterApiKeys, searchQuery, activeTab]);
 
   const handleSelectKey = (token: string) => {
-    setSelectedKeys(prev => 
-      prev.includes(token) 
-        ? prev.filter(k => k !== token)
-        : [...prev, token]
+    setSelectedKeys((prev) =>
+      prev.includes(token) ? prev.filter((k) => k !== token) : [...prev, token],
     );
   };
 
@@ -147,7 +161,7 @@ export default function ApiKeys() {
     setSelectedKeys(
       selectedKeys.length === allApiKeys.length
         ? []
-        : allApiKeys.map(key => key.token)
+        : allApiKeys.map((key) => key.token),
     );
   };
 
@@ -166,12 +180,12 @@ export default function ApiKeys() {
     try {
       setIsDeleting(true);
       console.log('Deleting API key:', keyToDelete);
-      
+
       const response = await deleteApiKey({
         client: apiClient,
         body: {
-          id: keyToDelete.id
-        }
+          id: keyToDelete.id,
+        },
       });
 
       if (response?.status !== 200) {
@@ -183,14 +197,16 @@ export default function ApiKeys() {
     } catch (error) {
       console.error('Error deleting API key:', error);
       let message = 'An unexpected error occurred';
-      
+
       if (error instanceof Error) {
         message = error.message;
       } else if (typeof error === 'object' && error !== null) {
-        const apiError = error as { response?: { data?: { error?: { message?: string } } } };
+        const apiError = error as {
+          response?: { data?: { error?: { message?: string } } };
+        };
         message = apiError.response?.data?.error?.message || message;
       }
-      
+
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -208,12 +224,18 @@ export default function ApiKeys() {
           <h1 className="text-xl font-semibold mb-1">API keys</h1>
           <p className="text-sm text-muted-foreground">
             Manage your API keys for accessing the payment service.{' '}
-            <a href="#" className="text-primary hover:underline">Learn more</a>
+            <a
+              href="https://docs.masumi.network/technical-documentation/payment-service-api/api-keys"
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Learn more
+            </a>
           </p>
         </div>
 
         <div className="space-y-6">
-          <Tabs 
+          <Tabs
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(tab) => {
@@ -235,9 +257,7 @@ export default function ApiKeys() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                onClick={() => setIsAddDialogOpen(true)}
-              >
+              <Button onClick={() => setIsAddDialogOpen(true)}>
                 Add API key
               </Button>
             </div>
@@ -249,15 +269,24 @@ export default function ApiKeys() {
                 <tr className="border-b">
                   <th className="w-12 p-4">
                     <Checkbox
-                      checked={allApiKeys.length > 0 && selectedKeys.length === allApiKeys.length}
+                      checked={
+                        allApiKeys.length > 0 &&
+                        selectedKeys.length === allApiKeys.length
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
                   <th className="p-4 text-left text-sm font-medium">ID</th>
                   <th className="p-4 text-left text-sm font-medium">Key</th>
-                  <th className="p-4 text-left text-sm font-medium">Permission</th>
-                  <th className="p-4 text-left text-sm font-medium">Networks</th>
-                  <th className="p-4 text-left text-sm font-medium">Usage Limits</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Permission
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Networks
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Usage Limits
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="w-12 p-4"></th>
                 </tr>
@@ -272,7 +301,9 @@ export default function ApiKeys() {
                 ) : filteredApiKeys.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-8">
-                      {searchQuery ? 'No API keys found matching your search' : 'No API keys found'}
+                      {searchQuery
+                        ? 'No API keys found matching your search'
+                        : 'No API keys found'}
                     </td>
                   </tr>
                 ) : (
@@ -295,9 +326,25 @@ export default function ApiKeys() {
                             className="h-4 w-4 p-0"
                             onClick={() => handleCopyApiKey(key.token)}
                           >
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M10 4H5C4.44772 4 4 4.44772 4 5V10C4 10.5523 4.44772 11 5 11H10C10.5523 11 11 10.5523 11 10V5C11 4.44772 10.5523 4 10 4Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 4V2C8 1.44772 7.55228 1 7 1H2C1.44772 1 1 1.44772 1 2V7C1 7.55228 1.44772 8 2 8H4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M10 4H5C4.44772 4 4 4.44772 4 5V10C4 10.5523 4.44772 11 5 11H10C10.5523 11 11 10.5523 11 10V5C11 4.44772 10.5523 4 10 4Z"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M8 4V2C8 1.44772 7.55228 1 7 1H2C1.44772 1 1 1.44772 1 2V7C1 7.55228 1.44772 8 2 8H4"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
                             </svg>
                           </Button>
                           <span className="font-mono text-sm text-muted-foreground">
@@ -309,7 +356,10 @@ export default function ApiKeys() {
                       <td className="p-4 text-sm">
                         <div className="flex gap-1">
                           {key.networkLimit.map((network) => (
-                            <span key={network} className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-100/10 px-2 py-1 text-xs">
+                            <span
+                              key={network}
+                              className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-100/10 px-2 py-1 text-xs"
+                            >
                               {network}
                             </span>
                           ))}
@@ -329,14 +379,18 @@ export default function ApiKeys() {
                         )}
                       </td>
                       <td className="p-4 text-sm">
-                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
-                          key.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
+                            key.status === 'Active'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
                           {key.status}
                         </span>
                       </td>
                       <td className="p-4">
-                        <Select 
+                        <Select
                           onValueChange={(value) => {
                             if (value === 'update') {
                               setKeyToUpdate(key);
@@ -351,7 +405,9 @@ export default function ApiKeys() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="update">Update</SelectItem>
-                            <SelectItem value="delete" className="text-red-600">Delete</SelectItem>
+                            <SelectItem value="delete" className="text-red-600">
+                              Delete
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
@@ -363,11 +419,13 @@ export default function ApiKeys() {
           </div>
 
           <div className="flex flex-col gap-4 items-center">
-            {!isLoading && <Pagination
-              hasMore={hasMore}
-              isLoading={isLoadingMore}
-              onLoadMore={handleLoadMore}
-            />}
+            {!isLoading && (
+              <Pagination
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                onLoadMore={handleLoadMore}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -397,4 +455,4 @@ export default function ApiKeys() {
       />
     </MainLayout>
   );
-} 
+}

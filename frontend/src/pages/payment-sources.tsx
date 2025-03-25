@@ -1,23 +1,23 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, Copy, Search, Trash2 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { AddPaymentSourceDialog } from "@/components/payment-sources/AddPaymentSourceDialog";
-import Link from "next/link";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { getPaymentSource, deletePaymentSource } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn, shortenAddress } from "@/lib/utils";
-import Head from "next/head";
-import { Spinner } from "@/components/ui/spinner";
-import { Tabs } from "@/components/ui/tabs";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Pagination } from "@/components/ui/pagination";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { Plus, Copy, Search, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AddPaymentSourceDialog } from '@/components/payment-sources/AddPaymentSourceDialog';
+import Link from 'next/link';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { getPaymentSource, deletePaymentSource } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn, shortenAddress } from '@/lib/utils';
+import Head from 'next/head';
+import { Spinner } from '@/components/ui/spinner';
+import { Tabs } from '@/components/ui/tabs';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Wallet {
   id: string;
@@ -54,16 +54,20 @@ interface APIPaymentSource {
 }
 
 export default function PaymentSourcesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [paymentSources, setPaymentSources] = useState<PaymentSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [sourceToDelete, setSourceToDelete] = useState<PaymentSource | null>(null);
+  const [sourceToDelete, setSourceToDelete] = useState<PaymentSource | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const { apiClient } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
-  const [filteredPaymentSources, setFilteredPaymentSources] = useState<PaymentSource[]>([]);
+  const [filteredPaymentSources, setFilteredPaymentSources] = useState<
+    PaymentSource[]
+  >([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -77,17 +81,20 @@ export default function PaymentSourcesPage() {
     let filtered = [...paymentSources];
 
     if (activeTab === 'Preprod') {
-      filtered = filtered.filter(source => source.network === 'Preprod');
+      filtered = filtered.filter((source) => source.network === 'Preprod');
     } else if (activeTab === 'Mainnet') {
-      filtered = filtered.filter(source => source.network === 'Mainnet');
+      filtered = filtered.filter((source) => source.network === 'Mainnet');
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(source => {
-        const matchAddress = source.smartContractAddress?.toLowerCase().includes(query) || false;
-        const matchNetwork = source.network?.toLowerCase().includes(query) || false;
-        const matchType = source.paymentType?.toLowerCase().includes(query) || false;
+      filtered = filtered.filter((source) => {
+        const matchAddress =
+          source.smartContractAddress?.toLowerCase().includes(query) || false;
+        const matchNetwork =
+          source.network?.toLowerCase().includes(query) || false;
+        const matchType =
+          source.paymentType?.toLowerCase().includes(query) || false;
 
         return matchAddress || matchNetwork || matchType;
       });
@@ -109,30 +116,33 @@ export default function PaymentSourcesPage() {
         client: apiClient,
         query: {
           take: 10,
-          cursorId: cursor || undefined
-        }
+          cursorId: cursor || undefined,
+        },
       });
 
       if (response.data?.data?.PaymentSources) {
-        const newSources = response.data.data.PaymentSources.map((source: APIPaymentSource) => ({
-          id: source.id,
-          smartContractAddress: source.smartContractAddress,
-          network: source.network,
-          paymentType: source.paymentType,
-          feeRatePermille: source.feeRatePermille,
-          status: source.lastIdentifierChecked ? ('Active' as const) : ('Inactive' as const),
-          createdAt: source.createdAt,
-          PurchasingWallets: source.PurchasingWallets || [],
-          SellingWallets: source.SellingWallets || []
-        }));
+        const newSources = response.data.data.PaymentSources.map(
+          (source: APIPaymentSource) => ({
+            id: source.id,
+            smartContractAddress: source.smartContractAddress,
+            network: source.network,
+            paymentType: source.paymentType,
+            feeRatePermille: source.feeRatePermille,
+            status: source.lastIdentifierChecked
+              ? ('Active' as const)
+              : ('Inactive' as const),
+            createdAt: source.createdAt,
+            PurchasingWallets: source.PurchasingWallets || [],
+            SellingWallets: source.SellingWallets || [],
+          }),
+        );
 
         if (cursor) {
-          setPaymentSources(prev => [...prev, ...newSources]);
+          setPaymentSources((prev) => [...prev, ...newSources]);
         } else {
           setPaymentSources(newSources);
         }
-        
-      
+
         setHasMore(newSources.length === 10);
       } else {
         if (!cursor) {
@@ -151,7 +161,6 @@ export default function PaymentSourcesPage() {
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && paymentSources.length > 0) {
-    
       const lastSource = paymentSources[paymentSources.length - 1];
       fetchPaymentSources(lastSource.id);
     }
@@ -166,10 +175,10 @@ export default function PaymentSourcesPage() {
   }, [filterPaymentSources, searchQuery, activeTab]);
 
   const handleSelectSource = (id: string) => {
-    setSelectedSources(prev => 
-      prev.includes(id) 
-        ? prev.filter(sourceId => sourceId !== id)
-        : [...prev, id]
+    setSelectedSources((prev) =>
+      prev.includes(id)
+        ? prev.filter((sourceId) => sourceId !== id)
+        : [...prev, id],
     );
   };
 
@@ -177,7 +186,7 @@ export default function PaymentSourcesPage() {
     setSelectedSources(
       selectedSources.length === paymentSources.length
         ? []
-        : paymentSources.map(source => source.id)
+        : paymentSources.map((source) => source.id),
     );
   };
 
@@ -191,12 +200,12 @@ export default function PaymentSourcesPage() {
 
     try {
       setIsDeleting(true);
-      
+
       const response = await deletePaymentSource({
         client: apiClient,
         query: {
-          id: sourceToDelete.id
-        }
+          id: sourceToDelete.id,
+        },
       });
 
       if (!response.data?.data?.id) {
@@ -208,14 +217,16 @@ export default function PaymentSourcesPage() {
     } catch (error: any) {
       console.error('Error deleting payment source:', error);
       let message = 'An unexpected error occurred';
-      
+
       if (error instanceof Error) {
         message = error.message;
       } else if (typeof error === 'object' && error !== null) {
-        const apiError = error as { response?: { data?: { error?: { message?: string } } } };
+        const apiError = error as {
+          response?: { data?: { error?: { message?: string } } };
+        };
         message = apiError.response?.data?.error?.message || message;
       }
-      
+
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -234,12 +245,16 @@ export default function PaymentSourcesPage() {
             <h1 className="text-2xl font-semibold">Payment Sources</h1>
             <p className="text-sm text-muted-foreground">
               Manage your payment sources.{' '}
-              <Link href="#" className="text-primary hover:underline">
+              <Link
+                href="https://docs.masumi.network/technical-documentation/payment-service-api/payment-source"
+                target="_blank"
+                className="text-primary hover:underline"
+              >
                 Learn more
               </Link>
             </p>
           </div>
-          <Button 
+          <Button
             className="flex items-center gap-2 bg-black text-white hover:bg-black/90"
             onClick={() => setIsAddDialogOpen(true)}
           >
@@ -249,7 +264,7 @@ export default function PaymentSourcesPage() {
         </div>
 
         <div className="space-y-6">
-          <Tabs 
+          <Tabs
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(tab) => {
@@ -277,18 +292,29 @@ export default function PaymentSourcesPage() {
               <thead>
                 <tr className="border-b">
                   <th className="w-12 p-4">
-                    <Checkbox 
-                      checked={paymentSources.length > 0 && selectedSources.length === paymentSources.length}
+                    <Checkbox
+                      checked={
+                        paymentSources.length > 0 &&
+                        selectedSources.length === paymentSources.length
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">Contract address</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Contract address
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">ID</th>
                   <th className="p-4 text-left text-sm font-medium">Network</th>
-                  <th className="p-4 text-left text-sm font-medium">Payment type</th>
-                  <th className="p-4 text-left text-sm font-medium">Fee rate</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Payment type
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Fee rate
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
-                  <th className="p-4 text-left text-sm font-medium">Created at</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Created at
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">Wallets</th>
                   <th className="w-20 p-4"></th>
                 </tr>
@@ -317,7 +343,13 @@ export default function PaymentSourcesPage() {
                       </td>
                       <td className="p-4">
                         <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px] flex items-center gap-2">
-                          {shortenAddress(source.smartContractAddress)} <Copy className="w-4 h-4 cursor-pointer" onClick={() => copyToClipboard(source.smartContractAddress)} />
+                          {shortenAddress(source.smartContractAddress)}{' '}
+                          <Copy
+                            className="w-4 h-4 cursor-pointer"
+                            onClick={() =>
+                              copyToClipboard(source.smartContractAddress)
+                            }
+                          />
                         </div>
                       </td>
                       <td className="p-4">
@@ -334,12 +366,14 @@ export default function PaymentSourcesPage() {
                       </td>
                       <td className="p-4">
                         <div>
-                          <span className={cn(
-                            "text-xs font-medium px-2 py-0.5 rounded-full",
-                            source.status === 'Active'
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400"
-                          )}>
+                          <span
+                            className={cn(
+                              'text-xs font-medium px-2 py-0.5 rounded-full',
+                              source.status === 'Active'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
+                            )}
+                          >
                             {source.status}
                           </span>
                         </div>
@@ -351,12 +385,13 @@ export default function PaymentSourcesPage() {
                       </td>
                       <td className="p-4">
                         <div className="text-xs text-muted-foreground">
-                          {source.PurchasingWallets.length} Buying,<br /> {source.SellingWallets.length} Selling
+                          {source.PurchasingWallets.length} Buying,
+                          <br /> {source.SellingWallets.length} Selling
                         </div>
                       </td>
                       <td className="p-4">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => setSourceToDelete(source)}
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -372,11 +407,13 @@ export default function PaymentSourcesPage() {
           </div>
 
           <div className="flex flex-col gap-4 items-center">
-            {!isLoading && <Pagination
-              hasMore={hasMore}
-              isLoading={isLoadingMore}
-              onLoadMore={handleLoadMore}
-            />}
+            {!isLoading && (
+              <Pagination
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                onLoadMore={handleLoadMore}
+              />
+            )}
           </div>
         </div>
 
@@ -397,4 +434,4 @@ export default function PaymentSourcesPage() {
       </div>
     </MainLayout>
   );
-} 
+}

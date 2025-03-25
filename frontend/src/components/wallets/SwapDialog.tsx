@@ -482,7 +482,9 @@ export function SwapDialog({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Balance:{' '}
-                      {useFormatBalance(getBalanceForToken(selectedFromToken.symbol).toFixed(6)) || ''}
+                      {useFormatBalance(
+                        getBalanceForToken(selectedFromToken.symbol).toFixed(6),
+                      ) ?? ''}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
@@ -501,10 +503,13 @@ export function SwapDialog({
                         style={{ MozAppearance: 'textfield' }}
                       />
                       <span
-                        className="absolute right-0 -top-5 text-xs text-muted-foreground cursor-pointer hover:text-foreground"
+                        className="absolute right-0 -top-3 text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                         onClick={handleMaxClick}
                       >
-                        Max: {useFormatBalance(getMaxAmount(selectedFromToken.symbol).toFixed(2)) || ""}
+                        Max:{' '}
+                        {useFormatBalance(
+                          getMaxAmount(selectedFromToken.symbol).toFixed(2),
+                        ) || ''}
                       </span>
                     </div>
                     <span className="block text-xs text-muted-foreground">
@@ -546,7 +551,9 @@ export function SwapDialog({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Balance:{' '}
-                      {useFormatBalance(getBalanceForToken(selectedToToken.symbol).toFixed(6)) || ""}
+                      {useFormatBalance(
+                        getBalanceForToken(selectedToToken.symbol).toFixed(6),
+                      ) ?? ''}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">

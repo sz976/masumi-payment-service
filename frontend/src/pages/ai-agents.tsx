@@ -1,32 +1,40 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, Search, Trash2 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { AddAIAgentDialog } from "@/components/ai-agents/AddAIAgentDialog";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { getRegistry, deleteRegistry } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import Head from "next/head";
-import { Spinner } from "@/components/ui/spinner";
-import useFormatBalance from "@/lib/hooks/useFormatBalance";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FaRegClock } from "react-icons/fa";
-import { Tabs } from "@/components/ui/tabs";
-import { Pagination } from "@/components/ui/pagination";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { Plus, Search, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { getRegistry, deleteRegistry } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import Head from 'next/head';
+import { Spinner } from '@/components/ui/spinner';
+import useFormatBalance from '@/lib/hooks/useFormatBalance';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { FaRegClock } from 'react-icons/fa';
+import { Tabs } from '@/components/ui/tabs';
+import { Pagination } from '@/components/ui/pagination';
 
 interface AIAgent {
   id: string;
   name: string;
   description: string | null;
   apiBaseUrl: string;
-  state: 'RegistrationRequested' | 'RegistrationInitiated' | 'RegistrationConfirmed' | 'RegistrationFailed' | 'DeregistrationRequested' | 'DeregistrationInitiated' | 'DeregistrationConfirmed' | 'DeregistrationFailed';
+  state:
+    | 'RegistrationRequested'
+    | 'RegistrationInitiated'
+    | 'RegistrationConfirmed'
+    | 'RegistrationFailed'
+    | 'DeregistrationRequested'
+    | 'DeregistrationInitiated'
+    | 'DeregistrationConfirmed'
+    | 'DeregistrationFailed';
   Tags: string[];
   createdAt: string;
   updatedAt: string;
@@ -69,14 +77,15 @@ const parseAgentStatus = (status: AIAgent['state']): string => {
 };
 
 export default function AIAgentsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [allAgents, setAllAgents] = useState<AIAgent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<AIAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedAgentToDelete, setSelectedAgentToDelete] = useState<AIAgent | null>(null);
+  const [selectedAgentToDelete, setSelectedAgentToDelete] =
+    useState<AIAgent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { apiClient, state } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
@@ -94,26 +103,46 @@ export default function AIAgentsPage() {
     let filtered = [...allAgents];
 
     if (activeTab === 'Registered') {
-      filtered = filtered.filter(agent => parseAgentStatus(agent.state) === 'Registered');
+      filtered = filtered.filter(
+        (agent) => parseAgentStatus(agent.state) === 'Registered',
+      );
     } else if (activeTab === 'Deregistered') {
-      filtered = filtered.filter(agent => parseAgentStatus(agent.state) === 'Deregistered');
+      filtered = filtered.filter(
+        (agent) => parseAgentStatus(agent.state) === 'Deregistered',
+      );
     } else if (activeTab === 'Pending') {
-      filtered = filtered.filter(agent => parseAgentStatus(agent.state) === 'Pending');
+      filtered = filtered.filter(
+        (agent) => parseAgentStatus(agent.state) === 'Pending',
+      );
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(agent => {
+      filtered = filtered.filter((agent) => {
         const matchName = agent.name?.toLowerCase().includes(query) || false;
-        const matchDescription = agent.description?.toLowerCase().includes(query) || false;
-        const matchTags = agent.Tags?.some(tag => tag.toLowerCase().includes(query)) || false;
-        const matchWallet = agent.SmartContractWallet?.walletAddress?.toLowerCase().includes(query) || false;
+        const matchDescription =
+          agent.description?.toLowerCase().includes(query) || false;
+        const matchTags =
+          agent.Tags?.some((tag) => tag.toLowerCase().includes(query)) || false;
+        const matchWallet =
+          agent.SmartContractWallet?.walletAddress
+            ?.toLowerCase()
+            .includes(query) || false;
         const matchState = agent.state?.toLowerCase().includes(query) || false;
-        const matchPrice = agent.AgentPricing?.Pricing?.[0]?.amount ? 
-          (parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000).toFixed(2).includes(query) : 
-          false;
+        const matchPrice = agent.AgentPricing?.Pricing?.[0]?.amount
+          ? (parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000)
+              .toFixed(2)
+              .includes(query)
+          : false;
 
-        return matchName || matchDescription || matchTags || matchWallet || matchState || matchPrice;
+        return (
+          matchName ||
+          matchDescription ||
+          matchTags ||
+          matchWallet ||
+          matchState ||
+          matchPrice
+        );
       });
     }
 
@@ -133,18 +162,18 @@ export default function AIAgentsPage() {
         client: apiClient,
         query: {
           network: state.network,
-          cursorId: cursor || undefined
-        }
+          cursorId: cursor || undefined,
+        },
       });
 
       if (response.data?.data?.Assets) {
         const newAgents = response.data.data.Assets;
         if (cursor) {
-          setAllAgents(prev => [...prev, ...newAgents]);
+          setAllAgents((prev) => [...prev, ...newAgents]);
         } else {
           setAllAgents(newAgents);
         }
-        
+
         setHasMore(newAgents.length === 10);
       } else {
         if (!cursor) {
@@ -187,10 +216,10 @@ export default function AIAgentsPage() {
   }, [filterAgents, searchQuery, activeTab]);
 
   const handleSelectAgent = (id: string) => {
-    setSelectedAgents(prev => 
-      prev.includes(id) 
-        ? prev.filter(agentId => agentId !== id)
-        : [...prev, id]
+    setSelectedAgents((prev) =>
+      prev.includes(id)
+        ? prev.filter((agentId) => agentId !== id)
+        : [...prev, id],
     );
   };
 
@@ -203,7 +232,7 @@ export default function AIAgentsPage() {
     if (selectedAgents.length === allAgents.length) {
       setSelectedAgents([]);
     } else {
-      setSelectedAgents(allAgents.map(agent => agent.id));
+      setSelectedAgents(allAgents.map((agent) => agent.id));
     }
   };
 
@@ -243,7 +272,7 @@ export default function AIAgentsPage() {
         query: {
           agentIdentifier: selectedAgentToDelete.agentIdentifier,
           network: state.network,
-        }
+        },
       });
 
       toast.success('AI agent deleted successfully');
@@ -269,10 +298,16 @@ export default function AIAgentsPage() {
             <h1 className="text-xl font-semibold mb-1">AI agents</h1>
             <p className="text-sm text-muted-foreground">
               Manage your AI agents and their configurations.{' '}
-              <a href="#" className="text-primary hover:underline">Learn more</a>
+              <a
+                href="https://docs.masumi.network/core-concepts/agentic-service"
+                target="_blank"
+                className="text-primary hover:underline"
+              >
+                Learn more
+              </a>
             </p>
           </div>
-          <Button 
+          <Button
             className="flex items-center gap-2"
             onClick={() => setIsAddDialogOpen(true)}
           >
@@ -282,13 +317,13 @@ export default function AIAgentsPage() {
         </div>
 
         <div className="space-y-6">
-          <Tabs 
+          <Tabs
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              setAllAgents([]); 
-              fetchAgents(); 
+              setAllAgents([]);
+              fetchAgents();
             }}
           />
 
@@ -310,15 +345,22 @@ export default function AIAgentsPage() {
               <thead>
                 <tr className="border-b">
                   <th className="w-12 p-4">
-                    <Checkbox 
-                      checked={allAgents.length > 0 && selectedAgents.length === allAgents.length}
+                    <Checkbox
+                      checked={
+                        allAgents.length > 0 &&
+                        selectedAgents.length === allAgents.length
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
                   <th className="p-4 text-left text-sm font-medium">Name</th>
                   <th className="p-4 text-left text-sm font-medium">Added</th>
-                  <th className="p-4 text-left text-sm font-medium">Linked wallet</th>
-                  <th className="p-4 text-left text-sm font-medium">Price, ADA</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Linked wallet
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Price, ADA
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">Tags</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="w-20 p-4"></th>
@@ -334,27 +376,42 @@ export default function AIAgentsPage() {
                 ) : filteredAgents.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-8">
-                      {searchQuery ? 'No AI agents found matching your search' : 'No AI agents found'}
+                      {searchQuery
+                        ? 'No AI agents found matching your search'
+                        : 'No AI agents found'}
                     </td>
                   </tr>
                 ) : (
                   filteredAgents.map((agent) => (
-                    <tr key={agent.id} className="border-b" style={{
-                      opacity: agent.state === "DeregistrationConfirmed" ? "0.4" : "1",
-                    }}>
+                    <tr
+                      key={agent.id}
+                      className="border-b"
+                      style={{
+                        opacity:
+                          agent.state === 'DeregistrationConfirmed'
+                            ? '0.4'
+                            : '1',
+                      }}
+                    >
                       <td className="p-4">
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedAgents.includes(agent.id)}
                           onCheckedChange={() => handleSelectAgent(agent.id)}
                         />
                       </td>
                       <td className="p-4">
                         <div className="text-sm font-medium">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground">{agent.description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {agent.description}
+                        </div>
                       </td>
-                      <td className="p-4 text-sm">{formatDate(agent.createdAt)}</td>
+                      <td className="p-4 text-sm">
+                        {formatDate(agent.createdAt)}
+                      </td>
                       <td className="p-4">
-                        <div className="text-xs font-medium">Selling wallet</div>
+                        <div className="text-xs font-medium">
+                          Selling wallet
+                        </div>
                         <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
                           {agent.SmartContractWallet.walletAddress}
                         </div>
@@ -370,32 +427,35 @@ export default function AIAgentsPage() {
                         )}
                       </td>
                       <td className="p-4">
-                        <Badge 
+                        <Badge
                           variant={getStatusBadgeVariant(agent.state)}
                           className={cn(
-                            agent.state === 'RegistrationConfirmed' && "bg-green-50 text-green-700 hover:bg-green-50/80"
+                            agent.state === 'RegistrationConfirmed' &&
+                              'bg-green-50 text-green-700 hover:bg-green-50/80',
                           )}
                         >
                           {parseAgentStatus(agent.state)}
                         </Badge>
                       </td>
                       <td className="p-4">
-                        {agent.state !== "RegistrationConfirmed" ? (
+                        {agent.state !== 'RegistrationConfirmed' ? (
                           <>
-                            {(agent.state === "RegistrationInitiated" || agent.state === "DeregistrationInitiated") && (
+                            {(agent.state === 'RegistrationInitiated' ||
+                              agent.state === 'DeregistrationInitiated') && (
                               <div className="flex items-center justify-center w-8 h-8">
                                 <Spinner size={16} />
                               </div>
                             )}
-                            {(agent.state === "RegistrationRequested" || agent.state === "DeregistrationRequested") && (
+                            {(agent.state === 'RegistrationRequested' ||
+                              agent.state === 'DeregistrationRequested') && (
                               <div className="flex items-center justify-center w-8 h-8">
                                 <FaRegClock size={12} />
                               </div>
                             )}
                           </>
                         ) : (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteClick(agent)}
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -412,16 +472,18 @@ export default function AIAgentsPage() {
           </div>
 
           <div className="flex flex-col gap-4 items-center">
-            {!isLoading && <Pagination
-              hasMore={hasMore}
-              isLoading={isLoadingMore}
-              onLoadMore={handleLoadMore}
-            />}
+            {!isLoading && (
+              <Pagination
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                onLoadMore={handleLoadMore}
+              />
+            )}
           </div>
         </div>
 
-        <AddAIAgentDialog 
-          open={isAddDialogOpen} 
+        <AddAIAgentDialog
+          open={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
           onSuccess={fetchAgents}
         />
@@ -440,4 +502,4 @@ export default function AIAgentsPage() {
       </div>
     </MainLayout>
   );
-} 
+}

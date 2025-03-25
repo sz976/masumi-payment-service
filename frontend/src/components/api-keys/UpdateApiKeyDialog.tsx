@@ -1,13 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { patchApiKey } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { patchApiKey } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PatchApiKeyResponse } from '@/lib/api/generated/types.gen';
+import { parseError } from '@/lib/utils';
 
 interface UpdateApiKeyDialogProps {
   open: boolean;
@@ -16,17 +29,25 @@ interface UpdateApiKeyDialogProps {
   apiKey: {
     id: string;
     token: string;
+    permission: 'Read' | 'ReadAndPay' | 'Admin';
+    networkLimit: Array<'Preprod' | 'Mainnet'>;
+    usageLimited: boolean;
     status: 'Active' | 'Revoked';
   };
 }
 
-export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateApiKeyDialogProps) {
+export function UpdateApiKeyDialog({
+  open,
+  onClose,
+  onSuccess,
+  apiKey,
+}: UpdateApiKeyDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [newToken, setNewToken] = useState('');
   const [status, setStatus] = useState<'Active' | 'Revoked'>(apiKey.status);
   const [credits, setCredits] = useState({
     lovelace: '',
-    usdm: ''
+    usdm: '',
   });
   const { apiClient } = useAppContext();
 
@@ -46,7 +67,12 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
       return false;
     }
 
-    if (!newToken && status === apiKey.status && !credits.lovelace && !credits.usdm) {
+    if (
+      !newToken &&
+      status === apiKey.status &&
+      !credits.lovelace &&
+      !credits.usdm
+    ) {
       toast.error('Please make at least one change to update');
       return false;
     }
@@ -64,13 +90,13 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
       if (credits.lovelace) {
         usageCredits.push({
           unit: 'lovelace',
-          amount: (parseFloat(credits.lovelace) * 1000000).toString()
+          amount: (parseFloat(credits.lovelace) * 1000000).toString(),
         });
       }
       if (credits.usdm) {
         usageCredits.push({
           unit: 'usdm',
-          amount: credits.usdm
+          amount: credits.usdm,
         });
       }
 
@@ -80,12 +106,17 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
           id: apiKey.id,
           ...(newToken && { token: newToken }),
           ...(status !== apiKey.status && { status }),
-          ...(usageCredits.length > 0 && { UsageCreditsToAddOrRemove: usageCredits })
-        }
+          ...(usageCredits.length > 0 && {
+            UsageCreditsToAddOrRemove: usageCredits,
+          }),
+        },
       });
 
-      if (!response.data?.data?.id) {
-        throw new Error('Failed to update API key: Invalid response from server');
+      const responseData = response?.data as PatchApiKeyResponse;
+      if (!responseData?.data?.id) {
+        throw new Error(
+          'Failed to update API key: Invalid response from server',
+        );
       }
 
       toast.success('API key updated successfully');
@@ -93,16 +124,7 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
       handleClose();
     } catch (error: any) {
       console.error('Error updating API key:', error);
-      let message = 'An unexpected error occurred';
-      
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        const apiError = error as { response?: { data?: { error?: { message?: string } } } };
-        message = apiError.response?.data?.error?.message || message;
-      }
-      
-      toast.error(message);
+      toast.error(parseError(error));
     } finally {
       setIsLoading(false);
     }
@@ -131,12 +153,17 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
               value={newToken}
               onChange={(e) => setNewToken(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Must be at least 15 characters if provided</p>
+            <p className="text-xs text-muted-foreground">
+              Must be at least 15 characters if provided
+            </p>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={(value: 'Active' | 'Revoked') => setStatus(value)}>
+            <Select
+              value={status}
+              onValueChange={(value: 'Active' | 'Revoked') => setStatus(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -149,23 +176,33 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Add/Remove ADA Credits</label>
+              <label className="text-sm font-medium">
+                Add/Remove ADA Credits
+              </label>
               <Input
                 type="number"
                 placeholder="Enter amount (positive to add, negative to remove)"
                 value={credits.lovelace}
-                onChange={(e) => setCredits(prev => ({ ...prev, lovelace: e.target.value }))}
+                onChange={(e) =>
+                  setCredits((prev) => ({ ...prev, lovelace: e.target.value }))
+                }
               />
-              <p className="text-xs text-muted-foreground">Amount in ADA (will be converted to lovelace)</p>
+              <p className="text-xs text-muted-foreground">
+                Amount in ADA (will be converted to lovelace)
+              </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Add/Remove USDM Credits</label>
+              <label className="text-sm font-medium">
+                Add/Remove USDM Credits
+              </label>
               <Input
                 type="number"
                 placeholder="Enter amount (positive to add, negative to remove)"
                 value={credits.usdm}
-                onChange={(e) => setCredits(prev => ({ ...prev, usdm: e.target.value }))}
+                onChange={(e) =>
+                  setCredits((prev) => ({ ...prev, usdm: e.target.value }))
+                }
               />
             </div>
           </div>
@@ -182,4 +219,4 @@ export function UpdateApiKeyDialog({ open, onClose, onSuccess, apiKey }: UpdateA
       </DialogContent>
     </Dialog>
   );
-} 
+}

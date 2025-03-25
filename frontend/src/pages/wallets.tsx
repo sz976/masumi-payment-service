@@ -2,27 +2,26 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, Copy, Search, RefreshCw } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { AddWalletDialog } from "@/components/wallets/AddWalletDialog";
-import { SwapDialog } from "@/components/wallets/SwapDialog";
-import Link from "next/link";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { getPaymentSource, getUtxos } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn, shortenAddress } from "@/lib/utils";
-import Head from "next/head";
-import { useRate } from "@/lib/hooks/useRate";
-import { Spinner } from "@/components/ui/spinner";
-import { TransakWidget } from "@/components/wallets/TransakWidget";
-import { FaExchangeAlt } from "react-icons/fa";
-import useFormatBalance from "@/lib/hooks/useFormatBalance";
-import { Tabs } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { Plus, Copy, Search, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
+import { SwapDialog } from '@/components/wallets/SwapDialog';
+import Link from 'next/link';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { getPaymentSource, getUtxos } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn, shortenAddress } from '@/lib/utils';
+import Head from 'next/head';
+import { useRate } from '@/lib/hooks/useRate';
+import { Spinner } from '@/components/ui/spinner';
+import { TransakWidget } from '@/components/wallets/TransakWidget';
+import { FaExchangeAlt } from 'react-icons/fa';
+import useFormatBalance from '@/lib/hooks/useFormatBalance';
+import { Tabs } from '@/components/ui/tabs';
 
 interface Wallet {
   id: string;
@@ -50,17 +49,21 @@ interface UTXO {
 }
 
 export default function WalletsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [allWallets, setAllWallets] = useState<Wallet[]>([]);
   const [filteredWallets, setFilteredWallets] = useState<Wallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshingBalances, setRefreshingBalances] = useState<Set<string>>(new Set());
+  const [refreshingBalances, setRefreshingBalances] = useState<Set<string>>(
+    new Set(),
+  );
   const { apiClient, state } = useAppContext();
   const { rate, isLoading: isLoadingRate } = useRate();
-  const [selectedWalletForTopup, setSelectedWalletForTopup] = useState<Wallet | null>(null);
-  const [selectedWalletForSwap, setSelectedWalletForSwap] = useState<Wallet | null>(null);
+  const [selectedWalletForTopup, setSelectedWalletForTopup] =
+    useState<Wallet | null>(null);
+  const [selectedWalletForSwap, setSelectedWalletForSwap] =
+    useState<Wallet | null>(null);
   const [activeTab, setActiveTab] = useState('All');
 
   const tabs = [
@@ -73,23 +76,30 @@ export default function WalletsPage() {
     let filtered = [...allWallets];
 
     if (activeTab === 'Purchasing') {
-      filtered = filtered.filter(wallet => wallet.type === 'Purchasing');
+      filtered = filtered.filter((wallet) => wallet.type === 'Purchasing');
     } else if (activeTab === 'Selling') {
-      filtered = filtered.filter(wallet => wallet.type === 'Selling');
+      filtered = filtered.filter((wallet) => wallet.type === 'Selling');
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(wallet => {
-        const matchAddress = wallet.walletAddress?.toLowerCase().includes(query) || false;
+      filtered = filtered.filter((wallet) => {
+        const matchAddress =
+          wallet.walletAddress?.toLowerCase().includes(query) || false;
         const matchNote = wallet.note?.toLowerCase().includes(query) || false;
         const matchType = wallet.type?.toLowerCase().includes(query) || false;
-        const matchBalance = wallet.balance ? 
-          (parseInt(wallet.balance) / 1000000).toFixed(2).includes(query) : 
-          false;
+        const matchBalance = wallet.balance
+          ? (parseInt(wallet.balance) / 1000000).toFixed(2).includes(query)
+          : false;
         const matchUsdmBalance = wallet.usdmBalance?.includes(query) || false;
 
-        return matchAddress || matchNote || matchType || matchBalance || matchUsdmBalance;
+        return (
+          matchAddress ||
+          matchNote ||
+          matchType ||
+          matchBalance ||
+          matchUsdmBalance
+        );
       });
     }
 
@@ -107,7 +117,7 @@ export default function WalletsPage() {
         query: {
           address: wallet.walletAddress,
           network: state.network,
-        }
+        },
       });
 
       if (response.data?.data?.Utxos) {
@@ -115,7 +125,7 @@ export default function WalletsPage() {
         let usdmBalance = 0;
 
         response.data.data.Utxos.forEach((utxo: UTXO) => {
-          utxo.Amounts.forEach(amount => {
+          utxo.Amounts.forEach((amount) => {
             if (amount.unit === 'lovelace') {
               adaBalance += amount.quantity || 0;
             } else if (amount.unit === 'USDM') {
@@ -126,13 +136,13 @@ export default function WalletsPage() {
 
         return {
           ada: adaBalance.toString(),
-          usdm: usdmBalance.toString()
+          usdm: usdmBalance.toString(),
         };
       }
-      return { ada: "0", usdm: "0" };
+      return { ada: '0', usdm: '0' };
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
-      return { ada: "0", usdm: "0" };
+      return { ada: '0', usdm: '0' };
     }
   };
 
@@ -140,32 +150,32 @@ export default function WalletsPage() {
     try {
       setIsLoading(true);
       const response = await getPaymentSource({
-        client: apiClient
+        client: apiClient,
       });
 
       if (response.data?.data?.PaymentSources) {
         const paymentSource = response.data.data.PaymentSources[0];
         if (paymentSource) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map(wallet => ({
+            ...paymentSource.PurchasingWallets.map((wallet) => ({
               ...wallet,
-              type: 'Purchasing' as const
+              type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map(wallet => ({
+            ...paymentSource.SellingWallets.map((wallet) => ({
               ...wallet,
-              type: 'Selling' as const
-            }))
+              type: 'Selling' as const,
+            })),
           ];
 
           const walletsWithBalances = await Promise.all(
             allWallets.map(async (wallet) => {
               const balances = await fetchWalletBalance(wallet);
-              return { 
-                ...wallet, 
+              return {
+                ...wallet,
                 balance: balances.ada,
-                usdmBalance: balances.usdm
+                usdmBalance: balances.usdm,
               };
-            })
+            }),
           );
 
           setAllWallets(walletsWithBalances);
@@ -185,10 +195,10 @@ export default function WalletsPage() {
   }, []);
 
   const handleSelectWallet = (id: string) => {
-    setSelectedWallets(prev => 
-      prev.includes(id) 
-        ? prev.filter(walletId => walletId !== id)
-        : [...prev, id]
+    setSelectedWallets((prev) =>
+      prev.includes(id)
+        ? prev.filter((walletId) => walletId !== id)
+        : [...prev, id],
     );
   };
 
@@ -201,7 +211,7 @@ export default function WalletsPage() {
     if (selectedWallets.length === filteredWallets.length) {
       setSelectedWallets([]);
     } else {
-      setSelectedWallets(filteredWallets.map(wallet => wallet.id));
+      setSelectedWallets(filteredWallets.map((wallet) => wallet.id));
     }
   };
 
@@ -212,19 +222,23 @@ export default function WalletsPage() {
 
   const refreshWalletBalance = async (wallet: Wallet) => {
     try {
-      setRefreshingBalances(prev => new Set(prev).add(wallet.id));
+      setRefreshingBalances((prev) => new Set(prev).add(wallet.id));
       const balances = await fetchWalletBalance(wallet);
-      setFilteredWallets(prev => prev.map(w => 
-        w.id === wallet.id ? { 
-          ...w, 
-          balance: balances.ada,
-          usdmBalance: balances.usdm
-        } : w
-      ));
+      setFilteredWallets((prev) =>
+        prev.map((w) =>
+          w.id === wallet.id
+            ? {
+                ...w,
+                balance: balances.ada,
+                usdmBalance: balances.usdm,
+              }
+            : w,
+        ),
+      );
     } catch (error) {
       console.error('Error refreshing wallet balance:', error);
     } finally {
-      setRefreshingBalances(prev => {
+      setRefreshingBalances((prev) => {
         const newSet = new Set(prev);
         newSet.delete(wallet.id);
         return newSet;
@@ -238,7 +252,9 @@ export default function WalletsPage() {
     return `≈ $${(ada * rate).toFixed(2)}`;
   };
 
-  const hasSellingWallets = !isLoading ? allWallets.some(wallet => wallet.type === 'Selling') : true;
+  const hasSellingWallets = !isLoading
+    ? allWallets.some((wallet) => wallet.type === 'Selling')
+    : true;
 
   return (
     <MainLayout>
@@ -251,12 +267,16 @@ export default function WalletsPage() {
             <h1 className="text-2xl font-semibold">Wallets</h1>
             <p className="text-sm text-muted-foreground">
               Manage your buying and selling wallets.{' '}
-              <Link href="#" className="text-primary hover:underline">
+              <Link
+                href="https://docs.masumi.network/technical-documentation/payment-service-api/wallets"
+                target="_blank"
+                className="text-primary hover:underline"
+              >
                 Learn more
               </Link>
             </p>
           </div>
-          <Button 
+          <Button
             className="flex items-center gap-2 bg-black text-white hover:bg-black/90"
             onClick={() => setIsAddDialogOpen(true)}
           >
@@ -265,11 +285,7 @@ export default function WalletsPage() {
           </Button>
         </div>
 
-        <Tabs 
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1">
@@ -289,17 +305,26 @@ export default function WalletsPage() {
             <thead>
               <tr className="border-b">
                 <th className="w-12 p-4">
-                  <Checkbox 
-                    checked={filteredWallets.length > 0 && selectedWallets.length === filteredWallets.length}
+                  <Checkbox
+                    checked={
+                      filteredWallets.length > 0 &&
+                      selectedWallets.length === filteredWallets.length
+                    }
                     onCheckedChange={handleSelectAll}
                   />
                 </th>
                 <th className="p-4 text-left text-sm font-medium">Type</th>
                 <th className="p-4 text-left text-sm font-medium">Note</th>
                 <th className="p-4 text-left text-sm font-medium">Address</th>
-                <th className="p-4 text-left text-sm font-medium">Linked AI agents</th>
-                <th className="p-4 text-left text-sm font-medium">Balance, ADA</th>
-                <th className="p-4 text-left text-sm font-medium">Balance, USDM</th>
+                <th className="p-4 text-left text-sm font-medium">
+                  Linked AI agents
+                </th>
+                <th className="p-4 text-left text-sm font-medium">
+                  Balance, ADA
+                </th>
+                <th className="p-4 text-left text-sm font-medium">
+                  Balance, USDM
+                </th>
                 <th className="w-20 p-4"></th>
               </tr>
             </thead>
@@ -326,17 +351,24 @@ export default function WalletsPage() {
                       />
                     </td>
                     <td className="p-4">
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        wallet.type === 'Purchasing' ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-                      )}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                          wallet.type === 'Purchasing'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800',
+                        )}
+                      >
                         {wallet.type}
                       </span>
                     </td>
                     <td className="p-4">{wallet.note || '—'}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm" title={wallet.walletAddress}>
+                        <span
+                          className="font-mono text-sm"
+                          title={wallet.walletAddress}
+                        >
                           {shortenAddress(wallet.walletAddress)}
                         </span>
                         <Button
@@ -356,14 +388,30 @@ export default function WalletsPage() {
                           {refreshingBalances.has(wallet.id) ? (
                             <Spinner size={16} />
                           ) : (
-                            <span>{wallet.balance ? useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)) : '0'}</span>
+                            <span>
+                              {wallet.balance
+                                ? useFormatBalance(
+                                    (
+                                      parseInt(wallet.balance) / 1000000
+                                    ).toFixed(2),
+                                  )
+                                : '0'}
+                            </span>
                           )}
                         </div>
-                        {!refreshingBalances.has(wallet.id) && wallet.balance && rate && (
-                          <span className="text-xs text-muted-foreground">
-                            ${useFormatBalance((parseInt(wallet.balance) / 1000000 * rate).toFixed(2)) || ""}
-                          </span>
-                        )}
+                        {!refreshingBalances.has(wallet.id) &&
+                          wallet.balance &&
+                          rate && (
+                            <span className="text-xs text-muted-foreground">
+                              $
+                              {useFormatBalance(
+                                (
+                                  (parseInt(wallet.balance) / 1000000) *
+                                  rate
+                                ).toFixed(2),
+                              ) || ''}
+                            </span>
+                          )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -371,7 +419,11 @@ export default function WalletsPage() {
                         {refreshingBalances.has(wallet.id) ? (
                           <Spinner size={16} />
                         ) : (
-                          <span>{wallet.usdmBalance ? useFormatBalance(wallet.usdmBalance) : '0'}</span>
+                          <span>
+                            {wallet.usdmBalance
+                              ? useFormatBalance(wallet.usdmBalance)
+                              : '0'}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -411,12 +463,19 @@ export default function WalletsPage() {
               <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
                 <div className="text-sm">
                   We recommend to add your own wallet to collect funds.{' '}
-                  <Link href="#" className="text-orange-600 dark:text-orange-400 hover:underline">
+                  <Link
+                    href="https://docs.masumi.network/core-concepts/wallets#three-different-wallets"
+                    target="_blank"
+                    className="text-orange-600 dark:text-orange-400 hover:underline"
+                  >
                     Learn more
                   </Link>
                 </div>
               </div>
-              <Button variant="outline" className="border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/10">
+              <Button
+                variant="outline"
+                className="border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/10"
+              >
                 Add collecting wallet
               </Button>
             </div>
@@ -451,4 +510,4 @@ export default function WalletsPage() {
       />
     </MainLayout>
   );
-} 
+}
