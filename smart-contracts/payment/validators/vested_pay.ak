@@ -8,6 +8,16 @@ use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange,
   find_input,
 }
+//MAS-201 is currently not necessary, as validation happens offchain. This would add more cost to every payment.
+//MAS-202 is wanted behaviour, to possibly add payment amounts
+//MAS-304 is needed to identify the payment offchain
+//Fixes 
+//MAS-203 reference script not allowed via validate_no_reference_script_attacked_to_script
+//MAS-301 is removed
+//MAS-302 now named AuthorizeRefund
+//MAS-303 is added, with checks of the status (duplicated checks of status and fields). Feels a bit redundant, as the state can be infered.
+//Furthermore renamed some of the fields to be more descriptive. Added cooldown periods to prevent DDOS, if other solutions exist recommendations are welcome.
+
 
 type POSIXTime =
   Int
@@ -344,7 +354,16 @@ fn validate_no_reference_script_attacked_to_script(
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {
-  input_value == output_value
+  expect list.length(input_value |> assets.flatten()) == list.length(output_value |> assets.flatten())
+  list.all(input_value |> assets.flatten(), fn(asset) {
+    if asset.1st == assets.ada_policy_id && asset.2nd == assets.ada_asset_name {
+      let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
+      out_value >= asset.3rd
+    } else {
+      let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
+      out_value == asset.3rd
+    }
+  })
 }
 
 test output_value_is_preserved_succeeds() {
