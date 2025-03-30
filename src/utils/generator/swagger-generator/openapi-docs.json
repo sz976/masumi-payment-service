@@ -1544,7 +1544,6 @@
                                     },
                                     "RequestedFunds": {
                                         "type": "array",
-                                        "nullable": true,
                                         "items": {
                                             "type": "object",
                                             "properties": {
@@ -1644,7 +1643,6 @@
                                     "inputHash",
                                     "network",
                                     "agentIdentifier",
-                                    "RequestedFunds",
                                     "paymentType",
                                     "identifierFromPurchaser"
                                 ],
@@ -1653,12 +1651,6 @@
                                     "network": "Preprod",
                                     "inputHash": "input_hash",
                                     "metadata": "(private) metadata to be stored with the payment request",
-                                    "RequestedFunds": [
-                                        {
-                                            "amount": "10000000",
-                                            "unit": ""
-                                        }
-                                    ],
                                     "paymentType": "Web3CardanoV1",
                                     "submitResultTime": "1970-01-20T20:00:36.260Z",
                                     "identifierFromPurchaser": "unique_key_from_purchaser"
@@ -3198,7 +3190,6 @@
                                     "inputHash",
                                     "sellerVkey",
                                     "agentIdentifier",
-                                    "Amounts",
                                     "paymentType",
                                     "unlockTime",
                                     "externalDisputeUnlockTime",
@@ -3210,12 +3201,6 @@
                                     "blockchainIdentifier": "blockchain_identifier",
                                     "network": "Preprod",
                                     "sellerVkey": "seller_vkey",
-                                    "Amounts": [
-                                        {
-                                            "amount": "10000000",
-                                            "unit": ""
-                                        }
-                                    ],
                                     "paymentType": "Web3CardanoV1",
                                     "submitResultTime": "1713636260",
                                     "unlockTime": "1713636260",
