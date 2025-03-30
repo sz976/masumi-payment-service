@@ -130,7 +130,7 @@ export async function batchLatestPaymentEntriesV1() {
         const paymentRequests = paymentContract.PurchaseRequests;
         if (paymentRequests.length == 0) {
           logger.info(
-            'no payment requests found for network ' +
+            'No payment requests found for network ' +
               paymentContract.network +
               ' ' +
               paymentContract.smartContractAddress,
@@ -139,6 +139,10 @@ export async function batchLatestPaymentEntriesV1() {
         }
 
         const potentialWallets = paymentContract.HotWallets;
+        if (potentialWallets.length == 0) {
+          logger.warn('No unlocked wallet to batch payments, skipping');
+          return;
+        }
 
         const walletAmounts = await Promise.all(
           potentialWallets.map(async (wallet) => {
@@ -153,7 +157,8 @@ export async function batchLatestPaymentEntriesV1() {
               walletId: wallet.id,
               scriptAddress: paymentContract.smartContractAddress,
               amounts: amounts.map((amount) => ({
-                unit: amount.unit,
+                unit:
+                  amount.unit.toLowerCase() == 'lovelace' ? '' : amount.unit,
                 quantity: BigInt(amount.quantity),
               })),
             };
@@ -321,7 +326,7 @@ export async function batchLatestPaymentEntriesV1() {
                   datum,
                 },
                 paymentRequest.PaidFunds.map((amount) => ({
-                  unit: amount.unit,
+                  unit: amount.unit == '' ? 'lovelace' : amount.unit,
                   quantity: amount.amount.toString(),
                 })),
               );

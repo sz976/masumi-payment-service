@@ -242,6 +242,7 @@ export const createPurchaseInitSchemaInput = z.object({
   Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
+    .optional()
     .describe('The amounts to be paid for the purchase'),
   paymentType: z
     .nativeEnum(PaymentType)
@@ -467,49 +468,11 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       throw createHttpError(400, 'Agent identifier pricing type not supported');
     }
     const amounts = pricing.fixedPricing;
-    if (amounts.length != input.Amounts.length) {
-      throw createHttpError(400, 'Agent identifier amounts length invalid');
-    }
-    //input amounts must match the agent identifier amounts summed up per coin
-    const inputAmountsMap = new Map<string, bigint>();
-    for (const amount of input.Amounts) {
-      const unit =
-        amount.unit.toLowerCase() == 'lovelace'
-          ? ''
-          : metadataToString(amount.unit)!;
-      if (inputAmountsMap.has(unit)) {
-        inputAmountsMap.set(
-          unit,
-          inputAmountsMap.get(unit)! + BigInt(amount.amount),
-        );
-      } else {
-        inputAmountsMap.set(unit, BigInt(amount.amount));
-      }
-    }
-
-    const agentIdentifierAmountsMap = new Map<string, bigint>();
-    for (const amount of amounts) {
-      const unit =
-        metadataToString(amount.unit)!.toLowerCase() == ''
-          ? ''
-          : metadataToString(amount.unit)!;
-      if (agentIdentifierAmountsMap.has(unit)) {
-        agentIdentifierAmountsMap.set(
-          unit,
-          agentIdentifierAmountsMap.get(unit)! + BigInt(amount.amount),
-        );
-      } else {
-        agentIdentifierAmountsMap.set(unit, BigInt(amount.amount));
-      }
-    }
-
-    for (const [unit, amount] of inputAmountsMap.entries()) {
-      if (agentIdentifierAmountsMap.get(unit)! != amount) {
-        throw createHttpError(
-          400,
-          'Agent identifier amounts invalid, for fixed pricing they must match the registry',
-        );
-      }
+    if (input.Amounts != undefined) {
+      throw createHttpError(
+        400,
+        'Agent identifier amounts must not be provided for fixed pricing',
+      );
     }
 
     const decodedBlockchainIdentifier = Buffer.from(
@@ -591,21 +554,46 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser identifier invalid',
       );
     }
-    const amountsMatch =
-      parsedBlockchainIdentifierData.data.RequestedFunds.every((amount) =>
-        input.Amounts.some(
-          (a) => a.amount == amount.amount && a.unit == amount.unit,
-        ),
-      );
-    if (
-      !amountsMatch ||
-      parsedBlockchainIdentifierData.data.RequestedFunds.length !=
-        input.Amounts.length
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, amounts invalid',
-      );
+    //input amounts must match the agent identifier amounts summed up per coin
+    const inputAmountsMap = new Map<string, bigint>();
+    for (const amount of parsedBlockchainIdentifierData.data.RequestedFunds) {
+      const unit =
+        amount.unit.toLowerCase() == 'lovelace'
+          ? ''
+          : metadataToString(amount.unit)!;
+      if (inputAmountsMap.has(unit)) {
+        inputAmountsMap.set(
+          unit,
+          inputAmountsMap.get(unit)! + BigInt(amount.amount),
+        );
+      } else {
+        inputAmountsMap.set(unit, BigInt(amount.amount));
+      }
+    }
+
+    const agentIdentifierAmountsMap = new Map<string, bigint>();
+    for (const amount of amounts) {
+      const unit =
+        metadataToString(amount.unit)!.toLowerCase() == ''
+          ? ''
+          : metadataToString(amount.unit)!;
+      if (agentIdentifierAmountsMap.has(unit)) {
+        agentIdentifierAmountsMap.set(
+          unit,
+          agentIdentifierAmountsMap.get(unit)! + BigInt(amount.amount),
+        );
+      } else {
+        agentIdentifierAmountsMap.set(unit, BigInt(amount.amount));
+      }
+    }
+
+    for (const [unit, amount] of inputAmountsMap.entries()) {
+      if (agentIdentifierAmountsMap.get(unit)! != amount) {
+        throw createHttpError(
+          400,
+          'Agent identifier amounts invalid, for fixed pricing they must match the registry',
+        );
+      }
     }
 
     const identifierIsSignedCorrectly = checkSignature(
@@ -626,11 +614,11 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const initialPurchaseRequest =
       await tokenCreditService.handlePurchaseCreditInit({
         id: options.id,
-        cost: input.Amounts.map((amount) => {
-          if (amount.unit.toLowerCase() == 'lovelace') {
-            return { amount: BigInt(amount.amount), unit: '' };
+        cost: Array.from(inputAmountsMap.entries()).map(([unit, amount]) => {
+          if (unit.toLowerCase() == 'lovelace') {
+            return { amount: amount, unit: '' };
           } else {
-            return { amount: BigInt(amount.amount), unit: amount.unit };
+            return { amount: amount, unit: unit };
           }
         }),
         metadata: input.metadata,

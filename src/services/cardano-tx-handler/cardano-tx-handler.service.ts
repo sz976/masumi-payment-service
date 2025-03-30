@@ -1436,7 +1436,15 @@ function checkPaymentAmountsMatch(
   actualAmounts: { unit: string; quantity: string }[],
 ) {
   return expectedAmounts.every((x) => {
-    const existingAmount = actualAmounts.find((y) => y.unit == x.unit);
+    if (x.unit.toLowerCase() == 'lovelace') {
+      x.unit = '';
+    }
+    const existingAmount = actualAmounts.find((y) => {
+      if (y.unit.toLowerCase() == 'lovelace') {
+        y.unit = '';
+      }
+      return y.unit == x.unit;
+    });
     if (existingAmount == null) return false;
     //allow for some overpayment to handle min lovelace requirements
     if (x.unit == '') {

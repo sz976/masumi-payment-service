@@ -586,7 +586,6 @@ export function generateOpenAPI() {
                 inputHash: 'input_hash',
                 metadata:
                   '(private) metadata to be stored with the payment request',
-                RequestedFunds: [{ amount: '10000000', unit: '' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
                 identifierFromPurchaser: 'unique_key_from_purchaser',
@@ -950,7 +949,6 @@ export function generateOpenAPI() {
                 blockchainIdentifier: 'blockchain_identifier',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
-                Amounts: [{ amount: '10000000', unit: '' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),

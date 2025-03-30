@@ -218,7 +218,7 @@ export const createPaymentsSchemaInput = z.object({
   RequestedFunds: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
-    .nullable()
+    .optional()
     .describe('The amounts of the payment, should be null for fixed amount'),
   paymentType: z
     .nativeEnum(PaymentType)
@@ -434,7 +434,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       sellerAddress: sellingWallet.walletAddress,
       sellerIdentifier: cuid2.createId(),
       RequestedFunds: amounts.map((amount) => ({
-        amount: amount.amount,
+        amount: BigInt(amount.amount).toString(),
         unit: amount.unit,
       })),
       submitResultTime: input.submitResultTime.getTime().toString(),
