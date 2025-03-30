@@ -861,12 +861,9 @@ export async function checkLatestTransactions(
                       errorNote.push(errorMessage);
                     }
                     const paymentCountMatches =
-                      dbEntry.RequestedFunds.filter(
-                        (x) => x.unit != 'lovelace' && x.unit != '',
-                      ).length ==
-                      output.amount.filter(
-                        (x) => x.unit != 'lovelace' && x.unit != '',
-                      ).length;
+                      dbEntry.RequestedFunds.filter((x) => x.unit != '')
+                        .length ==
+                      output.amount.filter((x) => x.unit != '').length;
                     if (paymentCountMatches == false) {
                       const errorMessage =
                         'Token counts do not match. This likely is a spoofing attempt.';
@@ -1442,7 +1439,7 @@ function checkPaymentAmountsMatch(
     const existingAmount = actualAmounts.find((y) => y.unit == x.unit);
     if (existingAmount == null) return false;
     //allow for some overpayment to handle min lovelace requirements
-    if (x.unit == 'lovelace' || x.unit == '') {
+    if (x.unit == '') {
       return x.amount <= BigInt(existingAmount.quantity);
     }
     //require exact match for non-lovelace amounts

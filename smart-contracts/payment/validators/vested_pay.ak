@@ -272,13 +272,7 @@ validator vested_pay(
         expect must_start_after(validity_range, seller_cooldown_time)
         expect bytearray.is_empty(new_datum.result_hash) == False
 
-        expect or {
-            state == FundsLocked,
-            state == RefundRequested,
-            //allow to set the field again, to update to a new result
-            state == ResultSubmitted,
-            state == Disputed,
-          }
+        //transitions are allowed from every state
 
         let new_state =
           if state == FundsLocked || state == ResultSubmitted {

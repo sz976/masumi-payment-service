@@ -376,7 +376,10 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
                 Amounts: {
                   createMany: {
                     data: input.AgentPricing.Pricing.map((price) => ({
-                      unit: price.unit,
+                      unit:
+                        price.unit.toLowerCase() == 'lovelace'
+                          ? ''
+                          : price.unit,
                       amount: BigInt(price.amount),
                     })),
                   },

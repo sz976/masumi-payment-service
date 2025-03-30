@@ -146,9 +146,7 @@ export function generateOpenAPI() {
                     permission: Permission.Admin,
                     networkLimit: [Network.Preprod],
                     usageLimited: true,
-                    RemainingUsageCredits: [
-                      { unit: 'lovelace', amount: '10000000' },
-                    ],
+                    RemainingUsageCredits: [{ unit: '', amount: '10000000' }],
                   },
                 },
               }),
@@ -275,7 +273,7 @@ export function generateOpenAPI() {
                         permission: Permission.Admin,
                         usageLimited: true,
                         RemainingUsageCredits: [
-                          { unit: 'lovelace', amount: '10000000' },
+                          { unit: '', amount: '10000000' },
                         ],
                         status: ApiKeyStatus.Active,
                         networkLimit: [Network.Mainnet],
@@ -314,7 +312,7 @@ export function generateOpenAPI() {
             schema: addAPIKeySchemaInput.openapi({
               example: {
                 usageLimited: 'true',
-                UsageCredits: [{ unit: 'lovelace', amount: '10000000' }],
+                UsageCredits: [{ unit: '', amount: '10000000' }],
                 permission: Permission.Admin,
               },
             }),
@@ -374,8 +372,8 @@ export function generateOpenAPI() {
                 id: 'unique_cuid_v2_of_entry_to_update',
                 token: 'api_key_to_change_to',
                 UsageCreditsToAddOrRemove: [
-                  { unit: 'lovelace', amount: '10000000' },
-                  { unit: 'usdm', amount: '-10000000' },
+                  { unit: '', amount: '10000000' },
+                  { unit: 'usdm_policy_and_asset_id', amount: '-10000000' },
                 ],
                 status: ApiKeyStatus.Active,
               },
@@ -537,7 +535,7 @@ export function generateOpenAPI() {
                             createdAt: new Date(1713636260),
                             updatedAt: new Date(1713636260),
                             amount: '10000000',
-                            unit: 'lovelace',
+                            unit: '',
                           },
                         ],
                         PaymentSource: {
@@ -588,7 +586,7 @@ export function generateOpenAPI() {
                 inputHash: 'input_hash',
                 metadata:
                   '(private) metadata to be stored with the payment request',
-                RequestedFunds: [{ amount: '10000000', unit: 'lovelace' }],
+                RequestedFunds: [{ amount: '10000000', unit: '' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
                 identifierFromPurchaser: 'unique_key_from_purchaser',
@@ -634,7 +632,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -726,7 +724,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -817,7 +815,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -952,7 +950,7 @@ export function generateOpenAPI() {
                 blockchainIdentifier: 'blockchain_identifier',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
-                Amounts: [{ amount: '10000000', unit: 'lovelace' }],
+                Amounts: [{ amount: '10000000', unit: '' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
@@ -1004,7 +1002,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1094,7 +1092,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1183,7 +1181,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1417,8 +1415,8 @@ export function generateOpenAPI() {
                   pricingType: PricingType.Fixed,
                   Pricing: [
                     {
-                      unit: 'usdm',
-                      amount: '500000000',
+                      unit: '',
+                      amount: '10000000',
                     },
                   ],
                 },
@@ -1455,8 +1453,8 @@ export function generateOpenAPI() {
                       pricingType: PricingType.Fixed,
                       Pricing: [
                         {
-                          unit: 'usdm',
-                          amount: '500000000',
+                          unit: '',
+                          amount: '10000000',
                         },
                       ],
                     },
@@ -1539,8 +1537,8 @@ export function generateOpenAPI() {
                       pricingType: PricingType.Fixed,
                       Pricing: [
                         {
-                          unit: 'usdm',
-                          amount: '500000000',
+                          unit: '',
+                          amount: '10000000',
                         },
                       ],
                     },
@@ -2061,7 +2059,7 @@ export function generateOpenAPI() {
                       {
                         txHash: 'tx_hash',
                         address: 'addr1qx2ej34k567890',
-                        Amounts: [{ unit: 'lovelace', quantity: 10000000 }],
+                        Amounts: [{ unit: '', quantity: 10000000 }],
                         outputIndex: 1,
                         block: '1',
                         dataHash: 'data_hash',

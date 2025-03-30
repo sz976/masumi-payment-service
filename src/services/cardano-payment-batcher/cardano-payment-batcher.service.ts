@@ -185,11 +185,11 @@ export async function batchLatestPaymentEntriesV1() {
 
             //set min ada required;
             const lovelaceRequired = paymentRequest.PaidFunds.findIndex(
-              (amount) => amount.unit.toLowerCase() == 'lovelace',
+              (amount) => amount.unit.toLowerCase() === '',
             );
             if (lovelaceRequired == -1) {
               paymentRequest.PaidFunds.push({
-                unit: 'lovelace',
+                unit: '',
                 amount: minTransactionCalculation,
                 id: '',
                 createdAt: new Date(),
@@ -205,7 +205,7 @@ export async function batchLatestPaymentEntriesV1() {
                 1,
               );
               paymentRequest.PaidFunds.push({
-                unit: 'lovelace',
+                unit: '',
                 amount:
                   minTransactionCalculation > result[0].amount
                     ? minTransactionCalculation
