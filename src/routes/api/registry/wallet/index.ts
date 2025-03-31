@@ -10,7 +10,7 @@ import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { logger } from '@/utils/logger';
 
-const metadataSchema = z.object({
+export const metadataSchema = z.object({
   name: z
     .string()
     .min(1)

@@ -135,7 +135,10 @@ export async function collectOutstandingPaymentsV1() {
             for (const assetValue of utxo.output.amount) {
               const assetKey = assetValue.unit;
               let minFee = 0;
-              if (assetValue.unit == 'lovelace') {
+              if (
+                assetValue.unit == '' ||
+                assetValue.unit.toLowerCase() == 'lovelace'
+              ) {
                 minFee = 1435230;
               }
               const value = BigInt(assetValue.quantity);
