@@ -9,6 +9,16 @@ use cardano/transaction.{
   find_input,
 }
 
+//MAS-201 is currently not necessary, as validation happens offchain. This would add more cost to every payment.
+//MAS-202 is wanted behaviour, to possibly add payment amounts
+//MAS-304 is needed to identify the payment offchain
+//Fixes 
+//MAS-203 reference script not allowed via validate_no_reference_script_attacked_to_script
+//MAS-301 is removed
+//MAS-302 now named AuthorizeRefund
+//MAS-303 is added, with checks of the status (duplicated checks of status and fields). Feels a bit redundant, as the state can be infered.
+//Furthermore renamed some of the fields to be more descriptive. Added cooldown periods to prevent DDOS, if other solutions exist recommendations are welcome.
+
 type POSIXTime =
   Int
 
@@ -272,14 +282,7 @@ validator vested_pay(
         expect must_start_after(validity_range, seller_cooldown_time)
         expect bytearray.is_empty(new_datum.result_hash) == False
 
-        expect or {
-            state == FundsLocked,
-            state == RefundRequested,
-            //allow to set the field again, to update to a new result
-            state == ResultSubmitted,
-            state == Disputed,
-          }
-
+        //transitions are allowed from every state therefore no check for the current state
         let new_state =
           if state == FundsLocked || state == ResultSubmitted {
             ResultSubmitted
@@ -350,7 +353,7 @@ fn validate_no_reference_script_attacked_to_script(
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {
-  input_value == output_value
+  assets.match(output_value, input_value, >=)
 }
 
 test output_value_is_preserved_succeeds() {
