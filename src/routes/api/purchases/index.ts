@@ -160,26 +160,10 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    let cursor = undefined;
-    if (input.cursorIdentifierSellingWalletVkey && input.cursorIdentifier) {
-      const sellerWallet = await prisma.hotWallet.findUnique({
-        where: {
-          paymentSourceId_walletVkey: {
-            paymentSourceId: paymentSource.id,
-            walletVkey: input.cursorIdentifierSellingWalletVkey,
-          },
-          type: HotWalletType.Selling,
-        },
-      });
-      if (sellerWallet == null) {
-        throw createHttpError(404, 'Selling wallet not found');
-      }
-      cursor = { id: input.cursorId };
-    }
 
     const result = await prisma.purchaseRequest.findMany({
       where: { paymentSourceId: paymentSource.id },
-      cursor: cursor,
+      cursor: input.cursorId ? { id: input.cursorId } : undefined,
       take: input.limit,
       include: {
         SellerWallet: true,
