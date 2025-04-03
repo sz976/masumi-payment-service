@@ -1,17 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
-import { patchPaymentSource, getPaymentSource } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { parseError } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect } from 'react';
+import {
+  patchPaymentSourceExtended,
+  getPaymentSourceExtended,
+} from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { parseError } from '@/lib/utils';
 
 interface AddWalletDialogProps {
   open: boolean;
@@ -19,7 +33,11 @@ interface AddWalletDialogProps {
   onSuccess?: () => void;
 }
 
-export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogProps) {
+export function AddWalletDialog({
+  open,
+  onClose,
+  onSuccess,
+}: AddWalletDialogProps) {
   const [type, setType] = useState<'Purchasing' | 'Selling'>('Purchasing');
   const [mnemonic, setMnemonic] = useState('');
   const [note, setNote] = useState<string>('');
@@ -42,12 +60,12 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
 
   const fetchPaymentSource = async () => {
     try {
-      const response = await getPaymentSource({
-        client: apiClient
+      const response = await getPaymentSourceExtended({
+        client: apiClient,
       });
 
-      if (response.data?.data?.PaymentSources?.[0]?.id) {
-        setPaymentSourceId(response.data.data.PaymentSources[0].id);
+      if (response.data?.data?.ExtendedPaymentSources?.[0]?.id) {
+        setPaymentSourceId(response.data.data.ExtendedPaymentSources[0].id);
       } else {
         setError('No payment source found');
         onClose();
@@ -79,25 +97,29 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
     }
 
     if (!collectionAddress.trim()) {
-      setError(`${type === 'Purchasing' ? 'Refund' : 'Revenue'} collection address is required`);
+      setError(
+        `${type === 'Purchasing' ? 'Refund' : 'Revenue'} collection address is required`,
+      );
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response:any = await patchPaymentSource({
+      const response: any = await patchPaymentSourceExtended({
         client: apiClient,
         body: {
           id: paymentSourceId,
-          [type === 'Purchasing' ? 'AddPurchasingWallets' : 'AddSellingWallets']: [
+          [type === 'Purchasing'
+            ? 'AddPurchasingWallets'
+            : 'AddSellingWallets']: [
             {
               walletMnemonic: mnemonic.trim(),
               note: note.trim(),
-              collectionAddress: collectionAddress.trim()
-            }
-          ]
-        }
+              collectionAddress: collectionAddress.trim(),
+            },
+          ],
+        },
       });
 
       if (response.status === 200) {
@@ -105,12 +127,12 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
         onSuccess?.();
         onClose();
       } else {
-        const err:any = parseError(response?.error);
+        const err: any = parseError(response?.error);
         setError(err?.message || err.code || err);
       }
     } catch (error: any) {
       console.error(error);
-      if(error.message){
+      if (error.message) {
         setError(error.message);
       }
     } finally {
@@ -124,7 +146,8 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
         <DialogHeader>
           <DialogTitle>Add {type} Wallet</DialogTitle>
           <DialogDescription>
-            Enter the wallet mnemonic phrase and required details to set up your {type.toLowerCase()} wallet.
+            Enter the wallet mnemonic phrase and required details to set up your{' '}
+            {type.toLowerCase()} wallet.
           </DialogDescription>
         </DialogHeader>
 
@@ -137,9 +160,11 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Wallet type</label>
-            <Select 
-              value={type} 
-              onValueChange={(value: 'Purchasing' | 'Selling') => setType(value)}
+            <Select
+              value={type}
+              onValueChange={(value: 'Purchasing' | 'Selling') =>
+                setType(value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select wallet type" />
@@ -150,9 +175,9 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              {type === 'Purchasing' 
-                ? "A purchasing wallet is used to make payments for Agentic AI services. It will be used to send payments to sellers."
-                : "A selling wallet is used to receive payments for Agentic AI services. It will be used to collect funds from buyers."}
+              {type === 'Purchasing'
+                ? 'A purchasing wallet is used to make payments for Agentic AI services. It will be used to send payments to sellers.'
+                : 'A selling wallet is used to receive payments for Agentic AI services. It will be used to collect funds from buyers.'}
             </p>
           </div>
 
@@ -170,7 +195,9 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Note <span className="text-destructive">*</span></label>
+            <label className="text-sm font-medium">
+              Note <span className="text-destructive">*</span>
+            </label>
             <Input
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -181,7 +208,8 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
 
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {type === 'Purchasing' ? 'Refund' : 'Revenue'} Collection Address <span className="text-destructive">*</span>
+              {type === 'Purchasing' ? 'Refund' : 'Revenue'} Collection Address{' '}
+              <span className="text-destructive">*</span>
             </label>
             <Input
               value={collectionAddress}
@@ -200,9 +228,14 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={!mnemonic.trim() || !note.trim() || !collectionAddress.trim() || isLoading}
+            <Button
+              type="submit"
+              disabled={
+                !mnemonic.trim() ||
+                !note.trim() ||
+                !collectionAddress.trim() ||
+                isLoading
+              }
             >
               {isLoading ? 'Adding...' : 'Add Wallet'}
             </Button>
@@ -211,4 +244,4 @@ export function AddWalletDialog({ open, onClose, onSuccess }: AddWalletDialogPro
       </DialogContent>
     </Dialog>
   );
-} 
+}
