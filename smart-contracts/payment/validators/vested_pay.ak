@@ -9,6 +9,16 @@ use cardano/transaction.{
   find_input,
 }
 
+//MAS-201 is currently not necessary, as validation happens offchain. This would add more cost to every payment.
+//MAS-202 is wanted behaviour, to possibly add payment amounts
+//MAS-304 is needed to identify the payment offchain
+//Fixes 
+//MAS-203 reference script not allowed via validate_no_reference_script_attacked_to_script
+//MAS-301 is removed
+//MAS-302 now named AuthorizeRefund
+//MAS-303 is added, with checks of the status (duplicated checks of status and fields). Feels a bit redundant, as the state can be infered.
+//Furthermore renamed some of the fields to be more descriptive. Added cooldown periods to prevent DDOS, if other solutions exist recommendations are welcome.
+
 type POSIXTime =
   Int
 
@@ -24,6 +34,7 @@ pub type Datum {
   buyer: VerificationKeyHash,
   seller: VerificationKeyHash,
   reference_id: ByteArray,
+  input_hash: ByteArray,
   result_hash: ByteArray,
   submit_result_time: POSIXTime,
   unlock_time: POSIXTime,
@@ -67,6 +78,7 @@ validator vested_pay(
       buyer,
       seller,
       reference_id,
+      input_hash,
       result_hash,
       submit_result_time,
       unlock_time,
@@ -149,8 +161,7 @@ validator vested_pay(
         expect or {
             state == FundsLocked,
             state == ResultSubmitted,
-            //allow to set the field again, to in theory signal a dispute when the result hash is updated
-            state == RefundRequested,
+            //allow to set the field again, to signal a dispute when the result hash is updated
             state == Disputed,
           }
 
@@ -165,6 +176,7 @@ validator vested_pay(
           new_datum.buyer == buyer,
           new_datum.seller == seller,
           new_datum.reference_id == reference_id,
+          new_datum.input_hash == input_hash,
           new_datum.result_hash == result_hash,
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
@@ -218,6 +230,7 @@ validator vested_pay(
           new_datum.buyer == buyer,
           new_datum.seller == seller,
           new_datum.reference_id == reference_id,
+          new_datum.input_hash == input_hash,
           new_datum.result_hash == result_hash,
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
@@ -269,19 +282,12 @@ validator vested_pay(
         expect must_start_after(validity_range, seller_cooldown_time)
         expect bytearray.is_empty(new_datum.result_hash) == False
 
-        expect or {
-            state == FundsLocked,
-            state == RefundRequested,
-            //allow to set the field again, to in theory update to a new result
-            state == ResultSubmitted,
-            state == Disputed,
-          }
-
+        //transitions are allowed from every state therefore no check for the current state
         let new_state =
-          if state == RefundRequested {
-            Disputed
-          } else {
+          if state == FundsLocked || state == ResultSubmitted {
             ResultSubmitted
+          } else {
+            Disputed
           }
 
         and {
@@ -289,6 +295,7 @@ validator vested_pay(
           new_datum.seller == seller,
           new_datum.reference_id == reference_id,
           new_datum.unlock_time == unlock_time,
+          new_datum.input_hash == input_hash,
           new_datum.submit_result_time == submit_result_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.seller_cooldown_time >= cooldown_time,
@@ -318,6 +325,7 @@ validator vested_pay(
           new_datum.seller == seller,
           new_datum.reference_id == reference_id,
           new_datum.submit_result_time == submit_result_time,
+          new_datum.input_hash == input_hash,
           new_datum.unlock_time == unlock_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
           new_datum.seller_cooldown_time >= cooldown_time,
@@ -345,13 +353,7 @@ fn validate_no_reference_script_attacked_to_script(
 }
 
 fn output_value_is_preserved(input_value: Value, output_value: Value) {
-  assets.flatten(input_value)
-    |> list.all(
-        fn(asset) {
-          let out_value = assets.quantity_of(output_value, asset.1st, asset.2nd)
-          out_value == asset.3rd
-        },
-      )
+  assets.match(output_value, input_value, >=)
 }
 
 test output_value_is_preserved_succeeds() {

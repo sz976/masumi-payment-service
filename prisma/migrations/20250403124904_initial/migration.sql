@@ -49,6 +49,7 @@ CREATE TABLE "ApiKey" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "token" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
     "status" "ApiKeyStatus" NOT NULL,
     "permission" "Permission" NOT NULL,
     "networkLimit" "Network"[],
@@ -141,7 +142,6 @@ CREATE TABLE "RegistryRequest" (
     "capabilityName" TEXT,
     "capabilityVersion" TEXT,
     "description" TEXT,
-    "requestsPerHour" DOUBLE PRECISION,
     "privacyPolicy" TEXT,
     "terms" TEXT,
     "other" TEXT,
@@ -207,6 +207,7 @@ CREATE TABLE "PaymentRequest" (
     "submitResultTime" BIGINT NOT NULL,
     "unlockTime" BIGINT NOT NULL,
     "externalDisputeUnlockTime" BIGINT NOT NULL,
+    "inputHash" TEXT NOT NULL,
     "resultHash" TEXT NOT NULL,
     "onChainState" "OnChainState",
     "sellerCoolDownTime" BIGINT NOT NULL,
@@ -245,6 +246,7 @@ CREATE TABLE "PurchaseRequest" (
     "submitResultTime" BIGINT NOT NULL,
     "unlockTime" BIGINT NOT NULL,
     "externalDisputeUnlockTime" BIGINT NOT NULL,
+    "inputHash" TEXT NOT NULL,
     "resultHash" TEXT NOT NULL,
     "onChainState" "OnChainState",
     "sellerCoolDownTime" BIGINT NOT NULL,
@@ -262,6 +264,7 @@ CREATE TABLE "PurchaseActionData" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "requestedAction" "PurchasingAction" NOT NULL,
+    "inputHash" TEXT NOT NULL,
     "submittedTxHash" TEXT,
     "errorType" "PurchaseErrorType",
     "errorNote" TEXT,
@@ -313,6 +316,9 @@ CREATE TABLE "PaymentSourceConfig" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ApiKey_token_key" ON "ApiKey"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ApiKey_tokenHash_key" ON "ApiKey"("tokenHash");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "HotWallet_pendingTransactionId_key" ON "HotWallet"("pendingTransactionId");

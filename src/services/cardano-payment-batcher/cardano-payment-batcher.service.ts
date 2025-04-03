@@ -91,6 +91,7 @@ export async function batchLatestPaymentEntriesV1() {
                 data: {
                   NextAction: {
                     create: {
+                      inputHash: purchaseRequest.inputHash,
                       requestedAction: PurchasingAction.FundsLockingRequested,
                       errorType: PurchaseErrorType.Unknown,
                       errorNote: 'Transaction timeout before sending',
@@ -129,7 +130,7 @@ export async function batchLatestPaymentEntriesV1() {
         const paymentRequests = paymentContract.PurchaseRequests;
         if (paymentRequests.length == 0) {
           logger.info(
-            'no payment requests found for network ' +
+            'No payment requests found for network ' +
               paymentContract.network +
               ' ' +
               paymentContract.smartContractAddress,
@@ -138,6 +139,10 @@ export async function batchLatestPaymentEntriesV1() {
         }
 
         const potentialWallets = paymentContract.HotWallets;
+        if (potentialWallets.length == 0) {
+          logger.warn('No unlocked wallet to batch payments, skipping');
+          return;
+        }
 
         const walletAmounts = await Promise.all(
           potentialWallets.map(async (wallet) => {
@@ -152,7 +157,8 @@ export async function batchLatestPaymentEntriesV1() {
               walletId: wallet.id,
               scriptAddress: paymentContract.smartContractAddress,
               amounts: amounts.map((amount) => ({
-                unit: amount.unit,
+                unit:
+                  amount.unit.toLowerCase() == 'lovelace' ? '' : amount.unit,
                 quantity: BigInt(amount.quantity),
               })),
             };
@@ -184,11 +190,11 @@ export async function batchLatestPaymentEntriesV1() {
 
             //set min ada required;
             const lovelaceRequired = paymentRequest.PaidFunds.findIndex(
-              (amount) => amount.unit.toLowerCase() == 'lovelace',
+              (amount) => amount.unit.toLowerCase() === '',
             );
             if (lovelaceRequired == -1) {
               paymentRequest.PaidFunds.push({
-                unit: 'lovelace',
+                unit: '',
                 amount: minTransactionCalculation,
                 id: '',
                 createdAt: new Date(),
@@ -204,7 +210,7 @@ export async function batchLatestPaymentEntriesV1() {
                 1,
               );
               paymentRequest.PaidFunds.push({
-                unit: 'lovelace',
+                unit: '',
                 amount:
                   minTransactionCalculation > result[0].amount
                     ? minTransactionCalculation
@@ -262,6 +268,7 @@ export async function batchLatestPaymentEntriesV1() {
                 data: {
                   NextAction: {
                     create: {
+                      inputHash: paymentRequest.inputHash,
                       requestedAction: PurchasingAction.WaitingForManualAction,
                       errorType: PurchaseErrorType.InsufficientFunds,
                       errorNote: 'Not enough funds in wallets',
@@ -303,6 +310,7 @@ export async function batchLatestPaymentEntriesV1() {
                 buyerVerificationKeyHash,
                 sellerVerificationKeyHash,
                 blockchainIdentifier: paymentRequest.blockchainIdentifier,
+                inputHash: paymentRequest.inputHash,
                 resultHash: '',
                 resultTime: Number(submitResultTime),
                 unlockTime: Number(unlockTime),
@@ -318,7 +326,7 @@ export async function batchLatestPaymentEntriesV1() {
                   datum,
                 },
                 paymentRequest.PaidFunds.map((amount) => ({
-                  unit: amount.unit,
+                  unit: amount.unit == '' ? 'lovelace' : amount.unit,
                   quantity: amount.amount.toString(),
                 })),
               );

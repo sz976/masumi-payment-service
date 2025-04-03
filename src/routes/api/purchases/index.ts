@@ -7,6 +7,7 @@ import {
   TransactionStatus,
   PurchaseErrorType,
   OnChainState,
+  PricingType,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
@@ -18,6 +19,8 @@ import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
+import { metadataSchema } from '../registry/wallet';
+import { metadataToString } from '@/utils/converter/metadata-string-convert';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -67,8 +70,10 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       onChainState: z.nativeEnum(OnChainState).nullable(),
       cooldownTime: z.number(),
       cooldownTimeOtherParty: z.number(),
+      inputHash: z.string(),
       resultHash: z.string(),
       NextAction: z.object({
+        inputHash: z.string(),
         requestedAction: z.nativeEnum(PurchasingAction),
         errorType: z.nativeEnum(PurchaseErrorType).nullable(),
         errorNote: z.string().nullable(),
@@ -155,26 +160,10 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    let cursor = undefined;
-    if (input.cursorIdentifierSellingWalletVkey && input.cursorIdentifier) {
-      const sellerWallet = await prisma.hotWallet.findUnique({
-        where: {
-          paymentSourceId_walletVkey: {
-            paymentSourceId: paymentSource.id,
-            walletVkey: input.cursorIdentifierSellingWalletVkey,
-          },
-          type: HotWalletType.Selling,
-        },
-      });
-      if (sellerWallet == null) {
-        throw createHttpError(404, 'Selling wallet not found');
-      }
-      cursor = { id: input.cursorId };
-    }
 
     const result = await prisma.purchaseRequest.findMany({
       where: { paymentSourceId: paymentSource.id },
-      cursor: cursor,
+      cursor: input.cursorId ? { id: input.cursorId } : undefined,
       take: input.limit,
       include: {
         SellerWallet: true,
@@ -218,6 +207,7 @@ export const createPurchaseInitSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the transaction will be made on'),
+  inputHash: z.string().max(250),
   sellerVkey: z
     .string()
     .max(250)
@@ -236,6 +226,7 @@ export const createPurchaseInitSchemaInput = z.object({
   Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
+    .optional()
     .describe('The amounts to be paid for the purchase'),
   paymentType: z
     .nativeEnum(PaymentType)
@@ -277,6 +268,7 @@ export const createPurchaseInitSchemaOutput = z.object({
   externalDisputeUnlockTime: z.string(),
   requestedById: z.string(),
   resultHash: z.string(),
+  inputHash: z.string(),
   onChainState: z.nativeEnum(OnChainState).nullable(),
   NextAction: z.object({
     requestedAction: z.nativeEnum(PurchasingAction),
@@ -330,6 +322,7 @@ const singedBlockchainIdentifierSchema = z.object({
 });
 
 const blockchainIdentifierDataSchema = z.object({
+  inputHash: z.string().max(250),
   agentIdentifier: z.string().min(15).max(250),
   purchaserIdentifier: z.string().min(15).max(25),
   sellerAddress: z.string().min(15).max(150),
@@ -442,6 +435,30 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       throw createHttpError(400, 'Invalid seller vkey');
     }
 
+    const assetInfo = await provider.assetsById(assetId);
+    if (!assetInfo.onchain_metadata) {
+      throw createHttpError(404, 'Agent identifier not found');
+    }
+    const parsedMetadata = metadataSchema.safeParse(assetInfo.onchain_metadata);
+
+    if (!parsedMetadata.success || !parsedMetadata.data) {
+      const error = parsedMetadata.error;
+      logger.error('Error parsing metadata', { error });
+      throw createHttpError(404, 'Agent identifier metadata invalid');
+    }
+
+    const pricing = parsedMetadata.data.agentPricing;
+    if (pricing.pricingType != PricingType.Fixed) {
+      throw createHttpError(400, 'Agent identifier pricing type not supported');
+    }
+    const amounts = pricing.fixedPricing;
+    if (input.Amounts != undefined) {
+      throw createHttpError(
+        400,
+        'Agent identifier amounts must not be provided for fixed pricing',
+      );
+    }
+
     const decodedBlockchainIdentifier = Buffer.from(
       input.blockchainIdentifier,
       'base64',
@@ -465,6 +482,12 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       const error = parsedBlockchainIdentifierData.error;
       logger.error('Error parsing blockchain identifier', { error });
       throw createHttpError(400, 'Invalid blockchain identifier, data invalid');
+    }
+    if (parsedBlockchainIdentifierData.data.inputHash != input.inputHash) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, input hash invalid',
+      );
     }
 
     if (
@@ -515,21 +538,46 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser identifier invalid',
       );
     }
-    const amountsMatch =
-      parsedBlockchainIdentifierData.data.RequestedFunds.every((amount) =>
-        input.Amounts.some(
-          (a) => a.amount == amount.amount && a.unit == amount.unit,
-        ),
-      );
-    if (
-      !amountsMatch ||
-      parsedBlockchainIdentifierData.data.RequestedFunds.length !=
-        input.Amounts.length
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, amounts invalid',
-      );
+    //input amounts must match the agent identifier amounts summed up per coin
+    const inputAmountsMap = new Map<string, bigint>();
+    for (const amount of parsedBlockchainIdentifierData.data.RequestedFunds) {
+      const unit =
+        amount.unit.toLowerCase() == 'lovelace'
+          ? ''
+          : metadataToString(amount.unit)!;
+      if (inputAmountsMap.has(unit)) {
+        inputAmountsMap.set(
+          unit,
+          inputAmountsMap.get(unit)! + BigInt(amount.amount),
+        );
+      } else {
+        inputAmountsMap.set(unit, BigInt(amount.amount));
+      }
+    }
+
+    const agentIdentifierAmountsMap = new Map<string, bigint>();
+    for (const amount of amounts) {
+      const unit =
+        metadataToString(amount.unit)!.toLowerCase() == ''
+          ? ''
+          : metadataToString(amount.unit)!;
+      if (agentIdentifierAmountsMap.has(unit)) {
+        agentIdentifierAmountsMap.set(
+          unit,
+          agentIdentifierAmountsMap.get(unit)! + BigInt(amount.amount),
+        );
+      } else {
+        agentIdentifierAmountsMap.set(unit, BigInt(amount.amount));
+      }
+    }
+
+    for (const [unit, amount] of inputAmountsMap.entries()) {
+      if (agentIdentifierAmountsMap.get(unit)! != amount) {
+        throw createHttpError(
+          400,
+          'Agent identifier amounts invalid, for fixed pricing they must match the registry',
+        );
+      }
     }
 
     const identifierIsSignedCorrectly = checkSignature(
@@ -550,11 +598,11 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const initialPurchaseRequest =
       await tokenCreditService.handlePurchaseCreditInit({
         id: options.id,
-        cost: input.Amounts.map((amount) => {
-          if (amount.unit == '') {
-            return { amount: BigInt(amount.amount), unit: 'lovelace' };
+        cost: Array.from(inputAmountsMap.entries()).map(([unit, amount]) => {
+          if (unit.toLowerCase() == 'lovelace') {
+            return { amount: amount, unit: '' };
           } else {
-            return { amount: BigInt(amount.amount), unit: amount.unit };
+            return { amount: amount, unit: unit };
           }
         }),
         metadata: input.metadata,
@@ -566,6 +614,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         submitResultTime: submitResultTime,
         unlockTime: unlockTime,
         externalDisputeUnlockTime: externalDisputeUnlockTime,
+        inputHash: input.inputHash,
       });
 
     return {
