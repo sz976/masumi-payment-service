@@ -49,6 +49,7 @@ CREATE TABLE "ApiKey" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "token" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
     "status" "ApiKeyStatus" NOT NULL,
     "permission" "Permission" NOT NULL,
     "networkLimit" "Network"[],
@@ -315,6 +316,9 @@ CREATE TABLE "PaymentSourceConfig" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ApiKey_token_key" ON "ApiKey"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ApiKey_tokenHash_key" ON "ApiKey"("tokenHash");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "HotWallet_pendingTransactionId_key" ON "HotWallet"("pendingTransactionId");

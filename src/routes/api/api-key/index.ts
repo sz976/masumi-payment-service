@@ -4,6 +4,7 @@ import { ApiKeyStatus, Network, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import { createId } from '@paralleldrive/cuid2';
 import createHttpError from 'http-errors';
+import { generateHash } from '@/utils/crypto';
 
 export const getAPIKeySchemaInput = z.object({
   limit: z
@@ -115,6 +116,7 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
     const result = await prisma.apiKey.create({
       data: {
         token: apiKey,
+        tokenHash: generateHash(apiKey),
         status: ApiKeyStatus.Active,
         permission: input.permission,
         usageLimited: input.usageLimited,
