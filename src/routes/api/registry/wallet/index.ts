@@ -236,7 +236,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
         detailedAssets.push({
           unit: asset.unit,
           Metadata: {
-            name: metadataToString(parsedMetadata.data.name!)!,
+            name: metadataToString(parsedMetadata.data.name)!,
             description: metadataToString(parsedMetadata.data.description),
             apiBaseUrl: metadataToString(parsedMetadata.data.api_base_url)!,
             ExampleOutputs:

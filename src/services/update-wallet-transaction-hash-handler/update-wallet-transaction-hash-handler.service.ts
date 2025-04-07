@@ -21,12 +21,14 @@ import { cardanoDeregisterHandlerService } from '../cardano-deregister-handler/c
 import { cardanoAuthorizeRefundHandlerService } from '../cardano-authorize-refund-handler/cardano-authorize-refund-handler.service';
 import { cardanoCancelRefundHandlerService } from '../cardano-cancel-refund-handler/cardano-cancel-refund-handler.service';
 import { DEFAULTS } from '@/utils/config';
+import { convertErrorString } from '@/utils/converter/error-string-convert';
 const updateMutex = new Sema(1);
 
 export async function updateWalletTransactionHash() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
   const unlockedSellingWalletIds: string[] = [];
   const unlockedPurchasingWalletIds: string[] = [];
   try {
@@ -563,7 +565,9 @@ export async function updateWalletTransactionHash() {
             });
           }
         } catch (error) {
-          logger.error(`Error updating wallet transaction hash: ${error}`);
+          logger.error(
+            `Error updating wallet transaction hash: ${convertErrorString(error)}`,
+          );
         }
       }),
     );
@@ -593,7 +597,9 @@ export async function updateWalletTransactionHash() {
             unlockedPurchasingWalletIds.push(wallet.id);
           }
         } catch (error) {
-          logger.error(`Error updating timed out wallet: ${error}`);
+          logger.error(
+            `Error updating timed out wallet: ${convertErrorString(error)}`,
+          );
         }
       }),
     );
@@ -608,49 +614,59 @@ export async function updateWalletTransactionHash() {
       try {
         await cardanoSubmitResultHandlerService.submitResultV1();
       } catch (error) {
-        logger.error(`Error initiating refunds: ${error}`);
+        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
       }
       try {
         await cardanoAuthorizeRefundHandlerService.authorizeRefundV1();
       } catch (error) {
-        logger.error(`Error initiating refunds: ${error}`);
+        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
       }
       try {
         await cardanoCollectionHandlerService.collectOutstandingPaymentsV1();
       } catch (error) {
-        logger.error(`Error initiating refunds: ${error}`);
+        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
       }
       try {
         await cardanoRegisterHandlerService.registerAgentV1();
       } catch (error) {
-        logger.error(`Error initiating timeout refunds: ${error}`);
+        logger.error(
+          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+        );
       }
       try {
         await cardanoDeregisterHandlerService.deRegisterAgentV1();
       } catch (error) {
-        logger.error(`Error initiating timeout refunds: ${error}`);
+        logger.error(
+          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+        );
       }
     }
     if (uniqueUnlockedPurchasingWalletIds.length > 0) {
       try {
         await cardanoRefundHandlerService.collectRefundV1();
       } catch (error) {
-        logger.error(`Error initiating timeout refunds: ${error}`);
+        logger.error(
+          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+        );
       }
       try {
         await cardanoRequestRefundHandlerService.requestRefundsV1();
       } catch (error) {
-        logger.error(`Error initiating timeout refunds: ${error}`);
+        logger.error(
+          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+        );
       }
       try {
         await cardanoCancelRefundHandlerService.cancelRefundsV1();
       } catch (error) {
-        logger.error(`Error initiating timeout refunds: ${error}`);
+        logger.error(
+          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+        );
       }
       try {
         await cardanoPaymentBatcherService.batchLatestPaymentEntriesV1();
       } catch (error) {
-        logger.error(`Error initiating refunds: ${error}`);
+        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
       }
     }
     try {

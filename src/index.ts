@@ -39,6 +39,7 @@ initialize()
         const replacer = (
           key: string,
           value: unknown,
+          // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
         ): string | number | boolean | null | unknown => {
           if (typeof value === 'bigint') {
             return value.toString();
@@ -58,6 +59,7 @@ initialize()
         app.use(
           '/docs',
           ui.serve,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           ui.setup(JSON.parse(docsString), {
             explorer: false,
             swaggerOptions: {
@@ -92,11 +94,12 @@ initialize()
       logger: logger,
     });
 
-    createServer(serverConfig, router);
+    void createServer(serverConfig, router);
   })
   .catch((e) => {
     throw e;
   })
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   .finally(async () => {
     await cleanupDB();
   });

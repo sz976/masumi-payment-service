@@ -19,9 +19,10 @@ import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 const updateMutex = new Sema(1);
 
 export async function registerAgentV1() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
 
   try {
     //Submit a result for invalid tokens
@@ -200,7 +201,7 @@ export async function registerAgentV1() {
                     status: TransactionStatus.Pending,
                     BlocksWallet: {
                       connect: {
-                        id: request.SmartContractWallet!.id,
+                        id: request.SmartContractWallet.id,
                       },
                     },
                   },

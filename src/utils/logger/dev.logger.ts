@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { createLogger, format, transports } from 'winston';
 import { TransformableInfo } from 'logform';
 const { combine, timestamp, printf, errors } = format;

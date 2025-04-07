@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { SmartContractState } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
 
@@ -89,8 +92,8 @@ export function decodeV1ContractDatum(decodedDatum: any) {
     }
 
     return {
-      buyer,
-      seller,
+      buyer: buyer as string,
+      seller: seller as string,
       state,
       blockchainIdentifier,
       inputHash,

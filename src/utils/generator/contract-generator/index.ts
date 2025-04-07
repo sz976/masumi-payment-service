@@ -110,10 +110,7 @@ export async function getRegistryScriptV1(
     version: 'V3',
   };
 
-  const policyId = deserializePlutusScript(
-    script.code,
-    script.version as 'V1' | 'V2' | 'V3',
-  )
+  const policyId = deserializePlutusScript(script.code, script.version)
     .hash()
     .toString();
 

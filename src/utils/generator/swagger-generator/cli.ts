@@ -12,14 +12,26 @@ export function writeDocumentation(docs: unknown) {
   const replacer = (
     key: string,
     value: unknown,
-  ): string | number | boolean | null | unknown => {
+  ): string | number | boolean | null => {
     if (typeof value === 'bigint') {
       return value.toString();
     }
     if (value instanceof Date) {
       return value.toISOString();
     }
-    return value;
+    if (typeof value === 'object' && value !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return JSON.parse(JSON.stringify(value));
+    }
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      value === null
+    ) {
+      return value;
+    }
+    return null;
   };
 
   fs.writeFileSync(

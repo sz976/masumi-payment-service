@@ -38,9 +38,10 @@ export async function checkLatestTransactions(
     maxParallelTransactions: 50,
   },
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
 
   try {
     //only support web3 cardano v1 for now
@@ -624,7 +625,7 @@ export async function checkLatestTransactions(
                     ) {
                       await prisma.transaction.update({
                         where: {
-                          id: dbEntry.currentTransactionId!,
+                          id: dbEntry.currentTransactionId,
                         },
                         data: {
                           BlocksWallet: { disconnect: true },
@@ -974,7 +975,7 @@ export async function checkLatestTransactions(
 
               const outputDatum =
                 valueOutputs.length == 1 ? valueOutputs[0].inline_datum : null;
-              const decodedOutputDatum =
+              const decodedOutputDatum: unknown =
                 outputDatum != null ? deserializeDatum(outputDatum) : null;
               const decodedNewContract =
                 decodeV1ContractDatum(decodedOutputDatum);
@@ -1085,8 +1086,10 @@ export async function checkLatestTransactions(
 
               const redeemer = redeemers.get(0);
 
-              const redeemerVersion = JSON.parse(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const redeemerVersion: any = JSON.parse(
                 redeemer.data().to_json(PlutusDatumSchema.BasicConversions),
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               )['constructor'];
 
               if (
@@ -1323,7 +1326,7 @@ async function handlePaymentTransactionCardanoV1(
       ) {
         await prisma.transaction.update({
           where: {
-            id: paymentRequest.currentTransactionId!,
+            id: paymentRequest.currentTransactionId,
           },
           data: { BlocksWallet: { disconnect: true } },
         });
@@ -1411,7 +1414,7 @@ async function handlePurchasingTransactionCardanoV1(
       ) {
         await prisma.transaction.update({
           where: {
-            id: purchasingRequest.currentTransactionId!,
+            id: purchasingRequest.currentTransactionId,
           },
           data: { BlocksWallet: { disconnect: true } },
         });

@@ -32,9 +32,10 @@ import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 const updateMutex = new Sema(1);
 
 export async function authorizeRefundV1() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
 
   try {
     //Submit a result for invalid tokens
@@ -106,7 +107,7 @@ export async function authorizeRefundV1() {
               throw new Error('No datum found in UTXO');
             }
 
-            const decodedDatum = deserializeDatum(utxoDatum);
+            const decodedDatum: unknown = deserializeDatum(utxoDatum);
             const decodedContract = decodeV1ContractDatum(decodedDatum);
             if (decodedContract == null) {
               throw new Error('Invalid datum');

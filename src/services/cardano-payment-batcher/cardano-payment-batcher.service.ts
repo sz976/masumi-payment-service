@@ -19,6 +19,7 @@ import {
   SmartContractState,
 } from '@/utils/generator/contract-generator';
 import { convertNetwork } from '@/utils/converter/network-convert';
+import { convertErrorString } from '@/utils/converter/error-string-convert';
 
 const updateMutex = new Sema(1);
 
@@ -26,9 +27,10 @@ export async function batchLatestPaymentEntriesV1() {
   const maxBatchSize = 10;
   const minTransactionCalculation = 2550000n;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
 
   try {
     const paymentContractsWithWalletLocked = await prisma.$transaction(
@@ -289,7 +291,7 @@ export async function batchLatestPaymentEntriesV1() {
             const walletId = walletPairing.walletId;
             const batchedRequests = walletPairing.batchedRequests;
             //batch payments
-            const unsignedTx = await new Transaction({
+            const unsignedTx = new Transaction({
               initiator: wallet,
               fetcher: blockchainProvider,
             }).setMetadata(674, {
@@ -402,7 +404,10 @@ export async function batchLatestPaymentEntriesV1() {
               purchaseRequestsUpdated.filter((x) => x.status != 'fulfilled');
             if (failedPurchaseRequestsUpdated.length > 0) {
               throw new Error(
-                'Error updating payment status ' + failedPurchaseRequests,
+                'Error updating payment status ' +
+                  failedPurchaseRequestsUpdated
+                    .map((x) => convertErrorString(x.reason))
+                    .join(', '),
               );
             } else {
               logger.debug('Batching payments successful', { txHash: txHash });
@@ -417,7 +422,7 @@ export async function batchLatestPaymentEntriesV1() {
           if (result.status == 'rejected' || result.value != true) {
             const error =
               result.status == 'rejected'
-                ? result.reason
+                ? convertErrorString(result.reason)
                 : 'Transaction did not return true';
             logger.error(
               `Error batching payments for wallet ${request.walletId}`,

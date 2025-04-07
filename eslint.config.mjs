@@ -20,13 +20,20 @@ export default [
       globals: { ...globals.browser, ...globals.node },
       ecmaVersion: 2021,
       sourceType: 'module',
+      parser: '@typescript-eslint/parser',
+
+  parserOptions: {
+    projectService: true,
+    tsconfigRootDir: __dirname,
+  },
     },
   },
+  
   // JS recommended configs
   pluginJs.configs.recommended,
   // Use the compatibility layer to load the TypeScript plugin and recommended rules
   ...compat.extends(
-    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended-type-checked',
     'plugin:prettier/recommended',
   ),
   // Add custom rules for TypeScript
@@ -35,10 +42,13 @@ export default [
     rules: {
       '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
       '@typescript-eslint/no-explicit-any': ['off'],
+      '@typescript-eslint/no-unsafe-assignment': ['error'],
+      '@typescript-eslint/no-unsafe-argument': ['error'],
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/require-await': ['off'],
       semi: ['error', 'always'],
     },
   },
@@ -58,6 +68,8 @@ export default [
   // Ignores
   {
     ignores: [
+      '**/*.spec.ts',
+      '**/*.test.ts',
       '**/node_modules/**',
       'dist/*',
       'smart-contracts/*',

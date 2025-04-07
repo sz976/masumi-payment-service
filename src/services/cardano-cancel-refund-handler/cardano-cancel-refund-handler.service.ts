@@ -32,9 +32,10 @@ import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 const updateMutex = new Sema(1);
 
 export async function cancelRefundsV1() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const acquiredMutex = await updateMutex.tryAcquire();
   //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
 
   try {
     const paymentContractsWithWalletLocked = await lockAndQueryPurchases({
@@ -109,14 +110,14 @@ export async function cancelRefundsV1() {
               throw new Error('No datum found in UTXO');
             }
 
-            const decodedDatum = deserializeDatum(utxoDatum);
+            const decodedDatum: unknown = deserializeDatum(utxoDatum);
             const decodedContract = decodeV1ContractDatum(decodedDatum);
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
             const datum = getDatum({
               buyerVerificationKeyHash: request.SmartContractWallet!.walletVkey,
-              sellerVerificationKeyHash: request.SellerWallet!.walletVkey,
+              sellerVerificationKeyHash: request.SellerWallet.walletVkey,
               blockchainIdentifier: request.blockchainIdentifier,
               inputHash: decodedContract.inputHash,
               resultHash: decodedContract.resultHash,
