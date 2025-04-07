@@ -791,6 +791,11 @@
                                         "maxItems": 25,
                                         "description": "The amount of credits to add or remove from the API key. Only relevant if usageLimited is true. "
                                     },
+                                    "usageLimited": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Whether the API key is usage limited"
+                                    },
                                     "status": {
                                         "type": "string",
                                         "enum": [
