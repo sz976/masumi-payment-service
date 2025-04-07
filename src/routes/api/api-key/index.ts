@@ -159,6 +159,11 @@ export const updateAPIKeySchemaInput = z.object({
     .describe(
       'The amount of credits to add or remove from the API key. Only relevant if usageLimited is true. ',
     ),
+  usageLimited: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe('Whether the API key is usage limited'),
   status: z
     .nativeEnum(ApiKeyStatus)
     .default(ApiKeyStatus.Active)

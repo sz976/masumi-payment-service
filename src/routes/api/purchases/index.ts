@@ -146,11 +146,6 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           smartContractAddress: paymentContractAddress,
         },
       },
-      include: {
-        PurchaseRequests: {
-          where: { blockchainIdentifier: input.blockchainIdentifier },
-        },
-      },
     });
     if (paymentSource == null) {
       throw createHttpError(404, 'Payment source not found');

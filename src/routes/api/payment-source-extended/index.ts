@@ -263,7 +263,7 @@ export const paymentSourceExtendedEndpointPost =
           input.AdminWallets[1].walletAddress,
           input.AdminWallets[2].walletAddress,
           input.FeeReceiverNetworkWallet.walletAddress,
-          input.FeePermille,
+          input.feeRatePermille,
           1000 * 60 * 15,
           input.network,
         );
@@ -506,7 +506,7 @@ export const paymentSourceExtendedEndpointPatch =
         (sellingWallet) => {
           return {
             wallet: generateOfflineWallet(
-              input.network,
+              paymentSource.network,
               sellingWallet.walletMnemonic.split(' '),
             ),
             note: sellingWallet.note,
@@ -519,7 +519,7 @@ export const paymentSourceExtendedEndpointPatch =
         (purchasingWallet) => {
           return {
             wallet: generateOfflineWallet(
-              input.network,
+              paymentSource.network,
               purchasingWallet.walletMnemonic.split(' '),
             ),
             note: purchasingWallet.note,

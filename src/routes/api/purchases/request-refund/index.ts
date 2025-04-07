@@ -170,6 +170,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
         NextAction: {
           create: {
             requestedAction: PurchasingAction.SetRefundRequestedRequested,
+            inputHash: purchase.inputHash,
           },
         },
       },
