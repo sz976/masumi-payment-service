@@ -234,7 +234,7 @@ export async function checkLatestTransactions(
 
           const latestIdentifier = paymentContract.lastIdentifierChecked;
 
-          let latestTx: { tx_hash: string }[] = [];
+          let latestTx: Array<{ tx_hash: string }> = [];
           let foundTx = -1;
           let index = 0;
           do {
@@ -275,13 +275,13 @@ export async function checkLatestTransactions(
           const batchCount = Math.ceil(
             latestTx.length / maxParallelTransactions,
           );
-          const txData: {
+          const txData: Array<{
             tx: { tx_hash: string };
             utxos: {
               hash: string;
-              inputs: {
+              inputs: Array<{
                 address: string;
-                amount: { unit: string; quantity: string }[];
+                amount: Array<{ unit: string; quantity: string }>;
                 tx_hash: string;
                 output_index: number;
                 data_hash: string | null;
@@ -289,20 +289,20 @@ export async function checkLatestTransactions(
                 reference_script_hash: string | null;
                 collateral: boolean;
                 reference?: boolean;
-              }[];
-              outputs: {
+              }>;
+              outputs: Array<{
                 address: string;
-                amount: { unit: string; quantity: string }[];
+                amount: Array<{ unit: string; quantity: string }>;
                 output_index: number;
                 data_hash: string | null;
                 inline_datum: string | null;
                 collateral: boolean;
                 reference_script_hash: string | null;
                 consumed_by_tx?: string | null;
-              }[];
+              }>;
             };
             transaction: Transaction;
-          }[] = [];
+          }> = [];
 
           for (let i = 0; i < batchCount; i++) {
             const txBatch = latestTx.slice(
@@ -1432,8 +1432,8 @@ async function handlePurchasingTransactionCardanoV1(
 }
 
 function checkPaymentAmountsMatch(
-  expectedAmounts: { unit: string; amount: bigint }[],
-  actualAmounts: { unit: string; quantity: string }[],
+  expectedAmounts: Array<{ unit: string; amount: bigint }>,
+  actualAmounts: Array<{ unit: string; quantity: string }>,
 ) {
   return expectedAmounts.every((x) => {
     if (x.unit.toLowerCase() == 'lovelace') {

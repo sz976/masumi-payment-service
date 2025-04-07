@@ -215,12 +215,12 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
     const assets = holderWallet.filter((asset) =>
       asset.unit.startsWith(policyId),
     );
-    const detailedAssets: {
+    const detailedAssets: Array<{
       unit: string;
       Metadata: z.infer<
         typeof queryAgentFromWalletSchemaOutput
       >['Assets'][0]['Metadata'];
-    }[] = [];
+    }> = [];
 
     await Promise.all(
       assets.map(async (asset) => {

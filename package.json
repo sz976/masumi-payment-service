@@ -11,9 +11,9 @@
     },
     "scripts": {
         "prepare": "husky",
-        "lint": "eslint --fix --quiet --config eslint.config.mjs",
-        "lint-ci": "eslint --fix --config eslint.config.mjs",
-        "format": "prettier --log-level silent --write src/**/*.ts",
+        "lint": "eslint --fix --quiet \"src/**/*.{ts,js}\" --config eslint.config.mjs",
+        "lint-ci": "eslint \"src/**/*.{ts,js}\" --config eslint.config.mjs",
+        "format": "prettier --log-level silent --write \"src/**/*.{ts,js}\"",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
@@ -51,6 +51,7 @@
     "devDependencies": {
         "@commitlint/cli": "^19.7.1",
         "@commitlint/config-conventional": "^19.7.1",
+        "@eslint/eslintrc": "^3.3.1",
         "@eslint/js": "^9.19.0",
         "@types/express": "^5.0.0",
         "@types/jest": "^29.5.14",

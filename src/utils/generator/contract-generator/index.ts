@@ -13,7 +13,7 @@ import { convertNetworkToId } from '../../converter/network-convert';
 
 export async function getPaymentScriptFromPaymentSourceV1(
   paymentSourceSupported: PaymentSource & {
-    AdminWallets: { walletAddress: string; order: number }[];
+    AdminWallets: Array<{ walletAddress: string; order: number }>;
     FeeReceiverNetworkWallet: { walletAddress: string; order: number };
   },
 ) {
