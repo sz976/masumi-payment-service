@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { Permission, ApiKeyStatus, Network } from '@prisma/client';
 import { generateHash } from '@/utils/crypto';
 
-
 export const authMiddleware = (minPermission: Permission) =>
   new Middleware({
     security: {

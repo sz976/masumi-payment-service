@@ -18,10 +18,6 @@
       "@smart-contracts/*": ["smart-contracts/*"]
     }
   },
-  "include": [
-    "src/**/*.ts",
-    "smart-contracts/**/plutus.json",
-    "eslint.config.mjs"
-  ],
+  "include": ["src/**/*.ts", "smart-contracts/**/plutus.json"],
   "exclude": ["node_modules"]
 }

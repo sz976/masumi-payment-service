@@ -38,7 +38,7 @@ export default [
   ),
   // Add custom rules for TypeScript
   {
-    files: ['**/*.ts'],
+    files: ['src/**/*.ts'],
     rules: {
       '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
       '@typescript-eslint/no-explicit-any': ['off'],
@@ -54,7 +54,7 @@ export default [
   },
   // Add Jest environment for test files
   {
-    files: ['**/*.spec.ts', '**/*.test.ts'],
+    files: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
     languageOptions: {
       globals: {
         ...globals.jest,
@@ -74,6 +74,11 @@ export default [
       'dist/*',
       'smart-contracts/*',
       'frontend/*',
+      'eslint.config.mjs',
+      'frontend/*',
+      'commitlint.config.js',
+      'jest.config.ts',
+      'prisma/*',
     ],
   },
 ];

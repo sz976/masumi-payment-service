@@ -4,7 +4,6 @@
 import { SmartContractState } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decodeV1ContractDatum(decodedDatum: any) {
   try {
     if (decodedDatum == null) {
@@ -115,7 +114,6 @@ export function newCooldownTime(cooldownTime: number) {
   return cooldownTimeMs;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function valueToStatus(value: any) {
   if (value == null) {
     return null;
