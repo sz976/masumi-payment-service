@@ -3,6 +3,8 @@ import createHttpError from 'http-errors';
 import { prisma } from '@/utils/db';
 import { z } from 'zod';
 import { Permission, ApiKeyStatus, Network } from '@prisma/client';
+import { generateHash } from '@/utils/crypto';
+
 
 export const authMiddleware = (minPermission: Permission) =>
   new Middleware({
@@ -14,8 +16,8 @@ export const authMiddleware = (minPermission: Permission) =>
     input: z.object({}),
     handler: async ({ request, logger }) => {
       try {
-        const sendKey = request.headers.token;
-        if (!sendKey) {
+        const sentKey = request.headers.token;
+        if (!sentKey || typeof sentKey !== 'string' || sentKey.length < 1) {
           throw createHttpError(
             401,
             'Unauthorized, no authentication token provided',
@@ -24,7 +26,7 @@ export const authMiddleware = (minPermission: Permission) =>
 
         const apiKey = await prisma.apiKey.findUnique({
           where: {
-            token: sendKey as string,
+            tokenHash: generateHash(sentKey),
           },
         });
 
