@@ -317,9 +317,6 @@ export default function WalletsPage() {
                 <th className="p-4 text-left text-sm font-medium">Note</th>
                 <th className="p-4 text-left text-sm font-medium">Address</th>
                 <th className="p-4 text-left text-sm font-medium">
-                  Linked AI agents
-                </th>
-                <th className="p-4 text-left text-sm font-medium">
                   Balance, ADA
                 </th>
                 <th className="p-4 text-left text-sm font-medium">
@@ -381,7 +378,6 @@ export default function WalletsPage() {
                         </Button>
                       </div>
                     </td>
-                    <td className="p-4">—</td>
                     <td className="p-4">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">

@@ -365,7 +365,9 @@ export default function PaymentSourcesPage() {
                         <div className="text-sm">{source.paymentType}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm">{source.feeRatePermille}%</div>
+                        <div className="text-sm">
+                          {(source.feeRatePermille / 10).toFixed(1)}%
+                        </div>
                       </td>
                       <td className="p-4">
                         <div>

@@ -118,7 +118,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   const navItems = [
     { href: '/', name: 'Dashboard', icon: LayoutDashboard, badge: null },
-    { href: '/ai-agents', name: 'AI agents', icon: Bot, badge: null },
+    { href: '/ai-agents', name: 'AI Agents', icon: Bot, badge: null },
     { href: '/wallets', name: 'Wallets', icon: Wallet, badge: null },
     {
       href: '/transactions',
@@ -249,8 +249,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <Image
                   src={logo}
                   alt="Masumi Logo"
-                  width={120}
-                  height={32}
+                  width={240}
+                  height={64}
                   className="w-auto hover:scale-[1.05] hover:opacity-80 transition-all duration-300"
                 />
               </Link>

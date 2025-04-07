@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import logo from "@/assets/masumi_logo.png";
-import Link from "next/link";
-import { MessageSquare } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+import logo from '@/assets/masumi_logo.png';
+import Link from 'next/link';
+import { MessageSquare } from 'lucide-react';
 
 export function Header() {
   return (
@@ -12,14 +12,16 @@ export function Header() {
           <Image
             src={logo}
             alt="Masumi Logo"
-            width={120}
-            height={32}
+            width={240}
+            height={64}
             className="w-auto"
           />
-          <Button
-            variant="outline"
-          >
-            <Link href="https://www.masumi.network/contact" target="_blank" className="flex items-center gap-2">
+          <Button variant="outline">
+            <Link
+              href="https://www.masumi.network/contact"
+              target="_blank"
+              className="flex items-center gap-2"
+            >
               Support
               <MessageSquare className="ml-2 h-4 w-4" />
             </Link>
@@ -28,4 +30,4 @@ export function Header() {
       </div>
     </header>
   );
-} 
+}
