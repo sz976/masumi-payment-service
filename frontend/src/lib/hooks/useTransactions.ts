@@ -38,76 +38,95 @@ export function useTransactions() {
   const [hasMore, setHasMore] = useState(true);
   const [cursorId, setCursorId] = useState<string | null>(null);
   const [newTransactionsCount, setNewTransactionsCount] = useState(0);
-  const [lastCheckedTimestamp, setLastCheckedTimestamp] = useState<string | null>(null);
+  const [lastCheckedTimestamp, setLastCheckedTimestamp] = useState<
+    string | null
+  >(null);
 
-  const fetchTransactions = useCallback(async (cursor?: string, checkForNew = false) => {
-    setIsLoading(true);
-    try {
-      const combined: Transaction[] = [];
+  const fetchTransactions = useCallback(
+    async (cursor?: string, checkForNew = false) => {
+      setIsLoading(true);
+      try {
+        const combined: Transaction[] = [];
 
-      const purchases = await getPurchase({
-        client: apiClient,
-        query: {
-          network: 'Preprod',
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10
-        }
-      });
-
-      if (purchases.data?.data?.Purchases) {
-        purchases.data.data.Purchases.forEach((purchase: any) => {
-          combined.push({
-            ...purchase,
-            type: 'purchase'
-          });
+        const purchases = await getPurchase({
+          client: apiClient,
+          query: {
+            network: 'Preprod',
+            cursorId: cursor,
+            includeHistory: 'true',
+            limit: 10,
+          },
         });
-      }
 
-      const payments = await getPayment({
-        client: apiClient,
-        query: {
-          network: 'Preprod',
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10
-        }
-      });
-
-      if (payments.data?.data?.Payments) {
-        payments.data.data.Payments.forEach((payment: any) => {
-          combined.push({
-            ...payment,
-            type: 'payment'
+        if (purchases.data?.data?.Purchases) {
+          purchases.data.data.Purchases.forEach((purchase: any) => {
+            combined.push({
+              ...purchase,
+              type: 'purchase',
+            });
           });
+        }
+
+        const payments = await getPayment({
+          client: apiClient,
+          query: {
+            network: 'Preprod',
+            cursorId: cursor,
+            includeHistory: 'true',
+            limit: 10,
+          },
         });
-      }
 
-      const newTransactions = combined.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+        if (payments.data?.data?.Payments) {
+          payments.data.data.Payments.forEach((payment: any) => {
+            combined.push({
+              ...payment,
+              type: 'payment',
+            });
+          });
+        }
 
-      if (checkForNew && lastCheckedTimestamp) {
-        const newCount = newTransactions.filter(
-          tx => new Date(tx.createdAt) > new Date(lastCheckedTimestamp)
-        ).length;
-        setNewTransactionsCount(prev => prev + newCount);
-      }
-
-      if (!checkForNew) {
-        setTransactions(prev => cursor ? [...prev, ...newTransactions] : newTransactions);
-        setHasMore(
-          (purchases.data?.data?.Purchases?.length === 10) || 
-          (payments.data?.data?.Payments?.length === 10)
+        const newTransactions = combined.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
-        setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
+
+        if (checkForNew && lastCheckedTimestamp) {
+          const existingIds = new Set(transactions.map((tx) => tx.id));
+          const trulyNewTransactions = newTransactions.filter(
+            (tx) =>
+              !existingIds.has(tx.id) &&
+              new Date(tx.createdAt) > new Date(lastCheckedTimestamp),
+          );
+
+          setNewTransactionsCount((prev) => prev + trulyNewTransactions.length);
+        }
+
+        if (!checkForNew) {
+          const existingIds = new Set(transactions.map((tx) => tx.id));
+          const uniqueNewTransactions = newTransactions.filter(
+            (tx) => !existingIds.has(tx.id),
+          );
+
+          setTransactions((prev) =>
+            cursor
+              ? [...prev, ...uniqueNewTransactions]
+              : uniqueNewTransactions,
+          );
+          setHasMore(
+            purchases.data?.data?.Purchases?.length === 10 ||
+              payments.data?.data?.Payments?.length === 10,
+          );
+          setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiClient, lastCheckedTimestamp]);
+    },
+    [apiClient, lastCheckedTimestamp, transactions],
+  );
 
   useEffect(() => {
     fetchTransactions();
@@ -144,6 +163,6 @@ export function useTransactions() {
     hasMore,
     loadMore,
     newTransactionsCount,
-    markAllAsRead
+    markAllAsRead,
   };
-} 
+}

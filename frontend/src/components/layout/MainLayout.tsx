@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
@@ -19,7 +18,6 @@ import {
   Bell,
   Search,
 } from 'lucide-react';
-import logo from '@/assets/masumi_logo.png';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { useTransactions } from '@/lib/hooks/useTransactions';
@@ -35,7 +33,7 @@ import {
 } from '@/components/ui/command';
 import { useSearch, SearchableItem } from '@/lib/hooks/useSearch';
 import { useAppContext } from '@/lib/contexts/AppContext';
-
+import MasumiLogo from '@/components/MasumiLogo';
 interface MainLayoutProps {
   children: React.ReactNode;
 }
@@ -244,17 +242,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               collapsed ? 'justify-center' : 'justify-between',
             )}
           >
-            {!collapsed && (
-              <Link href="https://www.masumi.network" target="_blank">
-                <Image
-                  src={logo}
-                  alt="Masumi Logo"
-                  width={120}
-                  height={32}
-                  className="w-auto hover:scale-[1.05] hover:opacity-80 transition-all duration-300"
-                />
-              </Link>
-            )}
+            {!collapsed && <MasumiLogo />}
             <Button
               variant={collapsed ? 'ghost' : 'muted'}
               size="icon"
