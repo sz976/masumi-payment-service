@@ -16,7 +16,7 @@ export class AsyncInterval {
    */
   static start(callback: () => Promise<void>, intervalMs: number): () => void {
     const instance = new AsyncInterval();
-    instance.run(callback, intervalMs);
+    void instance.run(callback, intervalMs);
     return () => instance.stop();
   }
 

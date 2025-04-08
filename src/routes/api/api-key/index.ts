@@ -43,9 +43,12 @@ export const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
   method: 'get',
   input: getAPIKeySchemaInput,
   output: getAPIKeySchemaOutput,
-  handler: async ({ input }) => {
+  handler: async ({
+    input,
+  }: {
+    input: z.infer<typeof getAPIKeySchemaInput>;
+  }) => {
     const result = await prisma.apiKey.findMany({
-      where: {},
       cursor: input.cursorToken ? { token: input.cursorToken } : undefined,
       take: input.limit,
       include: { RemainingUsageCredits: true },
@@ -108,19 +111,23 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
   method: 'post',
   input: addAPIKeySchemaInput,
   output: addAPIKeySchemaOutput,
-  handler: async ({ input }) => {
-    const apiKey =
-      ('masumi-payment-' + input.permission == Permission.Admin
-        ? 'admin-'
-        : '') + createId();
+  handler: async ({
+    input,
+  }: {
+    input: z.infer<typeof addAPIKeySchemaInput>;
+  }) => {
+    const isAdmin = input.permission == Permission.Admin;
+    const apiKey = 'masumi-payment-' + (isAdmin ? 'admin-' : '') + createId();
     const result = await prisma.apiKey.create({
       data: {
         token: apiKey,
         tokenHash: generateHash(apiKey),
         status: ApiKeyStatus.Active,
         permission: input.permission,
-        usageLimited: input.usageLimited,
-        networkLimit: input.networkLimit,
+        usageLimited: isAdmin ? false : input.usageLimited,
+        networkLimit: isAdmin
+          ? [Network.Mainnet, Network.Preprod]
+          : input.networkLimit,
         RemainingUsageCredits: {
           createMany: {
             data: input.UsageCredits.map((usageCredit) => {
@@ -161,6 +168,11 @@ export const updateAPIKeySchemaInput = z.object({
     .describe(
       'The amount of credits to add or remove from the API key. Only relevant if usageLimited is true. ',
     ),
+  usageLimited: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe('Whether the API key is usage limited'),
   status: z
     .nativeEnum(ApiKeyStatus)
     .default(ApiKeyStatus.Active)
@@ -188,7 +200,11 @@ export const updateAPIKeyEndpointPatch =
     method: 'patch',
     input: updateAPIKeySchemaInput,
     output: updateAPIKeySchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+    }: {
+      input: z.infer<typeof updateAPIKeySchemaInput>;
+    }) => {
       const apiKey = await prisma.$transaction(
         async (tx) => {
           const apiKey = await tx.apiKey.findUnique({
@@ -277,7 +293,11 @@ export const deleteAPIKeyEndpointDelete =
     method: 'delete',
     input: deleteAPIKeySchemaInput,
     output: deleteAPIKeySchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+    }: {
+      input: z.infer<typeof deleteAPIKeySchemaInput>;
+    }) => {
       return await prisma.apiKey.update({
         where: { id: input.id },
         data: { deletedAt: new Date(), status: ApiKeyStatus.Revoked },

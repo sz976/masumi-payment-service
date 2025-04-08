@@ -1,6 +1,7 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import {
+  $Enums,
   Network,
   OnChainState,
   PaymentAction,
@@ -89,7 +90,23 @@ export const submitPaymentResultEndpointPost =
     method: 'post',
     input: submitPaymentResultSchemaInput,
     output: submitPaymentResultSchemaOutput,
-    handler: async ({ input, options }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof submitPaymentResultSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      await checkIsAllowedNetworkOrThrowUnauthorized(
+        options.networkLimit,
+        input.network,
+        options.permission,
+      );
       const smartContractAddress =
         input.smartContractAddress ??
         (input.network == Network.Mainnet
@@ -150,11 +167,6 @@ export const submitPaymentResultEndpointPost =
       if (payment.SmartContractWallet == null) {
         throw createHttpError(404, 'Smart contract wallet not found');
       }
-      await checkIsAllowedNetworkOrThrowUnauthorized(
-        options.networkLimit,
-        input.network,
-        options.permission,
-      );
 
       const result = await prisma.paymentRequest.update({
         where: { id: specifiedPaymentContract.PaymentRequests[0].id },

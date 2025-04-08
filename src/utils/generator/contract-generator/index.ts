@@ -13,7 +13,7 @@ import { convertNetworkToId } from '../../converter/network-convert';
 
 export async function getPaymentScriptFromPaymentSourceV1(
   paymentSourceSupported: PaymentSource & {
-    AdminWallets: { walletAddress: string; order: number }[];
+    AdminWallets: Array<{ walletAddress: string; order: number }>;
     FeeReceiverNetworkWallet: { walletAddress: string; order: number };
   },
 ) {
@@ -110,10 +110,7 @@ export async function getRegistryScriptV1(
     version: 'V3',
   };
 
-  const policyId = deserializePlutusScript(
-    script.code,
-    script.version as 'V1' | 'V2' | 'V3',
-  )
+  const policyId = deserializePlutusScript(script.code, script.version)
     .hash()
     .toString();
 

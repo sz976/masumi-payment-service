@@ -1,6 +1,7 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import {
+  $Enums,
   HotWalletType,
   Network,
   OnChainState,
@@ -134,7 +135,23 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
   method: 'get',
   input: queryPaymentsSchemaInput,
   output: queryPaymentsSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof queryPaymentsSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const paymentSourceAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -155,12 +172,6 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
     if (!paymentSource) {
       throw createHttpError(404, 'Payment source not found');
     }
-
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
 
     const result = await prisma.paymentRequest.findMany({
       where: { paymentSourceId: paymentSource.id },
@@ -311,7 +322,23 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
   method: 'post',
   input: createPaymentsSchemaInput,
   output: createPaymentSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof createPaymentsSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet

@@ -19,5 +19,5 @@
     }
   },
   "include": ["src/**/*.ts", "smart-contracts/**/plutus.json"],
-  "exclude": ["node_modules", "src/**/*.spec.ts"]
+  "exclude": ["node_modules"]
 }

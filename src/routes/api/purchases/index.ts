@@ -8,6 +8,7 @@ import {
   PurchaseErrorType,
   OnChainState,
   PricingType,
+  $Enums,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
@@ -133,7 +134,23 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
   method: 'get',
   input: queryPurchaseRequestSchemaInput,
   output: queryPurchaseRequestSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof queryPurchaseRequestSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const paymentContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -146,20 +163,10 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           smartContractAddress: paymentContractAddress,
         },
       },
-      include: {
-        PurchaseRequests: {
-          where: { blockchainIdentifier: input.blockchainIdentifier },
-        },
-      },
     });
     if (paymentSource == null) {
       throw createHttpError(404, 'Payment source not found');
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
 
     const result = await prisma.purchaseRequest.findMany({
       where: { paymentSourceId: paymentSource.id },
@@ -344,7 +351,23 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
   method: 'post',
   input: createPurchaseInitSchemaInput,
   output: createPurchaseInitSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof createPurchaseInitSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -365,11 +388,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Network and Address combination not supported',
       );
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
 
     const wallets = await prisma.hotWallet.aggregate({
       where: { paymentSourceId: paymentSource.id, type: HotWalletType.Selling },

@@ -18,7 +18,7 @@ async function handlePurchaseCreditInit({
   inputHash,
 }: {
   id: string;
-  cost: { amount: bigint; unit: string }[];
+  cost: Array<{ amount: bigint; unit: string }>;
   metadata: string | null | undefined;
   network: Network;
   blockchainIdentifier: string;

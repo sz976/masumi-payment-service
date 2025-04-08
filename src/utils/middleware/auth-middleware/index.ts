@@ -63,12 +63,20 @@ export const authMiddleware = (minPermission: Permission) =>
         ) {
           throw createHttpError(401, 'Unauthorized, read access required');
         }
+        let networkLimit = apiKey.networkLimit;
+        if (apiKey.permission == Permission.Admin) {
+          networkLimit = [Network.Mainnet, Network.Preprod];
+        }
+        let usageLimited = apiKey.usageLimited;
+        if (apiKey.permission == Permission.Admin) {
+          usageLimited = false;
+        }
 
         return {
           id: apiKey.id,
           permission: apiKey.permission,
-          networkLimit: apiKey.networkLimit,
-          usageLimited: apiKey.usageLimited,
+          networkLimit: networkLimit,
+          usageLimited: usageLimited,
         }; // provides endpoints with options.user
       } catch (error) {
         //await a random amount to throttle invalid requests
