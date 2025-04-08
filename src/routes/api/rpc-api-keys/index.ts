@@ -1,7 +1,7 @@
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 import { z } from 'zod';
 import { prisma } from '@/utils/db';
-import { Network, RPCProvider } from '@prisma/client';
+import { $Enums, Network, RPCProvider } from '@prisma/client';
 
 export const getRpcProviderKeysSchemaInput = z.object({
   cursorId: z
@@ -36,14 +36,25 @@ export const queryRpcProviderKeysEndpointGet =
     method: 'get',
     input: getRpcProviderKeysSchemaInput,
     output: getRpcProviderKeysSchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof getRpcProviderKeysSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
       const rpcProviderKeys = await prisma.paymentSourceConfig.findMany({
         cursor: input.cursorId ? { id: input.cursorId } : undefined,
         take: input.limit,
         orderBy: { createdAt: 'asc' },
         where: {
           PaymentSource: {
-            isNot: null,
+            network: { in: options.networkLimit },
           },
         },
         include: {

@@ -8,10 +8,12 @@ import {
   RPCProvider,
   PaymentType,
   Network,
+  $Enums,
 } from '@prisma/client';
 import createHttpError from 'http-errors';
 import { z } from 'zod';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
+import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 
 export const paymentSourceExtendedSchemaInput = z.object({
   take: z
@@ -79,8 +81,24 @@ export const paymentSourceExtendedEndpointGet =
     method: 'get',
     input: paymentSourceExtendedSchemaInput,
     output: paymentSourceExtendedSchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof paymentSourceExtendedSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
       const paymentSources = await prisma.paymentSource.findMany({
+        where: {
+          network: {
+            in: options.networkLimit,
+          },
+        },
         take: input.take,
         orderBy: {
           createdAt: 'desc',
@@ -231,7 +249,23 @@ export const paymentSourceExtendedEndpointPost =
     method: 'post',
     input: paymentSourceExtendedCreateSchemaInput,
     output: paymentSourceExtendedCreateSchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof paymentSourceExtendedCreateSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      await checkIsAllowedNetworkOrThrowUnauthorized(
+        options.networkLimit,
+        input.network,
+        options.permission,
+      );
       const sellingWalletsMesh = input.SellingWallets.map((sellingWallet) => {
         return {
           wallet: generateOfflineWallet(
@@ -263,7 +297,7 @@ export const paymentSourceExtendedEndpointPost =
           input.AdminWallets[1].walletAddress,
           input.AdminWallets[2].walletAddress,
           input.FeeReceiverNetworkWallet.walletAddress,
-          input.FeePermille,
+          input.feeRatePermille,
           1000 * 60 * 15,
           input.network,
         );
@@ -489,9 +523,20 @@ export const paymentSourceExtendedEndpointPatch =
     method: 'patch',
     input: paymentSourceExtendedUpdateSchemaInput,
     output: paymentSourceExtendedUpdateSchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof paymentSourceExtendedUpdateSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
       const paymentSource = await prisma.paymentSource.findUnique({
-        where: { id: input.id },
+        where: { id: input.id, network: { in: options.networkLimit } },
         include: {
           HotWallets: true,
           PaymentSourceConfig: true,
@@ -506,7 +551,7 @@ export const paymentSourceExtendedEndpointPatch =
         (sellingWallet) => {
           return {
             wallet: generateOfflineWallet(
-              input.network,
+              paymentSource.network,
               sellingWallet.walletMnemonic.split(' '),
             ),
             note: sellingWallet.note,
@@ -519,7 +564,7 @@ export const paymentSourceExtendedEndpointPatch =
         (purchasingWallet) => {
           return {
             wallet: generateOfflineWallet(
-              input.network,
+              paymentSource.network,
               purchasingWallet.walletMnemonic.split(' '),
             ),
             note: purchasingWallet.note,
@@ -645,7 +690,20 @@ export const paymentSourceExtendedEndpointDelete =
     method: 'delete',
     input: paymentSourceExtendedDeleteSchemaInput,
     output: paymentSourceExtendedDeleteSchemaOutput,
-    handler: async ({ input }) => {
-      return await prisma.paymentSource.delete({ where: { id: input.id } });
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof paymentSourceExtendedDeleteSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      return await prisma.paymentSource.delete({
+        where: { id: input.id, network: { in: options.networkLimit } },
+      });
     },
   });

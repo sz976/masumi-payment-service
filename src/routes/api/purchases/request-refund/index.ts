@@ -7,6 +7,7 @@ import {
   OnChainState,
   PurchaseErrorType,
   Permission,
+  $Enums,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
@@ -90,17 +91,29 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
   method: 'post',
   input: requestPurchaseRefundSchemaInput,
   output: requestPurchaseRefundSchemaOutput,
-  handler: async ({ input, options }) => {
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof requestPurchaseRefundSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
     await checkIsAllowedNetworkOrThrowUnauthorized(
       options.networkLimit,
       input.network,
       options.permission,
     );
+    const smartContractAddress =
+      input.smartContractAddress ??
+      (input.network == Network.Mainnet
+        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
+        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
+
     const paymentSource = await prisma.paymentSource.findUnique({
       where: {
         network_smartContractAddress: {
@@ -170,6 +183,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
         NextAction: {
           create: {
             requestedAction: PurchasingAction.SetRefundRequestedRequested,
+            inputHash: purchase.inputHash,
           },
         },
       },

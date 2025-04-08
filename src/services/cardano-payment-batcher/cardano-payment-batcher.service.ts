@@ -5,7 +5,6 @@ import {
   PurchasingAction,
   TransactionStatus,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import {
   BlockfrostProvider,
@@ -19,16 +18,22 @@ import {
   SmartContractState,
 } from '@/utils/generator/contract-generator';
 import { convertNetwork } from '@/utils/converter/network-convert';
+import { convertErrorString } from '@/utils/converter/error-string-convert';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
 
 export async function batchLatestPaymentEntriesV1() {
   const maxBatchSize = 10;
   const minTransactionCalculation = 2550000n;
 
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     const paymentContractsWithWalletLocked = await prisma.$transaction(
@@ -289,7 +294,7 @@ export async function batchLatestPaymentEntriesV1() {
             const walletId = walletPairing.walletId;
             const batchedRequests = walletPairing.batchedRequests;
             //batch payments
-            const unsignedTx = await new Transaction({
+            const unsignedTx = new Transaction({
               initiator: wallet,
               fetcher: blockchainProvider,
             }).setMetadata(674, {
@@ -402,7 +407,10 @@ export async function batchLatestPaymentEntriesV1() {
               purchaseRequestsUpdated.filter((x) => x.status != 'fulfilled');
             if (failedPurchaseRequestsUpdated.length > 0) {
               throw new Error(
-                'Error updating payment status ' + failedPurchaseRequests,
+                'Error updating payment status ' +
+                  failedPurchaseRequestsUpdated
+                    .map((x) => convertErrorString(x.reason))
+                    .join(', '),
               );
             } else {
               logger.debug('Batching payments successful', { txHash: txHash });
@@ -417,7 +425,7 @@ export async function batchLatestPaymentEntriesV1() {
           if (result.status == 'rejected' || result.value != true) {
             const error =
               result.status == 'rejected'
-                ? result.reason
+                ? convertErrorString(result.reason)
                 : 'Transaction did not return true';
             logger.error(
               `Error batching payments for wallet ${request.walletId}`,
@@ -454,8 +462,7 @@ export async function batchLatestPaymentEntriesV1() {
   } catch (error) {
     logger.error('Error batching payments', error);
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

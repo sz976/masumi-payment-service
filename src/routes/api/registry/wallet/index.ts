@@ -1,6 +1,6 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { HotWalletType, Network, PricingType } from '@prisma/client';
+import { $Enums, HotWalletType, Network, PricingType } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -161,7 +161,23 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
   method: 'get',
   input: queryAgentFromWalletSchemaInput,
   output: queryAgentFromWalletSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof queryAgentFromWalletSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -182,11 +198,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
         'Network and Address combination not supported',
       );
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
+
     const blockfrost = new BlockFrostAPI({
       projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,
     });
@@ -215,12 +227,12 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
     const assets = holderWallet.filter((asset) =>
       asset.unit.startsWith(policyId),
     );
-    const detailedAssets: {
+    const detailedAssets: Array<{
       unit: string;
       Metadata: z.infer<
         typeof queryAgentFromWalletSchemaOutput
       >['Assets'][0]['Metadata'];
-    }[] = [];
+    }> = [];
 
     await Promise.all(
       assets.map(async (asset) => {
@@ -236,7 +248,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
         detailedAssets.push({
           unit: asset.unit,
           Metadata: {
-            name: metadataToString(parsedMetadata.data.name!)!,
+            name: metadataToString(parsedMetadata.data.name)!,
             description: metadataToString(parsedMetadata.data.description),
             apiBaseUrl: metadataToString(parsedMetadata.data.api_base_url)!,
             ExampleOutputs:

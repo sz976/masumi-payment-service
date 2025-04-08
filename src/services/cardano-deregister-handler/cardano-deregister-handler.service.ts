@@ -1,5 +1,4 @@
 import { TransactionStatus, RegistrationState } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Transaction } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
@@ -8,13 +7,18 @@ import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 import { lockAndQueryRegistryRequests } from '@/utils/db/lock-and-query-registry-request';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
 
 export async function deRegisterAgentV1() {
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     //Submit a result for invalid tokens
@@ -117,7 +121,7 @@ export async function deRegisterAgentV1() {
                     status: TransactionStatus.Pending,
                     BlocksWallet: {
                       connect: {
-                        id: request.SmartContractWallet!.id,
+                        id: request.SmartContractWallet.id,
                       },
                     },
                   },
@@ -161,8 +165,7 @@ export async function deRegisterAgentV1() {
   } catch (error) {
     logger.error('Error submitting result', { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

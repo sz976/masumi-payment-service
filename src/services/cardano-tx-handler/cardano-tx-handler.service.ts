@@ -10,7 +10,6 @@ import {
   TransactionStatus,
   WalletType,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { logger } from '@/utils/logger';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -31,16 +30,22 @@ import {
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { deserializeDatum } from '@meshsdk/core';
 import { SmartContractState } from '@/utils/generator/contract-generator';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
+
 export async function checkLatestTransactions(
   { maxParallelTransactions = 50 }: { maxParallelTransactions?: number } = {
     maxParallelTransactions: 50,
   },
 ) {
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return await updateMutex.acquire();
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     //only support web3 cardano v1 for now
@@ -234,7 +239,7 @@ export async function checkLatestTransactions(
 
           const latestIdentifier = paymentContract.lastIdentifierChecked;
 
-          let latestTx: { tx_hash: string }[] = [];
+          let latestTx: Array<{ tx_hash: string }> = [];
           let foundTx = -1;
           let index = 0;
           do {
@@ -275,13 +280,13 @@ export async function checkLatestTransactions(
           const batchCount = Math.ceil(
             latestTx.length / maxParallelTransactions,
           );
-          const txData: {
+          const txData: Array<{
             tx: { tx_hash: string };
             utxos: {
               hash: string;
-              inputs: {
+              inputs: Array<{
                 address: string;
-                amount: { unit: string; quantity: string }[];
+                amount: Array<{ unit: string; quantity: string }>;
                 tx_hash: string;
                 output_index: number;
                 data_hash: string | null;
@@ -289,20 +294,20 @@ export async function checkLatestTransactions(
                 reference_script_hash: string | null;
                 collateral: boolean;
                 reference?: boolean;
-              }[];
-              outputs: {
+              }>;
+              outputs: Array<{
                 address: string;
-                amount: { unit: string; quantity: string }[];
+                amount: Array<{ unit: string; quantity: string }>;
                 output_index: number;
                 data_hash: string | null;
                 inline_datum: string | null;
                 collateral: boolean;
                 reference_script_hash: string | null;
                 consumed_by_tx?: string | null;
-              }[];
+              }>;
             };
             transaction: Transaction;
-          }[] = [];
+          }> = [];
 
           for (let i = 0; i < batchCount; i++) {
             const txBatch = latestTx.slice(
@@ -624,7 +629,7 @@ export async function checkLatestTransactions(
                     ) {
                       await prisma.transaction.update({
                         where: {
-                          id: dbEntry.currentTransactionId!,
+                          id: dbEntry.currentTransactionId,
                         },
                         data: {
                           BlocksWallet: { disconnect: true },
@@ -974,7 +979,7 @@ export async function checkLatestTransactions(
 
               const outputDatum =
                 valueOutputs.length == 1 ? valueOutputs[0].inline_datum : null;
-              const decodedOutputDatum =
+              const decodedOutputDatum: unknown =
                 outputDatum != null ? deserializeDatum(outputDatum) : null;
               const decodedNewContract =
                 decodeV1ContractDatum(decodedOutputDatum);
@@ -1084,10 +1089,15 @@ export async function checkLatestTransactions(
               }
 
               const redeemer = redeemers.get(0);
+              const redeemerJson = redeemer
+                .data()
+                .to_json(PlutusDatumSchema.BasicConversions);
 
-              const redeemerVersion = JSON.parse(
-                redeemer.data().to_json(PlutusDatumSchema.BasicConversions),
-              )['constructor'];
+              const redeemerJsonObject = JSON.parse(redeemerJson) as {
+                constructor: number;
+              };
+
+              const redeemerVersion = redeemerJsonObject.constructor;
 
               if (
                 redeemerVersion != 0 &&
@@ -1251,8 +1261,7 @@ export async function checkLatestTransactions(
   } catch (error) {
     logger.error('Error checking latest transactions', { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 
@@ -1323,7 +1332,7 @@ async function handlePaymentTransactionCardanoV1(
       ) {
         await prisma.transaction.update({
           where: {
-            id: paymentRequest.currentTransactionId!,
+            id: paymentRequest.currentTransactionId,
           },
           data: { BlocksWallet: { disconnect: true } },
         });
@@ -1411,7 +1420,7 @@ async function handlePurchasingTransactionCardanoV1(
       ) {
         await prisma.transaction.update({
           where: {
-            id: purchasingRequest.currentTransactionId!,
+            id: purchasingRequest.currentTransactionId,
           },
           data: { BlocksWallet: { disconnect: true } },
         });
@@ -1432,8 +1441,8 @@ async function handlePurchasingTransactionCardanoV1(
 }
 
 function checkPaymentAmountsMatch(
-  expectedAmounts: { unit: string; amount: bigint }[],
-  actualAmounts: { unit: string; quantity: string }[],
+  expectedAmounts: Array<{ unit: string; amount: bigint }>,
+  actualAmounts: Array<{ unit: string; quantity: string }>,
 ) {
   return expectedAmounts.every((x) => {
     if (x.unit.toLowerCase() == 'lovelace') {

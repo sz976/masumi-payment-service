@@ -1,6 +1,7 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
 import {
+  $Enums,
   Network,
   OnChainState,
   PaymentAction,
@@ -83,7 +84,23 @@ export const authorizePaymentRefundEndpointPost =
     method: 'post',
     input: authorizePaymentRefundSchemaInput,
     output: authorizePaymentRefundSchemaOutput,
-    handler: async ({ input, options }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof authorizePaymentRefundSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      await checkIsAllowedNetworkOrThrowUnauthorized(
+        options.networkLimit,
+        input.network,
+        options.permission,
+      );
       const paymentContractAddress =
         input.paymentContractAddress ??
         (input.network == Network.Mainnet
@@ -138,11 +155,6 @@ export const authorizePaymentRefundEndpointPost =
       if (payment.CurrentTransaction == null) {
         throw createHttpError(400, 'Payment in invalid state');
       }
-      await checkIsAllowedNetworkOrThrowUnauthorized(
-        options.networkLimit,
-        input.network,
-        options.permission,
-      );
       if (
         payment.requestedById != options.id &&
         options.permission != Permission.Admin

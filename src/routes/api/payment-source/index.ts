@@ -1,11 +1,6 @@
 import { prisma } from '@/utils/db';
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
-import {
-  HotWalletType,
-  Network,
-  PaymentType,
-  Permission,
-} from '@prisma/client';
+import { $Enums, HotWalletType, Network, PaymentType } from '@prisma/client';
 import { z } from 'zod';
 
 export const paymentSourceSchemaInput = z.object({
@@ -68,7 +63,18 @@ export const paymentSourceEndpointGet = readAuthenticatedEndpointFactory.build({
   method: 'get',
   input: paymentSourceSchemaInput,
   output: paymentSourceSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof paymentSourceSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
     const paymentSources = await prisma.paymentSource.findMany({
       take: input.take,
       orderBy: {
@@ -76,10 +82,7 @@ export const paymentSourceEndpointGet = readAuthenticatedEndpointFactory.build({
       },
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       where: {
-        network:
-          options.permission != Permission.Admin
-            ? { in: options.networkLimit }
-            : undefined,
+        network: { in: options.networkLimit },
       },
       include: {
         AdminWallets: { orderBy: { order: 'asc' } },

@@ -1,6 +1,7 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
 import {
+  $Enums,
   HotWalletType,
   Network,
   PricingType,
@@ -98,7 +99,23 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
   method: 'get',
   input: queryRegistryRequestSchemaInput,
   output: queryRegistryRequestSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof queryRegistryRequestSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -119,11 +136,6 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
         'Network and Address combination not supported',
       );
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
 
     const result = await prisma.registryRequest.findMany({
       where: {
@@ -295,7 +307,24 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
   method: 'post',
   input: registerAgentSchemaInput,
   output: registerAgentSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof registerAgentSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
+
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -493,7 +522,23 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
   method: 'delete',
   input: unregisterAgentSchemaInput,
   output: unregisterAgentSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof unregisterAgentSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -517,12 +562,6 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
         'Network and Address combination not supported',
       );
     }
-
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
 
     const blockfrost = new BlockFrostAPI({
       projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,
