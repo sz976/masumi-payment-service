@@ -1,13 +1,6 @@
 import { prisma } from '@/utils/db';
-import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
-import {
-  $Enums,
-  HotWalletType,
-  Network,
-  PaymentType,
-  Permission,
-} from '@prisma/client';
+import { $Enums, HotWalletType, Network, PaymentType } from '@prisma/client';
 import { z } from 'zod';
 
 export const paymentSourceSchemaInput = z.object({
