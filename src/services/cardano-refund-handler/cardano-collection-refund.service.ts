@@ -3,7 +3,6 @@ import {
   PurchasingAction,
   TransactionStatus,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import {
   BlockfrostProvider,
@@ -20,16 +19,20 @@ import { decodeV1ContractDatum } from '@/utils/converter/string-datum-convert';
 import { lockAndQueryPurchases } from '@/utils/db/lock-and-query-purchases';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
 
 export async function collectRefundV1() {
   //const maxBatchSize = 10;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     const paymentContractsWithWalletLocked = await lockAndQueryPurchases({
@@ -236,8 +239,7 @@ export async function collectRefundV1() {
     //TODO: Release the locked wallets
     logger.error('Error collecting refund', { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

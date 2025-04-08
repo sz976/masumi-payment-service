@@ -3,7 +3,6 @@ import {
   RegistrationState,
   PricingType,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider, Transaction } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
@@ -15,14 +14,18 @@ import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contrac
 import { blake2b } from 'ethereum-cryptography/blake2b';
 import { stringToMetadata } from '@/utils/converter/metadata-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
 
 export async function registerAgentV1() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     //Submit a result for invalid tokens
@@ -245,8 +248,7 @@ export async function registerAgentV1() {
   } catch (error) {
     logger.error('Error submitting result', { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger/';
 import { initJobs } from '@/services/schedules';
 import { createConfig, createServer } from 'express-zod-api';
 import { router } from '@/routes/index';
-import ui from 'swagger-ui-express';
+import ui, { JsonObject } from 'swagger-ui-express';
 import { generateOpenAPI } from '@/utils/generator/swagger-generator';
 import { cleanupDB, initDB } from '@/utils/db';
 import path from 'path';
@@ -36,11 +36,7 @@ initialize()
         // Add request logger middleware
         app.use(requestLogger);
 
-        const replacer = (
-          key: string,
-          value: unknown,
-          // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-        ): string | number | boolean | null | unknown => {
+        const replacer = (key: string, value: unknown): unknown => {
           if (typeof value === 'bigint') {
             return value.toString();
           }
@@ -59,8 +55,7 @@ initialize()
         app.use(
           '/docs',
           ui.serve,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          ui.setup(JSON.parse(docsString), {
+          ui.setup(JSON.parse(docsString) as JsonObject, {
             explorer: false,
             swaggerOptions: {
               persistAuthorization: true,
@@ -99,7 +94,6 @@ initialize()
   .catch((e) => {
     throw e;
   })
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  .finally(async () => {
-    await cleanupDB();
+  .finally(() => {
+    void cleanupDB();
   });

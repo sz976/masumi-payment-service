@@ -10,7 +10,6 @@ import {
   TransactionStatus,
   WalletType,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { logger } from '@/utils/logger';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -31,17 +30,22 @@ import {
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { deserializeDatum } from '@meshsdk/core';
 import { SmartContractState } from '@/utils/generator/contract-generator';
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 
-const updateMutex = new Sema(1);
+const mutex = new Mutex();
+
 export async function checkLatestTransactions(
   { maxParallelTransactions = 50 }: { maxParallelTransactions?: number } = {
     maxParallelTransactions: 50,
   },
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
 
   try {
     //only support web3 cardano v1 for now
@@ -1085,12 +1089,15 @@ export async function checkLatestTransactions(
               }
 
               const redeemer = redeemers.get(0);
+              const redeemerJson = redeemer
+                .data()
+                .to_json(PlutusDatumSchema.BasicConversions);
 
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const redeemerVersion: any = JSON.parse(
-                redeemer.data().to_json(PlutusDatumSchema.BasicConversions),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              )['constructor'];
+              const redeemerJsonObject = JSON.parse(redeemerJson) as {
+                constructor: number;
+              };
+
+              const redeemerVersion = redeemerJsonObject.constructor;
 
               if (
                 redeemerVersion != 0 &&
@@ -1254,8 +1261,7 @@ export async function checkLatestTransactions(
   } catch (error) {
     logger.error('Error checking latest transactions', { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

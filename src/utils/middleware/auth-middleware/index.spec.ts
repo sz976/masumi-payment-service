@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 import { testMiddleware } from 'express-zod-api';
 import { authMiddleware } from './index';
 import { ApiKeyStatus, Network, Permission } from '@prisma/client';

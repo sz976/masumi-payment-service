@@ -7,7 +7,6 @@ import {
   PurchaseErrorType,
   RegistrationState,
 } from '@prisma/client';
-import { Sema } from 'async-sema';
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
@@ -22,13 +21,18 @@ import { cardanoAuthorizeRefundHandlerService } from '../cardano-authorize-refun
 import { cardanoCancelRefundHandlerService } from '../cardano-cancel-refund-handler/cardano-cancel-refund-handler.service';
 import { DEFAULTS } from '@/utils/config';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
-const updateMutex = new Sema(1);
+import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+
+const mutex = new Mutex();
 
 export async function updateWalletTransactionHash() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const acquiredMutex = await updateMutex.tryAcquire();
-  //if we are already performing an update, we wait for it to finish and return
-  if (!acquiredMutex) return (await updateMutex.acquire()) as void;
+  let release: MutexInterface.Releaser | null;
+  try {
+    release = await tryAcquire(mutex).acquire();
+  } catch (e) {
+    logger.info('Mutex timeout when locking', { error: e });
+    return;
+  }
   const unlockedSellingWalletIds: string[] = [];
   const unlockedPurchasingWalletIds: string[] = [];
   try {
@@ -692,8 +696,7 @@ export async function updateWalletTransactionHash() {
   } catch (error) {
     logger.error(`Error updating wallet transaction hash`, { error: error });
   } finally {
-    //library is strange as we can release from any non-acquired semaphore
-    updateMutex.release();
+    release();
   }
 }
 

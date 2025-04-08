@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-base-to-string */
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { createLogger, format, transports } from 'winston';
 import { TransformableInfo } from 'logform';
 const { combine, timestamp, printf, errors } = format;
@@ -11,16 +9,18 @@ function buildDevLogger() {
     const paddedLevel = String(info.level).padEnd(7);
 
     // Handle error objects and their properties
-    let mainMessage = info.message;
+    let mainMessage = String(info.message);
     if (info instanceof Error || (info.error && info.error instanceof Error)) {
       const error = info instanceof Error ? info : (info.error as Error);
       mainMessage = error.message || mainMessage;
     }
+    const timestamp = String(info.timestamp);
 
     // Handle stack traces
     if (info.stack) {
-      const stackLines = String(info.stack).split('\n');
-      return `${info.timestamp} ${separator} [${paddedLevel}] ${separator} ${mainMessage}\n${stackLines
+      const stackLines = String(JSON.stringify(info.stack)).split('\n');
+
+      return `${timestamp} ${separator} [${paddedLevel}] ${separator} ${mainMessage}\n${stackLines
         .slice(1)
         .map(
           (line: string) =>
@@ -38,11 +38,11 @@ function buildDevLogger() {
         .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
         .join(', ');
       if (errorProps) {
-        additionalInfo = `\n${''.padStart(String(info.timestamp).length)} ${separator}            ${separator} Additional Details: ${errorProps}`;
+        additionalInfo = `\n${' '.padStart(timestamp.length)} ${separator}            ${separator} Additional Details: ${errorProps}`;
       }
     }
 
-    return `${info.timestamp} ${separator} [${paddedLevel}] ${separator} ${mainMessage}${additionalInfo}`;
+    return `${timestamp} ${separator} [${paddedLevel}] ${separator} ${mainMessage}${additionalInfo}`;
   });
 
   return createLogger({

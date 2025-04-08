@@ -22,8 +22,7 @@ async function initJobs() {
       's',
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 750)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 750)).then(() => {
     // Batch payments interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for batched payments');
@@ -37,8 +36,7 @@ async function initJobs() {
     }, CONFIG.BATCH_PAYMENT_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 5000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 5000)).then(() => {
     // Check collections interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for outstanding payments');
@@ -52,8 +50,7 @@ async function initJobs() {
     }, CONFIG.CHECK_COLLECTION_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 10000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 10000)).then(() => {
     // Check collection and refund interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for refunds');
@@ -67,8 +64,7 @@ async function initJobs() {
     }, CONFIG.CHECK_COLLECT_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 15000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 15000)).then(() => {
     // Check refund interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for timed out refunds');
@@ -82,8 +78,7 @@ async function initJobs() {
     }, CONFIG.CHECK_SET_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 20000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 20000)).then(() => {
     // Check unset refund interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for timed out refunds');
@@ -97,8 +92,7 @@ async function initJobs() {
     }, CONFIG.CHECK_UNSET_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 25000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 25000)).then(() => {
     // Check unset refund interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for agent registration');
@@ -112,8 +106,7 @@ async function initJobs() {
     }, CONFIG.REGISTER_AGENT_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 30000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 30000)).then(() => {
     // Check unset refund interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for agent deregistration');
@@ -127,8 +120,7 @@ async function initJobs() {
     }, CONFIG.DEREGISTER_AGENT_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 35000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 35000)).then(() => {
     // Check wallet transaction hash interval
     AsyncInterval.start(async () => {
       logger.info(
@@ -144,8 +136,7 @@ async function initJobs() {
     }, CONFIG.CHECK_WALLET_TRANSACTION_HASH_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 40000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 40000)).then(() => {
     // Check transactions interval
     AsyncInterval.start(async () => {
       logger.info('Starting to sync cardano payment entries');
@@ -159,8 +150,7 @@ async function initJobs() {
     }, CONFIG.CHECK_TX_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  new Promise((resolve) => setTimeout(resolve, 45000)).then(() => {
+  void new Promise((resolve) => setTimeout(resolve, 45000)).then(() => {
     // Check submit result interval
     AsyncInterval.start(async () => {
       logger.info('Starting to check for submit result');
