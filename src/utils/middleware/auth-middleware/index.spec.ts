@@ -196,8 +196,8 @@ describe('authMiddleware', () => {
     expect(output).toEqual({
       id: mockApiKey.id,
       permission: mockApiKey.permission,
-      networkLimit: mockApiKey.networkLimit,
-      usageLimited: mockApiKey.usageLimited,
+      networkLimit: [Network.Mainnet, Network.Preprod],
+      usageLimited: false,
     });
   });
   it('should pass validation with valid network ', async () => {
