@@ -116,18 +116,18 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
   }: {
     input: z.infer<typeof addAPIKeySchemaInput>;
   }) => {
-    const apiKey =
-      ('masumi-payment-' + input.permission == Permission.Admin
-        ? 'admin-'
-        : '') + createId();
+    const isAdmin = input.permission == Permission.Admin;
+    const apiKey = 'masumi-payment-' + (isAdmin ? 'admin-' : '') + createId();
     const result = await prisma.apiKey.create({
       data: {
         token: apiKey,
         tokenHash: generateHash(apiKey),
         status: ApiKeyStatus.Active,
         permission: input.permission,
-        usageLimited: input.usageLimited,
-        networkLimit: input.networkLimit,
+        usageLimited: isAdmin ? false : input.usageLimited,
+        networkLimit: isAdmin
+          ? [Network.Mainnet, Network.Preprod]
+          : input.networkLimit,
         RemainingUsageCredits: {
           createMany: {
             data: input.UsageCredits.map((usageCredit) => {
