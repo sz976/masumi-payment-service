@@ -98,7 +98,7 @@ export const submitPaymentResultEndpointPost =
       const specifiedPaymentContract = await prisma.paymentSource.findUnique({
         where: {
           network_smartContractAddress: {
-            network: input.network,
+            network: input.network1,
             smartContractAddress: smartContractAddress,
           },
         },
