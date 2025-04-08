@@ -1,6 +1,6 @@
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 import { z } from 'zod';
-import { Network } from '@prisma/client';
+import { $Enums, Network } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -57,7 +57,23 @@ export const queryUTXOEndpointGet = readAuthenticatedEndpointFactory.build({
   method: 'get',
   input: getUTXOSchemaInput,
   output: getUTXOSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof getUTXOSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const paymentSource = await prisma.paymentSource.findFirst({
       where: { network: input.network },
       include: { PaymentSourceConfig: true },
@@ -65,11 +81,6 @@ export const queryUTXOEndpointGet = readAuthenticatedEndpointFactory.build({
     if (paymentSource == null) {
       throw createHttpError(404, 'Network not found');
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
     try {
       const blockfrost = new BlockFrostAPI({
         projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,

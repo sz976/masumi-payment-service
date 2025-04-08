@@ -43,9 +43,12 @@ export const queryAPIKeyEndpointGet = adminAuthenticatedEndpointFactory.build({
   method: 'get',
   input: getAPIKeySchemaInput,
   output: getAPIKeySchemaOutput,
-  handler: async ({ input }) => {
+  handler: async ({
+    input,
+  }: {
+    input: z.infer<typeof getAPIKeySchemaInput>;
+  }) => {
     const result = await prisma.apiKey.findMany({
-      where: {},
       cursor: input.cursorToken ? { token: input.cursorToken } : undefined,
       take: input.limit,
       include: { RemainingUsageCredits: true },
@@ -108,7 +111,11 @@ export const addAPIKeyEndpointPost = adminAuthenticatedEndpointFactory.build({
   method: 'post',
   input: addAPIKeySchemaInput,
   output: addAPIKeySchemaOutput,
-  handler: async ({ input }) => {
+  handler: async ({
+    input,
+  }: {
+    input: z.infer<typeof addAPIKeySchemaInput>;
+  }) => {
     const apiKey =
       ('masumi-payment-' + input.permission == Permission.Admin
         ? 'admin-'
@@ -193,7 +200,11 @@ export const updateAPIKeyEndpointPatch =
     method: 'patch',
     input: updateAPIKeySchemaInput,
     output: updateAPIKeySchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+    }: {
+      input: z.infer<typeof updateAPIKeySchemaInput>;
+    }) => {
       const apiKey = await prisma.$transaction(
         async (tx) => {
           const apiKey = await tx.apiKey.findUnique({
@@ -282,7 +293,11 @@ export const deleteAPIKeyEndpointDelete =
     method: 'delete',
     input: deleteAPIKeySchemaInput,
     output: deleteAPIKeySchemaOutput,
-    handler: async ({ input }) => {
+    handler: async ({
+      input,
+    }: {
+      input: z.infer<typeof deleteAPIKeySchemaInput>;
+    }) => {
       return await prisma.apiKey.update({
         where: { id: input.id },
         data: { deletedAt: new Date(), status: ApiKeyStatus.Revoked },

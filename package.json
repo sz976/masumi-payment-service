@@ -42,7 +42,7 @@
         "dotenv": "^16.4.7",
         "ethereum-cryptography": "^3.1.0",
         "express": "^5.0.1",
-        "express-zod-api": "^22.10.0",
+        "express-zod-api": "^22.13.1",
         "http-errors": "^2.0.0",
         "http-status-codes": "^2.3.0",
         "lucid-cardano": "^0.10.11",

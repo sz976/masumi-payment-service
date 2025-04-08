@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { decrypt } from '@/utils/security/encryption';
-import { HotWalletType, Network } from '@prisma/client';
+import { $Enums, HotWalletType, Network } from '@prisma/client';
 import { MeshWallet, resolvePaymentKeyHash } from '@meshsdk/core';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
+import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 
 export const getWalletSchemaInput = z.object({
   walletType: z
@@ -44,12 +45,26 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
   method: 'get',
   input: getWalletSchemaInput,
   output: getWalletSchemaOutput,
-  handler: async ({ input }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof getWalletSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
     if (input.walletType == 'Selling') {
       const result = await prisma.hotWallet.findFirst({
         where: {
           id: input.id,
           type: HotWalletType.Selling,
+          PaymentSource: {
+            network: { in: options.networkLimit },
+          },
         },
         include: {
           Secret: true,
@@ -99,6 +114,9 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
         where: {
           id: input.id,
           type: HotWalletType.Purchasing,
+          PaymentSource: {
+            network: { in: options.networkLimit },
+          },
         },
         include: {
           Secret: true,
@@ -165,7 +183,23 @@ export const postWalletEndpointPost = adminAuthenticatedEndpointFactory.build({
   method: 'post',
   input: postWalletSchemaInput,
   output: postWalletSchemaOutput,
-  handler: async ({ input }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof postWalletSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const secretKey = MeshWallet.brew(false);
     const secretWords =
       typeof secretKey == 'string' ? secretKey.split(' ') : secretKey;

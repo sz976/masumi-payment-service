@@ -1,6 +1,6 @@
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { z } from 'zod';
-import { HotWalletType, Network, PricingType } from '@prisma/client';
+import { $Enums, HotWalletType, Network, PricingType } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
@@ -161,7 +161,23 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
   method: 'get',
   input: queryAgentFromWalletSchemaInput,
   output: queryAgentFromWalletSchemaOutput,
-  handler: async ({ input, options }) => {
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof queryAgentFromWalletSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      input.network,
+      options.permission,
+    );
     const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
@@ -182,11 +198,7 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
         'Network and Address combination not supported',
       );
     }
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
+
     const blockfrost = new BlockFrostAPI({
       projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,
     });

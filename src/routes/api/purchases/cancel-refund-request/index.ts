@@ -7,6 +7,7 @@ import {
   OnChainState,
   PurchaseErrorType,
   Permission,
+  $Enums,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
@@ -91,7 +92,23 @@ export const cancelPurchaseRefundRequestPost =
     method: 'post',
     input: cancelPurchaseRefundRequestSchemaInput,
     output: cancelPurchaseRefundRequestSchemaOutput,
-    handler: async ({ input, options }) => {
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof cancelPurchaseRefundRequestSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      await checkIsAllowedNetworkOrThrowUnauthorized(
+        options.networkLimit,
+        input.network,
+        options.permission,
+      );
       const paymentContractAddress =
         input.smartContractAddress ??
         (input.network == Network.Mainnet
@@ -159,11 +176,6 @@ export const cancelPurchaseRefundRequestPost =
       if (purchase.SmartContractWallet == null) {
         throw createHttpError(404, 'Smart contract wallet not set on purchase');
       }
-      await checkIsAllowedNetworkOrThrowUnauthorized(
-        options.networkLimit,
-        input.network,
-        options.permission,
-      );
 
       const result = await prisma.purchaseRequest.update({
         where: { id: purchase.id },
