@@ -12,7 +12,6 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { tokenCreditService } from '@/services/token-credit';
 import { DEFAULTS } from '@/utils/config';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
@@ -22,6 +21,7 @@ import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
 import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
+import { handlePurchaseCreditInit } from '@/services/token-credit';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -613,27 +613,26 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       );
     }
 
-    const initialPurchaseRequest =
-      await tokenCreditService.handlePurchaseCreditInit({
-        id: options.id,
-        cost: Array.from(inputAmountsMap.entries()).map(([unit, amount]) => {
-          if (unit.toLowerCase() == 'lovelace') {
-            return { amount: amount, unit: '' };
-          } else {
-            return { amount: amount, unit: unit };
-          }
-        }),
-        metadata: input.metadata,
-        network: input.network,
-        blockchainIdentifier: input.blockchainIdentifier,
-        paymentType: input.paymentType,
-        contractAddress: smartContractAddress,
-        sellerVkey: input.sellerVkey,
-        submitResultTime: submitResultTime,
-        unlockTime: unlockTime,
-        externalDisputeUnlockTime: externalDisputeUnlockTime,
-        inputHash: input.inputHash,
-      });
+    const initialPurchaseRequest = await handlePurchaseCreditInit({
+      id: options.id,
+      cost: Array.from(inputAmountsMap.entries()).map(([unit, amount]) => {
+        if (unit.toLowerCase() == 'lovelace') {
+          return { amount: amount, unit: '' };
+        } else {
+          return { amount: amount, unit: unit };
+        }
+      }),
+      metadata: input.metadata,
+      network: input.network,
+      blockchainIdentifier: input.blockchainIdentifier,
+      paymentType: input.paymentType,
+      contractAddress: smartContractAddress,
+      sellerVkey: input.sellerVkey,
+      submitResultTime: submitResultTime,
+      unlockTime: unlockTime,
+      externalDisputeUnlockTime: externalDisputeUnlockTime,
+      inputHash: input.inputHash,
+    });
 
     return {
       ...initialPurchaseRequest,

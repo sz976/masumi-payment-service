@@ -12,7 +12,7 @@ import { registerAgentV1 } from '../cardano-register-handler/cardano-register-ha
 import { deRegisterAgentV1 } from '../cardano-deregister-handler/cardano-deregister-handler.service';
 import { submitResultV1 } from '../cardano-submit-result-handler/cardano-submit-result-handler.service';
 import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/cardano-authorize-refund-handler.service';
-async function initJobs() {
+export async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
   await checkLatestTransactions();
@@ -180,5 +180,3 @@ async function initJobs() {
   await new Promise((resolve) => setTimeout(resolve, 200));
   logger.info('Initialized async intervals');
 }
-
-export { initJobs };

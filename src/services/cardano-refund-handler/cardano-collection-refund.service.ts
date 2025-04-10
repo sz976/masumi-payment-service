@@ -242,5 +242,3 @@ export async function collectRefundV1() {
     release();
   }
 }
-
-export const cardanoRefundHandlerService = { collectRefundV1 };

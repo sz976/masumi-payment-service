@@ -168,5 +168,3 @@ export async function deRegisterAgentV1() {
     release();
   }
 }
-
-export const cardanoDeregisterHandlerService = { deRegisterAgentV1 };

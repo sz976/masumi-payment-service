@@ -1,1 +1,1 @@
-export { cardanoRegisterHandlerService } from './cardano-register-handler.service';
+export { registerAgentV1 } from './cardano-register-handler.service';

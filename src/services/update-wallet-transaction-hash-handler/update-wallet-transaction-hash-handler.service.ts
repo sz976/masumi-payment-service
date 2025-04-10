@@ -10,15 +10,15 @@ import {
 import { prisma } from '@/utils/db';
 import { BlockfrostProvider } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
-import { cardanoRefundHandlerService } from '../cardano-refund-handler/cardano-collection-refund.service';
-import { cardanoSubmitResultHandlerService } from '../cardano-submit-result-handler/cardano-submit-result-handler.service';
-import { cardanoRequestRefundHandlerService } from '../cardano-request-refund-handler/cardano-request-refund-handler.service';
-import { cardanoCollectionHandlerService } from '../cardano-collection-handler';
-import { cardanoPaymentBatcherService } from '../cardano-payment-batcher';
-import { cardanoRegisterHandlerService } from '../cardano-register-handler/cardano-register-handler.service';
-import { cardanoDeregisterHandlerService } from '../cardano-deregister-handler/cardano-deregister-handler.service';
-import { cardanoAuthorizeRefundHandlerService } from '../cardano-authorize-refund-handler/cardano-authorize-refund-handler.service';
-import { cardanoCancelRefundHandlerService } from '../cardano-cancel-refund-handler/cardano-cancel-refund-handler.service';
+import { collectRefundV1 } from '../cardano-refund-handler/';
+import { submitResultV1 } from '../cardano-submit-result-handler/';
+import { requestRefundsV1 } from '../cardano-request-refund-handler/';
+import { collectOutstandingPaymentsV1 } from '../cardano-collection-handler/';
+import { batchLatestPaymentEntriesV1 } from '../cardano-payment-batcher/';
+import { registerAgentV1 } from '../cardano-register-handler/';
+import { deRegisterAgentV1 } from '../cardano-deregister-handler/';
+import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/';
+import { cancelRefundsV1 } from '../cardano-cancel-refund-handler/';
 import { DEFAULTS } from '@/utils/config';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
@@ -616,61 +616,74 @@ export async function updateWalletTransactionHash() {
     //TODO: reset initialized actions
     if (uniqueUnlockedSellingWalletIds.length > 0) {
       try {
-        await cardanoSubmitResultHandlerService.submitResultV1();
-      } catch (error) {
-        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
-      }
-      try {
-        await cardanoAuthorizeRefundHandlerService.authorizeRefundV1();
-      } catch (error) {
-        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
-      }
-      try {
-        await cardanoCollectionHandlerService.collectOutstandingPaymentsV1();
-      } catch (error) {
-        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
-      }
-      try {
-        await cardanoRegisterHandlerService.registerAgentV1();
+        await submitResultV1();
       } catch (error) {
         logger.error(
-          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+          `Error initiating submit result: ${convertErrorString(error)}`,
         );
       }
       try {
-        await cardanoDeregisterHandlerService.deRegisterAgentV1();
+        await authorizeRefundV1();
+      } catch (error) {
+        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
+      }
+      try {
+        await collectOutstandingPaymentsV1();
       } catch (error) {
         logger.error(
-          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+          `Error initiating collect outstanding payments: ${convertErrorString(error)}`,
+        );
+      }
+      try {
+        await registerAgentV1();
+      } catch (error) {
+        logger.error(
+          `Error initiating register agent: ${convertErrorString(error)}`,
+        );
+      }
+      try {
+        await deRegisterAgentV1();
+      } catch (error) {
+        logger.error(
+          `Error initiating deregister agent: ${convertErrorString(error)}`,
+        );
+      }
+      try {
+        await authorizeRefundV1();
+      } catch (error) {
+        logger.error(
+          `Error initiating authorize refund: ${convertErrorString(error)}`,
         );
       }
     }
     if (uniqueUnlockedPurchasingWalletIds.length > 0) {
       try {
-        await cardanoRefundHandlerService.collectRefundV1();
+        await collectRefundV1();
       } catch (error) {
         logger.error(
-          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+          `Error initiating collect refund: ${convertErrorString(error)}`,
         );
       }
       try {
-        await cardanoRequestRefundHandlerService.requestRefundsV1();
+        await requestRefundsV1();
       } catch (error) {
         logger.error(
-          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+          `Error initiating request refund: ${convertErrorString(error)}`,
         );
       }
       try {
-        await cardanoCancelRefundHandlerService.cancelRefundsV1();
+        await cancelRefundsV1();
       } catch (error) {
         logger.error(
-          `Error initiating timeout refunds: ${convertErrorString(error)}`,
+          `Error initiating cancel refund: ${convertErrorString(error)}`,
         );
       }
       try {
-        await cardanoPaymentBatcherService.batchLatestPaymentEntriesV1();
+        await batchLatestPaymentEntriesV1();
       } catch (error) {
-        logger.error(`Error initiating refunds: ${convertErrorString(error)}`);
+        logger.error(
+          `Error initiating batch latest payment entries: ${convertErrorString(error)}`,
+        );
       }
     }
     try {
@@ -699,7 +712,3 @@ export async function updateWalletTransactionHash() {
     release();
   }
 }
-
-export const updateWalletTransactionHashHandlerService = {
-  updateWalletTransactionHash,
-};

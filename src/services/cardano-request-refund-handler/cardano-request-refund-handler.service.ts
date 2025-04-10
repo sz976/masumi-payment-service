@@ -264,7 +264,3 @@ export async function requestRefundsV1() {
     release();
   }
 }
-
-export const cardanoRequestRefundHandlerService = {
-  requestRefundsV1: requestRefundsV1,
-};
