@@ -23,8 +23,8 @@ import { Tabs } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Pagination } from '@/components/ui/pagination';
 
-
-type PaymentSource = GetPaymentSourceResponses['200']['data']['PaymentSources'][0]
+type PaymentSource =
+  GetPaymentSourceResponses['200']['data']['PaymentSources'][0];
 
 export default function PaymentSourcesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,9 +94,11 @@ export default function PaymentSourcesPage() {
       });
 
       if (response.data?.data?.ExtendedPaymentSources) {
-
         if (cursor) {
-          setPaymentSources((prev) => [...prev, ...response.data.data.ExtendedPaymentSources]);
+          setPaymentSources((prev) => [
+            ...prev,
+            ...response.data.data.ExtendedPaymentSources,
+          ]);
         } else {
           setPaymentSources(response.data.data.ExtendedPaymentSources);
         }
@@ -334,7 +336,9 @@ export default function PaymentSourcesPage() {
                                 : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                             )}
                           >
-                            {source.lastIdentifierChecked ? 'Active' : 'Inactive'}
+                            {source.lastIdentifierChecked
+                              ? 'Active'
+                              : 'Inactive'}
                           </span>
                         </div>
                       </td>

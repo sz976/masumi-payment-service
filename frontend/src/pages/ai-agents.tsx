@@ -11,7 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getRegistry, deleteRegistry, GetRegistryResponses } from '@/lib/api/generated';
+import {
+  getRegistry,
+  deleteRegistry,
+  GetRegistryResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
 import { Spinner } from '@/components/ui/spinner';
@@ -21,8 +25,7 @@ import { FaRegClock } from 'react-icons/fa';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 
-type AIAgent = GetRegistryResponses['200']['data']['Assets'][0]
-
+type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
   switch (status) {
@@ -102,8 +105,8 @@ export default function AIAgentsPage() {
         const matchState = agent.state?.toLowerCase().includes(query) || false;
         const matchPrice = agent.AgentPricing?.Pricing?.[0]?.amount
           ? (parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000)
-            .toFixed(2)
-            .includes(query)
+              .toFixed(2)
+              .includes(query)
           : false;
 
         return (
@@ -402,7 +405,7 @@ export default function AIAgentsPage() {
                           variant={getStatusBadgeVariant(agent.state)}
                           className={cn(
                             agent.state === 'RegistrationConfirmed' &&
-                            'bg-green-50 text-green-700 hover:bg-green-50/80',
+                              'bg-green-50 text-green-700 hover:bg-green-50/80',
                           )}
                         >
                           {parseAgentStatus(agent.state)}
@@ -413,16 +416,16 @@ export default function AIAgentsPage() {
                           <>
                             {(agent.state === 'RegistrationInitiated' ||
                               agent.state === 'DeregistrationInitiated') && (
-                                <div className="flex items-center justify-center w-8 h-8">
-                                  <Spinner size={16} />
-                                </div>
-                              )}
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <Spinner size={16} />
+                              </div>
+                            )}
                             {(agent.state === 'RegistrationRequested' ||
                               agent.state === 'DeregistrationRequested') && (
-                                <div className="flex items-center justify-center w-8 h-8">
-                                  <FaRegClock size={12} />
-                                </div>
-                              )}
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <FaRegClock size={12} />
+                              </div>
+                            )}
                           </>
                         ) : (
                           <Button

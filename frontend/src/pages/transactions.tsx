@@ -8,7 +8,12 @@ import { cn } from '@/lib/utils';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getPayment, GetPaymentResponses, getPurchase, GetPurchaseResponses } from '@/lib/api/generated';
+import {
+  getPayment,
+  GetPaymentResponses,
+  getPurchase,
+  GetPurchaseResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import {
   Dialog,
@@ -21,7 +26,11 @@ import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 
-type Transaction = (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' }) | (GetPurchaseResponses['200']['data']['Purchases'][0] & { type: 'purchase' });
+type Transaction =
+  | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
+  | (GetPurchaseResponses['200']['data']['Purchases'][0] & {
+      type: 'purchase';
+    });
 
 interface ApiError {
   message: string;
@@ -93,9 +102,20 @@ export default function Transactions() {
             ?.toLowerCase()
             .includes(query) || false;
 
-        const matchRequestedFunds = transaction.type === 'payment' && transaction.RequestedFunds?.some((fund) => parseInt(fund.amount) / 1000000).toString().toLowerCase().includes(query)
-        const matchPaidFunds = transaction.type === 'purchase' && transaction.PaidFunds?.some((fund) => parseInt(fund.amount) / 1000000).toString().toLowerCase().includes(query)
-
+        const matchRequestedFunds =
+          transaction.type === 'payment' &&
+          transaction.RequestedFunds?.some(
+            (fund) => parseInt(fund.amount) / 1000000,
+          )
+            .toString()
+            .toLowerCase()
+            .includes(query);
+        const matchPaidFunds =
+          transaction.type === 'purchase' &&
+          transaction.PaidFunds?.some((fund) => parseInt(fund.amount) / 1000000)
+            .toString()
+            .toLowerCase()
+            .includes(query);
 
         return (
           matchId ||
@@ -133,7 +153,6 @@ export default function Transactions() {
           limit: 10,
         },
       });
-
 
       if (purchases.data?.data?.Purchases) {
         purchases.data.data.Purchases.forEach((purchase) => {
@@ -378,9 +397,11 @@ export default function Transactions() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {transaction.type === 'payment' && transaction.RequestedFunds?.[0]
+                        {transaction.type === 'payment' &&
+                        transaction.RequestedFunds?.[0]
                           ? `${(parseInt(transaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
-                          : transaction.type === 'purchase' && transaction.PaidFunds?.[0]
+                          : transaction.type === 'purchase' &&
+                              transaction.PaidFunds?.[0]
                             ? `${(parseInt(transaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                             : '—'}
                       </td>
@@ -492,11 +513,12 @@ export default function Transactions() {
                   <div>
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
-                      {selectedTransaction.
-                        //FIX proper funds
-                        type === 'payment' && selectedTransaction.RequestedFunds?.[0]
+                      {//FIX proper funds
+                      selectedTransaction.type === 'payment' &&
+                      selectedTransaction.RequestedFunds?.[0]
                         ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
-                        : selectedTransaction.type === 'purchase' && selectedTransaction.PaidFunds?.[0]
+                        : selectedTransaction.type === 'purchase' &&
+                            selectedTransaction.PaidFunds?.[0]
                           ? `${(parseInt(selectedTransaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                           : '—'}
                     </p>
@@ -518,7 +540,7 @@ export default function Transactions() {
                           onClick={() =>
                             copyToClipboard(
                               selectedTransaction.CurrentTransaction?.txHash ||
-                              '',
+                                '',
                               'Transaction hash',
                             )
                           }

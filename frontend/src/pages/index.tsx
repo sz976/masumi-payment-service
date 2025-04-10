@@ -8,7 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Copy, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
-import { getPaymentSource, GetPaymentSourceResponses, getRegistry, getUtxos, GetUtxosResponses } from '@/lib/api/generated';
+import {
+  getPaymentSource,
+  GetPaymentSourceResponses,
+  getRegistry,
+  getUtxos,
+  GetUtxosResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
@@ -35,11 +41,16 @@ interface AIAgent {
   };
 }
 
+type Wallet =
+  | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
+      type: 'Purchasing';
+    })
+  | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
+      type: 'Selling';
+    });
+type WalletWithBalance = Wallet & { balance: string; usdmBalance: string };
 
-type Wallet = GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & { type: 'Purchasing' } | GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & { type: 'Selling' }
-type WalletWithBalance = Wallet & { balance: string, usdmBalance: string }
-
-type UTXO = GetUtxosResponses['200']['data']['Utxos'][0]
+type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
 
 export const getStaticProps: GetStaticProps = async () => {
   return {
@@ -100,7 +111,7 @@ export default function Overview() {
 
           response.data.data.Utxos.forEach((utxo: UTXO) => {
             utxo.Amounts.forEach((amount) => {
-              if (amount.unit === 'lovelace' || amount.unit == "") {
+              if (amount.unit === 'lovelace' || amount.unit == '') {
                 adaBalance += amount.quantity || 0;
               } else if (amount.unit === 'USDM') {
                 usdmBalance += amount.quantity || 0;
@@ -146,7 +157,11 @@ export default function Overview() {
           const walletsWithBalances = await Promise.all(
             allWallets.map(async (wallet) => {
               const balance = await fetchWalletBalance(wallet);
-              return { ...wallet, usdmBalance: balance.usdm, balance: balance.ada };
+              return {
+                ...wallet,
+                usdmBalance: balance.usdm,
+                balance: balance.ada,
+              };
             }),
           );
 
@@ -157,8 +172,8 @@ export default function Overview() {
             return sum + (parseInt(wallet.usdmBalance || '0') || 0);
           }, 0);
 
-          setTotalBalance((totalAdaBalance).toString());
-          setTotalUsdmBalance((totalUsdmBalance).toString());
+          setTotalBalance(totalAdaBalance.toString());
+          setTotalUsdmBalance(totalUsdmBalance.toString());
           setWallets(walletsWithBalances);
         }
       }
@@ -255,12 +270,15 @@ export default function Overview() {
                     ₳{' '}
                     {useFormatBalance(
                       (parseInt(totalBalance) / 1000000).toFixed(2)?.toString(),
-                    ) ?? ''} {' + '}
+                    ) ?? ''}{' '}
+                    {' + '}
                   </div>
                   <div className="text-2xl font-semibold">
                     ${' '}
                     {useFormatBalance(
-                      (parseInt(totalUsdmBalance) / 1000000).toFixed(2)?.toString(),
+                      (parseInt(totalUsdmBalance) / 1000000)
+                        .toFixed(2)
+                        ?.toString(),
                     ) ?? ''}
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -379,7 +397,9 @@ export default function Overview() {
                                 : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                             )}
                           >
-                            {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
+                            {wallet.type === 'Purchasing'
+                              ? 'Buying'
+                              : 'Selling'}
                           </span>
                         </div>
                         <div>
