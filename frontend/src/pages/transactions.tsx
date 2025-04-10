@@ -8,7 +8,12 @@ import { cn } from '@/lib/utils';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getPayment, getPurchase } from '@/lib/api/generated';
+import {
+  getPayment,
+  GetPaymentResponses,
+  getPurchase,
+  GetPurchaseResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import {
   Dialog,
@@ -21,31 +26,11 @@ import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 
-interface Transaction {
-  id: string;
-  type: 'payment' | 'purchase';
-  createdAt: string;
-  updatedAt: string;
-  onChainState: string;
-  Amounts: Array<{
-    amount: string;
-    unit: string;
-  }>;
-  PaymentSource: {
-    network: 'Preprod' | 'Mainnet';
-    paymentType: string;
-  };
-  CurrentTransaction?: {
-    txHash: string | null;
-  } | null;
-  NextAction?: {
-    errorType?: string;
-    errorNote?: string | null;
-  };
-  SmartContractWallet?: {
-    walletAddress: string;
-  } | null;
-}
+type Transaction =
+  | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
+  | (GetPurchaseResponses['200']['data']['Purchases'][0] & {
+      type: 'purchase';
+    });
 
 interface ApiError {
   message: string;
@@ -116,11 +101,21 @@ export default function Transactions() {
           transaction.SmartContractWallet?.walletAddress
             ?.toLowerCase()
             .includes(query) || false;
-        const matchAmount = transaction.Amounts?.[0]?.amount
-          ? (parseInt(transaction.Amounts[0].amount) / 1000000)
-              .toFixed(2)
-              .includes(query)
-          : false;
+
+        const matchRequestedFunds =
+          transaction.type === 'payment' &&
+          transaction.RequestedFunds?.some(
+            (fund) => parseInt(fund.amount) / 1000000,
+          )
+            .toString()
+            .toLowerCase()
+            .includes(query);
+        const matchPaidFunds =
+          transaction.type === 'purchase' &&
+          transaction.PaidFunds?.some((fund) => parseInt(fund.amount) / 1000000)
+            .toString()
+            .toLowerCase()
+            .includes(query);
 
         return (
           matchId ||
@@ -129,7 +124,8 @@ export default function Transactions() {
           matchType ||
           matchNetwork ||
           matchWallet ||
-          matchAmount
+          matchRequestedFunds ||
+          matchPaidFunds
         );
       });
     }
@@ -159,7 +155,7 @@ export default function Transactions() {
       });
 
       if (purchases.data?.data?.Purchases) {
-        purchases.data.data.Purchases.forEach((purchase: any) => {
+        purchases.data.data.Purchases.forEach((purchase) => {
           combined.push({
             ...purchase,
             type: 'purchase',
@@ -178,7 +174,7 @@ export default function Transactions() {
       });
 
       if (payments.data?.data?.Payments) {
-        payments.data.data.Payments.forEach((payment: any) => {
+        payments.data.data.Payments.forEach((payment) => {
           combined.push({
             ...payment,
             type: 'payment',
@@ -401,9 +397,13 @@ export default function Transactions() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {transaction.Amounts?.[0]
-                          ? `${(parseInt(transaction.Amounts[0].amount) / 1000000).toFixed(2)} ₳`
-                          : '—'}
+                        {transaction.type === 'payment' &&
+                        transaction.RequestedFunds?.[0]
+                          ? `${(parseInt(transaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
+                          : transaction.type === 'purchase' &&
+                              transaction.PaidFunds?.[0]
+                            ? `${(parseInt(transaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
+                            : '—'}
                       </td>
                       <td className="p-4">
                         {transaction.PaymentSource.network}
@@ -513,9 +513,14 @@ export default function Transactions() {
                   <div>
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
-                      {selectedTransaction.Amounts?.[0]
-                        ? `${(parseInt(selectedTransaction.Amounts[0].amount) / 1000000).toFixed(2)} ₳`
-                        : '—'}
+                      {//FIX proper funds
+                      selectedTransaction.type === 'payment' &&
+                      selectedTransaction.RequestedFunds?.[0]
+                        ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
+                        : selectedTransaction.type === 'purchase' &&
+                            selectedTransaction.PaidFunds?.[0]
+                          ? `${(parseInt(selectedTransaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
+                          : '—'}
                     </p>
                   </div>
 

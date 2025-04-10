@@ -6,7 +6,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getApiKey, deleteApiKey } from '@/lib/api/generated';
+import {
+  getApiKey,
+  deleteApiKey,
+  GetApiKeyResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { AddApiKeyDialog } from '@/components/api-keys/AddApiKeyDialog';
 import { UpdateApiKeyDialog } from '@/components/api-keys/UpdateApiKeyDialog';
@@ -23,18 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 
-interface ApiKey {
-  id: string;
-  token: string;
-  permission: 'Read' | 'ReadAndPay' | 'Admin';
-  usageLimited: boolean;
-  networkLimit: ('Preprod' | 'Mainnet')[];
-  RemainingUsageCredits: Array<{
-    unit: string;
-    amount: string;
-  }>;
-  status: 'Active' | 'Revoked';
-}
+type ApiKey = GetApiKeyResponses['200']['data']['ApiKeys'][0];
 
 export default function ApiKeys() {
   const { apiClient } = useAppContext();

@@ -11,7 +11,12 @@ import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getPaymentSource, getUtxos } from '@/lib/api/generated';
+import {
+  getPaymentSource,
+  GetPaymentSourceResponses,
+  getUtxos,
+  GetUtxosResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, shortenAddress } from '@/lib/utils';
@@ -23,37 +28,24 @@ import { FaExchangeAlt } from 'react-icons/fa';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { Tabs } from '@/components/ui/tabs';
 
-interface Wallet {
-  id: string;
-  walletVkey: string;
-  walletAddress: string;
-  collectionAddress: string | null;
-  note: string | null;
-  type: 'Purchasing' | 'Selling';
-  balance?: string;
-  usdmBalance?: string;
-}
-
-interface UTXO {
-  txHash: string;
-  address: string;
-  Amounts: Array<{
-    unit: string;
-    quantity: number | null;
-  }>;
-  dataHash: string | null;
-  inlineDatum: string | null;
-  referenceScriptHash: string | null;
-  outputIndex: number | null;
-  block: string;
-}
+type Wallet =
+  | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
+      type: 'Purchasing';
+    })
+  | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
+      type: 'Selling';
+    });
+type WalletWithBalance = Wallet & { balance: string; usdmBalance: string };
+type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
 
 export default function WalletsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
-  const [allWallets, setAllWallets] = useState<Wallet[]>([]);
-  const [filteredWallets, setFilteredWallets] = useState<Wallet[]>([]);
+  const [allWallets, setAllWallets] = useState<WalletWithBalance[]>([]);
+  const [filteredWallets, setFilteredWallets] = useState<WalletWithBalance[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingBalances, setRefreshingBalances] = useState<Set<string>>(
     new Set(),
@@ -126,7 +118,7 @@ export default function WalletsPage() {
 
         response.data.data.Utxos.forEach((utxo: UTXO) => {
           utxo.Amounts.forEach((amount) => {
-            if (amount.unit === 'lovelace') {
+            if (amount.unit === 'lovelace' || amount.unit == '') {
               adaBalance += amount.quantity || 0;
             } else if (amount.unit === 'USDM') {
               usdmBalance += amount.quantity || 0;

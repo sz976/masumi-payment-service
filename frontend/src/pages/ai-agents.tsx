@@ -11,7 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getRegistry, deleteRegistry } from '@/lib/api/generated';
+import {
+  getRegistry,
+  deleteRegistry,
+  GetRegistryResponses,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
 import { Spinner } from '@/components/ui/spinner';
@@ -21,37 +25,7 @@ import { FaRegClock } from 'react-icons/fa';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 
-interface AIAgent {
-  id: string;
-  name: string;
-  description: string | null;
-  apiBaseUrl: string;
-  state:
-    | 'RegistrationRequested'
-    | 'RegistrationInitiated'
-    | 'RegistrationConfirmed'
-    | 'RegistrationFailed'
-    | 'DeregistrationRequested'
-    | 'DeregistrationInitiated'
-    | 'DeregistrationConfirmed'
-    | 'DeregistrationFailed';
-  Tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  lastCheckedAt: string | null;
-  agentIdentifier: string | null;
-  AgentPricing: {
-    pricingType: 'Fixed';
-    Pricing: Array<{
-      amount: string;
-      unit: string;
-    }>;
-  };
-  SmartContractWallet: {
-    walletVkey: string;
-    walletAddress: string;
-  };
-}
+type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
   switch (status) {
