@@ -32,6 +32,7 @@
         "@blockfrost/blockfrost-js": "^6.0.0",
         "@emurgo/cardano-serialization-lib-nodejs": "^14.1.1",
         "@jest/globals": "^29.7.0",
+        "@jest/types": "^29.6.3",
         "@meshsdk/core": "^1.8.14",
         "@meshsdk/core-cst": "^1.8.14",
         "@paralleldrive/cuid2": "^2.2.2",
@@ -45,9 +46,6 @@
         "express": "^5.1.0",
         "express-zod-api": "^22.13.2",
         "http-errors": "^2.0.0",
-        "http-status-codes": "^2.3.0",
-        "lucid-cardano": "^0.10.11",
-        "node": "20.17.0",
         "swagger-ui-express": "^5.0.1",
         "winston": "^3.17.0",
         "zod": "^3.24.2"
@@ -75,8 +73,7 @@
         "prisma": "^6.6.0",
         "ts-jest": "^29.3.1",
         "tsx": "^4.19.3",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.29.1"
+        "typescript": "^5.8.3"
     },
     "lint-staged": {
         "*.{js,ts}": [
