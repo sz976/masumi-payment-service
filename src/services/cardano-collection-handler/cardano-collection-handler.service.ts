@@ -294,5 +294,3 @@ export async function collectOutstandingPaymentsV1() {
     release();
   }
 }
-
-export const cardanoCollectionHandlerService = { collectOutstandingPaymentsV1 };

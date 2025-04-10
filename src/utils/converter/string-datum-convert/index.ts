@@ -114,7 +114,7 @@ export function newCooldownTime(cooldownTime: number) {
   return cooldownTimeMs;
 }
 
-export function valueToStatus(value: any) {
+function valueToStatus(value: any) {
   if (value == null) {
     return null;
   }
@@ -135,23 +135,6 @@ export function valueToStatus(value: any) {
       return SmartContractState.RefundRequested;
     case 3:
       return SmartContractState.Disputed;
-  }
-  return null;
-}
-
-export function valueToBool(value: unknown) {
-  if (value == null) {
-    return null;
-  }
-  const val = value as { constructor?: number; fields?: unknown[] };
-  if (val.constructor == null || val.fields == null || val.fields.length != 0) {
-    return null;
-  }
-  if (val.constructor === 1) {
-    return true;
-  }
-  if (val.constructor === 0) {
-    return false;
   }
   return null;
 }

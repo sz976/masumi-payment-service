@@ -1,1 +1,1 @@
-export { cardanoPaymentBatcherService } from './cardano-payment-batcher.service';
+export { batchLatestPaymentEntriesV1 } from './cardano-payment-batcher.service';

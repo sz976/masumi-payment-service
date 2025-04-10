@@ -127,7 +127,7 @@ export enum SmartContractState {
   Disputed = 3,
 }
 
-export function getSmartContractStateDatum(state: SmartContractState) {
+function getSmartContractStateDatum(state: SmartContractState) {
   switch (state) {
     case SmartContractState.FundsLocked:
       return {

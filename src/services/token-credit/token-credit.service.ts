@@ -3,7 +3,7 @@ import { InsufficientFundsError } from '@/utils/errors/insufficient-funds-error'
 import { logger } from '@/utils/logger';
 import { Network, PaymentType } from '@prisma/client';
 import createHttpError from 'http-errors';
-async function handlePurchaseCreditInit({
+export async function handlePurchaseCreditInit({
   id,
   cost,
   metadata,
@@ -53,5 +53,3 @@ async function handlePurchaseCreditInit({
     throw createHttpError(500, 'Error handling payment credit initialization');
   }
 }
-
-export const tokenCreditService = { handlePurchaseCreditInit };

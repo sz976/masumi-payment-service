@@ -259,5 +259,3 @@ export async function authorizeRefundV1() {
     release();
   }
 }
-
-export const cardanoAuthorizeRefundHandlerService = { authorizeRefundV1 };

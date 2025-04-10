@@ -12,9 +12,5 @@ if (
 } else {
   logger = buildProdLogger();
 }
-const stream = {
-  write: function (message: unknown) {
-    if (logger) logger.info(message);
-  },
-};
-export { logger, stream };
+
+export { logger };

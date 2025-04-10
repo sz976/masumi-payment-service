@@ -1,1 +1,1 @@
-export { cardanoSubmitResultHandlerService } from './cardano-submit-result-handler.service';
+export { submitResultV1 } from './cardano-submit-result-handler.service';

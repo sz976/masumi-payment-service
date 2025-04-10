@@ -1,1 +1,1 @@
-export { cardanoDeregisterHandlerService } from './cardano-deregister-handler.service';
+export { deRegisterAgentV1 } from './cardano-deregister-handler.service';
