@@ -11,7 +11,7 @@ import { cancelRefundsV1 } from '../cardano-cancel-refund-handler';
 import { registerAgentV1 } from '../cardano-register-handler/cardano-register-handler.service';
 import { deRegisterAgentV1 } from '../cardano-deregister-handler/cardano-deregister-handler.service';
 import { submitResultV1 } from '../cardano-submit-result-handler/cardano-submit-result-handler.service';
-
+import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/cardano-authorize-refund-handler.service';
 async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -90,6 +90,20 @@ async function initJobs() {
           's',
       );
     }, CONFIG.CHECK_UNSET_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
+
+  void new Promise((resolve) => setTimeout(resolve, 23000)).then(() => {
+    // Check unset refund interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting to check to authorize refunds');
+      const start = new Date();
+      await authorizeRefundV1();
+      logger.info(
+        'Finished to check to authorize refunds in ' +
+          (new Date().getTime() - start.getTime()) / 1000 +
+          's',
+      );
+    }, CONFIG.CHECK_AUTHORIZE_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
   void new Promise((resolve) => setTimeout(resolve, 25000)).then(() => {
