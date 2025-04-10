@@ -162,7 +162,6 @@ export function AddAIAgentDialog({
             name: 'Custom Agent',
             version: '1.0.0',
           },
-          requestsPerHour: null,
           AgentPricing: {
             pricingType: 'Fixed',
             Pricing: [

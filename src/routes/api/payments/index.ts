@@ -7,6 +7,7 @@ import {
   PaymentAction,
   PaymentErrorType,
   PaymentType,
+  PricingType,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
@@ -19,6 +20,8 @@ import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { convertNetworkToId } from '@/utils/converter/network-convert';
 import { decrypt } from '@/utils/security/encryption';
+import { metadataSchema } from '../registry/wallet';
+import { metadataToString } from '@/utils/converter/metadata-string-convert';
 
 export const queryPaymentsSchemaInput = z.object({
   limit: z
@@ -66,6 +69,7 @@ export const queryPaymentsSchemaOutput = z.object({
       externalDisputeUnlockTime: z.string(),
       requestedById: z.string(),
       resultHash: z.string(),
+      inputHash: z.string(),
       cooldownTime: z.number(),
       cooldownTimeOtherParty: z.number(),
       onChainState: z.nativeEnum(OnChainState).nullable(),
@@ -73,6 +77,7 @@ export const queryPaymentsSchemaOutput = z.object({
         requestedAction: z.nativeEnum(PaymentAction),
         errorType: z.nativeEnum(PaymentErrorType).nullable(),
         errorNote: z.string().nullable(),
+        resultHash: z.string().nullable(),
       }),
       CurrentTransaction: z
         .object({
@@ -201,6 +206,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
 });
 
 export const createPaymentsSchemaInput = z.object({
+  inputHash: z.string().max(250),
   network: z
     .nativeEnum(Network)
     .describe('The network the payment will be received on'),
@@ -212,7 +218,8 @@ export const createPaymentsSchemaInput = z.object({
   RequestedFunds: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
-    .describe('The amounts of the payment'),
+    .optional()
+    .describe('The amounts of the payment, should be null for fixed amount'),
   paymentType: z
     .nativeEnum(PaymentType)
     .describe('The type of payment contract used'),
@@ -260,10 +267,12 @@ export const createPaymentSchemaOutput = z.object({
   externalDisputeUnlockTime: z.string(),
   lastCheckedAt: z.date().nullable(),
   requestedById: z.string(),
+  inputHash: z.string(),
   resultHash: z.string(),
   onChainState: z.nativeEnum(OnChainState).nullable(),
   NextAction: z.object({
     requestedAction: z.nativeEnum(PaymentAction),
+    resultHash: z.string().nullable(),
     errorType: z.nativeEnum(PaymentErrorType).nullable(),
     errorNote: z.string().nullable(),
   }),
@@ -375,6 +384,37 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       throw createHttpError(404, 'Agent identifier not found');
     }
 
+    const assetMetadata = await provider.assetsById(input.agentIdentifier);
+    if (!assetMetadata || !assetMetadata.onchain_metadata) {
+      throw createHttpError(404, 'Agent registry metadata not found');
+    }
+    const parsedMetadata = metadataSchema.safeParse(
+      assetMetadata.onchain_metadata,
+    );
+    if (!parsedMetadata.success) {
+      throw createHttpError(404, 'Agent registry metadata not valid');
+    }
+    const pricing = parsedMetadata.data.agentPricing;
+    if (
+      pricing.pricingType == PricingType.Fixed &&
+      input.RequestedFunds != null
+    ) {
+      throw createHttpError(
+        400,
+        'For fixed pricing, RequestedFunds must be null',
+      );
+    } else if (pricing.pricingType != PricingType.Fixed) {
+      throw createHttpError(400, 'Non fixed price not supported yet');
+    }
+
+    const amounts = pricing.fixedPricing.map((amount) => ({
+      amount: amount.amount,
+      unit:
+        metadataToString(amount.unit)?.toLowerCase() == 'lovelace'
+          ? ''
+          : metadataToString(amount.unit)!,
+    }));
+
     const vKey = resolvePaymentKeyHash(assetInWallet[0].address);
 
     const sellingWallet = specifiedPaymentContract.HotWallets.find(
@@ -388,12 +428,13 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       );
     }
     const blockchainIdentifier = {
+      inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
       purchaserIdentifier: input.identifierFromPurchaser,
       sellerAddress: sellingWallet.walletAddress,
       sellerIdentifier: cuid2.createId(),
-      RequestedFunds: input.RequestedFunds.map((amount) => ({
-        amount: amount.amount,
+      RequestedFunds: amounts.map((amount) => ({
+        amount: BigInt(amount.amount).toString(),
         unit: amount.unit,
       })),
       submitResultTime: input.submitResultTime.getTime().toString(),
@@ -427,12 +468,8 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         PaymentSource: { connect: { id: specifiedPaymentContract.id } },
         RequestedFunds: {
           createMany: {
-            data: input.RequestedFunds.map((amount) => {
-              if (amount.unit == '') {
-                return { amount: BigInt(amount.amount), unit: 'lovelace' };
-              } else {
-                return { amount: BigInt(amount.amount), unit: amount.unit };
-              }
+            data: amounts.map((amount) => {
+              return { amount: BigInt(amount.amount), unit: amount.unit };
             }),
           },
         },
@@ -441,6 +478,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
             requestedAction: PaymentAction.WaitingForExternalAction,
           },
         },
+        inputHash: input.inputHash,
         resultHash: '',
         SmartContractWallet: { connect: { id: sellingWallet.id } },
         submitResultTime: input.submitResultTime.getTime(),

@@ -146,9 +146,7 @@ export function generateOpenAPI() {
                     permission: Permission.Admin,
                     networkLimit: [Network.Preprod],
                     usageLimited: true,
-                    RemainingUsageCredits: [
-                      { unit: 'lovelace', amount: '10000000' },
-                    ],
+                    RemainingUsageCredits: [{ unit: '', amount: '10000000' }],
                   },
                 },
               }),
@@ -275,7 +273,7 @@ export function generateOpenAPI() {
                         permission: Permission.Admin,
                         usageLimited: true,
                         RemainingUsageCredits: [
-                          { unit: 'lovelace', amount: '10000000' },
+                          { unit: '', amount: '10000000' },
                         ],
                         status: ApiKeyStatus.Active,
                         networkLimit: [Network.Mainnet],
@@ -314,7 +312,7 @@ export function generateOpenAPI() {
             schema: addAPIKeySchemaInput.openapi({
               example: {
                 usageLimited: 'true',
-                UsageCredits: [{ unit: 'lovelace', amount: '10000000' }],
+                UsageCredits: [{ unit: '', amount: '10000000' }],
                 permission: Permission.Admin,
               },
             }),
@@ -374,8 +372,8 @@ export function generateOpenAPI() {
                 id: 'unique_cuid_v2_of_entry_to_update',
                 token: 'api_key_to_change_to',
                 UsageCreditsToAddOrRemove: [
-                  { unit: 'lovelace', amount: '10000000' },
-                  { unit: 'usdm', amount: '-10000000' },
+                  { unit: '', amount: '10000000' },
+                  { unit: 'usdm_policy_and_asset_id', amount: '-10000000' },
                 ],
                 status: ApiKeyStatus.Active,
               },
@@ -521,11 +519,13 @@ export function generateOpenAPI() {
                         requestedById: 'requester_id',
                         resultHash: 'result_hash',
                         onChainState: null,
+                        inputHash: 'input_hash',
                         NextAction: {
                           requestedAction:
                             PaymentAction.AuthorizeRefundRequested,
                           errorType: null,
                           errorNote: null,
+                          resultHash: null,
                         },
                         CurrentTransaction: null,
                         TransactionHistory: [],
@@ -535,7 +535,7 @@ export function generateOpenAPI() {
                             createdAt: new Date(1713636260),
                             updatedAt: new Date(1713636260),
                             amount: '10000000',
-                            unit: 'lovelace',
+                            unit: '',
                           },
                         ],
                         PaymentSource: {
@@ -583,9 +583,9 @@ export function generateOpenAPI() {
               example: {
                 agentIdentifier: 'agent_identifier',
                 network: Network.Preprod,
+                inputHash: 'input_hash',
                 metadata:
                   '(private) metadata to be stored with the payment request',
-                RequestedFunds: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
                 identifierFromPurchaser: 'unique_key_from_purchaser',
@@ -608,6 +608,7 @@ export function generateOpenAPI() {
                   status: 'success',
                   data: {
                     id: 'cuid_v2_auto_generated',
+                    inputHash: 'input_hash',
                     blockchainIdentifier: 'blockchain_identifier',
                     createdAt: new Date(1713636260),
                     updatedAt: new Date(1713636260),
@@ -622,6 +623,7 @@ export function generateOpenAPI() {
                       requestedAction: PaymentAction.AuthorizeRefundRequested,
                       errorType: null,
                       errorNote: null,
+                      resultHash: null,
                     },
                     RequestedFunds: [
                       {
@@ -629,7 +631,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -708,10 +710,12 @@ export function generateOpenAPI() {
                     requestedById: 'requester_id',
                     resultHash: 'result_hash',
                     onChainState: null,
+                    inputHash: 'input_hash',
                     NextAction: {
                       requestedAction: PaymentAction.AuthorizeRefundRequested,
                       errorType: null,
                       errorNote: null,
+                      resultHash: null,
                     },
                     RequestedFunds: [
                       {
@@ -719,7 +723,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -797,10 +801,12 @@ export function generateOpenAPI() {
                     requestedById: 'requester_id',
                     resultHash: 'result_hash',
                     onChainState: null,
+                    inputHash: 'input_hash',
                     NextAction: {
                       requestedAction: PaymentAction.AuthorizeRefundRequested,
                       errorType: null,
                       errorNote: null,
+                      resultHash: null,
                     },
                     RequestedFunds: [
                       {
@@ -808,7 +814,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -881,11 +887,13 @@ export function generateOpenAPI() {
                         resultHash: '',
                         cooldownTime: 0,
                         cooldownTimeOtherParty: 0,
+                        inputHash: 'input_hash',
                         NextAction: {
                           requestedAction:
                             PurchasingAction.FundsLockingRequested,
                           errorType: null,
                           errorNote: null,
+                          inputHash: 'input_hash',
                         },
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
@@ -941,12 +949,12 @@ export function generateOpenAPI() {
                 blockchainIdentifier: 'blockchain_identifier',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
-                Amounts: [{ amount: '10000000', unit: 'lovelace' }],
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
                 externalDisputeUnlockTime: (1713636260).toString(),
                 agentIdentifier: 'agent_identifier',
+                inputHash: 'input_hash',
               },
             }),
           },
@@ -979,6 +987,7 @@ export function generateOpenAPI() {
                     requestedById: 'requester_id',
                     resultHash: '',
                     onChainState: null,
+                    inputHash: 'input_hash',
                     NextAction: {
                       requestedAction: PurchasingAction.FundsLockingRequested,
                       errorType: null,
@@ -991,7 +1000,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1081,7 +1090,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1170,7 +1179,7 @@ export function generateOpenAPI() {
                         createdAt: new Date(1713636260),
                         updatedAt: new Date(1713636260),
                         amount: '10000000',
-                        unit: 'lovelace',
+                        unit: '',
                       },
                     ],
                     PaymentSource: {
@@ -1313,7 +1322,6 @@ export function generateOpenAPI() {
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
-                        requestsPerHour: 100,
                         Capability: {
                           name: 'capability_name',
                           version: 'capability_version',
@@ -1401,13 +1409,12 @@ export function generateOpenAPI() {
                 },
                 sellingWalletVkey: 'wallet_vkey',
                 Capability: { name: 'Capability Name', version: '1.0.0' },
-                requestsPerHour: 3,
                 AgentPricing: {
                   pricingType: PricingType.Fixed,
                   Pricing: [
                     {
-                      unit: 'usdm',
-                      amount: '500000000',
+                      unit: '',
+                      amount: '10000000',
                     },
                   ],
                 },
@@ -1440,13 +1447,12 @@ export function generateOpenAPI() {
                       terms: 'terms',
                       other: 'other',
                     },
-                    requestsPerHour: 100,
                     AgentPricing: {
                       pricingType: PricingType.Fixed,
                       Pricing: [
                         {
-                          unit: 'usdm',
-                          amount: '500000000',
+                          unit: '',
+                          amount: '10000000',
                         },
                       ],
                     },
@@ -1507,7 +1513,6 @@ export function generateOpenAPI() {
                       name: 'capability_name',
                       version: 'capability_version',
                     },
-                    requestsPerHour: 100,
                     ExampleOutputs: [
                       {
                         name: 'example_output_name',
@@ -1530,8 +1535,8 @@ export function generateOpenAPI() {
                       pricingType: PricingType.Fixed,
                       Pricing: [
                         {
-                          unit: 'usdm',
-                          amount: '500000000',
+                          unit: '',
+                          amount: '10000000',
                         },
                       ],
                     },
@@ -1741,7 +1746,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'post',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description: 'Creates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
     tags: ['payment-source'],
@@ -1866,7 +1871,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'patch',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description: 'Updates a payment source.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
     tags: ['payment-source'],
@@ -1986,7 +1991,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'delete',
-    path: '/payment-source/',
+    path: '/payment-source-extended/',
     description:
       'Deletes a payment source. WARNING will also delete all associated wallets and transactions.',
     summary: 'REQUIRES API KEY Authentication (+ADMIN)',
@@ -2052,7 +2057,7 @@ export function generateOpenAPI() {
                       {
                         txHash: 'tx_hash',
                         address: 'addr1qx2ej34k567890',
-                        Amounts: [{ unit: 'lovelace', quantity: 10000000 }],
+                        Amounts: [{ unit: '', quantity: 10000000 }],
                         outputIndex: 1,
                         block: '1',
                         dataHash: 'data_hash',

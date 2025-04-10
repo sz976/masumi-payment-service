@@ -116,7 +116,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   const navItems = [
     { href: '/', name: 'Dashboard', icon: LayoutDashboard, badge: null },
-    { href: '/ai-agents', name: 'AI agents', icon: Bot, badge: null },
+    { href: '/ai-agents', name: 'AI Agents', icon: Bot, badge: null },
     { href: '/wallets', name: 'Wallets', icon: Wallet, badge: null },
     {
       href: '/transactions',
@@ -242,7 +242,11 @@ export function MainLayout({ children }: MainLayoutProps) {
               collapsed ? 'justify-center' : 'justify-between',
             )}
           >
-            {!collapsed && <MasumiLogo />}
+            {!collapsed && (
+              <Link href="https://www.masumi.network" target="_blank">
+                <MasumiLogo />
+              </Link>
+            )}
             <Button
               variant={collapsed ? 'ghost' : 'muted'}
               size="icon"

@@ -263,7 +263,7 @@ export const paymentSourceExtendedEndpointPost =
           input.AdminWallets[1].walletAddress,
           input.AdminWallets[2].walletAddress,
           input.FeeReceiverNetworkWallet.walletAddress,
-          input.FeePermille,
+          input.feeRatePermille,
           1000 * 60 * 15,
           input.network,
         );

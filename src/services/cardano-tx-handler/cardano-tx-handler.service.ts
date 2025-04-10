@@ -432,6 +432,7 @@ export async function checkLatestTransactions(
                               errorNote:
                                 'No smart contract wallet set for purchase request in db. This is likely an internal error.',
                               errorType: PurchaseErrorType.Unknown,
+                              inputHash: decodedNewContract.inputHash,
                             },
                           },
                         },
@@ -454,6 +455,7 @@ export async function checkLatestTransactions(
                               errorNote:
                                 'No seller wallet set for purchase request in db. This seems like an internal error.',
                               errorType: PurchaseErrorType.Unknown,
+                              inputHash: decodedNewContract.inputHash,
                             },
                           },
                         },
@@ -594,8 +596,10 @@ export async function checkLatestTransactions(
                     await prisma.purchaseRequest.update({
                       where: { id: dbEntry.id },
                       data: {
+                        inputHash: decodedNewContract.inputHash,
                         NextAction: {
                           create: {
+                            inputHash: decodedNewContract.inputHash,
                             requestedAction:
                               PurchasingAction.WaitingForExternalAction,
                           },
@@ -857,12 +861,9 @@ export async function checkLatestTransactions(
                       errorNote.push(errorMessage);
                     }
                     const paymentCountMatches =
-                      dbEntry.RequestedFunds.filter(
-                        (x) => x.unit != 'lovelace' && x.unit != '',
-                      ).length ==
-                      output.amount.filter(
-                        (x) => x.unit != 'lovelace' && x.unit != '',
-                      ).length;
+                      dbEntry.RequestedFunds.filter((x) => x.unit != '')
+                        .length ==
+                      output.amount.filter((x) => x.unit != '').length;
                     if (paymentCountMatches == false) {
                       const errorMessage =
                         'Token counts do not match. This likely is a spoofing attempt.';
@@ -1379,8 +1380,10 @@ async function handlePurchasingTransactionCardanoV1(
       await prisma.purchaseRequest.update({
         where: { id: purchasingRequest.id },
         data: {
+          inputHash: purchasingRequest.inputHash,
           NextAction: {
             create: {
+              inputHash: purchasingRequest.inputHash,
               requestedAction: newAction.action,
               errorNote: newAction.errorNote,
               errorType: newAction.errorType,
@@ -1433,10 +1436,18 @@ function checkPaymentAmountsMatch(
   actualAmounts: { unit: string; quantity: string }[],
 ) {
   return expectedAmounts.every((x) => {
-    const existingAmount = actualAmounts.find((y) => y.unit == x.unit);
+    if (x.unit.toLowerCase() == 'lovelace') {
+      x.unit = '';
+    }
+    const existingAmount = actualAmounts.find((y) => {
+      if (y.unit.toLowerCase() == 'lovelace') {
+        y.unit = '';
+      }
+      return y.unit == x.unit;
+    });
     if (existingAmount == null) return false;
     //allow for some overpayment to handle min lovelace requirements
-    if (x.unit == 'lovelace' || x.unit == '') {
+    if (x.unit == '') {
       return x.amount <= BigInt(existingAmount.quantity);
     }
     //require exact match for non-lovelace amounts

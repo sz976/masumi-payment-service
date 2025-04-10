@@ -9,7 +9,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { AddPaymentSourceDialog } from '@/components/payment-sources/AddPaymentSourceDialog';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getPaymentSource, deletePaymentSource } from '@/lib/api/generated';
+import {
+  getPaymentSourceExtended,
+  deletePaymentSourceExtended,
+} from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, shortenAddress } from '@/lib/utils';
@@ -112,7 +115,7 @@ export default function PaymentSourcesPage() {
         setIsLoadingMore(true);
       }
 
-      const response = await getPaymentSource({
+      const response = await getPaymentSourceExtended({
         client: apiClient,
         query: {
           take: 10,
@@ -120,8 +123,8 @@ export default function PaymentSourcesPage() {
         },
       });
 
-      if (response.data?.data?.PaymentSources) {
-        const newSources = response.data.data.PaymentSources.map(
+      if (response.data?.data?.ExtendedPaymentSources) {
+        const newSources = response.data.data.ExtendedPaymentSources.map(
           (source: APIPaymentSource) => ({
             id: source.id,
             smartContractAddress: source.smartContractAddress,
@@ -201,7 +204,7 @@ export default function PaymentSourcesPage() {
     try {
       setIsDeleting(true);
 
-      const response = await deletePaymentSource({
+      const response = await deletePaymentSourceExtended({
         client: apiClient,
         query: {
           id: sourceToDelete.id,
@@ -362,7 +365,9 @@ export default function PaymentSourcesPage() {
                         <div className="text-sm">{source.paymentType}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm">{source.feeRatePermille}%</div>
+                        <div className="text-sm">
+                          {(source.feeRatePermille / 10).toFixed(1)}%
+                        </div>
                       </td>
                       <td className="p-4">
                         <div>
