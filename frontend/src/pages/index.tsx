@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
-import { getPaymentSource, getRegistry, getUtxos } from '@/lib/api/generated';
+import { getPaymentSource, GetPaymentSourceResponses, getRegistry, getUtxos, GetUtxosResponses } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
@@ -35,31 +35,11 @@ interface AIAgent {
   };
 }
 
-interface Wallet {
-  id: string;
-  walletVkey: string;
-  walletAddress: string;
-  note: string | null;
-  type: 'buying' | 'selling';
-}
 
-interface WalletWithBalance extends Wallet {
-  balance?: string;
-}
+type Wallet = GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & { type: 'Purchasing' } | GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & { type: 'Selling' }
+type WalletWithBalance = Wallet & { balance: string, usdmBalance: string }
 
-interface UTXO {
-  txHash: string;
-  address: string;
-  Amounts: Array<{
-    unit: string;
-    quantity: number | null;
-  }>;
-  dataHash: string | null;
-  inlineDatum: string | null;
-  referenceScriptHash: string | null;
-  outputIndex: number | null;
-  block: string;
-}
+type UTXO = GetUtxosResponses['200']['data']['Utxos'][0]
 
 export const getStaticProps: GetStaticProps = async () => {
   return {
@@ -74,6 +54,7 @@ export default function Overview() {
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const [isLoadingWallets, setIsLoadingWallets] = useState(true);
   const [totalBalance, setTotalBalance] = useState('0');
+  const [totalUsdmBalance, setTotalUsdmBalance] = useState('0');
   const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
   const [isAddAgentDialogOpen, setIsAddAgentDialogOpen] = useState(false);
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
@@ -114,18 +95,28 @@ export default function Overview() {
         });
 
         if (response.data?.data?.Utxos) {
-          const balance = response.data.data.Utxos.reduce(
-            (sum: number, utxo: UTXO) => {
-              const adaAmount = utxo.Amounts[0]?.quantity || 0;
-              return sum + adaAmount;
-            },
-            0,
-          );
-          return balance.toString();
+          let adaBalance = 0;
+          let usdmBalance = 0;
+
+          response.data.data.Utxos.forEach((utxo: UTXO) => {
+            utxo.Amounts.forEach((amount) => {
+              if (amount.unit === 'lovelace' || amount.unit == "") {
+                adaBalance += amount.quantity || 0;
+              } else if (amount.unit === 'USDM') {
+                usdmBalance += amount.quantity || 0;
+              }
+            });
+          });
+
+          return {
+            ada: adaBalance.toString(),
+            usdm: usdmBalance.toString(),
+          };
         }
-        return '0';
-      } catch {
-        return '0';
+        return { ada: '0', usdm: '0' };
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        return { ada: '0', usdm: '0' };
       }
     },
     [apiClient, state.network],
@@ -141,29 +132,33 @@ export default function Overview() {
       if (response.data?.data?.PaymentSources) {
         const paymentSource = response.data.data.PaymentSources[0];
         if (paymentSource) {
-          const allWallets: WalletWithBalance[] = [
+          const allWallets: Wallet[] = [
             ...paymentSource.PurchasingWallets.map((wallet) => ({
               ...wallet,
-              type: 'buying' as const,
+              type: 'Purchasing' as const,
             })),
             ...paymentSource.SellingWallets.map((wallet) => ({
               ...wallet,
-              type: 'selling' as const,
+              type: 'Selling' as const,
             })),
           ];
 
           const walletsWithBalances = await Promise.all(
             allWallets.map(async (wallet) => {
               const balance = await fetchWalletBalance(wallet);
-              return { ...wallet, balance };
+              return { ...wallet, usdmBalance: balance.usdm, balance: balance.ada };
             }),
           );
 
-          const total = walletsWithBalances.reduce((sum, wallet) => {
+          const totalAdaBalance = walletsWithBalances.reduce((sum, wallet) => {
             return sum + (parseInt(wallet.balance || '0') || 0);
           }, 0);
+          const totalUsdmBalance = walletsWithBalances.reduce((sum, wallet) => {
+            return sum + (parseInt(wallet.usdmBalance || '0') || 0);
+          }, 0);
 
-          setTotalBalance(total.toString());
+          setTotalBalance((totalAdaBalance).toString());
+          setTotalUsdmBalance((totalUsdmBalance).toString());
           setWallets(walletsWithBalances);
         }
       }
@@ -184,10 +179,11 @@ export default function Overview() {
     toast.success('Address copied to clipboard');
   };
 
-  const formatUsdValue = (adaAmount: string) => {
+  const formatUsdValue = (adaAmount: string, usdmAmount: string) => {
     if (!rate || !adaAmount) return '—';
     const ada = parseInt(adaAmount) / 1000000;
-    return `≈ $${(ada * rate).toFixed(2)}`;
+    const usdm = parseInt(usdmAmount) / 1000000;
+    return `≈ $${(ada * rate + usdm).toFixed(2)}`;
   };
 
   return (
@@ -259,12 +255,18 @@ export default function Overview() {
                     ₳{' '}
                     {useFormatBalance(
                       (parseInt(totalBalance) / 1000000).toFixed(2)?.toString(),
-                    ) || ''}
+                    ) ?? ''} {' + '}
+                  </div>
+                  <div className="text-2xl font-semibold">
+                    ${' '}
+                    {useFormatBalance(
+                      (parseInt(totalUsdmBalance) / 1000000).toFixed(2)?.toString(),
+                    ) ?? ''}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {isLoadingRate && !totalBalance
+                    {isLoadingRate && !totalUsdmBalance
                       ? '...'
-                      : `~ $${useFormatBalance(formatUsdValue(totalBalance))}`}
+                      : `~ $${useFormatBalance(formatUsdValue(totalBalance, totalUsdmBalance))}`}
                   </div>
                 </>
               )}
@@ -372,17 +374,17 @@ export default function Overview() {
                           <span
                             className={cn(
                               'text-xs font-medium px-2 py-0.5 rounded-full',
-                              wallet.type === 'buying'
+                              wallet.type === 'Purchasing'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                             )}
                           >
-                            {wallet.type === 'buying' ? 'Buying' : 'Selling'}
+                            {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
                           </span>
                         </div>
                         <div>
                           <div className="text-sm font-medium">
-                            {wallet.type === 'buying'
+                            {wallet.type === 'Purchasing'
                               ? 'Buying wallet'
                               : 'Selling wallet'}
                           </div>

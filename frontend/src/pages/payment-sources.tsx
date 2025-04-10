@@ -12,6 +12,7 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import {
   getPaymentSourceExtended,
   deletePaymentSourceExtended,
+  GetPaymentSourceResponses,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,39 +23,8 @@ import { Tabs } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Pagination } from '@/components/ui/pagination';
 
-interface Wallet {
-  id: string;
-  walletVkey: string;
-  walletAddress: string;
-  collectionAddress: string | null;
-  note: string | null;
-}
 
-interface PaymentSource {
-  id: string;
-  smartContractAddress: string;
-  network: 'Preprod' | 'Mainnet';
-  paymentType: 'Web3CardanoV1';
-  feeRatePermille: number;
-  status: 'Active' | 'Inactive';
-  createdAt: string;
-  PurchasingWallets: Wallet[];
-  SellingWallets: Wallet[];
-}
-
-interface APIPaymentSource {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  network: 'Preprod' | 'Mainnet';
-  smartContractAddress: string;
-  paymentType: 'Web3CardanoV1';
-  lastIdentifierChecked: string | null;
-  lastCheckedAt: string | null;
-  feeRatePermille: number;
-  PurchasingWallets: Wallet[];
-  SellingWallets: Wallet[];
-}
+type PaymentSource = GetPaymentSourceResponses['200']['data']['PaymentSources'][0]
 
 export default function PaymentSourcesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,29 +94,14 @@ export default function PaymentSourcesPage() {
       });
 
       if (response.data?.data?.ExtendedPaymentSources) {
-        const newSources = response.data.data.ExtendedPaymentSources.map(
-          (source: APIPaymentSource) => ({
-            id: source.id,
-            smartContractAddress: source.smartContractAddress,
-            network: source.network,
-            paymentType: source.paymentType,
-            feeRatePermille: source.feeRatePermille,
-            status: source.lastIdentifierChecked
-              ? ('Active' as const)
-              : ('Inactive' as const),
-            createdAt: source.createdAt,
-            PurchasingWallets: source.PurchasingWallets || [],
-            SellingWallets: source.SellingWallets || [],
-          }),
-        );
 
         if (cursor) {
-          setPaymentSources((prev) => [...prev, ...newSources]);
+          setPaymentSources((prev) => [...prev, ...response.data.data.ExtendedPaymentSources]);
         } else {
-          setPaymentSources(newSources);
+          setPaymentSources(response.data.data.ExtendedPaymentSources);
         }
 
-        setHasMore(newSources.length === 10);
+        setHasMore(response.data.data.ExtendedPaymentSources.length === 10);
       } else {
         if (!cursor) {
           setPaymentSources([]);
@@ -374,12 +329,12 @@ export default function PaymentSourcesPage() {
                           <span
                             className={cn(
                               'text-xs font-medium px-2 py-0.5 rounded-full',
-                              source.status === 'Active'
+                              source.lastIdentifierChecked
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                             )}
                           >
-                            {source.status}
+                            {source.lastIdentifierChecked ? 'Active' : 'Inactive'}
                           </span>
                         </div>
                       </td>
