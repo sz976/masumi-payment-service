@@ -1,18 +1,18 @@
 import { logger } from '../../utils/logger';
 import { CONFIG } from '../../utils/config';
-import { checkLatestTransactions } from '../cardano-tx-handler/cardano-tx-handler.service';
+import { checkLatestTransactions } from '../cardano-tx-handler/';
 import { batchLatestPaymentEntriesV1 } from '../cardano-payment-batcher/cardano-payment-batcher.service';
-import { collectOutstandingPaymentsV1 } from '../cardano-collection-handler/cardano-collection-handler.service';
-import { collectRefundV1 } from '../cardano-refund-handler/cardano-collection-refund.service';
-import { updateWalletTransactionHash } from '../update-wallet-transaction-hash-handler/update-wallet-transaction-hash-handler.service';
-import { requestRefundsV1 } from '../cardano-request-refund-handler/cardano-request-refund-handler.service';
+import { collectOutstandingPaymentsV1 } from '../cardano-collection-handler/';
+import { collectRefundV1 } from '../cardano-refund-handler/';
+import { updateWalletTransactionHash } from '../update-wallet-transaction-hash-handler/';
+import { requestRefundsV1 } from '../cardano-request-refund-handler/';
 import { AsyncInterval } from '../../utils/async-interval';
-import { cancelRefundsV1 } from '../cardano-cancel-refund-handler';
-import { registerAgentV1 } from '../cardano-register-handler/cardano-register-handler.service';
-import { deRegisterAgentV1 } from '../cardano-deregister-handler/cardano-deregister-handler.service';
-import { submitResultV1 } from '../cardano-submit-result-handler/cardano-submit-result-handler.service';
-
-async function initJobs() {
+import { cancelRefundsV1 } from '../cardano-cancel-refund-handler/';
+import { registerAgentV1 } from '../cardano-register-handler/';
+import { deRegisterAgentV1 } from '../cardano-deregister-handler/';
+import { submitResultV1 } from '../cardano-submit-result-handler/';
+import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/';
+export async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
   await checkLatestTransactions();
@@ -92,6 +92,20 @@ async function initJobs() {
     }, CONFIG.CHECK_UNSET_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
+  void new Promise((resolve) => setTimeout(resolve, 23000)).then(() => {
+    // Check unset refund interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting to check to authorize refunds');
+      const start = new Date();
+      await authorizeRefundV1();
+      logger.info(
+        'Finished to check to authorize refunds in ' +
+          (new Date().getTime() - start.getTime()) / 1000 +
+          's',
+      );
+    }, CONFIG.CHECK_AUTHORIZE_REFUND_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
+
   void new Promise((resolve) => setTimeout(resolve, 25000)).then(() => {
     // Check unset refund interval
     AsyncInterval.start(async () => {
@@ -166,5 +180,3 @@ async function initJobs() {
   await new Promise((resolve) => setTimeout(resolve, 200));
   logger.info('Initialized async intervals');
 }
-
-export { initJobs };

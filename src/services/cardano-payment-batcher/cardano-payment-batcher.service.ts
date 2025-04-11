@@ -465,5 +465,3 @@ export async function batchLatestPaymentEntriesV1() {
     release();
   }
 }
-
-export const cardanoPaymentBatcherService = { batchLatestPaymentEntriesV1 };

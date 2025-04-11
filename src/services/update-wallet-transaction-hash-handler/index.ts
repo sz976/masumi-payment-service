@@ -1,1 +1,1 @@
-export { updateWalletTransactionHashHandlerService } from './update-wallet-transaction-hash-handler.service';
+export { updateWalletTransactionHash } from './update-wallet-transaction-hash-handler.service';

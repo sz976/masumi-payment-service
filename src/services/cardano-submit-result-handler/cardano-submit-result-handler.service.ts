@@ -292,5 +292,3 @@ export async function submitResultV1() {
     release();
   }
 }
-
-export const cardanoSubmitResultHandlerService = { submitResultV1 };

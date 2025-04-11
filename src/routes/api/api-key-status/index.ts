@@ -4,7 +4,7 @@ import { ApiKeyStatus, Network, Permission } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 
-export const getAPIKeyStatusSchemaInput = z.object({});
+const getAPIKeyStatusSchemaInput = z.object({});
 
 export const getAPIKeyStatusSchemaOutput = z.object({
   token: z.string(),
