@@ -1,1 +1,1 @@
-export { tokenCreditService } from './token-credit.service';
+export { handlePurchaseCreditInit } from './token-credit.service';

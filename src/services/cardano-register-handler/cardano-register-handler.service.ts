@@ -251,5 +251,3 @@ export async function registerAgentV1() {
     release();
   }
 }
-
-export const cardanoRegisterHandlerService = { registerAgentV1 };

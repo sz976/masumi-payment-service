@@ -1463,8 +1463,3 @@ function checkPaymentAmountsMatch(
     return x.amount == BigInt(existingAmount.quantity);
   });
 }
-
-export const cardanoTxHandlerService = {
-  checkLatestTransactions,
-  checkPaymentAmountsMatch,
-};

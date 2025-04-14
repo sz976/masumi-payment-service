@@ -1,1 +1,1 @@
-export { cardanoCollectionHandlerService } from './cardano-collection-handler.service';
+export { collectOutstandingPaymentsV1 } from './cardano-collection-handler.service';

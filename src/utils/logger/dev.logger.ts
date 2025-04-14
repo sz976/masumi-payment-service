@@ -1,9 +1,8 @@
 import { createLogger, format, transports } from 'winston';
-import { TransformableInfo } from 'logform';
 const { combine, timestamp, printf, errors } = format;
 
 function buildDevLogger() {
-  const logFormat = printf((info: TransformableInfo) => {
+  const logFormat = printf((info) => {
     const separator = '│';
     // Pad the level to maintain consistent width
     const paddedLevel = String(info.level).padEnd(7);

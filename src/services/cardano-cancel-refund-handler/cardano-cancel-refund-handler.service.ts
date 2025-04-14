@@ -267,5 +267,3 @@ export async function cancelRefundsV1() {
     release();
   }
 }
-
-export const cardanoCancelRefundHandlerService = { cancelRefundsV1 };
