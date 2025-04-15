@@ -38,6 +38,7 @@ const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
 const admin2 = fs.readFileSync('wallet_4.addr').toString();
 const admin3 = fs.readFileSync('wallet_5.addr').toString();
+
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
     2,
@@ -97,11 +98,11 @@ buyer: VerificationKeyHash,
   refund_requested: Bool,
   refund_denied: Bool,
 */
-const submitResultTime = Date.now() + 1000 * 60 * 60 * 24 * 30;
+const submitResultTime = Date.now() + 1000 * 60 * 5;
 //1 minute unlock period
-const unlockTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 2; // * 30;
+const unlockTime = Date.now() + 1000 * 60 *  12; // * 30;
 //1 hour refund dispute period
-const externalDisputeUnlockTime = Date.now() + 1000 * 60 * 60 * 24 * 30 * 3; //* 60; //* 24 * 30;
+const externalDisputeUnlockTime = Date.now() + 1000 * 60 * 12; //* 60; //* 24 * 30;
 const sellerCooldownTime = Date.now() + 1000 * 15;
 const buyerCooldownTime = Date.now() + 1000 * 15;
 const datum = {

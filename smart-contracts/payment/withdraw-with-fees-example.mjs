@@ -37,6 +37,7 @@ const admin1 = fs.readFileSync('wallet_3.addr').toString();
 const admin2 = fs.readFileSync('wallet_4.addr').toString();
 const admin3 = fs.readFileSync('wallet_5.addr').toString();
 
+
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
     2,
@@ -45,7 +46,7 @@ const script = {
       resolvePaymentKeyHash(admin2),
       resolvePaymentKeyHash(admin3),
     ],
-
+    //yes I love meshJs
     {
       alternative: 0,
       fields: [
@@ -70,6 +71,7 @@ const script = {
       ],
     },
     50,
+    1000 * 60 * 15,
   ]),
   version: 'V3',
 };
@@ -89,7 +91,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  'd9b774774068c5f172572a596c13e54db6ce37a7133aa5dc5585f77871fe5495',
+  'de443e766353e401ffa32248719a460a985a4a2c6a366b6e0a725c65938da30d',
 );
 
 if (!utxo) {
@@ -108,10 +110,10 @@ if (!utxoDatum) {
 }
 
 const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-if (typeof decodedDatum.value[4] !== 'number') {
+if (typeof decodedDatum.value[5] !== 'number') {
   throw new Error('Invalid datum at position 4');
 }
-if (typeof decodedDatum.value[5] !== 'number') {
+if (typeof decodedDatum.value[6] !== 'number') {
   throw new Error('Invalid datum at position 5');
 }
 
