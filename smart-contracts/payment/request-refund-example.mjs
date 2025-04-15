@@ -89,7 +89,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '63fec8089e25ec346cdd861b9fec630698c7ed3bb5fceb5203eeaae5900922a0',
+  'a7447f58e51eae79ce1603a3de40b7ca64f754c5d2e123008417936feaf51a3a',
 );
 
 if (!utxo) {
@@ -122,22 +122,26 @@ const unlockTime = decodedDatum.value[6];
 const externalDisputeUnlockTime = decodedDatum.value[7];
 const sellerCooldownTime = decodedDatum.value[8];
 const buyerCooldownTime = Date.now() + 1000 * 60 * 35;
+console.log(hash.toString('hex'));
+const decodedHash = hash.toString('utf-8');
+console.log(decodedHash);
+
 const datum = {
   value: {
     alternative: 0,
     fields: [
       buyerVerificationKeyHash,
       sellerVerificationKeyHash,
-      '',
       'test',
-      hash.toString('hex'),
+      '',
+      decodedHash,
       submitResultTime,
       unlockTime,
       externalDisputeUnlockTime,
       0,
       buyerCooldownTime,
       {
-        alternative: 2,
+        alternative: 3,
         fields: [],
       },
     ],
