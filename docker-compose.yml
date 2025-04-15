@@ -18,6 +18,36 @@ services:
     networks:
       - masumi-network
 
+  # Initialization service to prepare database
+  init-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder  # Use the backend-builder stage which has both src and dist
+    container_name: masumi-init-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://masumi:${POSTGRES_PASSWORD:-masumi_secure_password}@postgres:5432/masumi_payment?schema=public
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change_this_to_a_secure_32_character_string}
+      ADMIN_KEY: ${ADMIN_KEY:-change_this_to_a_secure_string}
+      BLOCKFROST_API_KEY_PREPROD: ${BLOCKFROST_API_KEY_PREPROD}
+      BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:-}
+    networks:
+      - masumi-network
+    command: >
+      sh -c "
+        echo 'Running database migrations...' &&
+        npm run prisma:migrate &&
+        
+        echo 'Seeding the database...' &&
+        npm run prisma:seed &&
+        
+        echo 'Database initialization completed successfully!'
+      "
+    restart: "no"
+
   # Masumi Payment Service
   payment-service:
     build:
@@ -26,8 +56,8 @@ services:
     container_name: masumi-payment-service
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      init-service:
+        condition: service_completed_successfully
     environment:
       # Database configuration
       DATABASE_URL: postgresql://masumi:${POSTGRES_PASSWORD:-masumi_secure_password}@postgres:5432/masumi_payment?schema=public
@@ -83,9 +113,7 @@ services:
       retries: 3
     networks:
       - masumi-network
-    command: >
-      sh -c "npm run prisma:migrate && 
-             NODE_ENV=production node ./dist/index.js"
+    command: ["npm", "run", "start"]
 
 networks:
   masumi-network:
@@ -98,4 +126,3 @@ volumes:
     driver: local
   masumi_wallets:
     driver: local
-
