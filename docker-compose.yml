@@ -1,4 +1,5 @@
 services:
+
   # PostgreSQL database service
   postgres:
     image: postgres:15-alpine
@@ -17,6 +18,7 @@ services:
       retries: 5
     networks:
       - masumi-network
+    # No ports exposed to host - only accessible within the network
 
   # Initialization service to prepare database
   init-service:
@@ -47,6 +49,7 @@ services:
         echo 'Database initialization completed successfully!'
       "
     restart: "no"
+    # No ports exposed to host - only accessible within the network
 
   # Masumi Payment Service
   payment-service:
@@ -101,8 +104,6 @@ services:
       SELLING_WALLET_MAINNET_MNEMONIC: ${SELLING_WALLET_MAINNET_MNEMONIC:-}
       COLLECTION_WALLET_MAINNET_ADDRESS: ${COLLECTION_WALLET_MAINNET_ADDRESS:-}
       
-    ports:
-      - "3001:3001"
     volumes:
       - masumi_logs:/usr/src/app/logs
       - masumi_wallets:/usr/src/app/wallets
@@ -114,6 +115,29 @@ services:
     networks:
       - masumi-network
     command: ["npm", "run", "start"]
+    # No ports exposed to host - only accessible via nginx
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: masumi-nginx
+    restart: unless-stopped
+    depends_on:
+      - payment-service
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx_logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - masumi-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   masumi-network:
@@ -125,4 +149,6 @@ volumes:
   masumi_logs:
     driver: local
   masumi_wallets:
+    driver: local
+  nginx_logs:
     driver: local
