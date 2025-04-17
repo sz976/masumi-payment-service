@@ -319,7 +319,7 @@ validator vested_pay(
         expect state == Disputed
 
         expect bytearray.is_empty(new_datum.result_hash)
-        expect must_start_after(validity_range, buyer_cooldown_time)
+        expect must_start_after(validity_range, seller_cooldown_time)
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
