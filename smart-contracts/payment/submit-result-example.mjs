@@ -91,7 +91,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '08216e036c4c1a1e6c0e22db98502fb6bdb3584ed39d831c7985b9c1b8aa2a56',
+  '3905ad197a8797b2bb3e084c481033bae9093e423edb9688331b4905e79cf481',
 );
 
 if (!utxo) {
@@ -116,7 +116,7 @@ if (typeof decodedDatum.value[5] !== 'number') {
 if (typeof decodedDatum.value[6] !== 'number') {
   throw new Error('Invalid datum at position 5');
 }
-const hash = 'abc_hash_of_the_result2';
+const hash = 'abc_hash_of_the_result1';
 const submitResultTime = decodedDatum.value[5];
 const unlockTime = decodedDatum.value[6];
 const externalDisputeUnlockTime = decodedDatum.value[7];
@@ -172,7 +172,7 @@ const unsignedTx = new Transaction({ initiator: wallet, fetcher: koios })
 
 unsignedTx.txBuilder.invalidBefore(invalidBefore);
 unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-unsignedTx.isCollateralNeeded=true;
+unsignedTx.isCollateralNeeded = true;
 unsignedTx.setNetwork(network);
 
 const buildTransaction = await unsignedTx.build();

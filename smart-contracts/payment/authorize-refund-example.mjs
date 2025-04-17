@@ -3,50 +3,35 @@ import {
   resolvePlutusScriptAddress,
   resolvePaymentKeyHash,
   KoiosProvider,
+  SLOT_CONFIG_NETWORK,
   MeshWallet,
   Transaction,
-  applyParamsToScript,
   unixTimeToEnclosingSlot,
-  SLOT_CONFIG_NETWORK,
-  resolveStakeKeyHash,
+  mBool,
+  applyParamsToScript,
+  pubKeyAddress,
+  integer,
 } from '@meshsdk/core';
 import fs from 'node:fs';
 import 'dotenv/config';
-
-console.log('Disputed funds unlock as example');
-
+import { createHash } from 'node:crypto';
+import { resolveStakeKeyHash } from '@meshsdk/core-cst';
+console.log('Authorizing refund example');
 const network = 'preprod';
 const blockchainProvider = new KoiosProvider(network);
+const koios = new KoiosProvider('preprod');
 
-const wallet1 = new MeshWallet({
+const wallet = new MeshWallet({
   networkId: 0,
   fetcher: blockchainProvider,
   submitter: blockchainProvider,
   key: {
     type: 'mnemonic',
-    words: fs.readFileSync('wallet_3.sk').toString().split(' '),
+    words: fs.readFileSync('wallet_2.sk').toString().split(' '),
   },
 });
-const wallet2 = new MeshWallet({
-  networkId: 0,
-  fetcher: blockchainProvider,
-  submitter: blockchainProvider,
-  key: {
-    type: 'mnemonic',
-    words: fs.readFileSync('wallet_4.sk').toString().split(' '),
-  },
-});
-const wallet3 = new MeshWallet({
-  networkId: 0,
-  fetcher: blockchainProvider,
-  submitter: blockchainProvider,
-  key: {
-    type: 'mnemonic',
-    words: fs.readFileSync('wallet_5.sk').toString().split(' '),
-  },
-});
-const address = (await wallet1.getUnusedAddresses())[0];
 
+const address = (await wallet.getUnusedAddresses())[0];
 const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
@@ -91,83 +76,112 @@ const script = {
   version: 'V3',
 };
 
-const utxos = await wallet1.getUtxos();
+const utxos = await wallet.getUtxos();
 if (utxos.length === 0) {
-  //this is if the buyer wallet is empty
-  //throw new Error("No UTXOs found in the wallet. Wallet is empty.");
+  //this is if the seller wallet is empty
+  throw new Error('No UTXOs found in the wallet. Wallet is empty.');
 }
-
-const buyer = fs.readFileSync('wallet_1.addr').toString();
-const buyerVerificationKeyHash = resolvePaymentKeyHash(buyer);
-
-const sellerAddress = fs.readFileSync('wallet_2.addr').toString();
-const sellerVerificationKeyHash = resolvePaymentKeyHash(sellerAddress);
-
-const scriptAddress = resolvePlutusScriptAddress(script, 0);
-
 async function fetchUtxo(txHash) {
-  const utxos = await blockchainProvider.fetchAddressUTxOs(scriptAddress);
+  const utxos = await blockchainProvider.fetchAddressUTxOs(
+    resolvePlutusScriptAddress(script, 0),
+  );
   return utxos.find((utxo) => {
     return utxo.input.txHash == txHash;
   });
 }
+
 const utxo = await fetchUtxo(
-  '6978053d83551f7ab9571401a6a07a418579de56877eeb93fab650d4eb47094c',
+  '1ef815a955cc4c86735de00ced484928d4c8ac237f8f75c2c8a19b5584b06e3d',
 );
 
 if (!utxo) {
   throw new Error('UTXO not found');
 }
 
+const buyerAddress = fs.readFileSync('wallet_1.addr').toString();
+const buyerVerificationKeyHash = resolvePaymentKeyHash(buyerAddress);
+
+const sellerAddress = fs.readFileSync('wallet_2.addr').toString();
+const sellerVerificationKeyHash = resolvePaymentKeyHash(sellerAddress);
+
 const utxoDatum = utxo.output.plutusData;
 if (!utxoDatum) {
   throw new Error('No datum found in UTXO');
 }
+
 const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
+if (typeof decodedDatum.value[5] !== 'number') {
+  throw new Error('Invalid datum at position 4');
+}
+if (typeof decodedDatum.value[6] !== 'number') {
+  throw new Error('Invalid datum at position 5');
+}
+const hash = '';
+const submitResultTime = decodedDatum.value[5];
+const unlockTime = decodedDatum.value[6];
+const externalDisputeUnlockTime = decodedDatum.value[7];
+const sellerCooldownTime = Date.now() + 1000 * 60 * 35;
+
+const datum = {
+  value: {
+    alternative: 0,
+    fields: [
+      buyerVerificationKeyHash,
+      sellerVerificationKeyHash,
+      'test',
+      '',
+      hash,
+      submitResultTime,
+      unlockTime,
+      externalDisputeUnlockTime,
+      sellerCooldownTime,
+      0,
+      {
+        alternative: 2,
+        fields: [],
+      },
+    ],
+  },
+  inline: true,
+};
 
 const redeemer = {
   data: {
-    alternative: 4,
+    alternative: 6,
     fields: [],
   },
 };
-
 const invalidBefore =
   unixTimeToEnclosingSlot(Date.now() - 150000, SLOT_CONFIG_NETWORK.preprod) - 1;
 
 const invalidAfter =
   unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK.preprod) + 1;
 
-const unsignedTx = await new Transaction({
-  initiator: wallet1,
-  fetcher: blockchainProvider,
-})
+const unsignedTx = new Transaction({ initiator: wallet, fetcher: koios })
   .redeemValue({
     value: utxo,
     script: script,
     redeemer: redeemer,
   })
-  .setNetwork(network)
-  .sendValue({ address: (await wallet1.getUnusedAddresses())[0] }, utxo)
-  .setRequiredSigners([
-    (await wallet1.getUnusedAddresses())[0],
-    (await wallet2.getUnusedAddresses())[0],
-  ])
-  .setChangeAddress((await wallet1.getUnusedAddresses())[0]);
+  .sendValue(
+    { address: resolvePlutusScriptAddress(script, 0), datum: datum },
+    utxo,
+  )
+  .setChangeAddress(address)
+  .setRequiredSigners([address]);
 
 unsignedTx.txBuilder.invalidBefore(invalidBefore);
 unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-const buildTransaction = await unsignedTx.build();
-let signedTx = await wallet1.signTx(buildTransaction, true);
-signedTx = await wallet2.signTx(signedTx, true);
+unsignedTx.isCollateralNeeded = true;
+unsignedTx.setNetwork(network);
 
-//we only need 2 out of 3
-//signedTx = await wallet3.signTx(signedTx, true);
+const buildTransaction = await unsignedTx.build();
+const signedTx = await wallet.signTx(buildTransaction);
 
 //submit the transaction to the blockchain
-const txHash = await wallet1.submitTx(signedTx);
+const txHash = await wallet.submitTx(signedTx);
 
-console.log(`Created dispute transaction:
+console.log(`Created withdrawal transaction:
     Tx ID: ${txHash}
     View (after a bit) on https://${
       network === 'preprod' ? 'preprod.' : ''
