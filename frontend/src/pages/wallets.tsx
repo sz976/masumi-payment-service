@@ -433,6 +433,13 @@ export default function WalletsPage() {
                         >
                           <FaExchangeAlt className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="muted"
+                          className="h-8"
+                          onClick={() => setSelectedWalletForTopup(wallet)}
+                        >
+                          Top Up
+                        </Button>
                       </div>
                     </td>
                   </tr>

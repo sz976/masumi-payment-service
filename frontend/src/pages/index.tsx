@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
 import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
+import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { useRate } from '@/lib/hooks/useRate';
 import { Spinner } from '@/components/ui/spinner';
 import { FaExchangeAlt } from 'react-icons/fa';
@@ -69,6 +70,8 @@ export default function Overview() {
   const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
   const [isAddAgentDialogOpen, setIsAddAgentDialogOpen] = useState(false);
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
+    useState<WalletWithBalance | null>(null);
+  const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<WalletWithBalance | null>(null);
   const { rate, isLoading: isLoadingRate } = useRate();
   const { newTransactionsCount, isLoading: isLoadingTransactions } =
@@ -372,7 +375,7 @@ export default function Overview() {
               </p>
 
               <div className="mb-4">
-                <div className="grid grid-cols-[80px_1fr_1.5fr_120px] gap-4 text-sm text-muted-foreground mb-2">
+                <div className="grid grid-cols-[80px_1fr_1.5fr_200px] gap-4 text-sm text-muted-foreground mb-2">
                   <div>Type</div>
                   <div>Name</div>
                   <div>Address</div>
@@ -386,7 +389,7 @@ export default function Overview() {
                     {wallets.slice(0, 2).map((wallet) => (
                       <div
                         key={wallet.id}
-                        className="grid grid-cols-[80px_1fr_1.5fr_120px] gap-4 items-center py-3 border-b last:border-0"
+                        className="grid grid-cols-[80px_1fr_1.5fr_200px] gap-4 items-center py-3 border-b last:border-0"
                       >
                         <div>
                           <span
@@ -433,14 +436,23 @@ export default function Overview() {
                               ? `₳${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}`
                               : '—'}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setSelectedWalletForSwap(wallet)}
-                          >
-                            <FaExchangeAlt className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setSelectedWalletForSwap(wallet)}
+                            >
+                              <FaExchangeAlt className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="muted"
+                              className="h-8"
+                              onClick={() => setSelectedWalletForTopup(wallet)}
+                            >
+                              Top Up
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -488,6 +500,16 @@ export default function Overview() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
+      />
+
+      <TransakWidget
+        isOpen={!!selectedWalletForTopup}
+        onClose={() => setSelectedWalletForTopup(null)}
+        walletAddress={selectedWalletForTopup?.walletAddress || ''}
+        onSuccess={() => {
+          toast.success('Top up successful');
+          fetchWallets();
+        }}
       />
     </>
   );
