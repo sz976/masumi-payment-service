@@ -6,13 +6,13 @@ name: Deploy to Azure VM (Payment Service)
 on:
   push:
     branches:
-      - feature/docker-compose
+      - deploy  # Change this to the branch you want to trigger deployments
   workflow_dispatch:
     inputs:
       branchOrTag:
-        description: 'Branch or tag to deploy (e.g., develop, main)'
+        description: 'Branch or tag to deploy (e.g., deploy, main)'
         required: true
-        default: 'feature/docker-compose'
+        default: 'deploy'  # Change this default to match your branch
 
 env:
   BLOCKFROST_API_KEY_PREPROD: ${{ secrets.BLOCKFROST_API_KEY_PREPROD }}
@@ -40,6 +40,17 @@ jobs:
       
     - name: Set up SSH key
       run: |
+        # Validate required secrets
+        if [ -z "${{ secrets.AZURE_VM_IP }}" ]; then
+          echo "Error: AZURE_VM_IP secret is not set. Please add this secret in your GitHub repository settings."
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.AZURE_VM_SSH_KEY }}" ]; then
+          echo "Error: AZURE_VM_SSH_KEY secret is not set. Please add this secret in your GitHub repository settings."
+          exit 1
+        fi
+        
         # Set up SSH directory
         mkdir -p ~/.ssh
         
@@ -47,11 +58,17 @@ jobs:
         echo "${{ secrets.AZURE_VM_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         
-        # Add host key to known_hosts to prevent prompts
-        ssh-keyscan -H ${{ secrets.AZURE_VM_IP }} >> ~/.ssh/known_hosts
+        # Add host key to known_hosts to prevent prompts - with validation
+        if ! ssh-keyscan -H ${{ secrets.AZURE_VM_IP }} >> ~/.ssh/known_hosts; then
+          echo "Error: Failed to get SSH host key. Please verify the AZURE_VM_IP is correct and the VM is running."
+          exit 1
+        fi
         
         # Verify SSH connection
-        ssh -o BatchMode=yes -i ~/.ssh/id_rsa ${{ secrets.AZURE_VM_USER || 'azureuser' }}@${{ secrets.AZURE_VM_IP }} "echo SSH connection successful"
+        if ! ssh -o BatchMode=yes -o ConnectTimeout=10 -i ~/.ssh/id_rsa ${{ secrets.AZURE_VM_USER || 'azureuser' }}@${{ secrets.AZURE_VM_IP }} "echo SSH connection successful"; then
+          echo "Error: Failed to connect to Azure VM. Please verify credentials and network connectivity."
+          exit 1
+        fi
     
     - name: Deploy to Azure VM
       env:
@@ -69,27 +86,36 @@ jobs:
         
         echo "Deploying ${DEPLOY_REF} to ${AZURE_VM_IP}..."
         
-        # Clean and reset deployment instance - with error handling
+        # Thorough cleanup before deployment
         ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
-          echo "Stopping any running Docker services..."
-          cd "'"${DEPLOYMENT_PATH}"'" 2>/dev/null && docker-compose down --remove-orphans 2>/dev/null || true
+          echo "Performing complete cleanup of previous deployment..."
           
+          # Stop and clean Docker
+          cd "'"${DEPLOYMENT_PATH}"'" 2>/dev/null && {
+            echo "Stopping Docker containers..."
+            docker-compose down --remove-orphans --volumes --rmi all || true
+            docker-compose rm -f || true
+          } || true
+          
+          # Remove Docker resources
           echo "Cleaning Docker resources..."
           docker container prune -f
           docker image prune -f
+          docker volume prune -f
           
-          echo "Preparing deployment directory..."
+          # Completely remove and recreate deployment directory
+          echo "Removing previous deployment directory..."
+          rm -rf "'"${DEPLOYMENT_PATH}"'"
           mkdir -p "'"${DEPLOYMENT_PATH}"'"
-          rm -rf "'"${DEPLOYMENT_PATH}"'"/* "'"${DEPLOYMENT_PATH}"'"/.env "'"${DEPLOYMENT_PATH}"'"/.dockerignore "'"${DEPLOYMENT_PATH}"'"/.gitignore 2>/dev/null || true
           
           echo "Environment reset complete."
         ' || {
           echo "Warning: Environment reset had some issues, but continuing deployment"
         }
         
-        # Copy repository files to VM
+        # Copy repository files to VM (excluding .env files)
         echo "Copying files to VM..."
-        scp -i ~/.ssh/id_rsa -r ./* ./.env* ./.dockerignore ./.gitignore ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}/ || {
+        scp -i ~/.ssh/id_rsa -r ./* ./.dockerignore ./.gitignore ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}/ || {
           echo "Error: Failed to copy files to VM"
           exit 1
         }
@@ -115,16 +141,24 @@ jobs:
           }
         fi
         
-        # Run deployment on VM with improved quoting and error handling
-        BLOCKFROST_API_KEY_PREPROD="${{ env.BLOCKFROST_API_KEY_PREPROD }}"
-        BLOCKFROST_API_KEY_MAINNET="${{ env.BLOCKFROST_API_KEY_MAINNET }}"
-        PURCHASE_WALLET_PREPROD_MNEMONIC="${{ env.PURCHASE_WALLET_PREPROD_MNEMONIC }}"
-        SELLING_WALLET_PREPROD_MNEMONIC="${{ env.SELLING_WALLET_PREPROD_MNEMONIC }}"
-        COLLECTION_WALLET_PREPROD_ADDRESS="${{ env.COLLECTION_WALLET_PREPROD_ADDRESS }}"
-        PURCHASE_WALLET_MAINNET_MNEMONIC="${{ env.PURCHASE_WALLET_MAINNET_MNEMONIC }}"
-        SELLING_WALLET_MAINNET_MNEMONIC="${{ env.SELLING_WALLET_MAINNET_MNEMONIC }}"
-        COLLECTION_WALLET_MAINNET_ADDRESS="${{ env.COLLECTION_WALLET_MAINNET_ADDRESS }}"
+        # Handle wallet mnemonics and sensitive data
+        # Note: If secrets are not provided, run.sh will auto-generate values
+        # which will require a backup from the admin interface after deployment
+        BLOCKFROST_API_KEY_PREPROD="${BLOCKFROST_API_KEY_PREPROD:-preprodtestkey_youmustchangethis}"
+        BLOCKFROST_API_KEY_MAINNET="${BLOCKFROST_API_KEY_MAINNET:-}"
+        PURCHASE_WALLET_PREPROD_MNEMONIC="${PURCHASE_WALLET_PREPROD_MNEMONIC:-}"
+        SELLING_WALLET_PREPROD_MNEMONIC="${SELLING_WALLET_PREPROD_MNEMONIC:-}"
+        COLLECTION_WALLET_PREPROD_ADDRESS="${COLLECTION_WALLET_PREPROD_ADDRESS:-}"
+        PURCHASE_WALLET_MAINNET_MNEMONIC="${PURCHASE_WALLET_MAINNET_MNEMONIC:-}"
+        SELLING_WALLET_MAINNET_MNEMONIC="${SELLING_WALLET_MAINNET_MNEMONIC:-}"
+        COLLECTION_WALLET_MAINNET_ADDRESS="${COLLECTION_WALLET_MAINNET_ADDRESS:-}"
 
+        # Log configuration (with sensitive data masked)
+        echo "Configuration Summary:"
+        echo "  BLOCKFROST_API_KEY_PREPROD: ${BLOCKFROST_API_KEY_PREPROD:0:5}...[masked]"
+        echo "  BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:0:5}...[masked]"
+        echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
+        
         # Single quotes for the whole SSH command with double quotes for variables
         ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           cd "'"${DEPLOYMENT_PATH}"'"
