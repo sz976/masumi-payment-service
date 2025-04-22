@@ -6,13 +6,13 @@ name: Deploy to Azure VM (Payment Service)
 on:
   push:
     branches:
-      - deploy  # Change this to the branch you want to trigger deployments
+      - feature/docker-compose  # Change this to the branch you want to trigger deployments
   workflow_dispatch:
     inputs:
       branchOrTag:
         description: 'Branch or tag to deploy (e.g., deploy, main)'
         required: true
-        default: 'deploy'  # Change this default to match your branch
+        default: 'feature/docker-compose'  # Change this default to match your branch
 
 env:
   BLOCKFROST_API_KEY_PREPROD: ${{ secrets.BLOCKFROST_API_KEY_PREPROD }}
