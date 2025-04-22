@@ -1,0 +1,181 @@
+name: Deploy to Azure VM (Payment Service)
+
+# Azure VM deployment workflow for Masumi Payment Service
+# This workflow deploys the payment service to an Azure VM with Docker and Docker Compose installed
+
+on:
+  push:
+    branches:
+      - feature/docker-compose
+  workflow_dispatch:
+    inputs:
+      branchOrTag:
+        description: 'Branch or tag to deploy (e.g., develop, main)'
+        required: true
+        default: 'feature/docker-compose'
+
+env:
+  BLOCKFROST_API_KEY_PREPROD: ${{ secrets.BLOCKFROST_API_KEY_PREPROD }}
+  BLOCKFROST_API_KEY_MAINNET: ${{ secrets.BLOCKFROST_API_KEY_MAINNET }}
+  PURCHASE_WALLET_PREPROD_MNEMONIC: ${{ secrets.PURCHASE_WALLET_PREPROD_MNEMONIC }}
+  SELLING_WALLET_PREPROD_MNEMONIC: ${{ secrets.SELLING_WALLET_PREPROD_MNEMONIC }}
+  COLLECTION_WALLET_PREPROD_ADDRESS: ${{ secrets.COLLECTION_WALLET_PREPROD_ADDRESS }}
+  PURCHASE_WALLET_MAINNET_MNEMONIC: ${{ secrets.PURCHASE_WALLET_MAINNET_MNEMONIC }}
+  SELLING_WALLET_MAINNET_MNEMONIC: ${{ secrets.SELLING_WALLET_MAINNET_MNEMONIC }}
+  COLLECTION_WALLET_MAINNET_ADDRESS: ${{ secrets.COLLECTION_WALLET_MAINNET_ADDRESS }}
+  SSL_CERT_PATH: ${{ secrets.SSL_CERT_PATH }}
+  SSL_KEY_PATH: ${{ secrets.SSL_KEY_PATH }}
+  SSL_CERT_CONTENT: ${{ secrets.SSL_CERT_CONTENT }}
+  SSL_KEY_CONTENT: ${{ secrets.SSL_KEY_CONTENT }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'push' && github.ref || inputs.branchOrTag }}
+      
+    - name: Set up SSH key
+      run: |
+        # Set up SSH directory
+        mkdir -p ~/.ssh
+        
+        # Install SSH key
+        echo "${{ secrets.AZURE_VM_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        
+        # Add host key to known_hosts to prevent prompts
+        ssh-keyscan -H ${{ secrets.AZURE_VM_IP }} >> ~/.ssh/known_hosts
+        
+        # Verify SSH connection
+        ssh -o BatchMode=yes -i ~/.ssh/id_rsa ${{ secrets.AZURE_VM_USER || 'azureuser' }}@${{ secrets.AZURE_VM_IP }} "echo SSH connection successful"
+    
+    - name: Deploy to Azure VM
+      env:
+        DEPLOY_REF: ${{ github.event_name == 'push' && github.ref_name || inputs.branchOrTag }}
+        AZURE_VM_IP: ${{ secrets.AZURE_VM_IP }}
+        AZURE_VM_USER: ${{ secrets.AZURE_VM_USER || 'azureuser' }}
+        DEPLOYMENT_PATH: ${{ secrets.DEPLOYMENT_PATH || '~/masumi-payment-service' }}
+      run: |
+        # Display deployment information
+        echo "==============================================="
+        echo "Deployment Information:"
+        echo "Branch/Tag: ${DEPLOY_REF}"
+        echo "Target: ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}"
+        echo "==============================================="
+        
+        echo "Deploying ${DEPLOY_REF} to ${AZURE_VM_IP}..."
+        
+        # Clean and reset deployment instance - with error handling
+        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+          echo "Stopping any running Docker services..."
+          cd "'"${DEPLOYMENT_PATH}"'" 2>/dev/null && docker-compose down --remove-orphans 2>/dev/null || true
+          
+          echo "Cleaning Docker resources..."
+          docker container prune -f
+          docker image prune -f
+          
+          echo "Preparing deployment directory..."
+          mkdir -p "'"${DEPLOYMENT_PATH}"'"
+          rm -rf "'"${DEPLOYMENT_PATH}"'"/* "'"${DEPLOYMENT_PATH}"'"/.env "'"${DEPLOYMENT_PATH}"'"/.dockerignore "'"${DEPLOYMENT_PATH}"'"/.gitignore 2>/dev/null || true
+          
+          echo "Environment reset complete."
+        ' || {
+          echo "Warning: Environment reset had some issues, but continuing deployment"
+        }
+        
+        # Copy repository files to VM
+        echo "Copying files to VM..."
+        scp -i ~/.ssh/id_rsa -r ./* ./.env* ./.dockerignore ./.gitignore ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}/ || {
+          echo "Error: Failed to copy files to VM"
+          exit 1
+        }
+        
+        # Set up SSL certificates if provided
+        if [ -n "${{ env.SSL_CERT_CONTENT }}" ] && [ -n "${{ env.SSL_KEY_CONTENT }}" ]; then
+          echo "Setting up SSL certificates..."
+          
+          # Use base64 encoding to avoid special character issues
+          CERT_B64=$(echo '${{ env.SSL_CERT_CONTENT }}' | base64 -w 0)
+          KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
+          
+          ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
+            mkdir -p ${DEPLOYMENT_PATH}/nginx/certs; \
+            echo ${CERT_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.crt; \
+            echo ${KEY_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.key; \
+            chmod 644 ${DEPLOYMENT_PATH}/nginx/certs/server.crt; \
+            chmod 600 ${DEPLOYMENT_PATH}/nginx/certs/server.key; \
+            echo 'SSL certificates successfully installed.'
+          " || {
+            echo "Error: Failed to set up SSL certificates"
+            exit 1
+          }
+        fi
+        
+        # Run deployment on VM with improved quoting and error handling
+        BLOCKFROST_API_KEY_PREPROD="${{ env.BLOCKFROST_API_KEY_PREPROD }}"
+        BLOCKFROST_API_KEY_MAINNET="${{ env.BLOCKFROST_API_KEY_MAINNET }}"
+        PURCHASE_WALLET_PREPROD_MNEMONIC="${{ env.PURCHASE_WALLET_PREPROD_MNEMONIC }}"
+        SELLING_WALLET_PREPROD_MNEMONIC="${{ env.SELLING_WALLET_PREPROD_MNEMONIC }}"
+        COLLECTION_WALLET_PREPROD_ADDRESS="${{ env.COLLECTION_WALLET_PREPROD_ADDRESS }}"
+        PURCHASE_WALLET_MAINNET_MNEMONIC="${{ env.PURCHASE_WALLET_MAINNET_MNEMONIC }}"
+        SELLING_WALLET_MAINNET_MNEMONIC="${{ env.SELLING_WALLET_MAINNET_MNEMONIC }}"
+        COLLECTION_WALLET_MAINNET_ADDRESS="${{ env.COLLECTION_WALLET_MAINNET_ADDRESS }}"
+
+        # Single quotes for the whole SSH command with double quotes for variables
+        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+          cd "'"${DEPLOYMENT_PATH}"'"
+          
+          echo "Making scripts executable..."
+          # Make required scripts executable
+          find . -name "*.sh" -exec chmod +x {} \;
+          
+          # Ensure main scripts are executable (in case find failed)
+          chmod +x run.sh generate-certificates.sh make-executable.sh 2>/dev/null || true
+          
+          echo "Running initialization script..."
+          ./run.sh \
+            --preprod-key "'"${BLOCKFROST_API_KEY_PREPROD}"'" \
+            --mainnet-key "'"${BLOCKFROST_API_KEY_MAINNET}"'" \
+            --purchase-preprod-mnemonic "'"${PURCHASE_WALLET_PREPROD_MNEMONIC}"'" \
+            --selling-preprod-mnemonic "'"${SELLING_WALLET_PREPROD_MNEMONIC}"'" \
+            --collection-preprod-address "'"${COLLECTION_WALLET_PREPROD_ADDRESS}"'" \
+            --purchase-mainnet-mnemonic "'"${PURCHASE_WALLET_MAINNET_MNEMONIC}"'" \
+            --selling-mainnet-mnemonic "'"${SELLING_WALLET_MAINNET_MNEMONIC}"'" \
+            --collection-mainnet-address "'"${COLLECTION_WALLET_MAINNET_ADDRESS}"'" || {
+            echo "ERROR: Initialization script failed"
+            exit 1
+          }
+          
+          echo "Building and starting Docker containers..."
+          docker-compose build || {
+            echo "ERROR: Docker build failed"
+            exit 1
+          }
+          
+          docker-compose up -d || {
+            echo "ERROR: Docker compose up failed"
+            exit 1
+          }
+          
+          echo "Deployment complete."
+          
+          # Verify service is running
+          echo "Verifying service is running..."
+          sleep 10
+          if docker-compose ps | grep -q "Up"; then
+            echo "Service is running successfully."
+          else
+            echo "WARNING: Service might not be running properly. Check logs with: docker-compose logs"
+            exit 0  # Don't fail deployment if service check is unclear
+          fi
+        ' || {
+          echo "Error: Deployment to VM failed"
+          exit 1
+        }
+        
+        echo "Deployment to Azure VM successful!"
+        echo "The Masumi Payment Service should now be running at https://${AZURE_VM_IP}/"

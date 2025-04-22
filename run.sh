@@ -106,6 +106,12 @@ if ! command -v docker compose &> /dev/null; then
     exit 1
 fi
 
+# Check if OpenSSL is installed
+if ! command -v openssl &> /dev/null; then
+    echo -e "${RED}Error: OpenSSL is not installed. Please install OpenSSL first.${NC}"
+    exit 1
+fi
+
 # Function to generate a secure random string - using openssl to avoid locale issues
 generate_secure_string() {
     local length=$1
@@ -271,10 +277,14 @@ fi
 
 # SSL Certificate information
 echo -e "\n${BLUE}SSL Certificate Status:${NC}"
-if [ -n "$SSL_CERT_PATH" ] && [ -n "$SSL_KEY_PATH" ] && [ -f "nginx/certs/server.crt" ] && [ -f "nginx/certs/server.key" ]; then
+if [ -n "$SSL_CERT_PATH" ] && [ -n "$SSL_KEY_PATH" ] && [ -f "$SSL_CERT_PATH" ] && [ -f "$SSL_KEY_PATH" ] && [ -f "nginx/certs/server.crt" ] && [ -f "nginx/certs/server.key" ]; then
     echo -e "  ${GREEN}• Using provided SSL certificates${NC}"
+    echo -e "    Certificates copied from: $SSL_CERT_PATH and $SSL_KEY_PATH"
 else
     echo -e "  ${YELLOW}• Using self-signed SSL certificates${NC}"
+    if [ -n "$SSL_CERT_PATH" ] && [ -n "$SSL_KEY_PATH" ]; then
+        echo -e "    ${YELLOW}Note: Provided certificate paths were not valid, fell back to self-signed${NC}"
+    fi
     echo -e "    Browser security warnings will appear when accessing the service."
     echo -e "    For production use, replace with valid certificates from a trusted CA."
 fi
