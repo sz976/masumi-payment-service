@@ -13,7 +13,6 @@ import {
   GetPaymentSourceResponses,
   getRegistry,
   getUtxos,
-  GetUtxosResponses,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
@@ -49,9 +48,14 @@ type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
       type: 'Selling';
     });
-type WalletWithBalance = Wallet & { balance: string; usdmBalance: string };
-
-type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
+type WalletWithBalance = Wallet & {
+  balance: string;
+  usdmBalance: string;
+  collectionBalance?: {
+    ada: string;
+    usdm: string;
+  };
+};
 
 export const getStaticProps: GetStaticProps = async () => {
   return {
@@ -76,34 +80,65 @@ export default function Overview() {
   const { rate, isLoading: isLoadingRate } = useRate();
   const { newTransactionsCount, isLoading: isLoadingTransactions } =
     useTransactions();
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchAgents = useCallback(async () => {
-    try {
-      setIsLoadingAgents(true);
-      const response = await getRegistry({
-        client: apiClient,
-        query: {
-          network: 'Preprod',
-        },
-      });
+  const fetchAgents = useCallback(
+    async (cursor?: string | null) => {
+      try {
+        if (!cursor) {
+          setIsLoadingAgents(true);
+          setAgents([]);
+        } else {
+          setIsLoadingMore(true);
+        }
 
-      if (response.data?.data?.Assets) {
-        setAgents(response.data.data.Assets);
+        const response = await getRegistry({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: cursor || undefined,
+          },
+        });
+
+        if (response.data?.data?.Assets) {
+          const newAgents = response.data.data.Assets;
+          if (cursor) {
+            setAgents((prev) => [...prev, ...newAgents]);
+          } else {
+            setAgents(newAgents);
+          }
+          setHasMore(newAgents.length === 10);
+        } else {
+          if (!cursor) {
+            setAgents([]);
+          }
+          setHasMore(false);
+        }
+      } catch {
+        toast.error('Failed to load AI agents');
+      } finally {
+        setIsLoadingAgents(false);
+        setIsLoadingMore(false);
       }
-    } catch {
-      toast.error('Failed to load AI agents');
-    } finally {
-      setIsLoadingAgents(false);
+    },
+    [apiClient, state.network],
+  );
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && agents.length > 0) {
+      const lastAgent = agents[agents.length - 1];
+      fetchAgents(lastAgent.id);
     }
-  }, [apiClient]);
+  };
 
   const fetchWalletBalance = useCallback(
-    async (wallet: Wallet) => {
+    async (address: string) => {
       try {
         const response = await getUtxos({
           client: apiClient,
           query: {
-            address: wallet.walletAddress,
+            address: address,
             network: state.network,
           },
         });
@@ -112,7 +147,7 @@ export default function Overview() {
           let adaBalance = 0;
           let usdmBalance = 0;
 
-          response.data.data.Utxos.forEach((utxo: UTXO) => {
+          response.data.data.Utxos.forEach((utxo) => {
             utxo.Amounts.forEach((amount) => {
               if (amount.unit === 'lovelace' || amount.unit == '') {
                 adaBalance += amount.quantity || 0;
@@ -144,7 +179,9 @@ export default function Overview() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources[0];
+        const paymentSource = response.data.data.PaymentSources.find(
+          (source) => source.network === state.network,
+        );
         if (paymentSource) {
           const allWallets: Wallet[] = [
             ...paymentSource.PurchasingWallets.map((wallet) => ({
@@ -159,11 +196,18 @@ export default function Overview() {
 
           const walletsWithBalances = await Promise.all(
             allWallets.map(async (wallet) => {
-              const balance = await fetchWalletBalance(wallet);
+              const balance = await fetchWalletBalance(wallet.walletAddress);
+              let collectionBalance = { ada: '0', usdm: '0' };
+              if (wallet.collectionAddress) {
+                collectionBalance = await fetchWalletBalance(
+                  wallet.collectionAddress,
+                );
+              }
               return {
                 ...wallet,
                 usdmBalance: balance.usdm,
                 balance: balance.ada,
+                collectionBalance,
               };
             }),
           );
@@ -178,6 +222,10 @@ export default function Overview() {
           setTotalBalance(totalAdaBalance.toString());
           setTotalUsdmBalance(totalUsdmBalance.toString());
           setWallets(walletsWithBalances);
+        } else {
+          setWallets([]);
+          setTotalBalance('0');
+          setTotalUsdmBalance('0');
         }
       }
     } catch {
@@ -185,7 +233,7 @@ export default function Overview() {
     } finally {
       setIsLoadingWallets(false);
     }
-  }, [apiClient, fetchWalletBalance]);
+  }, [apiClient, fetchWalletBalance, state.network]);
 
   useEffect(() => {
     fetchAgents();
@@ -233,12 +281,45 @@ export default function Overview() {
             </div>
             <div className="border rounded-lg p-6">
               <div className="text-sm text-muted-foreground mb-2">
-                Total wallets
+                Total USDM
               </div>
               {isLoadingWallets ? (
                 <Spinner size={20} addContainer />
               ) : (
-                <div className="text-2xl font-semibold">{wallets.length}</div>
+                <div className="text-2xl font-semibold flex items-center gap-1">
+                  <span className="text-xs font-normal text-muted-foreground">
+                    $
+                  </span>
+                  {useFormatBalance(
+                    (parseInt(totalUsdmBalance) / 1000000)
+                      .toFixed(2)
+                      ?.toString(),
+                  ) ?? ''}
+                </div>
+              )}
+            </div>
+            <div className="border rounded-lg p-6">
+              <div className="text-sm text-muted-foreground mb-2">
+                Total ada balance
+              </div>
+              {isLoadingWallets ? (
+                <Spinner size={20} addContainer />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="text-2xl font-semibold flex items-center gap-1">
+                    {useFormatBalance(
+                      (parseInt(totalBalance) / 1000000).toFixed(2)?.toString(),
+                    ) ?? ''}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      ADA
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {isLoadingRate && !totalUsdmBalance
+                      ? '...'
+                      : `~ $${useFormatBalance(formatUsdValue(totalBalance, totalUsdmBalance))}`}
+                  </div>
+                </div>
               )}
             </div>
             <div className="border rounded-lg p-6">
@@ -258,37 +339,6 @@ export default function Overview() {
                   >
                     View all transactions <ChevronRight size={14} />
                   </Link>
-                </>
-              )}
-            </div>
-            <div className="border rounded-lg p-6">
-              <div className="text-sm text-muted-foreground mb-2">
-                Total balance
-              </div>
-              {isLoadingWallets ? (
-                <Spinner size={20} addContainer />
-              ) : (
-                <>
-                  <div className="text-2xl font-semibold">
-                    ₳{' '}
-                    {useFormatBalance(
-                      (parseInt(totalBalance) / 1000000).toFixed(2)?.toString(),
-                    ) ?? ''}{' '}
-                    {' + '}
-                  </div>
-                  <div className="text-2xl font-semibold">
-                    ${' '}
-                    {useFormatBalance(
-                      (parseInt(totalUsdmBalance) / 1000000)
-                        .toFixed(2)
-                        ?.toString(),
-                    ) ?? ''}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {isLoadingRate && !totalUsdmBalance
-                      ? '...'
-                      : `~ $${useFormatBalance(formatUsdValue(totalBalance, totalUsdmBalance))}`}
-                  </div>
                 </>
               )}
             </div>
@@ -316,8 +366,8 @@ export default function Overview() {
               {isLoadingAgents ? (
                 <Spinner size={20} addContainer />
               ) : agents.length > 0 ? (
-                <div className="space-y-4 mb-4">
-                  {agents.slice(0, 2).map((agent) => (
+                <div className="space-y-4 mb-4 max-h-[500px] overflow-y-auto">
+                  {agents.map((agent) => (
                     <div
                       key={agent.id}
                       className="flex items-center justify-between py-2 border-b last:border-0"
@@ -335,9 +385,21 @@ export default function Overview() {
                       </div>
                     </div>
                   ))}
+                  {hasMore && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore ? <Spinner size={16} /> : 'Load more'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground mb-4">
+                <div className="text-sm text-muted-foreground mb-4 py-4">
                   No AI agents found.
                 </div>
               )}
@@ -375,11 +437,11 @@ export default function Overview() {
               </p>
 
               <div className="mb-4">
-                <div className="grid grid-cols-[80px_1fr_1.5fr_200px] gap-4 text-sm text-muted-foreground mb-2">
+                <div className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 text-sm text-muted-foreground mb-2">
                   <div>Type</div>
                   <div>Name</div>
                   <div>Address</div>
-                  <div className="text-right">Balance, ADA</div>
+                  <div className="text-left">Balance</div>
                 </div>
 
                 {isLoadingWallets ? (
@@ -389,7 +451,7 @@ export default function Overview() {
                     {wallets.slice(0, 2).map((wallet) => (
                       <div
                         key={wallet.id}
-                        className="grid grid-cols-[80px_1fr_1.5fr_200px] gap-4 items-center py-3 border-b last:border-0"
+                        className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0"
                       >
                         <div>
                           <span
@@ -406,13 +468,13 @@ export default function Overview() {
                           </span>
                         </div>
                         <div>
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium truncate">
                             {wallet.type === 'Purchasing'
                               ? 'Buying wallet'
                               : 'Selling wallet'}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {wallet.note || 'Created by seeding'}
+                          <div className="text-xs text-muted-foreground truncate">
+                            {wallet.note && `${wallet.note}`}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -431,11 +493,24 @@ export default function Overview() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">
-                            {wallet.balance
-                              ? `₳${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}`
-                              : '—'}
-                          </span>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm flex items-center gap-1">
+                              {wallet.balance
+                                ? `${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}`
+                                : '—'}
+                              <span className="text-xs text-muted-foreground">
+                                ADA
+                              </span>
+                            </span>
+                            <span className="text-sm flex items-center gap-1">
+                              {wallet.usdmBalance
+                                ? `${useFormatBalance((parseInt(wallet.usdmBalance) / 1000000).toFixed(2)?.toString())}`
+                                : '—'}
+                              <span className="text-xs text-muted-foreground">
+                                USDM
+                              </span>
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
@@ -443,7 +518,7 @@ export default function Overview() {
                               className="h-8 w-8"
                               onClick={() => setSelectedWalletForSwap(wallet)}
                             >
-                              <FaExchangeAlt className="h-4 w-4" />
+                              <FaExchangeAlt className="h-2 w-2" />
                             </Button>
                             <Button
                               variant="muted"
@@ -456,6 +531,86 @@ export default function Overview() {
                         </div>
                       </div>
                     ))}
+
+                    {/* Collection Wallet Section */}
+                    {wallets.map((wallet) => {
+                      if (!wallet.collectionAddress) return null;
+                      return (
+                        <div
+                          key={`collection-${wallet.id}`}
+                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0"
+                        >
+                          <div>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                              Collection
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium truncate">
+                              Collection wallet
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {wallet.note && `${wallet.note}`}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 p-0"
+                              onClick={() =>
+                                copyToClipboard(wallet.collectionAddress!)
+                              }
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <span className="font-mono text-sm text-muted-foreground">
+                              {wallet.collectionAddress.slice(0, 12)}...
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm flex items-center gap-1">
+                              {wallet.collectionBalance?.ada
+                                ? `${useFormatBalance((parseInt(wallet.collectionBalance.ada) / 1000000).toFixed(2)?.toString())}`
+                                : '—'}
+                              <span className="text-xs text-muted-foreground">
+                                ADA
+                              </span>
+                            </span>
+                            <span className="text-sm flex items-center gap-1">
+                              {wallet.collectionBalance?.usdm
+                                ? `${useFormatBalance((parseInt(wallet.collectionBalance.usdm) / 1000000).toFixed(2)?.toString())}`
+                                : '—'}
+                              <span className="text-xs text-muted-foreground">
+                                USDM
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end"></div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Show add collection wallet message if no collection addresses exist */}
+                    {!wallets.some((w) => w.collectionAddress) && (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-[#0002] dark:border-blue-500/20 p-4 my-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            <div className="text-sm">
+                              Add a collection wallet to manage your funds more
+                              effectively.
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/10"
+                            onClick={() => setIsAddWalletDialogOpen(true)}
+                          >
+                            Add collection wallet
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -471,7 +626,9 @@ export default function Overview() {
                 </Button>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">
-                    Total: {wallets.length}
+                    Total:{' '}
+                    {wallets.length +
+                      wallets.filter((w) => w.collectionAddress).length}
                   </span>
                 </div>
               </div>

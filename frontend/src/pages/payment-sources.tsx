@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Copy, Search, Trash2 } from 'lucide-react';
+import { Plus, Copy, Search, Trash2, Edit2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddPaymentSourceDialog } from '@/components/payment-sources/AddPaymentSourceDialog';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import {
   getPaymentSourceExtended,
   deletePaymentSourceExtended,
+  patchPaymentSourceExtended,
   GetPaymentSourceResponses,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
@@ -19,12 +20,128 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn, shortenAddress } from '@/lib/utils';
 import Head from 'next/head';
 import { Spinner } from '@/components/ui/spinner';
-import { Tabs } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Pagination } from '@/components/ui/pagination';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+
+interface UpdatePaymentSourceDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  paymentSourceId: string;
+  currentApiKey: string;
+}
+
+function UpdatePaymentSourceDialog({
+  open,
+  onClose,
+  onSuccess,
+  paymentSourceId,
+  currentApiKey,
+}: UpdatePaymentSourceDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState(currentApiKey);
+  const { apiClient } = useAppContext();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setIsLoading(true);
+
+      await patchPaymentSourceExtended({
+        client: apiClient,
+        body: {
+          id: paymentSourceId,
+          PaymentSourceConfig: {
+            rpcProviderApiKey: apiKey,
+            rpcProvider: 'Blockfrost',
+          },
+        },
+      });
+
+      toast.success('Payment source updated successfully');
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Error updating payment source:', error);
+      let message = 'An unexpected error occurred';
+
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const apiError = error as {
+          response?: { data?: { error?: { message?: string } } };
+        };
+        message = apiError.response?.data?.error?.message || message;
+      }
+
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update Payment Source</DialogTitle>
+          <DialogDescription>
+            Update the Blockfrost API key for this payment source.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="apiKey"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Blockfrost API Key
+            </label>
+            <Input
+              id="apiKey"
+              type="text"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter Blockfrost API key"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Updating...' : 'Update'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 type PaymentSource =
-  GetPaymentSourceResponses['200']['data']['PaymentSources'][0];
+  GetPaymentSourceResponses['200']['data']['PaymentSources'][0] & {
+    PaymentSourceConfig?: {
+      rpcProviderApiKey: string;
+      rpcProvider: 'Blockfrost';
+    };
+  };
 
 export default function PaymentSourcesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,29 +152,19 @@ export default function PaymentSourcesPage() {
   const [sourceToDelete, setSourceToDelete] = useState<PaymentSource | null>(
     null,
   );
+  const [sourceToUpdate, setSourceToUpdate] = useState<PaymentSource | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
-  const { apiClient } = useAppContext();
-  const [activeTab, setActiveTab] = useState('All');
+  const { apiClient, state } = useAppContext();
   const [filteredPaymentSources, setFilteredPaymentSources] = useState<
     PaymentSource[]
   >([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const tabs = [
-    { name: 'All', count: null },
-    { name: 'Preprod', count: null },
-    { name: 'Mainnet', count: null },
-  ];
-
   const filterPaymentSources = useCallback(() => {
     let filtered = [...paymentSources];
-
-    if (activeTab === 'Preprod') {
-      filtered = filtered.filter((source) => source.network === 'Preprod');
-    } else if (activeTab === 'Mainnet') {
-      filtered = filtered.filter((source) => source.network === 'Mainnet');
-    }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -74,7 +181,7 @@ export default function PaymentSourcesPage() {
     }
 
     setFilteredPaymentSources(filtered);
-  }, [paymentSources, searchQuery, activeTab]);
+  }, [paymentSources, searchQuery]);
 
   const fetchPaymentSources = async (cursor?: string | null) => {
     try {
@@ -94,13 +201,15 @@ export default function PaymentSourcesPage() {
       });
 
       if (response.data?.data?.ExtendedPaymentSources) {
+        const filteredSources =
+          response.data.data.ExtendedPaymentSources.filter(
+            (source) => source.network === state.network,
+          );
+
         if (cursor) {
-          setPaymentSources((prev) => [
-            ...prev,
-            ...response.data.data.ExtendedPaymentSources,
-          ]);
+          setPaymentSources((prev) => [...prev, ...filteredSources]);
         } else {
-          setPaymentSources(response.data.data.ExtendedPaymentSources);
+          setPaymentSources(filteredSources);
         }
 
         setHasMore(response.data.data.ExtendedPaymentSources.length === 10);
@@ -119,20 +228,13 @@ export default function PaymentSourcesPage() {
     }
   };
 
-  const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && paymentSources.length > 0) {
-      const lastSource = paymentSources[paymentSources.length - 1];
-      fetchPaymentSources(lastSource.id);
-    }
-  };
-
   useEffect(() => {
     fetchPaymentSources();
-  }, []);
+  }, [state.network]);
 
   useEffect(() => {
     filterPaymentSources();
-  }, [filterPaymentSources, searchQuery, activeTab]);
+  }, [filterPaymentSources, searchQuery]);
 
   const handleSelectSource = (id: string) => {
     setSelectedSources((prev) =>
@@ -194,6 +296,13 @@ export default function PaymentSourcesPage() {
     }
   };
 
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && paymentSources.length > 0) {
+      const lastSource = paymentSources[paymentSources.length - 1];
+      fetchPaymentSources(lastSource.id);
+    }
+  };
+
   return (
     <MainLayout>
       <Head>
@@ -224,16 +333,6 @@ export default function PaymentSourcesPage() {
         </div>
 
         <div className="space-y-6">
-          <Tabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              setPaymentSources([]);
-              fetchPaymentSources();
-            }}
-          />
-
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -354,14 +453,24 @@ export default function PaymentSourcesPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSourceToDelete(source)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSourceToUpdate(source)}
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSourceToDelete(source)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -385,6 +494,16 @@ export default function PaymentSourcesPage() {
           open={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
           onSuccess={fetchPaymentSources}
+        />
+
+        <UpdatePaymentSourceDialog
+          open={!!sourceToUpdate}
+          onClose={() => setSourceToUpdate(null)}
+          onSuccess={fetchPaymentSources}
+          paymentSourceId={sourceToUpdate?.id || ''}
+          currentApiKey={
+            sourceToUpdate?.PaymentSourceConfig?.rpcProviderApiKey || ''
+          }
         />
 
         <ConfirmDialog

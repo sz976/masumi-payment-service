@@ -27,6 +27,17 @@ import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { FaExchangeAlt } from 'react-icons/fa';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { Tabs } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  WalletDetailsDialog,
+  WalletWithBalance,
+} from '@/components/wallets/WalletDetailsDialog';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -35,8 +46,15 @@ type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
       type: 'Selling';
     });
-type WalletWithBalance = Wallet & { balance: string; usdmBalance: string };
 type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
+
+interface TokenBalance {
+  unit: string;
+  policyId: string;
+  assetName: string;
+  quantity: number;
+  displayName: string;
+}
 
 export default function WalletsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +75,8 @@ export default function WalletsPage() {
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
     useState<Wallet | null>(null);
   const [activeTab, setActiveTab] = useState('All');
+  const [selectedWalletForDetails, setSelectedWalletForDetails] =
+    useState<WalletWithBalance | null>(null);
 
   const tabs = [
     { name: 'All', count: null },
@@ -102,43 +122,46 @@ export default function WalletsPage() {
     filterWallets();
   }, [filterWallets, searchQuery, activeTab]);
 
-  const fetchWalletBalance = async (wallet: Wallet) => {
-    try {
-      const response = await getUtxos({
-        client: apiClient,
-        query: {
-          address: wallet.walletAddress,
-          network: state.network,
-        },
-      });
-
-      if (response.data?.data?.Utxos) {
-        let adaBalance = 0;
-        let usdmBalance = 0;
-
-        response.data.data.Utxos.forEach((utxo: UTXO) => {
-          utxo.Amounts.forEach((amount) => {
-            if (amount.unit === 'lovelace' || amount.unit == '') {
-              adaBalance += amount.quantity || 0;
-            } else if (amount.unit === 'USDM') {
-              usdmBalance += amount.quantity || 0;
-            }
-          });
+  const fetchWalletBalance = useCallback(
+    async (wallet: Wallet) => {
+      try {
+        const response = await getUtxos({
+          client: apiClient,
+          query: {
+            address: wallet.walletAddress,
+            network: state.network,
+          },
         });
 
-        return {
-          ada: adaBalance.toString(),
-          usdm: usdmBalance.toString(),
-        };
-      }
-      return { ada: '0', usdm: '0' };
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-      return { ada: '0', usdm: '0' };
-    }
-  };
+        if (response.data?.data?.Utxos) {
+          let adaBalance = 0;
+          let usdmBalance = 0;
 
-  const fetchWallets = async () => {
+          response.data.data.Utxos.forEach((utxo: UTXO) => {
+            utxo.Amounts.forEach((amount) => {
+              if (amount.unit === 'lovelace' || amount.unit == '') {
+                adaBalance += amount.quantity || 0;
+              } else if (amount.unit === 'USDM') {
+                usdmBalance += amount.quantity || 0;
+              }
+            });
+          });
+
+          return {
+            ada: adaBalance.toString(),
+            usdm: usdmBalance.toString(),
+          };
+        }
+        return { ada: '0', usdm: '0' };
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        return { ada: '0', usdm: '0' };
+      }
+    },
+    [apiClient, state.network],
+  );
+
+  const fetchWallets = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getPaymentSource({
@@ -146,7 +169,9 @@ export default function WalletsPage() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources[0];
+        const paymentSource = response.data.data.PaymentSources.find(
+          (source) => source.network === state.network,
+        );
         if (paymentSource) {
           const allWallets: Wallet[] = [
             ...paymentSource.PurchasingWallets.map((wallet) => ({
@@ -172,6 +197,9 @@ export default function WalletsPage() {
 
           setAllWallets(walletsWithBalances);
           setFilteredWallets(walletsWithBalances);
+        } else {
+          setAllWallets([]);
+          setFilteredWallets([]);
         }
       }
     } catch (error) {
@@ -180,11 +208,11 @@ export default function WalletsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiClient, fetchWalletBalance, state.network]);
 
   useEffect(() => {
     fetchWallets();
-  }, []);
+  }, [fetchWallets, state.network]);
 
   const handleSelectWallet = (id: string) => {
     setSelectedWallets((prev) =>
@@ -205,11 +233,6 @@ export default function WalletsPage() {
     } else {
       setSelectedWallets(filteredWallets.map((wallet) => wallet.id));
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Address copied to clipboard');
   };
 
   const refreshWalletBalance = async (wallet: Wallet) => {
@@ -247,6 +270,15 @@ export default function WalletsPage() {
   const hasSellingWallets = !isLoading
     ? allWallets.some((wallet) => wallet.type === 'Selling')
     : true;
+
+  const handleWalletClick = (wallet: WalletWithBalance) => {
+    setSelectedWalletForDetails(wallet);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Address copied to clipboard');
+  };
 
   return (
     <MainLayout>
@@ -332,7 +364,11 @@ export default function WalletsPage() {
                 </tr>
               ) : (
                 filteredWallets.map((wallet) => (
-                  <tr key={wallet.id} className="border-b last:border-b-0">
+                  <tr
+                    key={wallet.id}
+                    className="border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleWalletClick(wallet)}
+                  >
                     <td className="p-4">
                       <Checkbox
                         checked={selectedWallets.includes(wallet.id)}
@@ -364,7 +400,10 @@ export default function WalletsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => copyToClipboard(wallet.walletAddress)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(wallet.walletAddress);
+                          }}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -421,7 +460,10 @@ export default function WalletsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => refreshWalletBalance(wallet)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            refreshWalletBalance(wallet);
+                          }}
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -429,14 +471,20 @@ export default function WalletsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setSelectedWalletForSwap(wallet)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWalletForSwap(wallet);
+                          }}
                         >
                           <FaExchangeAlt className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="muted"
                           className="h-8"
-                          onClick={() => setSelectedWalletForTopup(wallet)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWalletForTopup(wallet);
+                          }}
                         >
                           Top Up
                         </Button>
@@ -502,6 +550,12 @@ export default function WalletsPage() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
+      />
+
+      <WalletDetailsDialog
+        isOpen={!!selectedWalletForDetails}
+        onClose={() => setSelectedWalletForDetails(null)}
+        wallet={selectedWalletForDetails}
       />
     </MainLayout>
   );

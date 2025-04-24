@@ -1,13 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { createContext, useContext, ReactNode, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 
 type Position = { x: number; y: number };
 
 interface DialogContextType {
   position: Position;
   style: any;
-  setActiveDialog: React.Dispatch<React.SetStateAction<{ width: number; height: number }>>;
+  setActiveDialog: React.Dispatch<
+    React.SetStateAction<{ width: number; height: number }>
+  >;
 }
 
 const DEFAULT_DIALOG_WIDTH = 600;
@@ -17,7 +26,7 @@ const DIALOG_POSITION_KEY = 'dialog-position';
 
 const getStoredPosition = (): Position | null => {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const stored = localStorage.getItem(DIALOG_POSITION_KEY);
     if (stored) {
@@ -31,7 +40,7 @@ const getStoredPosition = (): Position | null => {
 
 const savePosition = (position: Position) => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     localStorage.setItem(DIALOG_POSITION_KEY, JSON.stringify(position));
   } catch (e) {
@@ -42,14 +51,14 @@ const savePosition = (position: Position) => {
 const getInitialPosition = (): Position => {
   const storedPosition = getStoredPosition();
   if (storedPosition) return storedPosition;
-  
+
   if (typeof window === 'undefined') {
     return { x: 0, y: 0 };
   }
 
   return {
     x: Math.max(0, (window.innerWidth - DEFAULT_DIALOG_WIDTH) / 2),
-    y: Math.max(0, (window.innerHeight - DEFAULT_DIALOG_HEIGHT) / 2)
+    y: Math.max(0, (window.innerHeight - DEFAULT_DIALOG_HEIGHT) / 2),
   };
 };
 
@@ -57,7 +66,10 @@ const DialogContext = createContext<DialogContextType | null>(null);
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [position, setPosition] = useState<Position>(getInitialPosition());
-  const [activeDialog, setActiveDialog] = useState({ width: DEFAULT_DIALOG_WIDTH, height: DEFAULT_DIALOG_HEIGHT });
+  const [activeDialog, setActiveDialog] = useState({
+    width: DEFAULT_DIALOG_WIDTH,
+    height: DEFAULT_DIALOG_HEIGHT,
+  });
 
   const updatePosition = useCallback((newPosition: Position) => {
     setPosition(newPosition);
@@ -67,12 +79,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleResize = () => {
       if (typeof window === 'undefined') return;
-      
+
       const newPosition = {
         x: Math.max(0, (window.innerWidth - activeDialog.width) / 2),
-        y: Math.max(0, (window.innerHeight - activeDialog.height) / 2)
+        y: Math.max(0, (window.innerHeight - activeDialog.height) / 2),
       };
-      
+
       updatePosition(newPosition);
     };
 
@@ -90,16 +102,14 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       transform: 'none',
       width: activeDialog.width,
       height: activeDialog.height,
-      overflow: "visible",
+      overflow: 'visible',
       padding: 0,
     },
     setActiveDialog,
   };
 
   return (
-    <DialogContext.Provider value={value}>
-      {children}
-    </DialogContext.Provider>
+    <DialogContext.Provider value={value}>{children}</DialogContext.Provider>
   );
 }
 
@@ -109,4 +119,4 @@ export function useDialogContext() {
     throw new Error('useDialogContext must be used within a DialogProvider');
   }
   return context;
-} 
+}

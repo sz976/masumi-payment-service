@@ -43,4 +43,4 @@ declare module '@transak/transak-sdk' {
   }
 
   export default Transak;
-} 
+}

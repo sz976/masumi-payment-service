@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LuSettings, LuCopy } from 'react-icons/lu';
+import { LuCopy } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +43,16 @@ const handleError = (error: ApiError) => {
   const errorMessage =
     error.error?.message || error.message || 'An error occurred';
   toast.error(errorMessage);
+};
+
+const formatTimestamp = (timestamp: string | null | undefined): string => {
+  if (!timestamp) return '—';
+
+  if (/^\d+$/.test(timestamp)) {
+    return new Date(parseInt(timestamp)).toLocaleString();
+  }
+
+  return new Date(timestamp).toLocaleString();
 };
 
 export default function Transactions() {
@@ -513,8 +523,7 @@ export default function Transactions() {
                   <div>
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
-                      {//FIX proper funds
-                      selectedTransaction.type === 'payment' &&
+                      {selectedTransaction.type === 'payment' &&
                       selectedTransaction.RequestedFunds?.[0]
                         ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                         : selectedTransaction.type === 'purchase' &&
@@ -553,6 +562,54 @@ export default function Transactions() {
                         No transaction hash available
                       </p>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold">Time Information</h4>
+                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/10">
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Created</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.createdAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Last Updated</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.updatedAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">
+                      Submit Result By
+                    </h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.submitResultTime)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Unlock Time</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.unlockTime)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">
+                      External Dispute Unlock Time
+                    </h5>
+                    <p className="text-sm">
+                      {formatTimestamp(
+                        selectedTransaction.externalDisputeUnlockTime,
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Last Checked</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.lastCheckedAt)}
+                    </p>
                   </div>
                 </div>
               </div>

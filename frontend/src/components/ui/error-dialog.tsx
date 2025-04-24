@@ -1,8 +1,8 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
-import { Button } from "./button";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
+import { Button } from './button';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface ErrorDialogProps {
   open: boolean;
@@ -24,7 +24,7 @@ export function ErrorDialog({ open, onClose, error }: ErrorDialogProps) {
           <DialogTitle className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="bg-destructive/10 text-destructive px-2 py-1 rounded-full text-sm font-medium">
-                {error.code || "500"}
+                {error.code || '500'}
               </div>
               <X className="h-4 w-4 text-destructive" />
             </div>
@@ -34,7 +34,7 @@ export function ErrorDialog({ open, onClose, error }: ErrorDialogProps) {
 
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {error.message || "An unexpected error occurred"}
+            {error.message || 'An unexpected error occurred'}
           </p>
 
           {!!error.details && (
@@ -54,8 +54,8 @@ export function ErrorDialog({ open, onClose, error }: ErrorDialogProps) {
 
               <div
                 className={cn(
-                  "overflow-hidden transition-all",
-                  showDetails ? "max-h-96" : "max-h-0"
+                  'overflow-hidden transition-all',
+                  showDetails ? 'max-h-96' : 'max-h-0',
                 )}
               >
                 <pre className="text-xs bg-muted/50 p-4 rounded-md overflow-auto">

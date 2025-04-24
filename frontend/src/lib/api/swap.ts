@@ -13,19 +13,16 @@ interface SwapParams {
 }
 
 export const executeSwap = async (params: SwapParams) => {
-  const baseUrl = "https://ada-swap-production.up.railway.app";
+  const baseUrl = 'https://ada-swap-production.up.railway.app';
   try {
-    const response = await axios.post(
-      `${baseUrl}/api/swap`,
-      {
-        mnemonic: params.mnemonic,
-        amount: params.amount,
-        isFromAda: params.isFromAda,
-        fromToken: params.fromToken,
-        toToken: params.toToken,
-        poolId: params.fromToken.poolId || params.toToken.poolId,
-      },
-    );
+    const response = await axios.post(`${baseUrl}/api/swap`, {
+      mnemonic: params.mnemonic,
+      amount: params.amount,
+      isFromAda: params.isFromAda,
+      fromToken: params.fromToken,
+      toToken: params.toToken,
+      poolId: params.fromToken.poolId || params.toToken.poolId,
+    });
 
     if (!response.data.success) {
       throw new Error(response.data.error || 'Swap failed');

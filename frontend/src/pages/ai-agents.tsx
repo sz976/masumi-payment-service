@@ -4,17 +4,18 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Copy, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress, copyToClipboard } from '@/lib/utils';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import {
   getRegistry,
   deleteRegistry,
   GetRegistryResponses,
+  getUtxos,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
@@ -24,6 +25,16 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FaRegClock } from 'react-icons/fa';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  WalletDetailsDialog,
+  WalletWithBalance,
+} from '@/components/wallets/WalletDetailsDialog';
 
 type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
@@ -65,6 +76,13 @@ export default function AIAgentsPage() {
   const [activeTab, setActiveTab] = useState('All');
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedAgentForDetails, setSelectedAgentForDetails] =
+    useState<AIAgent | null>(null);
+  const [copiedFields, setCopiedFields] = useState<{ [key: string]: boolean }>(
+    {},
+  );
+  const [selectedWalletForDetails, setSelectedWalletForDetails] =
+    useState<WalletWithBalance | null>(null);
 
   const tabs = [
     { name: 'All', count: null },
@@ -176,16 +194,6 @@ export default function AIAgentsPage() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLoadingMore) {
-        fetchAgents();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [isLoadingMore]);
-
-  useEffect(() => {
     filterAgents();
   }, [filterAgents, searchQuery, activeTab]);
 
@@ -261,6 +269,69 @@ export default function AIAgentsPage() {
     }
   };
 
+  const handleAgentClick = (agent: AIAgent) => {
+    setSelectedAgentForDetails(agent);
+  };
+
+  const handleCopy = async (text: string, field: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopiedFields({ ...copiedFields, [field]: true });
+      setTimeout(() => {
+        setCopiedFields((prev) => ({ ...prev, [field]: false }));
+      }, 2000);
+    }
+  };
+
+  const handleWalletClick = async (walletAddress: string) => {
+    try {
+      // Fetch wallet balance
+      const response = await getUtxos({
+        client: apiClient,
+        query: {
+          address: walletAddress,
+          network: state.network,
+        },
+      });
+
+      let adaBalance = '0';
+      let usdmBalance = '0';
+
+      if (response.data?.data?.Utxos) {
+        response.data.data.Utxos.forEach((utxo) => {
+          utxo.Amounts.forEach((amount) => {
+            if (amount.unit === 'lovelace' || amount.unit === '') {
+              adaBalance = (
+                parseInt(adaBalance) + (amount.quantity || 0)
+              ).toString();
+            } else if (amount.unit === 'USDM') {
+              usdmBalance = (
+                parseInt(usdmBalance) + (amount.quantity || 0)
+              ).toString();
+            }
+          });
+        });
+      }
+
+      // Create wallet details object
+      const walletDetails: WalletWithBalance = {
+        id: walletAddress, // Using address as ID since we don't have the actual wallet ID
+        walletVkey: '', // We don't have this information
+        walletAddress,
+        collectionAddress: null,
+        note: null,
+        type: 'Selling', // AI agents use selling wallets
+        balance: adaBalance,
+        usdmBalance,
+      };
+
+      setSelectedWalletForDetails(walletDetails);
+    } catch (error) {
+      console.error('Error fetching wallet details:', error);
+      toast.error('Failed to fetch wallet details');
+    }
+  };
+
   return (
     <MainLayout>
       <Head>
@@ -332,9 +403,7 @@ export default function AIAgentsPage() {
                   <th className="p-4 text-left text-sm font-medium">
                     Linked wallet
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">
-                    Price, ADA
-                  </th>
+                  <th className="p-4 text-left text-sm font-medium">Price</th>
                   <th className="p-4 text-left text-sm font-medium">Tags</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="w-20 p-4"></th>
@@ -359,15 +428,16 @@ export default function AIAgentsPage() {
                   filteredAgents.map((agent) => (
                     <tr
                       key={agent.id}
-                      className="border-b"
+                      className="border-b cursor-pointer hover:bg-muted/50"
                       style={{
                         opacity:
                           agent.state === 'DeregistrationConfirmed'
                             ? '0.4'
                             : '1',
                       }}
+                      onClick={() => handleAgentClick(agent)}
                     >
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedAgents.includes(agent.id)}
                           onCheckedChange={() => handleSelectAgent(agent.id)}
@@ -386,12 +456,48 @@ export default function AIAgentsPage() {
                         <div className="text-xs font-medium">
                           Selling wallet
                         </div>
-                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-                          {agent.SmartContractWallet.walletAddress}
+                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px] flex items-center gap-2">
+                          <span
+                            className="cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleWalletClick(
+                                agent.SmartContractWallet.walletAddress,
+                              );
+                            }}
+                          >
+                            {shortenAddress(
+                              agent.SmartContractWallet.walletAddress,
+                            )}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(
+                                agent.SmartContractWallet.walletAddress,
+                                `wallet-${agent.id}`,
+                              );
+                            }}
+                          >
+                            {copiedFields[`wallet-${agent.id}`] ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
                         </div>
                       </td>
                       <td className="p-4 text-sm">
-                        {useFormatPrice(agent.AgentPricing.Pricing[0]?.amount)}
+                        {agent.AgentPricing?.Pricing?.map((price, index) => (
+                          <div key={index} className="whitespace-nowrap">
+                            {price.unit === 'lovelace'
+                              ? `${useFormatPrice(price.amount)} ADA`
+                              : `${useFormatPrice(price.amount)} ${price.unit}`}
+                          </div>
+                        ))}
                       </td>
                       <td className="p-4">
                         {agent.Tags.length > 0 && (
@@ -431,7 +537,10 @@ export default function AIAgentsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteClick(agent)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(agent);
+                            }}
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -462,6 +571,196 @@ export default function AIAgentsPage() {
           onSuccess={fetchAgents}
         />
 
+        <Dialog
+          open={!!selectedAgentForDetails}
+          onOpenChange={() => setSelectedAgentForDetails(null)}
+        >
+          <DialogContent className="max-w-2xl">
+            {selectedAgentForDetails && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedAgentForDetails.name}</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-6 py-4">
+                  {/* Description */}
+                  <div>
+                    <h3 className="font-medium mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedAgentForDetails.description ||
+                        'No description provided'}
+                    </p>
+                  </div>
+
+                  {/* Tags */}
+                  <div>
+                    <h3 className="font-medium mb-2">Tags</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedAgentForDetails.Tags &&
+                      selectedAgentForDetails.Tags.length > 0 ? (
+                        selectedAgentForDetails.Tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary">
+                            {tag}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          No tags
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pricing */}
+                  <div>
+                    <h3 className="font-medium mb-2">Pricing Details</h3>
+                    <div className="space-y-2">
+                      {selectedAgentForDetails.AgentPricing?.Pricing?.map(
+                        (price, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between py-2 border-b"
+                            onClick={() => {
+                              console.log(price);
+                            }}
+                          >
+                            <span className="text-sm text-muted-foreground">
+                              Price (
+                              {price.unit === 'lovelace'
+                                ? 'ADA'
+                                : price.unit || 'ADA'}
+                              )
+                            </span>
+                            <span className="font-medium">
+                              {price.unit === 'lovelace'
+                                ? `${useFormatPrice(price.amount)} ADA`
+                                : `${useFormatPrice(price.amount)} ${price.unit}`}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                      {(!selectedAgentForDetails.AgentPricing?.Pricing ||
+                        selectedAgentForDetails.AgentPricing.Pricing.length ===
+                          0) && (
+                        <div className="text-sm text-muted-foreground">
+                          No pricing information available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Wallet Information */}
+                  <div>
+                    <h3 className="font-medium mb-2">Wallet Information</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-muted-foreground">
+                          Selling Wallet Address
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">
+                            {shortenAddress(
+                              selectedAgentForDetails.SmartContractWallet
+                                ?.walletAddress || '',
+                            )}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              handleCopy(
+                                selectedAgentForDetails.SmartContractWallet
+                                  ?.walletAddress || '',
+                                'details-wallet',
+                              )
+                            }
+                          >
+                            {copiedFields['details-wallet'] ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metadata */}
+                  <div>
+                    <h3 className="font-medium mb-2">Additional Information</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-muted-foreground">
+                          Created
+                        </span>
+                        <span>
+                          {formatDate(selectedAgentForDetails.createdAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-muted-foreground">
+                          Last Updated
+                        </span>
+                        <span>
+                          {formatDate(selectedAgentForDetails.updatedAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-muted-foreground">
+                          Agent ID
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">
+                            {shortenAddress(
+                              selectedAgentForDetails.agentIdentifier || '',
+                            )}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              handleCopy(
+                                selectedAgentForDetails.agentIdentifier || '',
+                                'details-agent-id',
+                              )
+                            }
+                          >
+                            {copiedFields['details-agent-id'] ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm text-muted-foreground">
+                          Status
+                        </span>
+                        <Badge
+                          variant={getStatusBadgeVariant(
+                            selectedAgentForDetails.state,
+                          )}
+                          className={cn(
+                            selectedAgentForDetails.state ===
+                              'RegistrationConfirmed' &&
+                              'bg-green-50 text-green-700 hover:bg-green-50/80',
+                          )}
+                        >
+                          {parseAgentStatus(selectedAgentForDetails.state)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <ConfirmDialog
           open={isDeleteDialogOpen}
           onClose={() => {
@@ -470,8 +769,18 @@ export default function AIAgentsPage() {
           }}
           title="Delete AI Agent"
           description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={async () => {
+            await handleDeleteConfirm();
+            // Close both dialogs after successful deletion
+            setSelectedAgentForDetails(null);
+          }}
           isLoading={isDeleting}
+        />
+
+        <WalletDetailsDialog
+          isOpen={!!selectedWalletForDetails}
+          onClose={() => setSelectedWalletForDetails(null)}
+          wallet={selectedWalletForDetails}
         />
       </div>
     </MainLayout>
