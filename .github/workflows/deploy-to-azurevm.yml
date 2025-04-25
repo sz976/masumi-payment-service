@@ -43,7 +43,7 @@ jobs:
         DEPLOY_REF: ${{ github.event_name == 'push' && github.ref_name || inputs.branchOrTag }}
         AZURE_VM_IP: ${{ secrets.AZURE_VM_IP }}
         AZURE_VM_USER: ${{ secrets.AZURE_VM_USER || 'azureuser' }}
-        DEPLOYMENT_PATH: ${{ secrets.DEPLOYMENT_PATH || '~/masumi-payment-service' }}
+        DEPLOYMENT_PATH: ${{ secrets.DEPLOYMENT_PATH || '$HOME/masumi-payment-service' }}
       run: |
         # Display deployment information
         echo "==============================================="
@@ -59,7 +59,7 @@ jobs:
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
-          cd "'"${DEPLOYMENT_PATH}"'" 2>/dev/null && {
+          cd "$HOME/masumi-payment-service" 2>/dev/null && {
             echo "Stopping Docker containers..."
             docker-compose down --remove-orphans --volumes --rmi all || true
             docker-compose rm -f || true
@@ -74,8 +74,8 @@ jobs:
           
           # Completely remove and recreate deployment directory
           echo "Removing previous deployment directory..."
-          rm -rf "'"${DEPLOYMENT_PATH}"'"
-          mkdir -p "'"${DEPLOYMENT_PATH}"'"
+          rm -rf "$HOME/masumi-payment-service"
+          mkdir -p "$HOME/masumi-payment-service"
           
           echo "Environment reset complete."
         ' || {
@@ -89,14 +89,14 @@ jobs:
           which git || sudo apt-get install -y git
           
           # Remove existing directory completely
-          rm -rf ${DEPLOYMENT_PATH}
+          rm -rf "$HOME/masumi-payment-service"
           
           # Fresh clone with specific branch/tag
           echo 'Performing fresh clone of repository...'
-          git clone --branch ${DEPLOY_REF} https://github.com/sz976/masumi-payment-service.git ${DEPLOYMENT_PATH}
+          git clone --branch ${DEPLOY_REF} https://github.com/sz976/masumi-payment-service.git "$HOME/masumi-payment-service"
           
           # Verify the clone and checkout
-          cd ${DEPLOYMENT_PATH}
+          cd "$HOME/masumi-payment-service"
           git status
           echo 'Repository cloned successfully.'
         " || {
@@ -113,11 +113,11 @@ jobs:
           KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
           
           ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
-            mkdir -p ${DEPLOYMENT_PATH}/nginx/certs; \
-            echo ${CERT_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.crt; \
-            echo ${KEY_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.key; \
-            chmod 644 ${DEPLOYMENT_PATH}/nginx/certs/server.crt; \
-            chmod 600 ${DEPLOYMENT_PATH}/nginx/certs/server.key; \
+            mkdir -p "$HOME/masumi-payment-service/nginx/certs; \
+            echo ${CERT_B64} | base64 -d > "$HOME/masumi-payment-service/nginx/certs/server.crt; \
+            echo ${KEY_B64} | base64 -d > "$HOME/masumi-payment-service/nginx/certs/server.key; \
+            chmod 644 "$HOME/masumi-payment-service/nginx/certs/server.crt; \
+            chmod 600 "$HOME/masumi-payment-service/nginx/certs/server.key; \
             echo 'SSL certificates successfully installed.'
           " || {
             echo "Error: Failed to set up SSL certificates"
@@ -145,7 +145,7 @@ jobs:
         
         # Single quotes for the whole SSH command with double quotes for variables
         ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
-          cd "'"${DEPLOYMENT_PATH}"'"
+          cd "$HOME/masumi-payment-service"
           
           # Debug: Show current directory and contents
           echo "Current directory: $(pwd)"
