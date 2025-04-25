@@ -88,19 +88,17 @@ jobs:
           # Ensure git is installed
           which git || sudo apt-get install -y git
           
-          # Clone or update the repository directly
-          if [ -d ${DEPLOYMENT_PATH}/.git ]; then
-            # Update existing repository
-            cd ${DEPLOYMENT_PATH}
-            git fetch origin
-            git checkout ${DEPLOY_REF}
-            git pull
-          else
-            # Fresh clone
-            git clone https://github.com/sz976/masumi-payment-service.git ${DEPLOYMENT_PATH}
-            cd ${DEPLOYMENT_PATH}
-            git checkout ${DEPLOY_REF}
-          fi
+          # Remove existing directory completely
+          rm -rf ${DEPLOYMENT_PATH}
+          
+          # Fresh clone with specific branch/tag
+          echo 'Performing fresh clone of repository...'
+          git clone --branch ${DEPLOY_REF} https://github.com/sz976/masumi-payment-service.git ${DEPLOYMENT_PATH}
+          
+          # Verify the clone and checkout
+          cd ${DEPLOYMENT_PATH}
+          git status
+          echo 'Repository cloned successfully.'
         " || {
           echo "Error: Failed to clone/update repository on payment VM"
           exit 1
