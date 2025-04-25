@@ -37,38 +37,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.event_name == 'push' && github.ref || inputs.branchOrTag }}
-      
-    - name: Set up SSH key
-      run: |
-        # Validate required secrets
-        if [ -z "${{ secrets.AZURE_VM_IP }}" ]; then
-          echo "Error: AZURE_VM_IP secret is not set. Please add this secret in your GitHub repository settings."
-          exit 1
-        fi
-        
-        if [ -z "${{ secrets.AZURE_VM_SSH_KEY }}" ]; then
-          echo "Error: AZURE_VM_SSH_KEY secret is not set. Please add this secret in your GitHub repository settings."
-          exit 1
-        fi
-        
-        # Set up SSH directory
-        mkdir -p ~/.ssh
-        
-        # Install SSH key
-        echo "${{ secrets.AZURE_VM_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        
-        # Add host key to known_hosts to prevent prompts - with validation
-        if ! ssh-keyscan -H ${{ secrets.AZURE_VM_IP }} >> ~/.ssh/known_hosts; then
-          echo "Error: Failed to get SSH host key. Please verify the AZURE_VM_IP is correct and the VM is running."
-          exit 1
-        fi
-        
-        # Verify SSH connection
-        if ! ssh -o BatchMode=yes -o ConnectTimeout=10 -i ~/.ssh/id_rsa ${{ secrets.AZURE_VM_USER || 'azureuser' }}@${{ secrets.AZURE_VM_IP }} "echo SSH connection successful"; then
-          echo "Error: Failed to connect to Azure VM. Please verify credentials and network connectivity."
-          exit 1
-        fi
     
     - name: Deploy to Azure VM
       env:
