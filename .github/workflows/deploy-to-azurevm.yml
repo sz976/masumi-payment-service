@@ -2,7 +2,6 @@ name: Deploy to Azure VM (Payment Service)
 
 # Azure VM deployment workflow for Masumi Payment Service
 # This workflow deploys the payment service to an Azure VM with Docker and Docker Compose installed
-
 on:
   push:
     branches:
