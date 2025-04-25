@@ -409,7 +409,7 @@ export function SwapDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-hidden">
+      <DialogContent className="overflow-y-hidden max-w-2xl">
         <DialogHeader>
           <DialogTitle>Swap Tokens</DialogTitle>
           <DialogDescription>

@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Copy, Search, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddPaymentSourceDialog } from '@/components/payment-sources/AddPaymentSourceDialog';
 import Link from 'next/link';
@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { CopyButton } from '@/components/ui/copy-button';
 
 interface UpdatePaymentSourceDialogProps {
   open: boolean;
@@ -252,11 +253,6 @@ export default function PaymentSourcesPage() {
     );
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
-  };
-
   const handleDeleteSource = async () => {
     if (!sourceToDelete) return;
 
@@ -403,12 +399,7 @@ export default function PaymentSourcesPage() {
                       <td className="p-4">
                         <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px] flex items-center gap-2">
                           {shortenAddress(source.smartContractAddress)}{' '}
-                          <Copy
-                            className="w-4 h-4 cursor-pointer"
-                            onClick={() =>
-                              copyToClipboard(source.smartContractAddress)
-                            }
-                          />
+                          <CopyButton value={source.smartContractAddress} />
                         </div>
                       </td>
                       <td className="p-4">

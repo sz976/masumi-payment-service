@@ -4,8 +4,6 @@ import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import {
-  LuCopy,
-  LuCheck,
   LuEye,
   LuEyeOff,
   LuSun,
@@ -16,25 +14,15 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/router';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import Head from 'next/head';
+import { CopyButton } from '@/components/ui/copy-button';
 
 export default function Settings() {
   const router = useRouter();
   const { dispatch, state } = useAppContext();
   const { preference, setThemePreference } = useTheme();
   const [showApiKey, setShowApiKey] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const adminApiKey = state.apiKey || '';
-
-  const handleCopyApiKey = async () => {
-    try {
-      await navigator.clipboard.writeText(adminApiKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
 
   const signOut = () => {
     localStorage.removeItem('payment_api_key');
@@ -63,7 +51,7 @@ export default function Settings() {
             <div>
               <h2 className="text-sm font-medium">Admin API Key</h2>
               <p className="text-sm text-muted-foreground">
-                Your admin API key for accessing the NMKR API
+                Your admin API key for accessing the Masumi Node
               </p>
             </div>
             <div className="flex gap-2">
@@ -87,18 +75,7 @@ export default function Settings() {
                       <LuEye className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleCopyApiKey}
-                  >
-                    {copied ? (
-                      <LuCheck className="h-4 w-4" />
-                    ) : (
-                      <LuCopy className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <CopyButton value={adminApiKey} />
                 </div>
               </div>
             </div>

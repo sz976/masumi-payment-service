@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/button';
-import { Copy, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { getUtxos } from '@/lib/api/generated';
@@ -10,6 +10,9 @@ import { shortenAddress } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { useRate } from '@/lib/hooks/useRate';
+import { SwapDialog } from '@/components/wallets/SwapDialog';
+import { TransakWidget } from '@/components/wallets/TransakWidget';
+import { CopyButton } from '@/components/ui/copy-button';
 import {
   Dialog,
   DialogContent,
@@ -53,17 +56,15 @@ export function WalletDetailsDialog({
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { rate } = useRate();
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Address copied to clipboard');
-  };
+  const [selectedWalletForSwap, setSelectedWalletForSwap] = useState<WalletWithBalance | null>(null);
+  const [selectedWalletForTopup, setSelectedWalletForTopup] = useState<WalletWithBalance | null>(null);
 
   const fetchTokenBalances = async () => {
     if (!wallet) return;
 
     setIsLoading(true);
     setError(null);
+    setTokenBalances([]); // Reset balances when refreshing
     try {
       const response = await getUtxos({
         client: apiClient,
@@ -126,6 +127,10 @@ export function WalletDetailsDialog({
 
   useEffect(() => {
     if (isOpen && wallet) {
+      // Reset states when dialog is opened
+      setTokenBalances([]);
+      setError(null);
+      setIsLoading(true);
       fetchTokenBalances();
     }
   }, [isOpen, wallet?.walletAddress]);
@@ -143,8 +148,9 @@ export function WalletDetailsDialog({
   const formatTokenBalance = (token: TokenBalance) => {
     if (token.unit === 'lovelace') {
       const ada = token.quantity / 1000000;
+      const formattedAmount = ada === 0 ? 'zero' : useFormatBalance(ada.toFixed(6));
       return {
-        amount: useFormatBalance(ada.toFixed(6)),
+        amount: formattedAmount,
         usdValue: rate ? `≈ $${(ada * rate).toFixed(2)}` : undefined,
       };
     }
@@ -152,16 +158,18 @@ export function WalletDetailsDialog({
     // For USDM, divide by 10^7
     if (token.displayName === 'USDM') {
       const usdm = token.quantity / 10000000;
+      const formattedAmount = usdm === 0 ? 'zero' : useFormatBalance(usdm.toFixed(6));
       return {
-        amount: useFormatBalance(usdm.toFixed(6)),
+        amount: formattedAmount,
         usdValue: `≈ $${usdm.toFixed(2)}`,
       };
     }
 
     // For other tokens, divide by 10^6 as a default
     const amount = token.quantity / 1000000;
+    const formattedAmount = amount === 0 ? 'zero' : useFormatBalance(amount.toFixed(6));
     return {
-      amount: useFormatBalance(amount.toFixed(6)),
+      amount: formattedAmount,
       usdValue: undefined,
     };
   };
@@ -169,86 +177,118 @@ export function WalletDetailsDialog({
   if (!wallet) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Wallet Details</DialogTitle>
-          <DialogDescription>
-            {wallet.type} Wallet
-            {wallet.note && ` - ${wallet.note}`}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Wallet Details</DialogTitle>
+            <DialogDescription>
+              {wallet.type} Wallet
+              {wallet.note && ` - ${wallet.note}`}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Wallet Address</div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-sm font-medium">Wallet Address</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">
+                    {shortenAddress(wallet.walletAddress)}
+                  </span>
+                  <CopyButton value={wallet.walletAddress} />
+                </div>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm">
-                  {shortenAddress(wallet.walletAddress)}
-                </span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => copyToClipboard(wallet.walletAddress)}
+                  onClick={fetchTokenBalances}
+                  disabled={isLoading}
                 >
-                  <Copy className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
+                {/* <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSelectedWalletForSwap(wallet)}
+                >
+                  <FaExchangeAlt className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="muted"
+                  className="h-8"
+                  onClick={() => setSelectedWalletForTopup(wallet)}
+                >
+                  Top Up
+                </Button> */}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={fetchTokenBalances}
-              disabled={isLoading}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
 
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Token Balances</div>
-            {isLoading ? (
-              <div className="flex justify-center py-4">
-                <Spinner size={20} />
-              </div>
-            ) : error ? (
-              <div className="text-sm text-destructive">{error}</div>
-            ) : (
-              <div className="space-y-2">
-                {tokenBalances.map((token) => {
-                  const { amount, usdValue } = formatTokenBalance(token);
-                  return (
-                    <div
-                      key={token.unit}
-                      className="flex items-center justify-between rounded-md border p-3"
-                    >
-                      <div>
-                        <div className="font-medium">{token.displayName}</div>
-                        {token.policyId && (
-                          <div className="text-xs text-muted-foreground">
-                            Policy ID: {shortenAddress(token.policyId)}
-                          </div>
-                        )}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Token Balances</div>
+              {isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Spinner size={20} />
+                </div>
+              ) : error ? (
+                <div className="text-sm text-destructive">{error}</div>
+              ) : (
+                <div className="space-y-2">
+                  {tokenBalances.map((token) => {
+                    const { amount, usdValue } = formatTokenBalance(token);
+                    return (
+                      <div
+                        key={token.unit}
+                        className="flex items-center justify-between rounded-md border p-3"
+                      >
+                        <div>
+                          <div className="font-medium">{token.displayName}</div>
+                          {token.policyId && (
+                            <div className="text-xs text-muted-foreground">
+                              Policy ID: {shortenAddress(token.policyId)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div>{amount}</div>
+                          {usdValue && (
+                            <div className="text-xs text-muted-foreground">
+                              {usdValue}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div>{amount}</div>
-                        {usdValue && (
-                          <div className="text-xs text-muted-foreground">
-                            {usdValue}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <SwapDialog
+        isOpen={!!selectedWalletForSwap}
+        onClose={() => setSelectedWalletForSwap(null)}
+        walletAddress={selectedWalletForSwap?.walletAddress || ''}
+        network={state.network}
+        blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
+        walletType={selectedWalletForSwap?.type || ''}
+        walletId={selectedWalletForSwap?.id || ''}
+      />
+
+      <TransakWidget
+        isOpen={!!selectedWalletForTopup}
+        onClose={() => setSelectedWalletForTopup(null)}
+        walletAddress={selectedWalletForTopup?.walletAddress || ''}
+        onSuccess={() => {
+          toast.success('Top up successful');
+          fetchTokenBalances();
+        }}
+      />
+    </>
   );
 }

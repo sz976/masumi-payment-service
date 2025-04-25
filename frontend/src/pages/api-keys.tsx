@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-
+import { CopyButton } from '@/components/ui/copy-button';
 type ApiKey = GetApiKeyResponses['200']['data']['ApiKeys'][0];
 
 export default function ApiKeys() {
@@ -209,15 +209,6 @@ export default function ApiKeys() {
     );
   };
 
-  const handleCopyApiKey = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('API key copied to clipboard');
-    } catch {
-      toast.error('Failed to copy API key');
-    }
-  };
-
   const handleDeleteApiKey = async () => {
     if (!keyToDelete || !keyToDelete.id) return;
 
@@ -370,36 +361,10 @@ export default function ApiKeys() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 p-0"
-                            onClick={() => handleCopyApiKey(key.token)}
-                          >
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10 4H5C4.44772 4 4 4.44772 4 5V10C4 10.5523 4.44772 11 5 11H10C10.5523 11 11 10.5523 11 10V5C11 4.44772 10.5523 4 10 4Z"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M8 4V2C8 1.44772 7.55228 1 7 1H2C1.44772 1 1 1.44772 1 2V7C1 7.55228 1.44772 8 2 8H4"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </Button>
                           <span className="font-mono text-sm text-muted-foreground">
                             {key.token.slice(0, 15)}...{key.token.slice(-15)}
                           </span>
+                          <CopyButton value={key.token} />
                         </div>
                       </td>
                       <td className="p-4 text-sm">{key.permission}</td>

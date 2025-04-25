@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
-import { Copy, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -25,18 +26,26 @@ import { Spinner } from '@/components/ui/spinner';
 import { FaExchangeAlt } from 'react-icons/fa';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { useTransactions } from '@/lib/hooks/useTransactions';
+import { AIAgentDetailsDialog } from '@/components/ai-agents/AIAgentDetailsDialog';
+import { WalletDetailsDialog } from '@/components/wallets/WalletDetailsDialog';
+import { CopyButton } from '@/components/ui/copy-button';
 
 interface AIAgent {
   id: string;
   name: string;
   description: string | null;
   state: string;
+  createdAt: string;
+  updatedAt: string;
+  agentIdentifier: string | null;
+  Tags: string[];
   SmartContractWallet: {
     walletAddress: string;
   };
-  AgentPricing: {
-    Pricing: Array<{
+  AgentPricing?: {
+    Pricing?: Array<{
       amount: string;
+      unit: string;
     }>;
   };
 }
@@ -82,6 +91,8 @@ export default function Overview() {
     useTransactions();
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedAgentForDetails, setSelectedAgentForDetails] = useState<AIAgent | null>(null);
+  const [selectedWalletForDetails, setSelectedWalletForDetails] = useState<WalletWithBalance | null>(null);
 
   const fetchAgents = useCallback(
     async (cursor?: string | null) => {
@@ -240,11 +251,6 @@ export default function Overview() {
     fetchWallets();
   }, [fetchAgents, fetchWallets]);
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Address copied to clipboard');
-  };
-
   const formatUsdValue = (adaAmount: string, usdmAmount: string) => {
     if (!rate || !adaAmount) return '—';
     const ada = parseInt(adaAmount) / 1000000;
@@ -366,22 +372,28 @@ export default function Overview() {
               {isLoadingAgents ? (
                 <Spinner size={20} addContainer />
               ) : agents.length > 0 ? (
-                <div className="space-y-4 mb-4 max-h-[500px] overflow-y-auto">
+                <div className="mb-4 max-h-[500px] overflow-y-auto">
                   {agents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
+                      className="flex items-center justify-between py-4 border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                      onClick={() => setSelectedAgentForDetails(agent)}
                     >
-                      <div>
-                        <div className="text-sm font-medium">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground">
+                      <div className="flex flex-col gap-1 max-w-[80%]">
+                        <div className="text-sm font-medium hover:underline">{agent.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
                           {agent.description}
                         </div>
                       </div>
-                      <div className="text-sm">
-                        {agent.AgentPricing.Pricing[0]?.amount
-                          ? `${parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000} ₳`
-                          : '—'}
+                      <div className="text-sm min-w-content flex items-center gap-1">
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {agent.AgentPricing?.Pricing?.[0]?.amount
+                            ? `${parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000}`
+                            : '—'}
+                        </span>
+                        <span>
+                          ₳
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -413,11 +425,11 @@ export default function Overview() {
                 >
                   + Add AI agent
                 </Button>
-                <div className="flex items-center gap-4 text-sm">
+                {/* <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">
                     Total: {agents.length}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -447,11 +459,12 @@ export default function Overview() {
                 {isLoadingWallets ? (
                   <Spinner size={20} addContainer />
                 ) : (
-                  <div className="space-y-2">
-                    {wallets.slice(0, 2).map((wallet) => (
+                  <div className="mb-4 max-h-[500px] overflow-y-auto">
+                    {wallets.slice(0, 4).map((wallet) => (
                       <div
                         key={wallet.id}
-                        className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0"
+                        className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                        onClick={() => setSelectedWalletForDetails(wallet)}
                       >
                         <div>
                           <span
@@ -459,53 +472,36 @@ export default function Overview() {
                               'text-xs font-medium px-2 py-0.5 rounded-full',
                               wallet.type === 'Purchasing'
                                 ? 'bg-primary text-primary-foreground'
-                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
+                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400'
                             )}
                           >
-                            {wallet.type === 'Purchasing'
-                              ? 'Buying'
-                              : 'Selling'}
+                            {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
                           </span>
                         </div>
                         <div>
                           <div className="text-sm font-medium truncate">
-                            {wallet.type === 'Purchasing'
-                              ? 'Buying wallet'
-                              : 'Selling wallet'}
+                            {wallet.type === 'Purchasing' ? 'Buying wallet' : 'Selling wallet'}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
-                            {wallet.note && `${wallet.note}`}
+                            {wallet.note || 'Created by seeding'}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 p-0"
-                            onClick={() =>
-                              copyToClipboard(wallet.walletAddress)
-                            }
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <span className="font-mono text-sm text-muted-foreground">
+                          <span className="font-mono text-xs text-muted-foreground">
                             {wallet.walletAddress.slice(0, 12)}...
                           </span>
+                          <CopyButton value={wallet.walletAddress} />
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col items-start">
                             <span className="text-sm flex items-center gap-1">
-                              {wallet.balance
-                                ? `${useFormatBalance((parseInt(wallet.balance) / 1000000).toFixed(2)?.toString())}`
-                                : '—'}
+                              {useFormatBalance((parseInt(wallet.balance || '0') / 1000000).toFixed(2)?.toString())}
                               <span className="text-xs text-muted-foreground">
                                 ADA
                               </span>
                             </span>
                             <span className="text-sm flex items-center gap-1">
-                              {wallet.usdmBalance
-                                ? `${useFormatBalance((parseInt(wallet.usdmBalance) / 1000000).toFixed(2)?.toString())}`
-                                : '—'}
+                              {useFormatBalance((parseInt(wallet.usdmBalance || '0') / 1000000).toFixed(2)?.toString())}
                               <span className="text-xs text-muted-foreground">
                                 USDM
                               </span>
@@ -516,14 +512,20 @@ export default function Overview() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => setSelectedWalletForSwap(wallet)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedWalletForSwap(wallet);
+                              }}
                             >
                               <FaExchangeAlt className="h-2 w-2" />
                             </Button>
                             <Button
                               variant="muted"
                               className="h-8"
-                              onClick={() => setSelectedWalletForTopup(wallet)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedWalletForTopup(wallet);
+                              }}
                             >
                               Top Up
                             </Button>
@@ -538,7 +540,16 @@ export default function Overview() {
                       return (
                         <div
                           key={`collection-${wallet.id}`}
-                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0"
+                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                          onClick={() =>
+                            setSelectedWalletForDetails({
+                              ...wallet,
+                              walletAddress: wallet.collectionAddress!,
+                              type: 'Collection' as any,
+                              balance: wallet.collectionBalance?.ada || '0',
+                              usdmBalance: wallet.collectionBalance?.usdm || '0',
+                            })
+                          }
                         >
                           <div>
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -546,7 +557,7 @@ export default function Overview() {
                             </span>
                           </div>
                           <div>
-                            <div className="text-sm font-medium truncate">
+                            <div className="text-xs font-medium truncate">
                               Collection wallet
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
@@ -554,39 +565,25 @@ export default function Overview() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 p-0"
-                              onClick={() =>
-                                copyToClipboard(wallet.collectionAddress!)
-                              }
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <span className="font-mono text-sm text-muted-foreground">
+                            <span className="font-mono text-xs text-muted-foreground">
                               {wallet.collectionAddress.slice(0, 12)}...
                             </span>
+                            <CopyButton value={wallet.collectionAddress!} />
                           </div>
                           <div className="flex flex-col items-start">
                             <span className="text-sm flex items-center gap-1">
-                              {wallet.collectionBalance?.ada
-                                ? `${useFormatBalance((parseInt(wallet.collectionBalance.ada) / 1000000).toFixed(2)?.toString())}`
-                                : '—'}
+                              {useFormatBalance((parseInt(wallet.collectionBalance?.ada || '0') / 1000000).toFixed(2)?.toString())}
                               <span className="text-xs text-muted-foreground">
                                 ADA
                               </span>
                             </span>
                             <span className="text-sm flex items-center gap-1">
-                              {wallet.collectionBalance?.usdm
-                                ? `${useFormatBalance((parseInt(wallet.collectionBalance.usdm) / 1000000).toFixed(2)?.toString())}`
-                                : '—'}
+                              {useFormatBalance((parseInt(wallet.collectionBalance?.usdm || '0') / 1000000).toFixed(2)?.toString())}
                               <span className="text-xs text-muted-foreground">
                                 USDM
                               </span>
                             </span>
                           </div>
-                          <div className="flex items-center justify-end"></div>
                         </div>
                       );
                     })}
@@ -649,6 +646,11 @@ export default function Overview() {
         onSuccess={fetchAgents}
       />
 
+      <AIAgentDetailsDialog
+        agent={selectedAgentForDetails}
+        onClose={() => setSelectedAgentForDetails(null)}
+      />
+
       <SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
@@ -667,6 +669,12 @@ export default function Overview() {
           toast.success('Top up successful');
           fetchWallets();
         }}
+      />
+
+      <WalletDetailsDialog
+        isOpen={!!selectedWalletForDetails}
+        onClose={() => setSelectedWalletForDetails(null)}
+        wallet={selectedWalletForDetails}
       />
     </>
   );
