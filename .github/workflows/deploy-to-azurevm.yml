@@ -66,10 +66,16 @@ jobs:
           
           # Remove Docker resources
           echo "Cleaning Docker resources..."
-          docker container prune -f
-          docker image prune -f
-          docker volume prune -f
-          docker system prune -f --volumes || true
+          # First stop and remove all containers
+          docker ps -aq | xargs -r docker rm -f || true
+          
+          # Remove all volumes including those not attached to containers
+          echo "Removing all Docker volumes..."
+          docker volume ls -q | xargs -r docker volume rm -f || true
+          
+          # Clean other Docker resources
+          docker image prune -af || true
+          docker system prune -af --volumes || true
           
           # Completely remove and recreate deployment directory
           echo "Removing previous deployment directory..."
@@ -127,7 +133,12 @@ jobs:
         # Handle wallet mnemonics and sensitive data
         # Note: If secrets are not provided, run.sh will auto-generate values
         # which will require a backup from the admin interface after deployment
-        BLOCKFROST_API_KEY_PREPROD="${BLOCKFROST_API_KEY_PREPROD:-preprodtestkey_youmustchangethis}"
+        if [ -z "${BLOCKFROST_API_KEY_PREPROD}" ] || [ "${BLOCKFROST_API_KEY_PREPROD}" = "preprodtestkey_youmustchangethis" ]; then
+          echo "Error: No valid Blockfrost API key provided for preprod environment"
+          exit 1
+        fi
+        
+        BLOCKFROST_API_KEY_PREPROD="${BLOCKFROST_API_KEY_PREPROD}"
         BLOCKFROST_API_KEY_MAINNET="${BLOCKFROST_API_KEY_MAINNET:-}"
         PURCHASE_WALLET_PREPROD_MNEMONIC="${PURCHASE_WALLET_PREPROD_MNEMONIC:-}"
         SELLING_WALLET_PREPROD_MNEMONIC="${SELLING_WALLET_PREPROD_MNEMONIC:-}"
@@ -154,6 +165,8 @@ jobs:
           # First ensure all scripts are executable
           echo \"Setting executable permissions on scripts...\"
           if [ -f \"run.sh\" ]; then
+            # Modify run.sh to use URL-safe characters for password generation
+            sed -i 's/tr -dc '\''a-zA-Z0-9!@#$%^&*()-_=+'\'''/tr -dc '\''a-zA-Z0-9-_'\''/' run.sh
             chmod +x run.sh generate-certificates.sh make-executable.sh
             echo \"Made scripts executable\"
             ls -la *.sh

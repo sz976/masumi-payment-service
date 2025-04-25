@@ -90,6 +90,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate Blockfrost API key
+if [ "${BLOCKFROST_API_KEY_PREPROD}" = "preprodtestkey_youmustchangethis" ] || [ -z "${BLOCKFROST_API_KEY_PREPROD}" ]; then
+    echo -e "${RED}Error: No valid Blockfrost API key provided for preprod environment${NC}"
+    echo -e "${RED}Please provide a valid Blockfrost API key using the --preprod-key option${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}=========================================================${NC}"
 echo -e "${BLUE}   Masumi Payment Service - Docker Deployment Setup      ${NC}"
 echo -e "${BLUE}=========================================================${NC}"
