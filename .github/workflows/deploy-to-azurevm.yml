@@ -113,11 +113,11 @@ jobs:
           KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
           
           ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
-            mkdir -p "$HOME/masumi-payment-service/nginx/certs; \
-            echo ${CERT_B64} | base64 -d > "$HOME/masumi-payment-service/nginx/certs/server.crt; \
-            echo ${KEY_B64} | base64 -d > "$HOME/masumi-payment-service/nginx/certs/server.key; \
-            chmod 644 "$HOME/masumi-payment-service/nginx/certs/server.crt; \
-            chmod 600 "$HOME/masumi-payment-service/nginx/certs/server.key; \
+            mkdir -p \"$HOME/masumi-payment-service/nginx/certs\"; \
+            echo ${CERT_B64} | base64 -d > \"$HOME/masumi-payment-service/nginx/certs/server.crt\"; \
+            echo ${KEY_B64} | base64 -d > \"$HOME/masumi-payment-service/nginx/certs/server.key\"; \
+            chmod 644 \"$HOME/masumi-payment-service/nginx/certs/server.crt\"; \
+            chmod 600 \"$HOME/masumi-payment-service/nginx/certs/server.key\"; \
             echo 'SSL certificates successfully installed.'
           " || {
             echo "Error: Failed to set up SSL certificates"
@@ -144,62 +144,62 @@ jobs:
         echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
         
         # Single quotes for the whole SSH command with double quotes for variables
-        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
-          cd "$HOME/masumi-payment-service"
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
+          cd \"$HOME/masumi-payment-service\"
           
           # Debug: Show current directory and contents
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
+          echo \"Current directory: \$(pwd)\"
+          echo \"Directory contents:\"
           ls -la
           
           # First ensure all scripts are executable
-          echo "Setting executable permissions on scripts..."
-          if [ -f "run.sh" ]; then
+          echo \"Setting executable permissions on scripts...\"
+          if [ -f \"run.sh\" ]; then
             chmod +x run.sh generate-certificates.sh make-executable.sh
-            echo "Made scripts executable"
+            echo \"Made scripts executable\"
             ls -la *.sh
           else
-            echo "Error: run.sh not found in $(pwd)"
+            echo \"Error: run.sh not found in \$(pwd)\"
             exit 1
           fi
           
-          echo "Running initialization script..."
+          echo \"Running initialization script...\"
           ./run.sh \
-            --preprod-key "'"${BLOCKFROST_API_KEY_PREPROD}"'" \
-            --mainnet-key "'"${BLOCKFROST_API_KEY_MAINNET}"'" \
-            --purchase-preprod-mnemonic "'"${PURCHASE_WALLET_PREPROD_MNEMONIC}"'" \
-            --selling-preprod-mnemonic "'"${SELLING_WALLET_PREPROD_MNEMONIC}"'" \
-            --collection-preprod-address "'"${COLLECTION_WALLET_PREPROD_ADDRESS}"'" \
-            --purchase-mainnet-mnemonic "'"${PURCHASE_WALLET_MAINNET_MNEMONIC}"'" \
-            --selling-mainnet-mnemonic "'"${SELLING_WALLET_MAINNET_MNEMONIC}"'" \
-            --collection-mainnet-address "'"${COLLECTION_WALLET_MAINNET_ADDRESS}"'" || {
-            echo "ERROR: Initialization script failed"
+            --preprod-key \"${BLOCKFROST_API_KEY_PREPROD}\" \
+            --mainnet-key \"${BLOCKFROST_API_KEY_MAINNET}\" \
+            --purchase-preprod-mnemonic \"${PURCHASE_WALLET_PREPROD_MNEMONIC}\" \
+            --selling-preprod-mnemonic \"${SELLING_WALLET_PREPROD_MNEMONIC}\" \
+            --collection-preprod-address \"${COLLECTION_WALLET_PREPROD_ADDRESS}\" \
+            --purchase-mainnet-mnemonic \"${PURCHASE_WALLET_MAINNET_MNEMONIC}\" \
+            --selling-mainnet-mnemonic \"${SELLING_WALLET_MAINNET_MNEMONIC}\" \
+            --collection-mainnet-address \"${COLLECTION_WALLET_MAINNET_ADDRESS}\" || {
+            echo \"ERROR: Initialization script failed\"
             exit 1
           }
           
-          echo "Building and starting Docker containers..."
+          echo \"Building and starting Docker containers...\"
           docker-compose build || {
-            echo "ERROR: Docker build failed"
+            echo \"ERROR: Docker build failed\"
             exit 1
           }
           
           docker-compose up -d || {
-            echo "ERROR: Docker compose up failed"
+            echo \"ERROR: Docker compose up failed\"
             exit 1
           }
           
-          echo "Deployment complete."
+          echo \"Deployment complete.\"
           
           # Verify service is running
-          echo "Verifying service is running..."
+          echo \"Verifying service is running...\"
           sleep 10
-          if docker-compose ps | grep -q "Up"; then
-            echo "Service is running successfully."
+          if docker-compose ps | grep -q \"Up\"; then
+            echo \"Service is running successfully.\"
           else
-            echo "WARNING: Service might not be running properly. Check logs with: docker-compose logs"
+            echo \"WARNING: Service might not be running properly. Check logs with: docker-compose logs\"
             exit 0  # Don't fail deployment if service check is unclear
           fi
-        ' || {
+        " || {
           echo "Error: Deployment to VM failed"
           exit 1
         }
