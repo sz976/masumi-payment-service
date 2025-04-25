@@ -147,12 +147,21 @@ jobs:
         ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           cd "'"${DEPLOYMENT_PATH}"'"
           
+          # Debug: Show current directory and contents
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          
           # First ensure all scripts are executable
           echo "Setting executable permissions on scripts..."
-          chmod +x *.sh
-          
-          # Verify permissions
-          ls -la *.sh
+          if [ -f "run.sh" ]; then
+            chmod +x run.sh generate-certificates.sh make-executable.sh
+            echo "Made scripts executable"
+            ls -la *.sh
+          else
+            echo "Error: run.sh not found in $(pwd)"
+            exit 1
+          fi
           
           echo "Running initialization script..."
           ./run.sh \
