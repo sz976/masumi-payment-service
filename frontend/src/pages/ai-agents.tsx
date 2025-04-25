@@ -400,8 +400,12 @@ export default function AIAgentsPage() {
                   </th>
                   <th className="p-4 text-left text-sm font-medium">Name</th>
                   <th className="p-4 text-left text-sm font-medium">Added</th>
-                  <th className="p-4 text-left text-sm font-medium">Agent ID</th>
-                  <th className="p-4 text-left text-sm font-medium">Linked wallet</th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Agent ID
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium">
+                    Linked wallet
+                  </th>
                   <th className="p-4 text-left text-sm font-medium">Price</th>
                   <th className="p-4 text-left text-sm font-medium">Tags</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
@@ -477,7 +481,9 @@ export default function AIAgentsPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </td>
                       <td className="p-4">

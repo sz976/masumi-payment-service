@@ -85,7 +85,7 @@ export function AddWalletDialog({
       setIsGenerating(true);
       setError('');
 
-      const response:any = await postWallet({
+      const response: any = await postWallet({
         client: apiClient,
         body: {
           network: state.network,
@@ -99,7 +99,10 @@ export function AddWalletDialog({
       }
     } catch (error: any) {
       console.error('Error generating mnemonic:', error);
-      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to generate mnemonic phrase';
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.message ||
+        'Failed to generate mnemonic phrase';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

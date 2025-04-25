@@ -280,7 +280,7 @@ export default function Transactions() {
     try {
       await apiClient.request({
         method: 'PUT',
-        url: `/transactions/${transaction.id}/clear-error`
+        url: `/transactions/${transaction.id}/clear-error`,
       });
       toast.success('Error state cleared successfully');
       return true;
@@ -290,12 +290,15 @@ export default function Transactions() {
     }
   };
 
-  const updateTransactionState = async (transaction: Transaction, newState: string) => {
+  const updateTransactionState = async (
+    transaction: Transaction,
+    newState: string,
+  ) => {
     try {
       await apiClient.request({
         method: 'PUT',
         url: `/transactions/${transaction.id}/state`,
-        data: { state: newState }
+        data: { state: newState },
       });
       toast.success('Transaction state updated successfully');
       return true;
@@ -334,7 +337,8 @@ export default function Transactions() {
           body: {
             blockchainIdentifier: transaction.blockchainIdentifier,
             network: transaction.PaymentSource.network,
-            smartContractAddress: transaction.PaymentSource.smartContractAddress,
+            smartContractAddress:
+              transaction.PaymentSource.smartContractAddress,
           },
         },
       });
@@ -354,7 +358,8 @@ export default function Transactions() {
           body: {
             blockchainIdentifier: transaction.blockchainIdentifier,
             network: transaction.PaymentSource.network,
-            paymentContractAddress: transaction.PaymentSource.smartContractAddress,
+            paymentContractAddress:
+              transaction.PaymentSource.smartContractAddress,
           },
         },
       });
@@ -374,7 +379,8 @@ export default function Transactions() {
           body: {
             blockchainIdentifier: transaction.blockchainIdentifier,
             network: transaction.PaymentSource.network,
-            smartContractAddress: transaction.PaymentSource.smartContractAddress,
+            smartContractAddress:
+              transaction.PaymentSource.smartContractAddress,
           },
         },
       });
@@ -783,7 +789,9 @@ export default function Transactions() {
                           variant="secondary"
                           size="sm"
                           onClick={async () => {
-                            if (await clearTransactionError(selectedTransaction)) {
+                            if (
+                              await clearTransactionError(selectedTransaction)
+                            ) {
                               setSelectedTransaction(null);
                               fetchTransactions();
                             }
@@ -796,7 +804,13 @@ export default function Transactions() {
                           size="sm"
                           onClick={async () => {
                             const newState = prompt('Enter new state:');
-                            if (newState && await updateTransactionState(selectedTransaction, newState)) {
+                            if (
+                              newState &&
+                              (await updateTransactionState(
+                                selectedTransaction,
+                                newState,
+                              ))
+                            ) {
                               setSelectedTransaction(null);
                               fetchTransactions();
                             }
@@ -811,30 +825,33 @@ export default function Transactions() {
               )}
 
               <div className="flex gap-2 justify-end">
-                {canRequestRefund(selectedTransaction) && selectedTransaction.type === 'purchase' && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleRefundRequest(selectedTransaction)}
-                  >
-                    Request Refund
-                  </Button>
-                )}
-                {canAllowRefund(selectedTransaction) && selectedTransaction.type === 'payment' && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleAllowRefund(selectedTransaction)}
-                  >
-                    Allow Refund
-                  </Button>
-                )}
-                {canCancelRefund(selectedTransaction) && selectedTransaction.type === 'purchase' && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleCancelRefund(selectedTransaction)}
-                  >
-                    Cancel Refund Request
-                  </Button>
-                )}
+                {canRequestRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'purchase' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleRefundRequest(selectedTransaction)}
+                    >
+                      Request Refund
+                    </Button>
+                  )}
+                {canAllowRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'payment' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleAllowRefund(selectedTransaction)}
+                    >
+                      Allow Refund
+                    </Button>
+                  )}
+                {canCancelRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'purchase' && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleCancelRefund(selectedTransaction)}
+                    >
+                      Cancel Refund Request
+                    </Button>
+                  )}
               </div>
             </div>
           )}
