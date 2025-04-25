@@ -43,13 +43,12 @@ jobs:
         DEPLOY_REF: ${{ github.event_name == 'push' && github.ref_name || inputs.branchOrTag }}
         AZURE_VM_IP: ${{ secrets.AZURE_VM_IP }}
         AZURE_VM_USER: ${{ secrets.AZURE_VM_USER || 'azureuser' }}
-        DEPLOYMENT_PATH: ${{ secrets.DEPLOYMENT_PATH || '$HOME/masumi-payment-service' }}
       run: |
         # Display deployment information
         echo "==============================================="
         echo "Deployment Information:"
         echo "Branch/Tag: ${DEPLOY_REF}"
-        echo "Target: ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}"
+        echo "Target: ${AZURE_VM_USER}@${AZURE_VM_IP}:/home/${AZURE_VM_USER}/masumi-payment-service"
         echo "==============================================="
         
         echo "Deploying ${DEPLOY_REF} to ${AZURE_VM_IP}..."
@@ -59,7 +58,7 @@ jobs:
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
-          cd "$HOME/masumi-payment-service" 2>/dev/null && {
+          cd "/home/${USER}/masumi-payment-service" 2>/dev/null && {
             echo "Stopping Docker containers..."
             docker-compose down --remove-orphans --volumes --rmi all || true
             docker-compose rm -f || true
@@ -74,8 +73,8 @@ jobs:
           
           # Completely remove and recreate deployment directory
           echo "Removing previous deployment directory..."
-          rm -rf "$HOME/masumi-payment-service"
-          mkdir -p "$HOME/masumi-payment-service"
+          rm -rf "/home/${USER}/masumi-payment-service"
+          mkdir -p "/home/${USER}/masumi-payment-service"
           
           echo "Environment reset complete."
         ' || {
@@ -89,14 +88,14 @@ jobs:
           which git || sudo apt-get install -y git
           
           # Remove existing directory completely
-          rm -rf "$HOME/masumi-payment-service"
+          rm -rf \"/home/${USER}/masumi-payment-service\"
           
           # Fresh clone with specific branch/tag
           echo 'Performing fresh clone of repository...'
-          git clone --branch ${DEPLOY_REF} https://github.com/sz976/masumi-payment-service.git "$HOME/masumi-payment-service"
+          git clone --branch ${DEPLOY_REF} https://github.com/sz976/masumi-payment-service.git \"/home/${USER}/masumi-payment-service\"
           
           # Verify the clone and checkout
-          cd "$HOME/masumi-payment-service"
+          cd \"/home/${USER}/masumi-payment-service\"
           git status
           echo 'Repository cloned successfully.'
         " || {
@@ -113,11 +112,11 @@ jobs:
           KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
           
           ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
-            mkdir -p \"$HOME/masumi-payment-service/nginx/certs\"; \
-            echo ${CERT_B64} | base64 -d > \"$HOME/masumi-payment-service/nginx/certs/server.crt\"; \
-            echo ${KEY_B64} | base64 -d > \"$HOME/masumi-payment-service/nginx/certs/server.key\"; \
-            chmod 644 \"$HOME/masumi-payment-service/nginx/certs/server.crt\"; \
-            chmod 600 \"$HOME/masumi-payment-service/nginx/certs/server.key\"; \
+            mkdir -p \"/home/${USER}/masumi-payment-service/nginx/certs\"; \
+            echo ${CERT_B64} | base64 -d > \"/home/${USER}/masumi-payment-service/nginx/certs/server.crt\"; \
+            echo ${KEY_B64} | base64 -d > \"/home/${USER}/masumi-payment-service/nginx/certs/server.key\"; \
+            chmod 644 \"/home/${USER}/masumi-payment-service/nginx/certs/server.crt\"; \
+            chmod 600 \"/home/${USER}/masumi-payment-service/nginx/certs/server.key\"; \
             echo 'SSL certificates successfully installed.'
           " || {
             echo "Error: Failed to set up SSL certificates"
@@ -143,9 +142,9 @@ jobs:
         echo "  BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:0:5}...[masked]"
         echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
         
-        # Single quotes for the whole SSH command with double quotes for variables
+        # Run deployment commands
         ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
-          cd \"$HOME/masumi-payment-service\"
+          cd \"/home/${USER}/masumi-payment-service\"
           
           # Debug: Show current directory and contents
           echo \"Current directory: \$(pwd)\"
