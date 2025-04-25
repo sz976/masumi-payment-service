@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { LuCopy } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,9 @@ import {
   GetPaymentResponses,
   getPurchase,
   GetPurchaseResponses,
+  postPurchaseRequestRefund,
+  postPurchaseCancelRefundRequest,
+  postPaymentAuthorizeRefund,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import {
@@ -216,7 +219,7 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [state.network]);
 
   useEffect(() => {
     filterTransactions();
@@ -271,6 +274,116 @@ export default function Transactions() {
   const formatStatus = (status: string) => {
     if (!status) return '—';
     return status.replace(/([A-Z])/g, ' $1').trim();
+  };
+
+  const clearTransactionError = async (transaction: Transaction) => {
+    try {
+      await apiClient.request({
+        method: 'PUT',
+        url: `/transactions/${transaction.id}/clear-error`
+      });
+      toast.success('Error state cleared successfully');
+      return true;
+    } catch (error) {
+      handleError(error as ApiError);
+      return false;
+    }
+  };
+
+  const updateTransactionState = async (transaction: Transaction, newState: string) => {
+    try {
+      await apiClient.request({
+        method: 'PUT',
+        url: `/transactions/${transaction.id}/state`,
+        data: { state: newState }
+      });
+      toast.success('Transaction state updated successfully');
+      return true;
+    } catch (error) {
+      handleError(error as ApiError);
+      return false;
+    }
+  };
+
+  const canRequestRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'ResultSubmitted' ||
+      transaction.onChainState === 'FundsLocked'
+    );
+  };
+
+  const canAllowRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'RefundRequested' ||
+      transaction.onChainState === 'Disputed'
+    );
+  };
+
+  const canCancelRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'RefundRequested' ||
+      transaction.onChainState === 'Disputed'
+    );
+  };
+
+  const handleRefundRequest = async (transaction: Transaction) => {
+    try {
+      await postPurchaseRequestRefund({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            smartContractAddress: transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund request submitted successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
+  };
+
+  const handleAllowRefund = async (transaction: Transaction) => {
+    try {
+      await postPaymentAuthorizeRefund({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            paymentContractAddress: transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund authorized successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
+  };
+
+  const handleCancelRefund = async (transaction: Transaction) => {
+    try {
+      await postPurchaseCancelRefundRequest({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            smartContractAddress: transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund request cancelled successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
   };
 
   return (
@@ -665,10 +778,64 @@ export default function Transactions() {
                           {selectedTransaction.NextAction.errorNote}
                         </p>
                       )}
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            if (await clearTransactionError(selectedTransaction)) {
+                              setSelectedTransaction(null);
+                              fetchTransactions();
+                            }
+                          }}
+                        >
+                          Clear Error State
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            const newState = prompt('Enter new state:');
+                            if (newState && await updateTransactionState(selectedTransaction, newState)) {
+                              setSelectedTransaction(null);
+                              fetchTransactions();
+                            }
+                          }}
+                        >
+                          Set New State
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+
+              <div className="flex gap-2 justify-end">
+                {canRequestRefund(selectedTransaction) && selectedTransaction.type === 'purchase' && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleRefundRequest(selectedTransaction)}
+                  >
+                    Request Refund
+                  </Button>
+                )}
+                {canAllowRefund(selectedTransaction) && selectedTransaction.type === 'payment' && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleAllowRefund(selectedTransaction)}
+                  >
+                    Allow Refund
+                  </Button>
+                )}
+                {canCancelRefund(selectedTransaction) && selectedTransaction.type === 'purchase' && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleCancelRefund(selectedTransaction)}
+                  >
+                    Cancel Refund Request
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

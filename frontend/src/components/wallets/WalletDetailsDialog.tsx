@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/button';
 import { Copy, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';

@@ -400,9 +400,8 @@ export default function AIAgentsPage() {
                   </th>
                   <th className="p-4 text-left text-sm font-medium">Name</th>
                   <th className="p-4 text-left text-sm font-medium">Added</th>
-                  <th className="p-4 text-left text-sm font-medium">
-                    Linked wallet
-                  </th>
+                  <th className="p-4 text-left text-sm font-medium">Agent ID</th>
+                  <th className="p-4 text-left text-sm font-medium">Linked wallet</th>
                   <th className="p-4 text-left text-sm font-medium">Price</th>
                   <th className="p-4 text-left text-sm font-medium">Tags</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
@@ -451,6 +450,35 @@ export default function AIAgentsPage() {
                       </td>
                       <td className="p-4 text-sm">
                         {formatDate(agent.createdAt)}
+                      </td>
+                      <td className="p-4">
+                        {agent.agentIdentifier ? (
+                          <div className="text-xs font-mono truncate max-w-[200px] flex items-center gap-2">
+                            <span className="cursor-pointer hover:text-primary">
+                              {shortenAddress(agent.agentIdentifier)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-4 w-4 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(
+                                  agent.agentIdentifier || '',
+                                  `agent-id-${agent.id}`,
+                                );
+                              }}
+                            >
+                              {copiedFields[`agent-id-${agent.id}`] ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="text-xs font-medium">
