@@ -122,7 +122,7 @@ fi
 # Function to generate a secure random string - using openssl to avoid locale issues
 generate_secure_string() {
     local length=$1
-    openssl rand -base64 $((length*2)) | tr -dc 'a-zA-Z0-9!@#$%^&*()-_=+' | head -c "$length"
+    openssl rand -base64 $((length*2)) | tr -dc 'a-zA-Z0-9-_' | head -c "$length"
 }
 
 # Step 1: Create .env file

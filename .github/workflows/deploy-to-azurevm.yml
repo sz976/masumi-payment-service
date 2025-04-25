@@ -164,8 +164,6 @@ jobs:
           # First ensure all scripts are executable
           echo \"Setting executable permissions on scripts...\"
           if [ -f \"run.sh\" ]; then
-            # Modify run.sh to use URL-safe characters for password generation
-            sed -i 's/tr -dc '\''a-zA-Z0-9!@#$%^&*()-_=+'\'''/tr -dc '\''a-zA-Z0-9-_'\''/' run.sh
             chmod +x run.sh generate-certificates.sh make-executable.sh
             echo \"Made scripts executable\"
             ls -la *.sh
