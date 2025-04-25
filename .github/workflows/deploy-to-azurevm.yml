@@ -147,12 +147,12 @@ jobs:
         ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           cd "'"${DEPLOYMENT_PATH}"'"
           
-          echo "Making scripts executable..."
-          # Make required scripts executable
-          find . -name "*.sh" -exec chmod +x {} \;
+          # First ensure all scripts are executable
+          echo "Setting executable permissions on scripts..."
+          chmod +x *.sh
           
-          # Ensure main scripts are executable (in case find failed)
-          chmod +x run.sh generate-certificates.sh make-executable.sh 2>/dev/null || true
+          # Verify permissions
+          ls -la *.sh
           
           echo "Running initialization script..."
           ./run.sh \
