@@ -55,7 +55,7 @@ jobs:
         echo "Deploying ${DEPLOY_REF} to ${AZURE_VM_IP}..."
         
         # Thorough cleanup before deployment
-        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
@@ -70,6 +70,7 @@ jobs:
           docker container prune -f
           docker image prune -f
           docker volume prune -f
+          docker system prune -f --volumes || true
           
           # Completely remove and recreate deployment directory
           echo "Removing previous deployment directory..."
@@ -81,13 +82,30 @@ jobs:
           echo "Warning: Environment reset had some issues, but continuing deployment"
         }
         
-        # Copy repository files to VM (excluding .env files)
-        echo "Copying files to VM..."
-        scp -i ~/.ssh/id_rsa -r ./* ./.dockerignore ./.gitignore ${AZURE_VM_USER}@${AZURE_VM_IP}:${DEPLOYMENT_PATH}/ || {
-          echo "Error: Failed to copy files to VM"
+        # Update code directly on the payment VM
+        echo "Cloning/updating repository on payment VM..."
+        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
+          # Ensure git is installed
+          which git || sudo apt-get install -y git
+          
+          # Clone or update the repository directly
+          if [ -d ${DEPLOYMENT_PATH}/.git ]; then
+            # Update existing repository
+            cd ${DEPLOYMENT_PATH}
+            git fetch origin
+            git checkout ${DEPLOY_REF}
+            git pull
+          else
+            # Fresh clone
+            git clone https://github.com/sz976/masumi-payment-service.git ${DEPLOYMENT_PATH}
+            cd ${DEPLOYMENT_PATH}
+            git checkout ${DEPLOY_REF}
+          fi
+        " || {
+          echo "Error: Failed to clone/update repository on payment VM"
           exit 1
         }
-        
+
         # Set up SSL certificates if provided
         if [ -n "${{ env.SSL_CERT_CONTENT }}" ] && [ -n "${{ env.SSL_KEY_CONTENT }}" ]; then
           echo "Setting up SSL certificates..."
@@ -96,7 +114,7 @@ jobs:
           CERT_B64=$(echo '${{ env.SSL_CERT_CONTENT }}' | base64 -w 0)
           KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
           
-          ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
+          ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
             mkdir -p ${DEPLOYMENT_PATH}/nginx/certs; \
             echo ${CERT_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.crt; \
             echo ${KEY_B64} | base64 -d > ${DEPLOYMENT_PATH}/nginx/certs/server.key; \
@@ -128,7 +146,7 @@ jobs:
         echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
         
         # Single quotes for the whole SSH command with double quotes for variables
-        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           cd "'"${DEPLOYMENT_PATH}"'"
           
           echo "Making scripts executable..."
