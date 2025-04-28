@@ -597,41 +597,12 @@ export default function WalletsPage() {
                             >
                               {shortenAddress(wallet.collectionAddress!)}
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyToClipboard(
-                                  wallet.collectionAddress!,
-                                  `collection-${wallet.id}`,
-                                );
-                                copyToClipboard(
-                                  wallet.collectionAddress!,
-                                  `collection-${wallet.id}`,
-                                );
-                              }}
-                            >
-                              {copiedAddresses.has(
-                                `collection-${wallet.id}-${wallet.collectionAddress}`,
-                              ) ? (
-                              {copiedAddresses.has(
-                                `collection-${wallet.id}-${wallet.collectionAddress}`,
-                              ) ? (
-                                <Check className="h-4 w-4" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
+                            <CopyButton value={wallet.collectionAddress!} />
                           </div>
                         </td>
                         <td className="p-4">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
-                              {refreshingBalances.has(
-                                `collection-${wallet.id}`,
-                              ) ? (
                               {refreshingBalances.has(
                                 `collection-${wallet.id}`,
                               ) ? (
@@ -641,9 +612,6 @@ export default function WalletsPage() {
                                   {wallet.collectionBalance?.ada
                                     ? useFormatBalance(
                                         (
-                                          parseInt(
-                                            wallet.collectionBalance.ada,
-                                          ) / 1000000
                                           parseInt(
                                             wallet.collectionBalance.ada,
                                           ) / 1000000
