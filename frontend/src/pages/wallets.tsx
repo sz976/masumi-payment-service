@@ -607,8 +607,15 @@ export default function WalletsPage() {
                                   wallet.collectionAddress!,
                                   `collection-${wallet.id}`,
                                 );
+                                copyToClipboard(
+                                  wallet.collectionAddress!,
+                                  `collection-${wallet.id}`,
+                                );
                               }}
                             >
+                              {copiedAddresses.has(
+                                `collection-${wallet.id}-${wallet.collectionAddress}`,
+                              ) ? (
                               {copiedAddresses.has(
                                 `collection-${wallet.id}-${wallet.collectionAddress}`,
                               ) ? (
@@ -625,12 +632,18 @@ export default function WalletsPage() {
                               {refreshingBalances.has(
                                 `collection-${wallet.id}`,
                               ) ? (
+                              {refreshingBalances.has(
+                                `collection-${wallet.id}`,
+                              ) ? (
                                 <Spinner size={16} />
                               ) : (
                                 <span>
                                   {wallet.collectionBalance?.ada
                                     ? useFormatBalance(
                                         (
+                                          parseInt(
+                                            wallet.collectionBalance.ada,
+                                          ) / 1000000
                                           parseInt(
                                             wallet.collectionBalance.ada,
                                           ) / 1000000
