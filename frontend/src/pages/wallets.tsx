@@ -438,7 +438,7 @@ export default function WalletsPage() {
                             'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
                             wallet.type === 'Purchasing'
                               ? 'bg-primary text-primary-foreground'
-                              : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400'
+                              : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                           )}
                         >
                           {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
@@ -446,7 +446,9 @@ export default function WalletsPage() {
                       </td>
                       <td className="p-4">
                         <div className="text-sm font-medium truncate">
-                          {wallet.type === 'Purchasing' ? 'Buying wallet' : 'Selling wallet'}
+                          {wallet.type === 'Purchasing'
+                            ? 'Buying wallet'
+                            : 'Selling wallet'}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {wallet.note || 'Created by seeding'}

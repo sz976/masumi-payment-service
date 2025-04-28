@@ -67,7 +67,10 @@ const getStatusBadgeVariant = (status: AIAgent['state']) => {
   return 'secondary';
 };
 
-export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogProps) {
+export function AIAgentDetailsDialog({
+  agent,
+  onClose,
+}: AIAgentDetailsDialogProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -106,7 +109,9 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-sm text-muted-foreground">No tags</span>
+                    <span className="text-sm text-muted-foreground">
+                      No tags
+                    </span>
                   )}
                 </div>
               </div>
@@ -121,7 +126,11 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                       className="flex items-center justify-between py-2 border-b"
                     >
                       <span className="text-sm text-muted-foreground">
-                        Price ({price.unit === 'lovelace' ? 'ADA' : price.unit || 'ADA'})
+                        Price (
+                        {price.unit === 'lovelace'
+                          ? 'ADA'
+                          : price.unit || 'ADA'}
+                        )
                       </span>
                       <span className="font-medium">
                         {price.unit === 'lovelace'
@@ -149,9 +158,13 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">
-                        {shortenAddress(agent.SmartContractWallet?.walletAddress || '')}
+                        {shortenAddress(
+                          agent.SmartContractWallet?.walletAddress || '',
+                        )}
                       </span>
-                      <CopyButton value={agent.SmartContractWallet?.walletAddress || ''} />
+                      <CopyButton
+                        value={agent.SmartContractWallet?.walletAddress || ''}
+                      />
                     </div>
                   </div>
                 </div>
@@ -162,7 +175,9 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                 <h3 className="font-medium mb-2">Additional Information</h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Created</span>
+                    <span className="text-sm text-muted-foreground">
+                      Created
+                    </span>
                     <span>{formatDate(agent.createdAt)}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b">
@@ -172,7 +187,9 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                     <span>{formatDate(agent.updatedAt)}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Agent ID</span>
+                    <span className="text-sm text-muted-foreground">
+                      Agent ID
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">
                         {shortenAddress(agent.agentIdentifier || '')}
@@ -181,7 +198,9 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
                     </div>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-muted-foreground">Status</span>
+                    <span className="text-sm text-muted-foreground">
+                      Status
+                    </span>
                     <Badge
                       variant={getStatusBadgeVariant(agent.state)}
                       className={cn(
@@ -200,4 +219,4 @@ export function AIAgentDetailsDialog({ agent, onClose }: AIAgentDetailsDialogPro
       </DialogContent>
     </Dialog>
   );
-} 
+}

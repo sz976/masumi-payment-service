@@ -469,7 +469,9 @@ export default function AIAgentsPage() {
                               agent.SmartContractWallet.walletAddress,
                             )}
                           </span>
-                          <CopyButton value={agent.SmartContractWallet.walletAddress} />
+                          <CopyButton
+                            value={agent.SmartContractWallet.walletAddress}
+                          />
                         </div>
                       </td>
                       <td className="p-4 text-sm">

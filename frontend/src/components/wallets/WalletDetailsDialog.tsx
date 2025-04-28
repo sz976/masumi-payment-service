@@ -56,8 +56,10 @@ export function WalletDetailsDialog({
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { rate } = useRate();
-  const [selectedWalletForSwap, setSelectedWalletForSwap] = useState<WalletWithBalance | null>(null);
-  const [selectedWalletForTopup, setSelectedWalletForTopup] = useState<WalletWithBalance | null>(null);
+  const [selectedWalletForSwap, setSelectedWalletForSwap] =
+    useState<WalletWithBalance | null>(null);
+  const [selectedWalletForTopup, setSelectedWalletForTopup] =
+    useState<WalletWithBalance | null>(null);
 
   const fetchTokenBalances = async () => {
     if (!wallet) return;
@@ -148,7 +150,8 @@ export function WalletDetailsDialog({
   const formatTokenBalance = (token: TokenBalance) => {
     if (token.unit === 'lovelace') {
       const ada = token.quantity / 1000000;
-      const formattedAmount = ada === 0 ? 'zero' : useFormatBalance(ada.toFixed(6));
+      const formattedAmount =
+        ada === 0 ? 'zero' : useFormatBalance(ada.toFixed(6));
       return {
         amount: formattedAmount,
         usdValue: rate ? `≈ $${(ada * rate).toFixed(2)}` : undefined,
@@ -158,7 +161,8 @@ export function WalletDetailsDialog({
     // For USDM, divide by 10^7
     if (token.displayName === 'USDM') {
       const usdm = token.quantity / 10000000;
-      const formattedAmount = usdm === 0 ? 'zero' : useFormatBalance(usdm.toFixed(6));
+      const formattedAmount =
+        usdm === 0 ? 'zero' : useFormatBalance(usdm.toFixed(6));
       return {
         amount: formattedAmount,
         usdValue: `≈ $${usdm.toFixed(2)}`,
@@ -167,7 +171,8 @@ export function WalletDetailsDialog({
 
     // For other tokens, divide by 10^6 as a default
     const amount = token.quantity / 1000000;
-    const formattedAmount = amount === 0 ? 'zero' : useFormatBalance(amount.toFixed(6));
+    const formattedAmount =
+      amount === 0 ? 'zero' : useFormatBalance(amount.toFixed(6));
     return {
       amount: formattedAmount,
       usdValue: undefined,

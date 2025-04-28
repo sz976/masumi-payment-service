@@ -3,13 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useTheme } from '@/lib/contexts/ThemeContext';
-import {
-  LuEye,
-  LuEyeOff,
-  LuSun,
-  LuMoon,
-  LuMonitor,
-} from 'react-icons/lu';
+import { LuEye, LuEyeOff, LuSun, LuMoon, LuMonitor } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/router';
 import { useAppContext } from '@/lib/contexts/AppContext';

@@ -21,14 +21,10 @@ export function CopyButton({ value, className }: CopyButtonProps) {
     <Button
       variant="ghost"
       size="icon"
-      className={className || "h-8 w-8"}
+      className={className || 'h-8 w-8'}
       onClick={copyToClipboard}
     >
-      {hasCopied ? (
-        <Check className="h-4 w-4" />
-      ) : (
-        <Copy className="h-4 w-4" />
-      )}
+      {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
     </Button>
   );
-} 
+}

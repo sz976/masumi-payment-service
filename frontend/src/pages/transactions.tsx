@@ -503,7 +503,9 @@ export default function Transactions() {
                               : '—'}
                           </span>
                           {transaction.CurrentTransaction?.txHash && (
-                            <CopyButton value={transaction.CurrentTransaction?.txHash} />
+                            <CopyButton
+                              value={transaction.CurrentTransaction?.txHash}
+                            />
                           )}
                         </div>
                       </td>
@@ -631,7 +633,9 @@ export default function Transactions() {
                         <p className="text-sm font-mono break-all">
                           {selectedTransaction.CurrentTransaction.txHash}
                         </p>
-                        <CopyButton value={selectedTransaction.CurrentTransaction?.txHash} />
+                        <CopyButton
+                          value={selectedTransaction.CurrentTransaction?.txHash}
+                        />
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
@@ -706,7 +710,12 @@ export default function Transactions() {
                                 .walletAddress
                             }
                           </p>
-                          <CopyButton value={selectedTransaction.SmartContractWallet?.walletAddress} />
+                          <CopyButton
+                            value={
+                              selectedTransaction.SmartContractWallet
+                                ?.walletAddress
+                            }
+                          />
                         </div>
                       </div>
                     </div>

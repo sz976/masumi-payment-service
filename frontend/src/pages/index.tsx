@@ -91,8 +91,10 @@ export default function Overview() {
     useTransactions();
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [selectedAgentForDetails, setSelectedAgentForDetails] = useState<AIAgent | null>(null);
-  const [selectedWalletForDetails, setSelectedWalletForDetails] = useState<WalletWithBalance | null>(null);
+  const [selectedAgentForDetails, setSelectedAgentForDetails] =
+    useState<AIAgent | null>(null);
+  const [selectedWalletForDetails, setSelectedWalletForDetails] =
+    useState<WalletWithBalance | null>(null);
 
   const fetchAgents = useCallback(
     async (cursor?: string | null) => {
@@ -380,7 +382,9 @@ export default function Overview() {
                       onClick={() => setSelectedAgentForDetails(agent)}
                     >
                       <div className="flex flex-col gap-1 max-w-[80%]">
-                        <div className="text-sm font-medium hover:underline">{agent.name}</div>
+                        <div className="text-sm font-medium hover:underline">
+                          {agent.name}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {agent.description}
                         </div>
@@ -391,9 +395,7 @@ export default function Overview() {
                             ? `${parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000}`
                             : '—'}
                         </span>
-                        <span>
-                          ₳
-                        </span>
+                        <span>₳</span>
                       </div>
                     </div>
                   ))}
@@ -472,15 +474,19 @@ export default function Overview() {
                               'text-xs font-medium px-2 py-0.5 rounded-full',
                               wallet.type === 'Purchasing'
                                 ? 'bg-primary text-primary-foreground'
-                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400'
+                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
                             )}
                           >
-                            {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
+                            {wallet.type === 'Purchasing'
+                              ? 'Buying'
+                              : 'Selling'}
                           </span>
                         </div>
                         <div>
                           <div className="text-sm font-medium truncate">
-                            {wallet.type === 'Purchasing' ? 'Buying wallet' : 'Selling wallet'}
+                            {wallet.type === 'Purchasing'
+                              ? 'Buying wallet'
+                              : 'Selling wallet'}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
                             {wallet.note || 'Created by seeding'}
@@ -495,13 +501,21 @@ export default function Overview() {
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col items-start">
                             <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance((parseInt(wallet.balance || '0') / 1000000).toFixed(2)?.toString())}
+                              {useFormatBalance(
+                                (parseInt(wallet.balance || '0') / 1000000)
+                                  .toFixed(2)
+                                  ?.toString(),
+                              )}
                               <span className="text-xs text-muted-foreground">
                                 ADA
                               </span>
                             </span>
                             <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance((parseInt(wallet.usdmBalance || '0') / 1000000).toFixed(2)?.toString())}
+                              {useFormatBalance(
+                                (parseInt(wallet.usdmBalance || '0') / 1000000)
+                                  .toFixed(2)
+                                  ?.toString(),
+                              )}
                               <span className="text-xs text-muted-foreground">
                                 USDM
                               </span>
@@ -547,7 +561,8 @@ export default function Overview() {
                               walletAddress: wallet.collectionAddress!,
                               type: 'Collection' as any,
                               balance: wallet.collectionBalance?.ada || '0',
-                              usdmBalance: wallet.collectionBalance?.usdm || '0',
+                              usdmBalance:
+                                wallet.collectionBalance?.usdm || '0',
                             })
                           }
                         >
@@ -572,13 +587,29 @@ export default function Overview() {
                           </div>
                           <div className="flex flex-col items-start">
                             <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance((parseInt(wallet.collectionBalance?.ada || '0') / 1000000).toFixed(2)?.toString())}
+                              {useFormatBalance(
+                                (
+                                  parseInt(
+                                    wallet.collectionBalance?.ada || '0',
+                                  ) / 1000000
+                                )
+                                  .toFixed(2)
+                                  ?.toString(),
+                              )}
                               <span className="text-xs text-muted-foreground">
                                 ADA
                               </span>
                             </span>
                             <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance((parseInt(wallet.collectionBalance?.usdm || '0') / 1000000).toFixed(2)?.toString())}
+                              {useFormatBalance(
+                                (
+                                  parseInt(
+                                    wallet.collectionBalance?.usdm || '0',
+                                  ) / 1000000
+                                )
+                                  .toFixed(2)
+                                  ?.toString(),
+                              )}
                               <span className="text-xs text-muted-foreground">
                                 USDM
                               </span>
