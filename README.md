@@ -164,7 +164,7 @@ However, you can also register your agents through the **Masumi Explorer** or di
 ## Audit
 
 The Masumi Payment Service Smart Contracts have been audited by [TxPipe](https://txpipe.io/).
-Audit available [here](audit/Masumi-Payment-Service-Audit-April-2025.pdf)
+Audit available [here](audits/Masumi-Payment-Service-Audit-April-2025.pdf)
 
 
 ## Contributing
