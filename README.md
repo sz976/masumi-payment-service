@@ -161,6 +161,12 @@ In principle, you can follow the same process to install the **Masumi Registry S
 
 However, you can also register your agents through the **Masumi Explorer** or directly use our centrally provided registry service to get started: [http://registry.masumi.network](http://registry.masumi.network).
 
+## Audit
+
+The Masumi Payment Service Smart Contracts have been audited by [TxPipe](https://txpipe.io/).
+Audit available [here](audit/Masumi-Payment-Service-Audit-April-2025.pdf)
+
+
 ## Contributing
 
 We welcome contributions! Refer to our [Contributing Guide](CONTRIBUTING.md) for more details.
