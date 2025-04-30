@@ -239,7 +239,7 @@ export async function checkLatestTransactions(
 
           const latestIdentifier = paymentContract.lastIdentifierChecked;
 
-          let latestTx: Array<{ tx_hash: string }> = [];
+          let latestTx: Array<{ tx_hash: string; block_time: number }> = [];
           let foundTx = -1;
           let index = 0;
           do {
@@ -281,6 +281,7 @@ export async function checkLatestTransactions(
             latestTx.length / maxParallelTransactions,
           );
           const txData: Array<{
+            blockTime: number;
             tx: { tx_hash: string };
             utxos: {
               hash: string;
@@ -322,7 +323,12 @@ export async function checkLatestTransactions(
                 const transaction = Transaction.from_bytes(
                   Buffer.from(cbor.cbor, 'hex'),
                 );
-                return { tx: tx, utxos: utxos, transaction: transaction };
+                return {
+                  tx: tx,
+                  utxos: utxos,
+                  transaction: transaction,
+                  blockTime: tx.block_time,
+                };
               }),
               errorResolvers: [
                 delayErrorResolver({
@@ -348,6 +354,11 @@ export async function checkLatestTransactions(
             }
             filteredTxData.forEach((x) => txData.push(x));
           }
+
+          //sort by smallest block time first
+          txData.sort((a, b) => {
+            return a.blockTime - b.blockTime;
+          });
 
           for (const tx of txData) {
             const utxos = tx.utxos;
