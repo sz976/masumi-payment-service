@@ -3,6 +3,7 @@ import pluginJs from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import prettier from 'eslint-plugin-prettier';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,20 +23,26 @@ export default [
       sourceType: 'module',
       parser: '@typescript-eslint/parser',
 
-  parserOptions: {
-    projectService: true,
-    tsconfigRootDir: __dirname,
-  },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
     },
   },
-  
+
   // JS recommended configs
   pluginJs.configs.recommended,
   // Use the compatibility layer to load the TypeScript plugin and recommended rules
-  ...compat.extends(
-    'plugin:@typescript-eslint/recommended-type-checked',
-    'plugin:prettier/recommended',
-  ),
+  ...compat.extends('plugin:@typescript-eslint/recommended-type-checked'),
+  // Add Prettier plugin
+  {
+    plugins: {
+      prettier,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+    },
+  },
   // Add custom rules for TypeScript
   {
     files: ['src/**/*.ts'],
