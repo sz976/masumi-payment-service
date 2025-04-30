@@ -20,12 +20,12 @@ import {
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import cbor from 'cbor';
 
 const mutex = new Mutex();
 
 export async function batchLatestPaymentEntriesV1() {
   const maxBatchSize = 10;
-  const minTransactionCalculation = 2550000n;
 
   let release: MutexInterface.Releaser | null;
   try {
@@ -171,15 +171,24 @@ export async function batchLatestPaymentEntriesV1() {
         );
         const paymentRequestsRemaining = [...paymentRequests];
         const walletPairings = [];
+
         let maxBatchSizeReached = false;
 
         const blockchainProvider = new BlockfrostProvider(
           paymentContract.PaymentSourceConfig.rpcProviderApiKey,
         );
 
+        const protocolParameter =
+          await blockchainProvider.fetchProtocolParameters();
+
         for (const walletData of walletAmounts) {
           const wallet = walletData.wallet;
           const amounts = walletData.amounts;
+          const potentialAddresses = await wallet.getUsedAddresses();
+          if (potentialAddresses.length == 0) {
+            logger.warn('No addresses found for wallet ' + walletData.walletId);
+            continue;
+          }
           const batchedPaymentRequests = [];
 
           let index = 0;
@@ -192,6 +201,48 @@ export async function batchLatestPaymentEntriesV1() {
               break;
             }
             const paymentRequest = paymentRequestsRemaining[index];
+            const sellerVerificationKeyHash =
+              paymentRequest.SellerWallet.walletVkey;
+            const buyerVerificationKeyHash = resolvePaymentKeyHash(
+              potentialAddresses[0],
+            );
+            const tmpDatum = getDatum({
+              buyerVerificationKeyHash: buyerVerificationKeyHash,
+              sellerVerificationKeyHash: sellerVerificationKeyHash,
+              blockchainIdentifier: paymentRequest.blockchainIdentifier,
+              inputHash: paymentRequest.inputHash,
+              resultHash: '',
+              resultTime: Number(paymentRequest.submitResultTime),
+              unlockTime: Number(paymentRequest.unlockTime),
+              externalDisputeUnlockTime: Number(
+                paymentRequest.externalDisputeUnlockTime,
+              ),
+              newCooldownTimeSeller: 0,
+              newCooldownTimeBuyer: 0,
+              state: SmartContractState.FundsLocked,
+            });
+
+            const cborEncodedDatum = cbor.encode(tmpDatum.value);
+
+            const defaultOverheadSize = 200;
+            const bufferSizeTxOutputHash = 70;
+            const bufferSizeCooldownTime = 10;
+            const bufferSizePerUnit = 50;
+
+            const otherUnits = paymentRequest.PaidFunds.filter(
+              (amount) =>
+                amount.unit.toLowerCase() != '' &&
+                amount.unit.toLowerCase() != 'lovelace',
+            ).length;
+            const totalLength =
+              cborEncodedDatum.byteLength +
+              defaultOverheadSize +
+              bufferSizeTxOutputHash +
+              bufferSizeCooldownTime +
+              bufferSizePerUnit * otherUnits;
+            const overestimatedMinUtxoCost = BigInt(
+              Math.ceil(protocolParameter.coinsPerUtxoSize * totalLength),
+            );
 
             //set min ada required;
             const lovelaceRequired = paymentRequest.PaidFunds.findIndex(
@@ -200,7 +251,7 @@ export async function batchLatestPaymentEntriesV1() {
             if (lovelaceRequired == -1) {
               paymentRequest.PaidFunds.push({
                 unit: '',
-                amount: minTransactionCalculation,
+                amount: overestimatedMinUtxoCost,
                 id: '',
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -209,17 +260,14 @@ export async function batchLatestPaymentEntriesV1() {
                 apiKeyId: null,
                 agentFixedPricingId: null,
               });
-            } else {
-              const result = paymentRequest.PaidFunds.splice(
-                lovelaceRequired,
-                1,
-              );
+            } else if (
+              paymentRequest.PaidFunds[lovelaceRequired].amount <
+              overestimatedMinUtxoCost
+            ) {
+              paymentRequest.PaidFunds.splice(lovelaceRequired, 1);
               paymentRequest.PaidFunds.push({
                 unit: '',
-                amount:
-                  minTransactionCalculation > result[0].amount
-                    ? minTransactionCalculation
-                    : result[0].amount,
+                amount: overestimatedMinUtxoCost,
                 id: '',
                 createdAt: new Date(),
                 updatedAt: new Date(),
