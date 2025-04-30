@@ -25,7 +25,10 @@ const mutex = new Mutex();
 
 export async function batchLatestPaymentEntriesV1() {
   const maxBatchSize = 10;
-  const minTransactionCalculation = 2550000n;
+  const minTransactionCalculation = {
+    Mainnet: 9550000n, // ~9.55 ADA
+    Preprod: 2550000n, // ~2.55 ADA
+  };
 
   let release: MutexInterface.Releaser | null;
   try {
@@ -200,7 +203,7 @@ export async function batchLatestPaymentEntriesV1() {
             if (lovelaceRequired == -1) {
               paymentRequest.PaidFunds.push({
                 unit: '',
-                amount: minTransactionCalculation,
+                amount: minTransactionCalculation[paymentContract.network],
                 id: '',
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -217,8 +220,9 @@ export async function batchLatestPaymentEntriesV1() {
               paymentRequest.PaidFunds.push({
                 unit: '',
                 amount:
-                  minTransactionCalculation > result[0].amount
-                    ? minTransactionCalculation
+                  minTransactionCalculation[paymentContract.network] >
+                  result[0].amount
+                    ? minTransactionCalculation[paymentContract.network]
                     : result[0].amount,
                 id: '',
                 createdAt: new Date(),
