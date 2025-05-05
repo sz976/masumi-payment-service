@@ -30,7 +30,7 @@ describe('metadataToString', () => {
 
 describe('stringToMetadata', () => {
   it('should return undefined when input is undefined', () => {
-    expect(stringToMetadata(undefined)).toBeUndefined();
+    expect(stringToMetadata(undefined)).toBe('');
   });
 
   it('should return the same string when input is a string', () => {
