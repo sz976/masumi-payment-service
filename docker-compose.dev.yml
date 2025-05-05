@@ -1,0 +1,155 @@
+services:
+
+  # PostgreSQL database service
+  postgres:
+    image: postgres:15-alpine
+    container_name: masumi-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: masumi_payment_dev
+      POSTGRES_USER: masumi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-masumi_secure_password}
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U masumi -d masumi_payment_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - masumi-network-dev
+    # No ports exposed to host - only accessible within the network
+
+  # Initialization service to prepare database
+  init-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder  # Use the backend-builder stage which has both src and dist
+    container_name: masumi-init-service-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://masumi:${POSTGRES_PASSWORD:-masumi_secure_password}@postgres:5432/masumi_payment_dev?schema=public
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change_this_to_a_secure_32_character_string}
+      ADMIN_KEY: ${ADMIN_KEY:-change_this_to_a_secure_string}
+      BLOCKFROST_API_KEY_PREPROD: ${BLOCKFROST_API_KEY_PREPROD}
+      BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:-}
+    networks:
+      - masumi-network-dev
+    command: >
+      sh -c "
+        echo 'Running database migrations...' &&
+        npm run prisma:migrate &&
+        
+        echo 'Seeding the database...' &&
+        npm run prisma:seed &&
+        
+        echo 'Database initialization completed successfully!'
+      "
+    restart: "no"
+    # No ports exposed to host - only accessible within the network
+
+  # Masumi Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: masumi-payment-service-dev
+    restart: unless-stopped
+    depends_on:
+      init-service:
+        condition: service_completed_successfully
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql://masumi:${POSTGRES_PASSWORD:-masumi_secure_password}@postgres:5432/masumi_payment_dev?schema=public
+      SHADOW_DATABASE_URL: postgresql://masumi:${POSTGRES_PASSWORD:-masumi_secure_password}@postgres:5432/masumi_payment_dev_shadow?schema=public
+      
+      # Port
+      PORT: 3001
+      
+      # Security keys - use .env file to override these
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change_this_to_a_secure_32_character_string}
+      ADMIN_KEY: ${ADMIN_KEY:-change_this_to_a_secure_string}
+      
+      # Blockfrost API keys
+      BLOCKFROST_API_KEY_PREPROD: ${BLOCKFROST_API_KEY_PREPROD}
+      BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:-}
+      
+      # Environment settings
+      NODE_ENV: ${NODE_ENV:-development}
+      DEV_ENVIRONMENT: true
+      
+      # Default network setting (PREPROD or MAINNET)
+      DEFAULT_NETWORK: ${DEFAULT_NETWORK:-PREPROD}
+      
+      # Job intervals (in seconds) - shorter for development
+      BATCH_PAYMENT_INTERVAL: ${BATCH_PAYMENT_INTERVAL:-120}
+      CHECK_COLLECTION_INTERVAL: ${CHECK_COLLECTION_INTERVAL:-150}
+      CHECK_TX_INTERVAL: ${CHECK_TX_INTERVAL:-90}
+      CHECK_COLLECT_REFUND_INTERVAL: ${CHECK_COLLECT_REFUND_INTERVAL:-150}
+      CHECK_SET_REFUND_INTERVAL: ${CHECK_SET_REFUND_INTERVAL:-150}
+      CHECK_UNSET_REFUND_INTERVAL: ${CHECK_UNSET_REFUND_INTERVAL:-150}
+      CHECK_AUTHORIZE_REFUND_INTERVAL: ${CHECK_AUTHORIZE_REFUND_INTERVAL:-150}
+      CHECK_SUBMIT_RESULT_INTERVAL: ${CHECK_SUBMIT_RESULT_INTERVAL:-150}
+      CHECK_WALLET_TRANSACTION_HASH_INTERVAL: ${CHECK_WALLET_TRANSACTION_HASH_INTERVAL:-30}
+      REGISTER_AGENT_INTERVAL: ${REGISTER_AGENT_INTERVAL:-150}
+      DEREGISTER_AGENT_INTERVAL: ${DEREGISTER_AGENT_INTERVAL:-150}
+      
+      # Optional wallet configuration
+      PURCHASE_WALLET_PREPROD_MNEMONIC: ${PURCHASE_WALLET_PREPROD_MNEMONIC:-}
+      SELLING_WALLET_PREPROD_MNEMONIC: ${SELLING_WALLET_PREPROD_MNEMONIC:-}
+      COLLECTION_WALLET_PREPROD_ADDRESS: ${COLLECTION_WALLET_PREPROD_ADDRESS:-}
+      PURCHASE_WALLET_MAINNET_MNEMONIC: ${PURCHASE_WALLET_MAINNET_MNEMONIC:-}
+      SELLING_WALLET_MAINNET_MNEMONIC: ${SELLING_WALLET_MAINNET_MNEMONIC:-}
+      COLLECTION_WALLET_MAINNET_ADDRESS: ${COLLECTION_WALLET_MAINNET_ADDRESS:-}
+      
+    volumes:
+      - masumi_logs_dev:/usr/src/app/logs
+      - masumi_wallets_dev:/usr/src/app/wallets
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - masumi-network-dev
+    command: ["npm", "run", "start"]
+    # No ports exposed to host - only accessible via nginx
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: masumi-nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - payment-service
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx_logs_dev:/var/log/nginx
+    ports:
+      - "8080:80"  # Different port for development
+      - "8443:443" # Different port for development
+    networks:
+      - masumi-network-dev
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  masumi-network-dev:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  masumi_logs_dev:
+    driver: local
+  masumi_wallets_dev:
+    driver: local
+  nginx_logs_dev:
+    driver: local
