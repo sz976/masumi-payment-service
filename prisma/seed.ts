@@ -28,7 +28,12 @@ const prisma = new PrismaClient();
 export const seed = async (prisma: PrismaClient) => {
   const adminKey = process.env.ADMIN_KEY;
   if (adminKey != null) {
-    if (adminKey.length < 15) throw Error('API-KEY is insecure');
+    if (adminKey.length < 15) {
+      console.error(
+        'ADMIN_KEY is insecure, ensure it is at least 15 characters long',
+      );
+      throw Error('API-KEY is insecure');
+    }
 
     await prisma.apiKey.upsert({
       create: {
@@ -94,7 +99,7 @@ export const seed = async (prisma: PrismaClient) => {
   }
   if (!collectionWalletMainnetAddress) {
     const sellingWallet = new MeshWallet({
-      networkId: 0,
+      networkId: 1,
       key: {
         type: 'mnemonic',
         words: sellingWalletMainnetMnemonic.split(' '),
@@ -124,7 +129,12 @@ export const seed = async (prisma: PrismaClient) => {
     blockfrostApiKeyPreprod != ''
   ) {
     const fee = feePermillePreprod;
-    if (fee < 0 || fee > 1000) throw Error('Fee permille is not valid');
+    if (fee < 0 || fee > 1000) {
+      console.error(
+        'Fee permille is not valid, must be between 0 and 1000 (0.0% and 100.0%)',
+      );
+      throw Error('Fee permille is not valid');
+    }
 
     const script: PlutusScript = {
       code: applyParamsToScript(paymentPlutus.validators[0].compiledCode, [
@@ -182,7 +192,7 @@ export const seed = async (prisma: PrismaClient) => {
       }
     } catch (error) {
       console.warn(
-        'Smart contract address preprod has no transactions. ',
+        'Smart contract address preprod has no transactions. This is expected if the contract is not deployed yet, otherwise ensure you are using the correct smart contract address',
         error,
       );
     }
@@ -279,7 +289,10 @@ export const seed = async (prisma: PrismaClient) => {
           policyId,
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        'Error when seeding preprod, ensure you succeed with seeding, the following error occurred: ',
+        error,
+      );
     }
   } else {
     console.log(
@@ -301,7 +314,12 @@ export const seed = async (prisma: PrismaClient) => {
     blockfrostApiKeyMainnet != ''
   ) {
     const fee = feePermilleMainnet;
-    if (fee < 0 || fee > 1000) throw Error('Fee permille is not valid');
+    if (fee < 0 || fee > 1000) {
+      console.error(
+        'Fee permille is not valid, must be between 0 and 1000 (0.0% and 100.0%)',
+      );
+      throw Error('Fee permille is not valid');
+    }
 
     const script: PlutusScript = {
       code: applyParamsToScript(paymentPlutus.validators[0].compiledCode, [
@@ -454,7 +472,10 @@ export const seed = async (prisma: PrismaClient) => {
           policyId,
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        'Error when seeding mainnet, ensure you succeed with seeding, the following error occurred: ',
+        error,
+      );
     }
   } else {
     console.log(

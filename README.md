@@ -18,12 +18,15 @@ Learn more about Masumi in our [Introduction Guide](https://docs.masumi.network/
 
 ## Documentation
 
+We have been successfully audited by [TxPipe](https://txpipe.io/) please check the [full report](docs/audit.pdf)
+
 Refer to the official [Masumi Docs Website](https://docs.masumi.network) for comprehensive documentation.
 
 Additional guides can be found in the [docs](docs/) folder:
 
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Security Guidelines](docs/SECURITY.md)
+
 - [Development and Architecture Guide](docs/DEVELOPMENT.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 
@@ -66,7 +69,7 @@ ADMIN_KEY="abcdef_this_should_be_very_secure"
 BLOCKFROST_API_KEY_PREPROD="your_blockfrost_api_key"
 ```
 
-*optionally for mainnet add or replace `BLOCKFROST_API_KEY_PREPROD`
+\*optionally for mainnet add or replace `BLOCKFROST_API_KEY_PREPROD`
 
 ```sh
 BLOCKFROST_API_KEY_MAINNET="your_blockfrost_api_key_for_mainnet"
@@ -160,6 +163,12 @@ Ensure that your `DATABASE_URL` matches the configured database settings.
 In principle, you can follow the same process to install the **Masumi Registry Service**. It will require a separate database and another adjustment of the `.env` file.
 
 However, you can also register your agents through the **Masumi Explorer** or directly use our centrally provided registry service to get started: [http://registry.masumi.network](http://registry.masumi.network).
+
+## Audit
+
+The Masumi Payment Service Smart Contracts have been audited by [TxPipe](https://txpipe.io/).
+Audit available [here](audits/Masumi-Payment-Service-Audit-April-2025.pdf)
+
 
 ## Contributing
 

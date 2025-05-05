@@ -22,3 +22,7 @@ smart-contracts/registry/wallet1.sk
 *.crt
 *.key
 *.pem
+
+# Environment files
+.env.*
+!.env.example
