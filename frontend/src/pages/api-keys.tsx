@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,11 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-
+import { CopyButton } from '@/components/ui/copy-button';
 type ApiKey = GetApiKeyResponses['200']['data']['ApiKeys'][0];
 
 export default function ApiKeys() {
-  const { apiClient } = useAppContext();
+  const { apiClient, state } = useAppContext();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [allApiKeys, setAllApiKeys] = useState<ApiKey[]>([]);
   const [filteredApiKeys, setFilteredApiKeys] = useState<ApiKey[]>([]);
@@ -54,6 +53,12 @@ export default function ApiKeys() {
   const filterApiKeys = useCallback(() => {
     let filtered = [...allApiKeys];
 
+    // Filter by network first
+    filtered = filtered.filter((key) =>
+      key.networkLimit.includes(state.network),
+    );
+
+    // Then filter by permission tab
     if (activeTab === 'Read') {
       filtered = filtered.filter((key) => key.permission === 'Read');
     } else if (activeTab === 'ReadAndPay') {
@@ -62,6 +67,7 @@ export default function ApiKeys() {
       filtered = filtered.filter((key) => key.permission === 'Admin');
     }
 
+    // Then filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((key) => {
@@ -86,48 +92,101 @@ export default function ApiKeys() {
     }
 
     setFilteredApiKeys(filtered);
-  }, [allApiKeys, searchQuery, activeTab]);
+  }, [allApiKeys, searchQuery, activeTab, state.network]);
 
-  const fetchApiKeys = async (cursor?: string | null) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllApiKeys([]);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const response = await getApiKey({
-        client: apiClient,
-        query: {
-          limit: 10,
-          cursorToken: cursor || undefined,
-        },
-      });
-
-      if (response?.data?.data?.ApiKeys) {
-        const newKeys = response.data.data.ApiKeys;
-        if (cursor) {
-          setAllApiKeys((prev) => [...prev, ...newKeys]);
-        } else {
-          setAllApiKeys(newKeys);
-        }
-
-        setHasMore(newKeys.length === 10);
-      } else {
+  const fetchApiKeys = useCallback(
+    async (cursor?: string | null) => {
+      try {
         if (!cursor) {
+          setIsLoading(true);
           setAllApiKeys([]);
+        } else {
+          setIsLoadingMore(true);
         }
-        setHasMore(false);
+
+        const response = await getApiKey({
+          client: apiClient,
+          query: {
+            limit: 10,
+            cursorToken: cursor || undefined,
+          },
+        });
+
+        if (response?.data?.data?.ApiKeys) {
+          const newKeys = response.data.data.ApiKeys;
+
+          if (cursor) {
+            setAllApiKeys((prev) => {
+              // Create a map of existing keys by token to prevent duplicates
+              const existingKeysMap = new Map(
+                prev.map((key) => [key.token, key]),
+              );
+
+              // Add new keys, overwriting any existing ones with the same token
+              newKeys.forEach((key) => {
+                existingKeysMap.set(key.token, key);
+              });
+
+              const combinedKeys = Array.from(existingKeysMap.values());
+
+              // Check if we need to fetch more
+              const filteredCount = combinedKeys.filter((key) =>
+                key.networkLimit.includes(state.network),
+              ).length;
+
+              if (newKeys.length === 10 && filteredCount < 10) {
+                const lastKey = newKeys[newKeys.length - 1];
+                fetchApiKeys(lastKey.token);
+              }
+
+              return combinedKeys;
+            });
+          } else {
+            setAllApiKeys(newKeys);
+            // Check if we need to fetch more for initial load
+            const filteredCount = newKeys.filter((key) =>
+              key.networkLimit.includes(state.network),
+            ).length;
+
+            if (newKeys.length === 10 && filteredCount < 10) {
+              const lastKey = newKeys[newKeys.length - 1];
+              fetchApiKeys(lastKey.token);
+            }
+          }
+
+          setHasMore(newKeys.length === 10);
+        } else {
+          if (!cursor) {
+            setAllApiKeys([]);
+          }
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error fetching API keys:', error);
+        toast.error('Failed to fetch API keys');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error('Error fetching API keys:', error);
-      toast.error('Failed to fetch API keys');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+    },
+    [apiClient, state.network],
+  );
+
+  // Separate effect for initial load
+  useEffect(() => {
+    fetchApiKeys();
+  }, [fetchApiKeys]);
+
+  // Separate effect for network changes
+  useEffect(() => {
+    if (state.network) {
+      fetchApiKeys();
     }
-  };
+  }, [state.network, fetchApiKeys]);
+
+  useEffect(() => {
+    filterApiKeys();
+  }, [filterApiKeys, searchQuery, activeTab]);
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && allApiKeys.length > 0) {
@@ -135,14 +194,6 @@ export default function ApiKeys() {
       fetchApiKeys(lastKey.token);
     }
   };
-
-  useEffect(() => {
-    fetchApiKeys();
-  }, []);
-
-  useEffect(() => {
-    filterApiKeys();
-  }, [filterApiKeys, searchQuery, activeTab]);
 
   const handleSelectKey = (token: string) => {
     setSelectedKeys((prev) =>
@@ -156,15 +207,6 @@ export default function ApiKeys() {
         ? []
         : allApiKeys.map((key) => key.token),
     );
-  };
-
-  const handleCopyApiKey = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('API key copied to clipboard');
-    } catch {
-      toast.error('Failed to copy API key');
-    }
   };
 
   const handleDeleteApiKey = async () => {
@@ -300,8 +342,14 @@ export default function ApiKeys() {
                     </td>
                   </tr>
                 ) : (
-                  filteredApiKeys.map((key) => (
-                    <tr key={key.token} className="border-b">
+                  filteredApiKeys.map((key, index) => (
+                    <tr
+                      key={index}
+                      className="border-b"
+                      onClick={() => {
+                        console.log(key);
+                      }}
+                    >
                       <td className="p-4">
                         <Checkbox
                           checked={selectedKeys.includes(key.token)}
@@ -313,36 +361,10 @@ export default function ApiKeys() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 p-0"
-                            onClick={() => handleCopyApiKey(key.token)}
-                          >
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10 4H5C4.44772 4 4 4.44772 4 5V10C4 10.5523 4.44772 11 5 11H10C10.5523 11 11 10.5523 11 10V5C11 4.44772 10.5523 4 10 4Z"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M8 4V2C8 1.44772 7.55228 1 7 1H2C1.44772 1 1 1.44772 1 2V7C1 7.55228 1.44772 8 2 8H4"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </Button>
                           <span className="font-mono text-sm text-muted-foreground">
                             {key.token.slice(0, 15)}...{key.token.slice(-15)}
                           </span>
+                          <CopyButton value={key.token} />
                         </div>
                       </td>
                       <td className="p-4 text-sm">{key.permission}</td>
@@ -363,7 +385,9 @@ export default function ApiKeys() {
                           <div className="space-y-1">
                             {key.RemainingUsageCredits.map((credit, index) => (
                               <div key={index}>
-                                {credit.amount} {credit.unit}
+                                {credit.unit === 'lovelace'
+                                  ? `${(Number(credit.amount) / 1000000).toLocaleString()} ADA`
+                                  : `${credit.amount} ${credit.unit}`}
                               </div>
                             ))}
                           </div>

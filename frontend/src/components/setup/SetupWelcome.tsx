@@ -23,6 +23,10 @@ import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { postWallet, postPaymentSourceExtended } from '@/lib/api/generated';
 import { shortenAddress } from '@/lib/utils';
+import {
+  DEFAULT_ADMIN_WALLETS,
+  DEFAULT_FEE_CONFIG,
+} from '@/lib/constants/defaultWallets';
 
 function WelcomeScreen({
   onStart,
@@ -347,69 +351,23 @@ function PaymentSourceSetupScreen({
   const { apiClient, state } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+
+  const networkType = state.network === 'Mainnet' ? 'Mainnet' : 'Preprod';
+
   const [formData, setFormData] = useState({
     blockfrostApiKey: '',
-    feeReceiverWallet: { walletAddress: '' },
-    feePermille: 50,
+    feeReceiverWallet: {
+      walletAddress: DEFAULT_FEE_CONFIG[networkType].feeWalletAddress,
+    },
+    feePermille: DEFAULT_FEE_CONFIG[networkType].feePermille,
   });
-  const [adminWallets, setAdminWallets] = useState<
-    Array<{
-      address: string;
-      mnemonic: string;
-    }>
-  >([]);
-  const [isGeneratingAdminWallets, setIsGeneratingAdminWallets] =
-    useState(true);
+
+  const adminWallets = DEFAULT_ADMIN_WALLETS[networkType];
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
   };
-
-  useEffect(() => {
-    const generateAdminWallets = async () => {
-      try {
-        setIsGeneratingAdminWallets(true);
-        setError('');
-
-        const wallets = [];
-        for (let i = 0; i < 3; i++) {
-          const response: any = await postWallet({
-            client: apiClient,
-            body: {
-              network: state.network,
-            },
-          });
-
-          if (
-            !response?.data?.data?.walletMnemonic ||
-            !response?.data?.data?.walletAddress
-          ) {
-            throw new Error(`Failed to generate admin wallet ${i + 1}`);
-          }
-
-          wallets.push({
-            address: response.data.data.walletAddress,
-            mnemonic: response.data.data.walletMnemonic,
-          });
-        }
-
-        setAdminWallets(wallets);
-      } catch (error) {
-        console.error('Error generating admin wallets:', error);
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Failed to generate admin wallets',
-        );
-        toast.error('Failed to generate admin wallets');
-      } finally {
-        setIsGeneratingAdminWallets(false);
-      }
-    };
-
-    generateAdminWallets();
-  }, [apiClient, state.network]);
 
   const handleSubmit = async () => {
     if (!buyingWallet || !sellingWallet) {
@@ -426,16 +384,6 @@ function PaymentSourceSetupScreen({
         return;
       }
 
-      if (!formData.feeReceiverWallet.walletAddress.trim()) {
-        setError('Fee receiver wallet is required');
-        return;
-      }
-
-      if (adminWallets.length !== 3) {
-        setError('Three admin wallets are required');
-        return;
-      }
-
       const response = await postPaymentSourceExtended({
         client: apiClient,
         body: {
@@ -447,7 +395,7 @@ function PaymentSourceSetupScreen({
           },
           feeRatePermille: formData.feePermille,
           AdminWallets: adminWallets.map((w) => ({
-            walletAddress: w.address,
+            walletAddress: w.walletAddress,
           })) as [
             { walletAddress: string },
             { walletAddress: string },
@@ -506,79 +454,34 @@ function PaymentSourceSetupScreen({
       )}
 
       <div className="space-y-6">
-        {/* I'm Generating admin wallets */}
+        {/* Admin Wallets Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Admin Wallets</h3>
-          {isGeneratingAdminWallets ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Spinner size={16} />
-              Please wait...
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {adminWallets.map((wallet, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border border-border p-4 space-y-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black text-white dark:bg-white/10 dark:text-white">
-                      Admin Wallet {index + 1}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleCopy(wallet.address)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    {shortenAddress(wallet?.address || '')}
-                  </div>
-                  <div className="border-t border-border my-4" />
-                  <div>
-                    <div className="text-sm font-medium mb-2">Seed phrase</div>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleCopy(wallet.mnemonic)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <div className="flex-1 font-mono text-sm text-muted-foreground">
-                          {wallet.mnemonic}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          className="text-sm flex items-center gap-2 bg-black text-white hover:bg-black/90"
-                          onClick={() => {
-                            const blob = new Blob([wallet.mnemonic], {
-                              type: 'text/plain',
-                            });
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `admin-wallet-${index + 1}-seed.txt`;
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+          <div className="space-y-4">
+            {adminWallets.map((wallet, index) => (
+              <div
+                key={index}
+                className="rounded-lg border border-border p-4 space-y-4"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black text-white dark:bg-white/10 dark:text-white">
+                    Admin Wallet {index + 1}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopy(wallet.walletAddress)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  {shortenAddress(wallet.walletAddress)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Configuration Section */}
@@ -648,7 +551,7 @@ function PaymentSourceSetupScreen({
           </Button>
           <Button
             className="text-sm"
-            disabled={isLoading || isGeneratingAdminWallets}
+            disabled={isLoading}
             onClick={handleSubmit}
           >
             {isLoading ? 'Creating...' : 'Create Payment Source'}

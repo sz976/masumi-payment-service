@@ -1,8 +1,8 @@
-import { SetupWelcome } from "@/components/setup/SetupWelcome";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import Head from "next/head";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { SetupWelcome } from '@/components/setup/SetupWelcome';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
 export default function SetupPage() {
   const { state } = useAppContext();
@@ -22,9 +22,16 @@ export default function SetupPage() {
   return (
     <>
       <Head>
-        <title>{type ? type === 'preprod' ? 'Preprod Setup' : 'Mainnet Setup' : 'Setup'} | Admin Interface</title>
+        <title>
+          {type
+            ? type === 'preprod'
+              ? 'Preprod Setup'
+              : 'Mainnet Setup'
+            : 'Setup'}{' '}
+          | Admin Interface
+        </title>
       </Head>
       <SetupWelcome networkType={type as string} />
     </>
   );
-} 
+}

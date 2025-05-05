@@ -1,12 +1,23 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
-import { postApiKey } from "@/lib/api/generated";
-import { toast } from "react-toastify";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useState, useEffect } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { postApiKey } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AddApiKeyDialogProps {
   open: boolean;
@@ -16,50 +27,65 @@ interface AddApiKeyDialogProps {
 
 type Network = 'Preprod' | 'Mainnet';
 
-export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogProps) {
-  const [permission, setPermission] = useState<'Read' | 'ReadAndPay' | 'Admin'>('Read');
-  const [isLoading, setIsLoading] = useState(false);
+export function AddApiKeyDialog({
+  open,
+  onClose,
+  onSuccess,
+}: AddApiKeyDialogProps) {
+  const [permission, setPermission] = useState<'Read' | 'ReadAndPay' | 'Admin'>(
+    'Read',
+  );
   const [usageLimited, setUsageLimited] = useState(true);
-  const [networks, setNetworks] = useState<Network[]>(['Preprod', 'Mainnet']);
-  const [credits, setCredits] = useState({
+  const [networks, setNetworks] = useState<('Preprod' | 'Mainnet')[]>([
+    'Preprod',
+    'Mainnet',
+  ]);
+  const [credits, setCredits] = useState<{ lovelace: string; usdm: string }>({
     lovelace: '',
-    usdm: ''
+    usdm: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { apiClient } = useAppContext();
 
   const handleNetworkToggle = (network: Network) => {
-    setNetworks(prev => 
+    setNetworks((prev) =>
       prev.includes(network)
-        ? prev.filter(n => n !== network)
-        : [...prev, network]
+        ? prev.filter((n) => n !== network)
+        : [...prev, network],
     );
   };
 
   const validateForm = () => {
-    if (networks.length === 0) {
-      toast.error('Please select at least one network');
-      return false;
+    if (permission === 'Admin') {
+      return true;
     }
 
-    if (usageLimited) {
-      if (!credits.lovelace && !credits.usdm) {
-        toast.error('Please specify at least one usage limit');
-        return false;
-      }
+    if (permission === 'Read') {
+      return true; // Read permission uses default limits
+    }
 
-      if (credits.lovelace && isNaN(parseFloat(credits.lovelace))) {
-        toast.error('Invalid ADA amount');
-        return false;
-      }
-
-      if (credits.usdm && isNaN(parseFloat(credits.usdm))) {
-        toast.error('Invalid USDM amount');
-        return false;
-      }
+    // Enforce usage limits for ReadAndPay
+    if (
+      permission === 'ReadAndPay' &&
+      usageLimited &&
+      !credits.lovelace &&
+      !credits.usdm
+    ) {
+      toast.error('Please specify usage credits for Read and Pay permission');
+      return false;
     }
 
     return true;
   };
+
+  // Update usageLimited when permission changes
+  useEffect(() => {
+    if (permission === 'Admin') {
+      setUsageLimited(false);
+    } else if (permission === 'Read') {
+      setUsageLimited(true);
+    }
+  }, [permission]);
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -67,30 +93,46 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
     try {
       setIsLoading(true);
 
-      const usageCredits = [];
-      if (usageLimited) {
-        if (credits.lovelace) {
-          usageCredits.push({
-            unit: 'lovelace',
-            amount: (parseFloat(credits.lovelace) * 1000000).toString()
-          });
-        }
-        if (credits.usdm) {
-          usageCredits.push({
-            unit: 'usdm',
-            amount: credits.usdm
-          });
-        }
-      }
+      // Set default values for read-only operations
+      const isReadOnly = permission === 'Read';
+      const defaultCredits = [
+        {
+          unit: 'lovelace',
+          amount: '1000000000', // 1000 ADA
+        },
+      ];
 
       await postApiKey({
         client: apiClient,
         body: {
           permission,
-          usageLimited: usageLimited.toString(),
+          usageLimited: isReadOnly ? 'true' : usageLimited.toString(),
           networkLimit: networks,
-          UsageCredits: usageCredits
-        }
+          UsageCredits: isReadOnly
+            ? defaultCredits
+            : usageLimited
+              ? [
+                  ...(credits.lovelace
+                    ? [
+                        {
+                          unit: 'lovelace',
+                          amount: (
+                            parseFloat(credits.lovelace) * 1000000
+                          ).toString(),
+                        },
+                      ]
+                    : []),
+                  ...(credits.usdm
+                    ? [
+                        {
+                          unit: 'usdm',
+                          amount: credits.usdm,
+                        },
+                      ]
+                    : []),
+                ]
+              : [],
+        },
       });
 
       toast.success('API key created successfully');
@@ -122,7 +164,12 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Permission</label>
-            <Select value={permission} onValueChange={(value: 'Read' | 'ReadAndPay' | 'Admin') => setPermission(value)}>
+            <Select
+              value={permission}
+              onValueChange={(value: 'Read' | 'ReadAndPay' | 'Admin') =>
+                setPermission(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -138,14 +185,14 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
             <label className="text-sm font-medium">Networks</label>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <Checkbox 
+                <Checkbox
                   checked={networks.includes('Preprod')}
                   onCheckedChange={() => handleNetworkToggle('Preprod')}
                 />
                 <label className="text-sm">Preprod</label>
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox 
+                <Checkbox
                   checked={networks.includes('Mainnet')}
                   onCheckedChange={() => handleNetworkToggle('Mainnet')}
                 />
@@ -156,15 +203,18 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Checkbox 
+              <Checkbox
                 checked={usageLimited}
-                onCheckedChange={(checked) => setUsageLimited(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setUsageLimited(checked as boolean)
+                }
+                disabled={permission === 'Read'}
               />
               <label className="text-sm font-medium">Limit Usage</label>
             </div>
           </div>
 
-          {usageLimited && (
+          {usageLimited && permission !== 'Read' && (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">ADA Limit</label>
@@ -172,9 +222,16 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
                   type="number"
                   placeholder="0.00"
                   value={credits.lovelace}
-                  onChange={(e) => setCredits(prev => ({ ...prev, lovelace: e.target.value }))}
+                  onChange={(e) =>
+                    setCredits((prev) => ({
+                      ...prev,
+                      lovelace: e.target.value,
+                    }))
+                  }
                 />
-                <p className="text-xs text-muted-foreground">Amount in ADA (will be converted to lovelace)</p>
+                <p className="text-xs text-muted-foreground">
+                  Amount in ADA (will be converted to lovelace)
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -183,7 +240,9 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
                   type="number"
                   placeholder="0.00"
                   value={credits.usdm}
-                  onChange={(e) => setCredits(prev => ({ ...prev, usdm: e.target.value }))}
+                  onChange={(e) =>
+                    setCredits((prev) => ({ ...prev, usdm: e.target.value }))
+                  }
                 />
               </div>
             </>
@@ -201,4 +260,4 @@ export function AddApiKeyDialog({ open, onClose, onSuccess }: AddApiKeyDialogPro
       </DialogContent>
     </Dialog>
   );
-} 
+}

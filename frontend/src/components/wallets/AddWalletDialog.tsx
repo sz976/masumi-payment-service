@@ -22,10 +22,12 @@ import { useState, useEffect } from 'react';
 import {
   patchPaymentSourceExtended,
   getPaymentSourceExtended,
+  postWallet,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { parseError } from '@/lib/utils';
+import { Spinner } from '@/components/ui/spinner';
 
 interface AddWalletDialogProps {
   open: boolean;
@@ -43,9 +45,10 @@ export function AddWalletDialog({
   const [note, setNote] = useState<string>('');
   const [collectionAddress, setCollectionAddress] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
   const [paymentSourceId, setPaymentSourceId] = useState<string | null>(null);
-  const { apiClient } = useAppContext();
+  const { apiClient, state } = useAppContext();
 
   useEffect(() => {
     if (open) {
@@ -74,6 +77,36 @@ export function AddWalletDialog({
       console.error('Error fetching payment source:', error);
       setError('Failed to load payment source');
       onClose();
+    }
+  };
+
+  const handleGenerateMnemonic = async () => {
+    try {
+      setIsGenerating(true);
+      setError('');
+
+      const response: any = await postWallet({
+        client: apiClient,
+        body: {
+          network: state.network,
+        },
+      });
+
+      if (response.status === 200 && response.data?.data?.walletMnemonic) {
+        setMnemonic(response.data.data.walletMnemonic);
+      } else {
+        throw new Error('Failed to generate mnemonic phrase');
+      }
+    } catch (error: any) {
+      console.error('Error generating mnemonic:', error);
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.message ||
+        'Failed to generate mnemonic phrase';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -182,9 +215,21 @@ export function AddWalletDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Mnemonic Phrase <span className="text-destructive">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">
+                Mnemonic Phrase <span className="text-destructive">*</span>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateMnemonic}
+                disabled={isGenerating}
+                className="h-8"
+              >
+                {isGenerating ? <Spinner size={16} /> : 'Generate'}
+              </Button>
+            </div>
             <Textarea
               value={mnemonic}
               onChange={(e) => setMnemonic(e.target.value)}

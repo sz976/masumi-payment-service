@@ -1,11 +1,11 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Copy, Search, RefreshCw } from 'lucide-react';
+import { Plus, Copy, Search, RefreshCw, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
@@ -27,6 +27,11 @@ import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { FaExchangeAlt } from 'react-icons/fa';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { Tabs } from '@/components/ui/tabs';
+import {
+  WalletDetailsDialog,
+  WalletWithBalance as BaseWalletWithBalance,
+} from '@/components/wallets/WalletDetailsDialog';
+import { CopyButton } from '@/components/ui/copy-button';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -35,8 +40,15 @@ type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
       type: 'Selling';
     });
-type WalletWithBalance = Wallet & { balance: string; usdmBalance: string };
+
 type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
+
+interface WalletWithBalance extends BaseWalletWithBalance {
+  collectionBalance?: {
+    ada: string;
+    usdm: string;
+  } | null;
+}
 
 export default function WalletsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +62,9 @@ export default function WalletsPage() {
   const [refreshingBalances, setRefreshingBalances] = useState<Set<string>>(
     new Set(),
   );
+  const [copiedAddresses, setCopiedAddresses] = useState<Set<string>>(
+    new Set(),
+  );
   const { apiClient, state } = useAppContext();
   const { rate, isLoading: isLoadingRate } = useRate();
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
@@ -57,11 +72,14 @@ export default function WalletsPage() {
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
     useState<Wallet | null>(null);
   const [activeTab, setActiveTab] = useState('All');
+  const [selectedWalletForDetails, setSelectedWalletForDetails] =
+    useState<WalletWithBalance | null>(null);
 
   const tabs = [
     { name: 'All', count: null },
     { name: 'Purchasing', count: null },
     { name: 'Selling', count: null },
+    { name: 'Collection', count: null },
   ];
 
   const filterWallets = useCallback(() => {
@@ -71,13 +89,17 @@ export default function WalletsPage() {
       filtered = filtered.filter((wallet) => wallet.type === 'Purchasing');
     } else if (activeTab === 'Selling') {
       filtered = filtered.filter((wallet) => wallet.type === 'Selling');
+    } else if (activeTab === 'Collection') {
+      filtered = filtered.filter((wallet) => wallet.collectionAddress);
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((wallet) => {
         const matchAddress =
-          wallet.walletAddress?.toLowerCase().includes(query) || false;
+          wallet.walletAddress?.toLowerCase().includes(query) ||
+          wallet.collectionAddress?.toLowerCase().includes(query) ||
+          false;
         const matchNote = wallet.note?.toLowerCase().includes(query) || false;
         const matchType = wallet.type?.toLowerCase().includes(query) || false;
         const matchBalance = wallet.balance
@@ -102,43 +124,46 @@ export default function WalletsPage() {
     filterWallets();
   }, [filterWallets, searchQuery, activeTab]);
 
-  const fetchWalletBalance = async (wallet: Wallet) => {
-    try {
-      const response = await getUtxos({
-        client: apiClient,
-        query: {
-          address: wallet.walletAddress,
-          network: state.network,
-        },
-      });
-
-      if (response.data?.data?.Utxos) {
-        let adaBalance = 0;
-        let usdmBalance = 0;
-
-        response.data.data.Utxos.forEach((utxo: UTXO) => {
-          utxo.Amounts.forEach((amount) => {
-            if (amount.unit === 'lovelace' || amount.unit == '') {
-              adaBalance += amount.quantity || 0;
-            } else if (amount.unit === 'USDM') {
-              usdmBalance += amount.quantity || 0;
-            }
-          });
+  const fetchWalletBalance = useCallback(
+    async (address: string) => {
+      try {
+        const response = await getUtxos({
+          client: apiClient,
+          query: {
+            address: address,
+            network: state.network,
+          },
         });
 
-        return {
-          ada: adaBalance.toString(),
-          usdm: usdmBalance.toString(),
-        };
-      }
-      return { ada: '0', usdm: '0' };
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-      return { ada: '0', usdm: '0' };
-    }
-  };
+        if (response.data?.data?.Utxos) {
+          let adaBalance = 0;
+          let usdmBalance = 0;
 
-  const fetchWallets = async () => {
+          response.data.data.Utxos.forEach((utxo: UTXO) => {
+            utxo.Amounts.forEach((amount) => {
+              if (amount.unit === 'lovelace' || amount.unit == '') {
+                adaBalance += amount.quantity || 0;
+              } else if (amount.unit === 'USDM') {
+                usdmBalance += amount.quantity || 0;
+              }
+            });
+          });
+
+          return {
+            ada: adaBalance.toString(),
+            usdm: usdmBalance.toString(),
+          };
+        }
+        return { ada: '0', usdm: '0' };
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        return { ada: '0', usdm: '0' };
+      }
+    },
+    [apiClient, state.network],
+  );
+
+  const fetchWallets = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getPaymentSource({
@@ -146,7 +171,9 @@ export default function WalletsPage() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources[0];
+        const paymentSource = response.data.data.PaymentSources.find(
+          (source) => source.network === state.network,
+        );
         if (paymentSource) {
           const allWallets: Wallet[] = [
             ...paymentSource.PurchasingWallets.map((wallet) => ({
@@ -161,17 +188,43 @@ export default function WalletsPage() {
 
           const walletsWithBalances = await Promise.all(
             allWallets.map(async (wallet) => {
-              const balances = await fetchWalletBalance(wallet);
-              return {
-                ...wallet,
-                balance: balances.ada,
-                usdmBalance: balances.usdm,
+              const balance = await fetchWalletBalance(wallet.walletAddress);
+              let collectionBalance = null;
+
+              if (wallet.collectionAddress) {
+                collectionBalance = await fetchWalletBalance(
+                  wallet.collectionAddress,
+                );
+              }
+
+              const baseWallet: BaseWalletWithBalance = {
+                id: wallet.id,
+                walletVkey: wallet.walletVkey,
+                walletAddress: wallet.walletAddress,
+                note: wallet.note,
+                type: wallet.type,
+                balance: balance.ada,
+                usdmBalance: balance.usdm,
+                collectionAddress: wallet.collectionAddress,
               };
+
+              return {
+                ...baseWallet,
+                collectionBalance: collectionBalance
+                  ? {
+                      ada: collectionBalance.ada,
+                      usdm: collectionBalance.usdm,
+                    }
+                  : null,
+              } as WalletWithBalance;
             }),
           );
 
           setAllWallets(walletsWithBalances);
           setFilteredWallets(walletsWithBalances);
+        } else {
+          setAllWallets([]);
+          setFilteredWallets([]);
         }
       }
     } catch (error) {
@@ -180,11 +233,11 @@ export default function WalletsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiClient, fetchWalletBalance, state.network]);
 
   useEffect(() => {
     fetchWallets();
-  }, []);
+  }, [fetchWallets, state.network]);
 
   const handleSelectWallet = (id: string) => {
     setSelectedWallets((prev) =>
@@ -207,32 +260,47 @@ export default function WalletsPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Address copied to clipboard');
-  };
-
-  const refreshWalletBalance = async (wallet: Wallet) => {
+  const refreshWalletBalance = async (
+    wallet: WalletWithBalance,
+    isCollection: boolean = false,
+  ) => {
     try {
-      setRefreshingBalances((prev) => new Set(prev).add(wallet.id));
-      const balances = await fetchWalletBalance(wallet);
+      const walletId = isCollection ? `collection-${wallet.id}` : wallet.id;
+      setRefreshingBalances((prev) => new Set(prev).add(walletId));
+
+      const address = isCollection
+        ? wallet.collectionAddress!
+        : wallet.walletAddress;
+      const balances = await fetchWalletBalance(address);
+
       setFilteredWallets((prev) =>
-        prev.map((w) =>
-          w.id === wallet.id
-            ? {
+        prev.map((w) => {
+          if (w.id === wallet.id) {
+            if (isCollection) {
+              return {
                 ...w,
-                balance: balances.ada,
-                usdmBalance: balances.usdm,
-              }
-            : w,
-        ),
+                collectionBalance: {
+                  ada: balances.ada,
+                  usdm: balances.usdm,
+                },
+              };
+            }
+            return {
+              ...w,
+              balance: balances.ada,
+              usdmBalance: balances.usdm,
+            };
+          }
+          return w;
+        }),
       );
     } catch (error) {
       console.error('Error refreshing wallet balance:', error);
     } finally {
+      const walletId = isCollection ? `collection-${wallet.id}` : wallet.id;
       setRefreshingBalances((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(wallet.id);
+        newSet.delete(walletId);
         return newSet;
       });
     }
@@ -247,6 +315,26 @@ export default function WalletsPage() {
   const hasSellingWallets = !isLoading
     ? allWallets.some((wallet) => wallet.type === 'Selling')
     : true;
+
+  const handleWalletClick = (wallet: WalletWithBalance) => {
+    setSelectedWalletForDetails(wallet);
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAddresses((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(`${id}-${text}`);
+      return newSet;
+    });
+    setTimeout(() => {
+      setCopiedAddresses((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(`${id}-${text}`);
+        return newSet;
+      });
+    }, 2000);
+  };
 
   return (
     <MainLayout>
@@ -331,160 +419,273 @@ export default function WalletsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredWallets.map((wallet) => (
-                  <tr key={wallet.id} className="border-b last:border-b-0">
-                    <td className="p-4">
-                      <Checkbox
-                        checked={selectedWallets.includes(wallet.id)}
-                        onCheckedChange={() => handleSelectWallet(wallet.id)}
-                      />
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                          wallet.type === 'Purchasing'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800',
-                        )}
-                      >
-                        {wallet.type}
-                      </span>
-                    </td>
-                    <td className="p-4">{wallet.note || '—'}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
+                <>
+                  {filteredWallets.map((wallet) => (
+                    <tr
+                      key={wallet.id}
+                      className="border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => handleWalletClick(wallet)}
+                    >
+                      <td className="p-4">
+                        <Checkbox
+                          checked={selectedWallets.includes(wallet.id)}
+                          onCheckedChange={() => handleSelectWallet(wallet.id)}
+                        />
+                      </td>
+                      <td className="p-4">
                         <span
-                          className="font-mono text-sm"
-                          title={wallet.walletAddress}
+                          className={cn(
+                            'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                            wallet.type === 'Purchasing'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
+                          )}
                         >
-                          {shortenAddress(wallet.walletAddress)}
+                          {wallet.type === 'Purchasing' ? 'Buying' : 'Selling'}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => copyToClipboard(wallet.walletAddress)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1">
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm font-medium truncate">
+                          {wallet.type === 'Purchasing'
+                            ? 'Buying wallet'
+                            : 'Selling wallet'}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {wallet.note || 'Created by seeding'}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="font-mono text-sm"
+                            title={wallet.walletAddress}
+                          >
+                            {shortenAddress(wallet.walletAddress)}
+                          </span>
+                          <CopyButton value={wallet.walletAddress} />
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            {refreshingBalances.has(wallet.id) ? (
+                              <Spinner size={16} />
+                            ) : (
+                              <span>
+                                {wallet.balance
+                                  ? useFormatBalance(
+                                      (
+                                        parseInt(wallet.balance) / 1000000
+                                      ).toFixed(2),
+                                    )
+                                  : '0'}
+                              </span>
+                            )}
+                          </div>
+                          {!refreshingBalances.has(wallet.id) &&
+                            wallet.balance &&
+                            rate && (
+                              <span className="text-xs text-muted-foreground">
+                                $
+                                {useFormatBalance(
+                                  (
+                                    (parseInt(wallet.balance) / 1000000) *
+                                    rate
+                                  ).toFixed(2),
+                                ) || ''}
+                              </span>
+                            )}
+                        </div>
+                      </td>
+                      <td className="p-4">
                         <div className="flex items-center gap-2">
                           {refreshingBalances.has(wallet.id) ? (
                             <Spinner size={16} />
                           ) : (
                             <span>
-                              {wallet.balance
-                                ? useFormatBalance(
-                                    (
-                                      parseInt(wallet.balance) / 1000000
-                                    ).toFixed(2),
-                                  )
+                              {wallet.usdmBalance
+                                ? useFormatBalance(wallet.usdmBalance)
                                 : '0'}
                             </span>
                           )}
                         </div>
-                        {!refreshingBalances.has(wallet.id) &&
-                          wallet.balance &&
-                          rate && (
-                            <span className="text-xs text-muted-foreground">
-                              $
-                              {useFormatBalance(
-                                (
-                                  (parseInt(wallet.balance) / 1000000) *
-                                  rate
-                                ).toFixed(2),
-                              ) || ''}
-                            </span>
-                          )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {refreshingBalances.has(wallet.id) ? (
-                          <Spinner size={16} />
-                        ) : (
-                          <span>
-                            {wallet.usdmBalance
-                              ? useFormatBalance(wallet.usdmBalance)
-                              : '0'}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              refreshWalletBalance(wallet);
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedWalletForSwap(wallet);
+                            }}
+                          >
+                            <FaExchangeAlt className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="muted"
+                            className="h-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedWalletForTopup(wallet);
+                            }}
+                          >
+                            Top Up
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Collection Wallet Section */}
+                  {filteredWallets.map((wallet) => {
+                    if (!wallet.collectionAddress) return null;
+                    return (
+                      <tr
+                        key={`collection-${wallet.id}`}
+                        className="border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                        onClick={() =>
+                          handleWalletClick({
+                            ...wallet,
+                            walletAddress: wallet.collectionAddress!,
+                            type: 'Collection' as any,
+                            balance: wallet.collectionBalance?.ada || '0',
+                            usdmBalance: wallet.collectionBalance?.usdm || '0',
+                          })
+                        }
+                      >
+                        <td className="p-4">
+                          <Checkbox
+                            checked={selectedWallets.includes(
+                              `collection-${wallet.id}`,
+                            )}
+                            onCheckedChange={() =>
+                              handleSelectWallet(`collection-${wallet.id}`)
+                            }
+                          />
+                        </td>
+                        <td className="p-4">
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                            Collection
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => refreshWalletBalance(wallet)}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setSelectedWalletForSwap(wallet)}
-                        >
-                          <FaExchangeAlt className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm font-medium truncate">
+                            Collection wallet
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {wallet.note || 'Created by seeding'}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="font-mono text-sm"
+                              title={wallet.collectionAddress}
+                            >
+                              {shortenAddress(wallet.collectionAddress!)}
+                            </span>
+                            <CopyButton value={wallet.collectionAddress!} />
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              {refreshingBalances.has(
+                                `collection-${wallet.id}`,
+                              ) ? (
+                                <Spinner size={16} />
+                              ) : (
+                                <span>
+                                  {wallet.collectionBalance?.ada
+                                    ? useFormatBalance(
+                                        (
+                                          parseInt(
+                                            wallet.collectionBalance.ada,
+                                          ) / 1000000
+                                        ).toFixed(2),
+                                      )
+                                    : '0'}
+                                </span>
+                              )}
+                            </div>
+                            {!refreshingBalances.has(
+                              `collection-${wallet.id}`,
+                            ) &&
+                              wallet.collectionBalance?.ada &&
+                              rate && (
+                                <span className="text-xs text-muted-foreground">
+                                  $
+                                  {useFormatBalance(
+                                    (
+                                      (parseInt(wallet.collectionBalance.ada) /
+                                        1000000) *
+                                      rate
+                                    ).toFixed(2),
+                                  ) || ''}
+                                </span>
+                              )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            {refreshingBalances.has(
+                              `collection-${wallet.id}`,
+                            ) ? (
+                              <Spinner size={16} />
+                            ) : (
+                              <span>
+                                {wallet.collectionBalance?.usdm
+                                  ? useFormatBalance(
+                                      wallet.collectionBalance.usdm,
+                                    )
+                                  : '0'}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                refreshWalletBalance(wallet, true);
+                              }}
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </>
               )}
             </tbody>
           </table>
         </div>
-        <div className="text-sm text-muted-foreground mt-4">
-          Total: {filteredWallets.length}
-        </div>
-
-        {!hasSellingWallets && (
-          <div className="rounded-lg border border-orange-200 bg-orange-50 dark:bg-[#f002] dark:border-orange-500/20 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                <div className="text-sm">
-                  We recommend to add your own wallet to collect funds.{' '}
-                  <Link
-                    href="https://docs.masumi.network/core-concepts/wallets#three-different-wallets"
-                    target="_blank"
-                    className="text-orange-600 dark:text-orange-400 hover:underline"
-                  >
-                    Learn more
-                  </Link>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/10"
-              >
-                Add collecting wallet
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* Dialogs */}
       <AddWalletDialog
         open={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onSuccess={fetchWallets}
-      />
-
-      <TransakWidget
-        isOpen={!!selectedWalletForTopup}
-        onClose={() => setSelectedWalletForTopup(null)}
-        walletAddress={selectedWalletForTopup?.walletAddress || ''}
-        onSuccess={() => {
-          toast.success('Top up successful');
-          refreshWalletBalance(selectedWalletForTopup!);
-        }}
       />
 
       <SwapDialog
@@ -495,6 +696,19 @@ export default function WalletsPage() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
+      />
+
+      <TransakWidget
+        isOpen={!!selectedWalletForTopup}
+        onClose={() => setSelectedWalletForTopup(null)}
+        walletAddress={selectedWalletForTopup?.walletAddress || ''}
+        onSuccess={fetchWallets}
+      />
+
+      <WalletDetailsDialog
+        isOpen={!!selectedWalletForDetails}
+        onClose={() => setSelectedWalletForDetails(null)}
+        wallet={selectedWalletForDetails}
       />
     </MainLayout>
   );
