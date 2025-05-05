@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import logo from '@/assets/masumi_logo.png';
 import Link from 'next/link';
-import { MessageSquare } from 'lucide-react';
+import { BookOpen, MessageSquare } from 'lucide-react';
 
 export function Header() {
   return (
@@ -16,16 +16,28 @@ export function Header() {
             height={64}
             className="w-auto"
           />
-          <Button variant="outline">
-            <Link
-              href="https://www.masumi.network/contact"
-              target="_blank"
-              className="flex items-center gap-2"
-            >
-              Support
-              <MessageSquare className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                href="https://docs.masumi.network"
+                target="_blank"
+                className="flex items-center gap-2"
+              >
+                <BookOpen className="h-4 w-4" />
+                Documentation
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                href="https://www.masumi.network/contact"
+                target="_blank"
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Support
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

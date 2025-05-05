@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LuSettings, LuCopy } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +12,9 @@ import {
   GetPaymentResponses,
   getPurchase,
   GetPurchaseResponses,
+  postPurchaseRequestRefund,
+  postPurchaseCancelRefundRequest,
+  postPaymentAuthorizeRefund,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import {
@@ -25,6 +27,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
+import { CopyButton } from '@/components/ui/copy-button';
 
 type Transaction =
   | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
@@ -43,6 +46,16 @@ const handleError = (error: ApiError) => {
   const errorMessage =
     error.error?.message || error.message || 'An error occurred';
   toast.error(errorMessage);
+};
+
+const formatTimestamp = (timestamp: string | null | undefined): string => {
+  if (!timestamp) return '—';
+
+  if (/^\d+$/.test(timestamp)) {
+    return new Date(parseInt(timestamp)).toLocaleString();
+  }
+
+  return new Date(timestamp).toLocaleString();
 };
 
 export default function Transactions() {
@@ -206,7 +219,7 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [state.network]);
 
   useEffect(() => {
     filterTransactions();
@@ -234,11 +247,6 @@ export default function Transactions() {
     }
   };
 
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${type} copied to clipboard`);
-  };
-
   const getStatusColor = (status: string, hasError?: boolean) => {
     if (hasError) return 'text-destructive';
     switch (status?.toLowerCase()) {
@@ -261,6 +269,122 @@ export default function Transactions() {
   const formatStatus = (status: string) => {
     if (!status) return '—';
     return status.replace(/([A-Z])/g, ' $1').trim();
+  };
+
+  const clearTransactionError = async (transaction: Transaction) => {
+    try {
+      await apiClient.request({
+        method: 'PUT',
+        url: `/transactions/${transaction.id}/clear-error`,
+      });
+      toast.success('Error state cleared successfully');
+      return true;
+    } catch (error) {
+      handleError(error as ApiError);
+      return false;
+    }
+  };
+
+  const updateTransactionState = async (
+    transaction: Transaction,
+    newState: string,
+  ) => {
+    try {
+      await apiClient.request({
+        method: 'PUT',
+        url: `/transactions/${transaction.id}/state`,
+        data: { state: newState },
+      });
+      toast.success('Transaction state updated successfully');
+      return true;
+    } catch (error) {
+      handleError(error as ApiError);
+      return false;
+    }
+  };
+
+  const canRequestRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'ResultSubmitted' ||
+      transaction.onChainState === 'FundsLocked'
+    );
+  };
+
+  const canAllowRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'RefundRequested' ||
+      transaction.onChainState === 'Disputed'
+    );
+  };
+
+  const canCancelRefund = (transaction: Transaction) => {
+    return (
+      transaction.onChainState === 'RefundRequested' ||
+      transaction.onChainState === 'Disputed'
+    );
+  };
+
+  const handleRefundRequest = async (transaction: Transaction) => {
+    try {
+      await postPurchaseRequestRefund({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            smartContractAddress:
+              transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund request submitted successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
+  };
+
+  const handleAllowRefund = async (transaction: Transaction) => {
+    try {
+      await postPaymentAuthorizeRefund({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            paymentContractAddress:
+              transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund authorized successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
+  };
+
+  const handleCancelRefund = async (transaction: Transaction) => {
+    try {
+      await postPurchaseCancelRefundRequest({
+        client: apiClient,
+        data: {
+          body: {
+            blockchainIdentifier: transaction.blockchainIdentifier,
+            network: transaction.PaymentSource.network,
+            smartContractAddress:
+              transaction.PaymentSource.smartContractAddress,
+          },
+        },
+      });
+      toast.success('Refund request cancelled successfully');
+      fetchTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      handleError(error as ApiError);
+    }
   };
 
   return (
@@ -379,20 +503,9 @@ export default function Transactions() {
                               : '—'}
                           </span>
                           {transaction.CurrentTransaction?.txHash && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyToClipboard(
-                                  transaction.CurrentTransaction?.txHash || '',
-                                  'Transaction hash',
-                                );
-                              }}
-                            >
-                              <LuCopy className="h-4 w-4" />
-                            </Button>
+                            <CopyButton
+                              value={transaction.CurrentTransaction?.txHash}
+                            />
                           )}
                         </div>
                       </td>
@@ -462,19 +575,7 @@ export default function Transactions() {
                     <p className="text-sm font-mono break-all">
                       {selectedTransaction.id}
                     </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 ml-auto shrink-0"
-                      onClick={() =>
-                        copyToClipboard(
-                          selectedTransaction.id,
-                          'Transaction ID',
-                        )
-                      }
-                    >
-                      <LuCopy className="h-4 w-4" />
-                    </Button>
+                    <CopyButton value={selectedTransaction.id} />
                   </div>
                 </div>
 
@@ -513,8 +614,7 @@ export default function Transactions() {
                   <div>
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
-                      {//FIX proper funds
-                      selectedTransaction.type === 'payment' &&
+                      {selectedTransaction.type === 'payment' &&
                       selectedTransaction.RequestedFunds?.[0]
                         ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                         : selectedTransaction.type === 'purchase' &&
@@ -533,26 +633,63 @@ export default function Transactions() {
                         <p className="text-sm font-mono break-all">
                           {selectedTransaction.CurrentTransaction.txHash}
                         </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 ml-auto shrink-0"
-                          onClick={() =>
-                            copyToClipboard(
-                              selectedTransaction.CurrentTransaction?.txHash ||
-                                '',
-                              'Transaction hash',
-                            )
-                          }
-                        >
-                          <LuCopy className="h-4 w-4" />
-                        </Button>
+                        <CopyButton
+                          value={selectedTransaction.CurrentTransaction?.txHash}
+                        />
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
                         No transaction hash available
                       </p>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold">Time Information</h4>
+                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/10">
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Created</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.createdAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Last Updated</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.updatedAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">
+                      Submit Result By
+                    </h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.submitResultTime)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Unlock Time</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.unlockTime)}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">
+                      External Dispute Unlock Time
+                    </h5>
+                    <p className="text-sm">
+                      {formatTimestamp(
+                        selectedTransaction.externalDisputeUnlockTime,
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Last Checked</h5>
+                    <p className="text-sm">
+                      {formatTimestamp(selectedTransaction.lastCheckedAt)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -573,20 +710,12 @@ export default function Transactions() {
                                 .walletAddress
                             }
                           </p>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 ml-auto shrink-0"
-                            onClick={() =>
-                              copyToClipboard(
-                                selectedTransaction.SmartContractWallet
-                                  ?.walletAddress || '',
-                                'Wallet address',
-                              )
+                          <CopyButton
+                            value={
+                              selectedTransaction.SmartContractWallet
+                                ?.walletAddress
                             }
-                          >
-                            <LuCopy className="h-4 w-4" />
-                          </Button>
+                          />
                         </div>
                       </div>
                     </div>
@@ -608,10 +737,75 @@ export default function Transactions() {
                           {selectedTransaction.NextAction.errorNote}
                         </p>
                       )}
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            if (
+                              await clearTransactionError(selectedTransaction)
+                            ) {
+                              setSelectedTransaction(null);
+                              fetchTransactions();
+                            }
+                          }}
+                        >
+                          Clear Error State
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            const newState = prompt('Enter new state:');
+                            if (
+                              newState &&
+                              (await updateTransactionState(
+                                selectedTransaction,
+                                newState,
+                              ))
+                            ) {
+                              setSelectedTransaction(null);
+                              fetchTransactions();
+                            }
+                          }}
+                        >
+                          Set New State
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+
+              <div className="flex gap-2 justify-end">
+                {canRequestRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'purchase' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleRefundRequest(selectedTransaction)}
+                    >
+                      Request Refund
+                    </Button>
+                  )}
+                {canAllowRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'payment' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleAllowRefund(selectedTransaction)}
+                    >
+                      Allow Refund
+                    </Button>
+                  )}
+                {canCancelRefund(selectedTransaction) &&
+                  selectedTransaction.type === 'purchase' && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleCancelRefund(selectedTransaction)}
+                    >
+                      Cancel Refund Request
+                    </Button>
+                  )}
+              </div>
             </div>
           )}
         </DialogContent>

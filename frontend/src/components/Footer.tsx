@@ -1,4 +1,4 @@
-import { useTheme } from "@/lib/contexts/ThemeContext";
+import { useTheme } from '@/lib/contexts/ThemeContext';
 
 export function Footer() {
   const { theme, setThemePreference } = useTheme();
@@ -7,16 +7,26 @@ export function Footer() {
     <footer className="fixed bottom-0 left-0 right-0 p-4 flex justify-center items-center bg-background/80 backdrop-blur-md border-t">
       <div className="max-w-[1200px] mx-auto w-full flex justify-between items-center">
         <div className="flex gap-4">
-          <a href="https://www.masumi.network/about" target="_blank" className="text-sm text-muted-foreground hover:text-foreground">
+          <a
+            href="https://www.masumi.network/about"
+            target="_blank"
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
             About
           </a>
-          <a href="https://www.house-of-communication.com/de/en/footer/privacy-policy.html" target="_blank" className="text-sm text-muted-foreground hover:text-foreground">
+          <a
+            href="https://www.house-of-communication.com/de/en/footer/privacy-policy.html"
+            target="_blank"
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
             Privacy Policy
           </a>
         </div>
         <div>
-          <button 
-            onClick={() => setThemePreference(theme === 'dark' ? 'light' : 'dark')}
+          <button
+            onClick={() =>
+              setThemePreference(theme === 'dark' ? 'light' : 'dark')
+            }
             className="text-sm text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted"
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
           >
@@ -62,4 +72,4 @@ export function Footer() {
       </div>
     </footer>
   );
-} 
+}

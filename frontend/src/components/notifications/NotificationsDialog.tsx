@@ -1,27 +1,39 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useTransactions } from "@/lib/hooks/useTransactions";
-import { useRouter } from "next/router";
-import { formatDistanceToNow } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useTransactions } from '@/lib/hooks/useTransactions';
+import { useRouter } from 'next/router';
+import { formatDistanceToNow } from 'date-fns';
 
 interface NotificationsDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function NotificationsDialog({ open, onClose }: NotificationsDialogProps) {
+export function NotificationsDialog({
+  open,
+  onClose,
+}: NotificationsDialogProps) {
   const router = useRouter();
-  const { transactions, newTransactionsCount, markAllAsRead } = useTransactions();
+  const { transactions, newTransactionsCount, markAllAsRead } =
+    useTransactions();
 
   const handleViewTransactions = () => {
     onClose();
-    router.push("/transactions").then(() => {
+    router.push('/transactions').then(() => {
       markAllAsRead();
     });
   };
 
   const newTransactions = transactions
     .slice(0, newTransactionsCount)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -43,13 +55,15 @@ export function NotificationsDialog({ open, onClose }: NotificationsDialogProps)
                       New {transaction.type} transaction
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Amount: {transaction.Amounts?.[0]
+                      Amount:{' '}
+                      {transaction.Amounts?.[0]
                         ? `${(parseInt(transaction.Amounts[0].amount) / 1000000).toFixed(2)} ₳`
-                        : '—'
-                      }
+                        : '—'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(transaction.createdAt), {
+                        addSuffix: true,
+                      })}
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">
@@ -73,4 +87,4 @@ export function NotificationsDialog({ open, onClose }: NotificationsDialogProps)
       </DialogContent>
     </Dialog>
   );
-} 
+}
