@@ -312,7 +312,7 @@ echo -e "\n${BLUE}Next Steps:${NC}"
 echo -e "1. Run the following command to start the services in DEVELOPMENT mode:"
 echo -e "   ${GREEN}docker compose -f docker-compose.dev.yml up -d --build${NC}"
 echo -e "2. If any wallets are auto-generated, access the admin interface at:"
-echo -e "   ${GREEN}https://localhost:8443/admin${NC}"
+echo -e "   ${GREEN}https://localhost/admin${NC}"
 echo -e "   and backup all wallet mnemonics immediately."
 
 echo -e "\n${GREEN}Ready for development deployment!${NC}"

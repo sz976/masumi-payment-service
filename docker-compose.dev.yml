@@ -131,8 +131,8 @@ services:
       - ./nginx/certs:/etc/nginx/certs:ro
       - nginx_logs_dev:/var/log/nginx
     ports:
-      - "8080:80"  # Different port for development
-      - "8443:443" # Different port for development
+      - "80:80"  # Using standard HTTP port
+      - "443:443" # Using standard HTTPS port
     networks:
       - masumi-network-dev
     healthcheck:

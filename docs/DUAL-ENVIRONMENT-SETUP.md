@@ -14,7 +14,7 @@ The Masumi Payment Service now supports two parallel environments:
 2. **Development Environment**
    - Deployed from the `develop` branch
    - Independent of production data and services
-   - Accessible through alternate ports (8080/8443)
+   - Accessible through standard ports (80/443) on a separate VM
    - Uses distinct container names and Docker volume names
 
 Both environments run in the same VPC for security and resource efficiency.
@@ -33,7 +33,7 @@ Both environments run in the same VPC for security and resource efficiency.
 │   │  │                 │    │    │  │                 │    ││
 │   │  │ ┌─────────────┐ │    │    │  │ ┌─────────────┐ │    ││
 │   │  │ │   Nginx     │ │    │    │  │ │   Nginx     │ │    ││
-│   │  │ │  (80/443)   │ │    │    │  │ │ (8080/8443) │ │    ││
+│   │  │ │  (80/443)   │ │    │    │  │ │  (80/443)   │ │    ││
 │   │  │ └──────┬──────┘ │    │    │  │ └──────┬──────┘ │    ││
 │   │  │        │        │    │    │  │        │        │    ││
 │   │  │ ┌──────┴──────┐ │    │    │  │ ┌──────┴──────┐ │    ││
@@ -115,9 +115,9 @@ Both workflows utilize the same self-hosted GitHub runner, which has access to b
 
 ### Accessing Development Environment
 
-- **Web Interface**: `https://<DEV_VM_IP>:8443/`
-- **Admin Dashboard**: `https://<DEV_VM_IP>:8443/admin`
-- **API Documentation**: `https://<DEV_VM_IP>:8443/docs`
+- **Web Interface**: `https://<DEV_VM_IP>/`
+- **Admin Dashboard**: `https://<DEV_VM_IP>/admin`
+- **API Documentation**: `https://<DEV_VM_IP>/docs`
 
 ## Development Workflow
 
