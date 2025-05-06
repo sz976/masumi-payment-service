@@ -53,7 +53,7 @@ jobs:
         echo "Deploying ${DEPLOY_REF} to development environment at ${AZURE_VM_IP}..."
         
         # Thorough cleanup before deployment
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
@@ -88,7 +88,7 @@ jobs:
         
         # Update code directly on the development VM
         echo "Cloning/updating repository on development VM..."
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
+        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
           # Ensure git is installed
           which git || sudo apt-get install -y git
           
@@ -116,7 +116,7 @@ jobs:
           CERT_B64=$(echo '${{ env.SSL_CERT_CONTENT }}' | base64 -w 0)
           KEY_B64=$(echo '${{ env.SSL_KEY_CONTENT }}' | base64 -w 0)
           
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
+          ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e; \
             mkdir -p \"/home/${USER}/masumi-payment-service/nginx/certs\"; \
             echo ${CERT_B64} | base64 -d > \"/home/${USER}/masumi-payment-service/nginx/certs/server.crt\"; \
             echo ${KEY_B64} | base64 -d > \"/home/${USER}/masumi-payment-service/nginx/certs/server.key\"; \
@@ -153,7 +153,7 @@ jobs:
         echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
         
         # Run deployment commands
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
           cd \"/home/${USER}/masumi-payment-service\"
           
           # Debug: Show current directory and contents
@@ -215,4 +215,4 @@ jobs:
         }
         
         echo "Deployment to Development Azure VM successful!"
-        echo "The Masumi Payment Service (DEV) should now be running at https://${AZURE_VM_IP}:8443/"
+        echo "The Masumi Payment Service (DEV) should now be running at https://${AZURE_VM_IP}/"
