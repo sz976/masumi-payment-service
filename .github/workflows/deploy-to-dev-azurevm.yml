@@ -53,7 +53,7 @@ jobs:
         echo "Deploying ${DEPLOY_REF} to development environment at ${AZURE_VM_IP}..."
         
         # Thorough cleanup before deployment
-        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
