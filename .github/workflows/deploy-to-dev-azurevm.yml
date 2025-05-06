@@ -33,7 +33,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v4.2.2
       with:
         ref: ${{ github.event_name == 'push' && github.ref || inputs.branchOrTag }}
     
