@@ -152,14 +152,6 @@ jobs:
         echo "  BLOCKFROST_API_KEY_MAINNET: ${BLOCKFROST_API_KEY_MAINNET:0:5}...[masked]"
         echo "  Using pre-configured wallets: $([ -n "$PURCHASE_WALLET_PREPROD_MNEMONIC" ] && echo "Yes" || echo "No - Will be auto-generated")"
         
-        # Create a modified .env file name for development
-        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
-          cd \"/home/${USER}/masumi-payment-service\"
-          
-          # Add a suffix to the Docker Compose project name to differentiate from production
-          echo \"COMPOSE_PROJECT_NAME=masumi_payment_dev\" > .env.dev-prefix
-        "
-        
         # Run deployment commands
         ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
           cd \"/home/${USER}/masumi-payment-service\"
@@ -171,17 +163,17 @@ jobs:
           
           # First ensure all scripts are executable
           echo \"Setting executable permissions on scripts...\"
-          if [ -f \"run.sh\" ]; then
-            chmod +x run.sh generate-certificates.sh make-executable.sh
+          if [ -f \"run-dev.sh\" ]; then
+            chmod +x run-dev.sh generate-certificates.sh make-executable.sh
             echo \"Made scripts executable\"
             ls -la *.sh
           else
-            echo \"Error: run.sh not found in \$(pwd)\"
+            echo \"Error: run-dev.sh not found in \$(pwd)\"
             exit 1
           fi
           
-          echo \"Running initialization script...\"
-          ./run.sh \
+          echo \"Running development initialization script...\"
+          ./run-dev.sh \
             --preprod-key \"${BLOCKFROST_API_KEY_PREPROD}\" \
             --mainnet-key \"${BLOCKFROST_API_KEY_MAINNET}\" \
             --purchase-preprod-mnemonic \"${PURCHASE_WALLET_PREPROD_MNEMONIC}\" \
@@ -190,30 +182,18 @@ jobs:
             --purchase-mainnet-mnemonic \"${PURCHASE_WALLET_MAINNET_MNEMONIC}\" \
             --selling-mainnet-mnemonic \"${SELLING_WALLET_MAINNET_MNEMONIC}\" \
             --collection-mainnet-address \"${COLLECTION_WALLET_MAINNET_ADDRESS}\" || {
-            echo \"ERROR: Initialization script failed\"
+            echo \"ERROR: Development initialization script failed\"
             exit 1
           }
           
-          # Append the dev-prefix .env file to main .env file
-          cat .env.dev-prefix > .env.development
-          cat .env >> .env.development
-          
-          # Add development-specific environment variables
-          echo \"# Development environment specific variables\" >> .env.development
-          echo \"NODE_ENV=development\" >> .env.development
-          echo \"DEV_ENVIRONMENT=true\" >> .env.development
-          
-          # Use the development environment file
-          mv .env.development .env
-          
           echo \"Building and starting Docker containers (DEVELOPMENT)...\"
           # Use a custom project name for development to avoid conflicts with production
-          docker-compose -p masumi_payment_dev build || {
+          docker-compose -f docker-compose.dev.yml -p masumi_payment_dev build || {
             echo \"ERROR: Docker build failed\"
             exit 1
           }
           
-          docker-compose -p masumi_payment_dev up -d || {
+          docker-compose -f docker-compose.dev.yml -p masumi_payment_dev up -d || {
             echo \"ERROR: Docker compose up failed\"
             exit 1
           }
@@ -223,10 +203,10 @@ jobs:
           # Verify service is running
           echo \"Verifying service is running...\"
           sleep 10
-          if docker-compose -p masumi_payment_dev ps | grep -q \"Up\"; then
+          if docker-compose -f docker-compose.dev.yml -p masumi_payment_dev ps | grep -q \"Up\"; then
             echo \"Development service is running successfully.\"
           else
-            echo \"WARNING: Development service might not be running properly. Check logs with: docker-compose -p masumi_payment_dev logs\"
+            echo \"WARNING: Development service might not be running properly. Check logs with: docker-compose -f docker-compose.dev.yml -p masumi_payment_dev logs\"
             exit 0  # Don't fail deployment if service check is unclear
           fi
         " || {
@@ -235,4 +215,4 @@ jobs:
         }
         
         echo "Deployment to Development Azure VM successful!"
-        echo "The Masumi Payment Service (DEV) should now be running at https://${AZURE_VM_IP}/"
+        echo "The Masumi Payment Service (DEV) should now be running at https://${AZURE_VM_IP}:8443/"
