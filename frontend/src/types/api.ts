@@ -7,8 +7,8 @@ export interface BaseTransactionQuery {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface PaymentsQuery extends BaseTransactionQuery { }
+export interface PaymentsQuery extends BaseTransactionQuery {}
 
 export interface PurchasesQuery extends BaseTransactionQuery {
   sellingWalletVkey?: string;
-} 
+}

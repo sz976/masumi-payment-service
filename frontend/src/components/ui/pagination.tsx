@@ -1,5 +1,5 @@
-import { Button } from "./button";
-import { Spinner } from "./spinner";
+import { Button } from './button';
+import { Spinner } from './spinner';
 
 interface PaginationProps {
   hasMore: boolean;
@@ -8,7 +8,12 @@ interface PaginationProps {
   className?: string;
 }
 
-export function Pagination({ hasMore, isLoading, onLoadMore, className = "" }: PaginationProps) {
+export function Pagination({
+  hasMore,
+  isLoading,
+  onLoadMore,
+  className = '',
+}: PaginationProps) {
   return (
     <div className={`flex justify-center space-x-2 ${className}`}>
       <Button
@@ -22,11 +27,11 @@ export function Pagination({ hasMore, isLoading, onLoadMore, className = "" }: P
             <Spinner size={14} />
           </div>
         ) : hasMore ? (
-          "Load More"
+          'Load More'
         ) : (
-          "No More Data"
+          'No More Data'
         )}
       </Button>
     </div>
   );
-} 
+}

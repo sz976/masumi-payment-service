@@ -9,11 +9,11 @@ export function useRate() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd'
+        'https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd',
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch rate');
       }
@@ -42,6 +42,6 @@ export function useRate() {
     rate,
     isLoading,
     error,
-    refetch: fetchRate
+    refetch: fetchRate,
   };
-} 
+}

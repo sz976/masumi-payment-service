@@ -88,6 +88,7 @@ const DialogContent = React.forwardRef<
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           'sm:rounded-lg',
           'transition-[filter,opacity] duration-200',
+          'top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%]',
           className,
         )}
         style={useDialogContext().style}

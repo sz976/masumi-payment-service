@@ -25,6 +25,7 @@ import { executeSwap } from '@/lib/api/swap';
 import { Token } from '@/types/token';
 import { Spinner } from '../ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
+import Image from 'next/image';
 interface SwapDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -408,7 +409,7 @@ export function SwapDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-hidden">
+      <DialogContent className="overflow-y-hidden max-w-2xl">
         <DialogHeader>
           <DialogTitle>Swap Tokens</DialogTitle>
           <DialogDescription>
@@ -474,10 +475,12 @@ export function SwapDialog({
                           </option>
                         ))}
                       </select>
-                      <img
+                      <Image
                         src={selectedFromToken.icon}
                         alt="Token"
                         className="w-6 h-6 rounded-full"
+                        width={24}
+                        height={24}
                       />
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -543,10 +546,12 @@ export function SwapDialog({
                           </option>
                         ))}
                       </select>
-                      <img
+                      <Image
                         src={selectedToToken.icon}
                         alt="Token"
                         className="w-6 h-6 rounded-full"
+                        width={24}
+                        height={24}
                       />
                     </div>
                     <div className="text-xs text-muted-foreground">

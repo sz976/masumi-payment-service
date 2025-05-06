@@ -9,12 +9,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress } from '@/lib/utils';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import {
   getRegistry,
   deleteRegistry,
   GetRegistryResponses,
+  getUtxos,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
@@ -24,7 +25,12 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FaRegClock } from 'react-icons/fa';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
-
+import { AIAgentDetailsDialog } from '@/components/ai-agents/AIAgentDetailsDialog';
+import {
+  WalletDetailsDialog,
+  WalletWithBalance,
+} from '@/components/wallets/WalletDetailsDialog';
+import { CopyButton } from '@/components/ui/copy-button';
 type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
@@ -65,6 +71,10 @@ export default function AIAgentsPage() {
   const [activeTab, setActiveTab] = useState('All');
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedAgentForDetails, setSelectedAgentForDetails] =
+    useState<AIAgent | null>(null);
+  const [selectedWalletForDetails, setSelectedWalletForDetails] =
+    useState<WalletWithBalance | null>(null);
 
   const tabs = [
     { name: 'All', count: null },
@@ -176,16 +186,6 @@ export default function AIAgentsPage() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLoadingMore) {
-        fetchAgents();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [isLoadingMore]);
-
-  useEffect(() => {
     filterAgents();
   }, [filterAgents, searchQuery, activeTab]);
 
@@ -261,6 +261,59 @@ export default function AIAgentsPage() {
     }
   };
 
+  const handleAgentClick = (agent: AIAgent) => {
+    setSelectedAgentForDetails(agent);
+  };
+
+  const handleWalletClick = async (walletAddress: string) => {
+    try {
+      // Fetch wallet balance
+      const response = await getUtxos({
+        client: apiClient,
+        query: {
+          address: walletAddress,
+          network: state.network,
+        },
+      });
+
+      let adaBalance = '0';
+      let usdmBalance = '0';
+
+      if (response.data?.data?.Utxos) {
+        response.data.data.Utxos.forEach((utxo) => {
+          utxo.Amounts.forEach((amount) => {
+            if (amount.unit === 'lovelace' || amount.unit === '') {
+              adaBalance = (
+                parseInt(adaBalance) + (amount.quantity || 0)
+              ).toString();
+            } else if (amount.unit === 'USDM') {
+              usdmBalance = (
+                parseInt(usdmBalance) + (amount.quantity || 0)
+              ).toString();
+            }
+          });
+        });
+      }
+
+      // Create wallet details object
+      const walletDetails: WalletWithBalance = {
+        id: walletAddress, // Using address as ID since we don't have the actual wallet ID
+        walletVkey: '', // We don't have this information
+        walletAddress,
+        collectionAddress: null,
+        note: null,
+        type: 'Selling', // AI agents use selling wallets
+        balance: adaBalance,
+        usdmBalance,
+      };
+
+      setSelectedWalletForDetails(walletDetails);
+    } catch (error) {
+      console.error('Error fetching wallet details:', error);
+      toast.error('Failed to fetch wallet details');
+    }
+  };
+
   return (
     <MainLayout>
       <Head>
@@ -330,11 +383,12 @@ export default function AIAgentsPage() {
                   <th className="p-4 text-left text-sm font-medium">Name</th>
                   <th className="p-4 text-left text-sm font-medium">Added</th>
                   <th className="p-4 text-left text-sm font-medium">
-                    Linked wallet
+                    Agent ID
                   </th>
                   <th className="p-4 text-left text-sm font-medium">
-                    Price, ADA
+                    Linked wallet
                   </th>
+                  <th className="p-4 text-left text-sm font-medium">Price</th>
                   <th className="p-4 text-left text-sm font-medium">Tags</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="w-20 p-4"></th>
@@ -359,15 +413,16 @@ export default function AIAgentsPage() {
                   filteredAgents.map((agent) => (
                     <tr
                       key={agent.id}
-                      className="border-b"
+                      className="border-b cursor-pointer hover:bg-muted/50"
                       style={{
                         opacity:
                           agent.state === 'DeregistrationConfirmed'
                             ? '0.4'
                             : '1',
                       }}
+                      onClick={() => handleAgentClick(agent)}
                     >
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedAgents.includes(agent.id)}
                           onCheckedChange={() => handleSelectAgent(agent.id)}
@@ -383,15 +438,50 @@ export default function AIAgentsPage() {
                         {formatDate(agent.createdAt)}
                       </td>
                       <td className="p-4">
+                        {agent.agentIdentifier ? (
+                          <div className="text-xs font-mono truncate max-w-[200px] flex items-center gap-2">
+                            <span className="cursor-pointer hover:text-primary">
+                              {shortenAddress(agent.agentIdentifier)}
+                            </span>
+                            <CopyButton value={agent.agentIdentifier} />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
                         <div className="text-xs font-medium">
                           Selling wallet
                         </div>
-                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-                          {agent.SmartContractWallet.walletAddress}
+                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px] flex items-center gap-2">
+                          <span
+                            className="cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleWalletClick(
+                                agent.SmartContractWallet.walletAddress,
+                              );
+                            }}
+                          >
+                            {shortenAddress(
+                              agent.SmartContractWallet.walletAddress,
+                            )}
+                          </span>
+                          <CopyButton
+                            value={agent.SmartContractWallet.walletAddress}
+                          />
                         </div>
                       </td>
                       <td className="p-4 text-sm">
-                        {useFormatPrice(agent.AgentPricing.Pricing[0]?.amount)}
+                        {agent.AgentPricing?.Pricing?.map((price, index) => (
+                          <div key={index} className="whitespace-nowrap">
+                            {price.unit === 'lovelace'
+                              ? `${useFormatPrice(price.amount)} ADA`
+                              : `${useFormatPrice(price.amount)} ${price.unit}`}
+                          </div>
+                        ))}
                       </td>
                       <td className="p-4">
                         {agent.Tags.length > 0 && (
@@ -431,7 +521,10 @@ export default function AIAgentsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteClick(agent)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(agent);
+                            }}
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -462,6 +555,11 @@ export default function AIAgentsPage() {
           onSuccess={fetchAgents}
         />
 
+        <AIAgentDetailsDialog
+          agent={selectedAgentForDetails}
+          onClose={() => setSelectedAgentForDetails(null)}
+        />
+
         <ConfirmDialog
           open={isDeleteDialogOpen}
           onClose={() => {
@@ -470,8 +568,17 @@ export default function AIAgentsPage() {
           }}
           title="Delete AI Agent"
           description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={async () => {
+            await handleDeleteConfirm();
+            setSelectedAgentForDetails(null);
+          }}
           isLoading={isDeleting}
+        />
+
+        <WalletDetailsDialog
+          isOpen={!!selectedWalletForDetails}
+          onClose={() => setSelectedWalletForDetails(null)}
+          wallet={selectedWalletForDetails}
         />
       </div>
     </MainLayout>

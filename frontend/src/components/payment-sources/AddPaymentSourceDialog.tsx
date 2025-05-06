@@ -7,9 +7,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { postPaymentSourceExtended, postWallet } from '@/lib/api/generated';
+import { postPaymentSourceExtended } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
-import { X } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
+import { shortenAddress, copyToClipboard } from '@/lib/utils';
+import {
+  DEFAULT_ADMIN_WALLETS,
+  DEFAULT_FEE_CONFIG,
+} from '@/lib/constants/defaultWallets';
 
 interface AddPaymentSourceDialogProps {
   open: boolean;
@@ -33,6 +38,8 @@ type FormData = {
     note?: string;
     collectionAddress?: string;
   }[];
+  useCustomAdminWallets: boolean;
+  customAdminWallets: { walletAddress: string }[];
 };
 
 export function AddPaymentSourceDialog({
@@ -45,23 +52,49 @@ export function AddPaymentSourceDialog({
     network: state.network,
     paymentType: 'Web3CardanoV1',
     blockfrostApiKey: '',
-    feeReceiverWallet: { walletAddress: '' },
-    feePermille: 50,
+    feeReceiverWallet: {
+      walletAddress: DEFAULT_FEE_CONFIG[state.network].feeWalletAddress,
+    },
+    feePermille: DEFAULT_FEE_CONFIG[state.network].feePermille,
     purchasingWallets: [
       { walletMnemonic: '', note: '', collectionAddress: '' },
     ],
     sellingWallets: [{ walletMnemonic: '', note: '', collectionAddress: '' }],
+    useCustomAdminWallets: false,
+    customAdminWallets: [
+      { walletAddress: '' },
+      { walletAddress: '' },
+      { walletAddress: '' },
+    ],
   });
 
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       network: state.network,
+      feeReceiverWallet: {
+        walletAddress: DEFAULT_FEE_CONFIG[state.network].feeWalletAddress,
+      },
+      feePermille: DEFAULT_FEE_CONFIG[state.network].feePermille,
     }));
   }, [state.network]);
 
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add state to track which addresses have been copied
+  const [copiedAddresses, setCopiedAddresses] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Handle copy with visual feedback
+  const handleCopy = async (address: string) => {
+    await copyToClipboard(address);
+    setCopiedAddresses({ ...copiedAddresses, [address]: true });
+    setTimeout(() => {
+      setCopiedAddresses((prev) => ({ ...prev, [address]: false }));
+    }, 2000);
+  };
 
   const handleSubmit = async () => {
     setError('');
@@ -78,37 +111,28 @@ export function AddPaymentSourceDialog({
         return;
       }
 
-      // Create three admin wallets
-      const adminWallets = [];
-      for (let i = 0; i < 3; i++) {
-        try {
-          const response = await postWallet({
-            client: apiClient,
-            body: {
-              network: formData.network,
-            },
-          });
+      // Use either custom admin wallets or default ones
+      const adminWallets = formData.useCustomAdminWallets
+        ? (formData.customAdminWallets as [
+            { walletAddress: string },
+            { walletAddress: string },
+            { walletAddress: string },
+          ])
+        : DEFAULT_ADMIN_WALLETS[formData.network];
 
-          if (!response?.data?.walletAddress) {
-            throw new Error(`Failed to create admin wallet ${i + 1}`);
-          }
-
-          adminWallets.push({ walletAddress: response.data.walletAddress });
-
-          // Store the mnemonic securely - you might want to show this to the user
-          console.log(
-            `Admin Wallet ${i + 1} Mnemonic:`,
-            response.data.walletMnemonic,
-          );
-        } catch (error) {
-          throw new Error(
-            `Failed to create admin wallet ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
+      // Validate custom admin wallets if being used
+      if (formData.useCustomAdminWallets) {
+        if (formData.customAdminWallets.length !== 3) {
+          setError('Exactly 3 admin wallet addresses are required');
+          return;
         }
-      }
-
-      if (adminWallets.length !== 3) {
-        throw new Error('Failed to create all required admin wallets');
+        const emptyWallets = formData.customAdminWallets.filter(
+          (w) => !w.walletAddress.trim(),
+        );
+        if (emptyWallets.length > 0) {
+          setError('All custom admin wallet addresses are required');
+          return;
+        }
       }
 
       await postPaymentSourceExtended({
@@ -121,11 +145,7 @@ export function AddPaymentSourceDialog({
             rpcProvider: 'Blockfrost',
           },
           feeRatePermille: formData.feePermille,
-          AdminWallets: adminWallets as [
-            { walletAddress: string },
-            { walletAddress: string },
-            { walletAddress: string },
-          ],
+          AdminWallets: adminWallets,
           FeeReceiverNetworkWallet: formData.feeReceiverWallet,
           PurchasingWallets: formData.purchasingWallets
             .filter((w) => w.walletMnemonic.trim())
@@ -270,6 +290,88 @@ export function AddPaymentSourceDialog({
                 placeholder="Enter fee receiver wallet address"
               />
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Admin Wallets</h3>
+              <div className="flex items-center gap-2">
+                <label className="text-sm">Use Custom Admin Wallets</label>
+                <input
+                  type="checkbox"
+                  checked={formData.useCustomAdminWallets}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      useCustomAdminWallets: e.target.checked,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            {formData.useCustomAdminWallets ? (
+              <div className="space-y-4">
+                {formData.customAdminWallets.map((wallet, index) => (
+                  <div key={index} className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Admin Wallet {index + 1}{' '}
+                      <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 rounded-md bg-background border"
+                      value={wallet.walletAddress}
+                      onChange={(e) => {
+                        const newWallets = [...formData.customAdminWallets];
+                        newWallets[index].walletAddress = e.target.value;
+                        setFormData({
+                          ...formData,
+                          customAdminWallets: newWallets,
+                        });
+                      }}
+                      placeholder={`Enter admin wallet ${index + 1} address`}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Using default admin wallets for {formData.network}:
+                </p>
+                {DEFAULT_ADMIN_WALLETS[formData.network].map(
+                  (wallet, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between text-sm font-mono bg-muted p-2 rounded"
+                    >
+                      <div className="flex flex-col">
+                        <span>{shortenAddress(wallet.walletAddress)}</span>
+                        {wallet.note && (
+                          <span className="text-xs text-muted-foreground">
+                            {wallet.note}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleCopy(wallet.walletAddress)}
+                      >
+                        {copiedAddresses[wallet.walletAddress] ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

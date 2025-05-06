@@ -4,7 +4,7 @@ import {
   queryAPIKeyEndpointGet as queryCentralizedRegistrySourceGet,
   addAPIKeyEndpointPost as addCentralizedRegistrySourceEndpointPost,
   updateAPIKeyEndpointPatch,
-  deleteAPIKeyEndpointDelete as deleteCentralizedRegistrySourceEndpointDelete,
+  deleteAPIKeyEndpointDelete,
 } from './api-key';
 import { createPurchaseInitPost, queryPurchaseRequestGet } from './purchases';
 import { paymentInitPost, queryPaymentEntryGet } from './payments';
@@ -71,7 +71,7 @@ export const apiRouter: Routing = {
       get: queryCentralizedRegistrySourceGet,
       post: addCentralizedRegistrySourceEndpointPost,
       patch: updateAPIKeyEndpointPatch,
-      delete: deleteCentralizedRegistrySourceEndpointDelete,
+      delete: deleteAPIKeyEndpointDelete,
     }),
     wallet: new DependsOnMethod({
       get: queryWalletEndpointGet,

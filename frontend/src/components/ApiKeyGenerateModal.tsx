@@ -1,10 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { useState } from "react";
-import { useAppContext } from "@/lib/contexts/AppContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { useState } from 'react';
+import { useAppContext } from '@/lib/contexts/AppContext';
 import { toast } from 'react-toastify';
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 
 type UsageCredit = {
   unit: string;
@@ -14,7 +14,7 @@ type UsageCredit = {
 export function ApiKeyGenerateModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -23,7 +23,7 @@ export function ApiKeyGenerateModal({
   const [isLoading, setIsLoading] = useState(false);
   const [usageLimited, setUsageLimited] = useState(true);
   const [usageCredits, setUsageCredits] = useState<UsageCredit[]>([
-    { unit: 'lovelace', amount: 1000000 }
+    { unit: 'lovelace', amount: 1000000 },
   ]);
   const { state } = useAppContext();
 
@@ -36,13 +36,13 @@ export function ApiKeyGenerateModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.apiKey}`
+          Authorization: `Bearer ${state.apiKey}`,
         },
         body: JSON.stringify({
           usageLimited: usageLimited.toString(),
           UsageCredits: usageLimited ? usageCredits : undefined,
-          permission: "ADMIN"
-        })
+          permission: 'ADMIN',
+        }),
       });
 
       if (!response.ok) {
@@ -69,10 +69,7 @@ export function ApiKeyGenerateModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Switch
-              checked={usageLimited}
-              onCheckedChange={setUsageLimited}
-            />
+            <Switch checked={usageLimited} onCheckedChange={setUsageLimited} />
             <label>Usage Limited</label>
           </div>
 
@@ -115,11 +112,11 @@ export function ApiKeyGenerateModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Generating..." : "Generate"}
+              {isLoading ? 'Generating...' : 'Generate'}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-} 
+}

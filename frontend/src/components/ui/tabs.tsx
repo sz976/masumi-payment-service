@@ -17,24 +17,28 @@ export function Tabs({ tabs, activeTab, onTabChange, className }: TabsProps) {
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   return (
-    <div className={cn("flex gap-6 border-b relative", className)}>
-      <div 
+    <div className={cn('flex gap-6 border-b relative', className)}>
+      <div
         className="absolute bottom-0 h-0.5 bg-primary transition-all duration-300 ease-out"
         style={{
-          left: tabsRef.current[tabs.findIndex(tab => tab.name === activeTab)]?.offsetLeft ?? 0,
-          width: tabsRef.current[tabs.findIndex(tab => tab.name === activeTab)]?.offsetWidth ?? 0
+          left:
+            tabsRef.current[tabs.findIndex((tab) => tab.name === activeTab)]
+              ?.offsetLeft ?? 0,
+          width:
+            tabsRef.current[tabs.findIndex((tab) => tab.name === activeTab)]
+              ?.offsetWidth ?? 0,
         }}
       />
       {tabs.map((tab, index) => (
         <button
           key={tab.name}
-          ref={el => {
+          ref={(el) => {
             if (el) tabsRef.current[index] = el;
           }}
           onClick={() => onTabChange(tab.name)}
           className={cn(
-            "pb-4 relative text-sm transition-colors duration-200",
-            activeTab === tab.name ? "text-primary" : "text-muted-foreground"
+            'pb-4 relative text-sm transition-colors duration-200',
+            activeTab === tab.name ? 'text-primary' : 'text-muted-foreground',
           )}
         >
           <div className="flex items-center gap-2">
@@ -49,4 +53,4 @@ export function Tabs({ tabs, activeTab, onTabChange, className }: TabsProps) {
       ))}
     </div>
   );
-} 
+}

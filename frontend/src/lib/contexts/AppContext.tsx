@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createContext, useContext, useReducer, useState, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useState,
+  useCallback,
+} from 'react';
 import { ErrorDialog } from '@/components/ui/error-dialog';
 import { Client, createClient } from '@hey-api/client-axios';
 
@@ -59,7 +65,7 @@ type AppAction =
   | { type: 'SET_WALLETS'; payload: any[] }
   | { type: 'SET_API_KEY'; payload: string }
   | { type: 'SET_NETWORK'; payload: NetworkType }
-  | { type: 'SET_RPC_API_KEYS'; payload: any[] }
+  | { type: 'SET_RPC_API_KEYS'; payload: any[] };
 
 const initialAppState: AppState = {
   paymentSources: [],
@@ -67,7 +73,10 @@ const initialAppState: AppState = {
   wallets: [],
   rpcProviderApiKeys: [],
   apiKey: null,
-  network: 'Preprod',
+  network:
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('network') as NetworkType)) ||
+    'Preprod',
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -75,59 +84,86 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_PAYMENT_SOURCES':
       return {
         ...state,
-        paymentSources: action.payload
+        paymentSources: action.payload,
       };
     case 'SET_CONTRACTS':
       return {
         ...state,
-        contracts: action.payload
+        contracts: action.payload,
       };
     case 'SET_WALLETS':
       return {
         ...state,
-        wallets: action.payload
+        wallets: action.payload,
       };
     case 'SET_API_KEY':
       return {
         ...state,
-        apiKey: action.payload
+        apiKey: action.payload,
       };
     case 'SET_NETWORK':
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('network', action.payload);
+      }
       return {
         ...state,
-        network: action.payload
+        network: action.payload,
       };
     case 'SET_RPC_API_KEYS':
       return {
         ...state,
-        rpcProviderApiKeys: action.payload
+        rpcProviderApiKeys: action.payload,
       };
     default:
       return state;
   }
 }
 
-export const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-  showError: (error: { code?: number; message: string; details?: unknown }) => void;
-  apiClient: Client;
-  setApiClient: React.Dispatch<React.SetStateAction<Client>>;
-} | undefined>(undefined);
+export const AppContext = createContext<
+  | {
+      state: AppState;
+      dispatch: React.Dispatch<AppAction>;
+      showError: (error: {
+        code?: number;
+        message: string;
+        details?: unknown;
+      }) => void;
+      apiClient: Client;
+      setApiClient: React.Dispatch<React.SetStateAction<Client>>;
+    }
+  | undefined
+>(undefined);
 
-export function AppProvider({ children, initialState }: { children: React.ReactNode; initialState: AppState }) {
+export function AppProvider({
+  children,
+  initialState,
+}: {
+  children: React.ReactNode;
+  initialState: AppState;
+}) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const [error, setError] = useState<{ code?: number; message: string; details?: unknown } | null>(null);
-  const [apiClient, setApiClient] = useState(createClient({
-    baseURL: process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL,
-  }));
+  const [error, setError] = useState<{
+    code?: number;
+    message: string;
+    details?: unknown;
+  } | null>(null);
+  const [apiClient, setApiClient] = useState(
+    createClient({
+      baseURL: process.env.NEXT_PUBLIC_PAYMENT_API_BASE_URL,
+    }),
+  );
 
-  const showError = useCallback((error: { code?: number; message: string; details?: unknown }) => {
-    setError(error);
-  }, []);
+  const showError = useCallback(
+    (error: { code?: number; message: string; details?: unknown }) => {
+      setError(error);
+    },
+    [],
+  );
 
   return (
-    <AppContext.Provider value={{ state, dispatch, showError, apiClient, setApiClient }}>
+    <AppContext.Provider
+      value={{ state, dispatch, showError, apiClient, setApiClient }}
+    >
       {children}
       <ErrorDialog
         open={!!error}
@@ -146,4 +182,4 @@ export function useAppContext() {
   return context;
 }
 
-export { initialAppState }; 
+export { initialAppState };

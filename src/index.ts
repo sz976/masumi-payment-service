@@ -26,10 +26,10 @@ initialize()
       inputSources: {
         //read from body on get requests
         get: ['query', 'params'],
-        post: ['body', 'params', 'files'],
+        post: ['body', 'params'],
         put: ['body', 'params'],
         patch: ['body', 'params'],
-        delete: ['query', 'params'],
+        delete: ['body', 'params'],
       },
       startupLogo: false,
       beforeRouting: ({ app }) => {

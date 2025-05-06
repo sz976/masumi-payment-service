@@ -23,6 +23,7 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import { postRegistry, getPaymentSource } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { shortenAddress } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
 
 interface AddAIAgentDialogProps {
   open: boolean;
@@ -46,7 +47,9 @@ export function AddAIAgentDialog({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedWallet, setSelectedWallet] = useState('');
-  const [price, setPrice] = useState('');
+  const [prices, setPrices] = useState<Array<{ unit: string; amount: string }>>(
+    [{ unit: 'lovelace', amount: '' }],
+  );
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -102,8 +105,8 @@ export function AddAIAgentDialog({
       newErrors.selectedWallet = 'Wallet is required';
     }
 
-    if (!price || parseFloat(price) <= 0) {
-      newErrors.price = 'Price must be greater than 0';
+    if (prices.length === 0) {
+      newErrors.prices = 'At least one price is required';
     }
 
     if (tags.length === 0) {
@@ -130,12 +133,32 @@ export function AddAIAgentDialog({
     }
   };
 
+  const handleAddPrice = () => {
+    setPrices([...prices, { unit: '', amount: '' }]);
+    setErrors((prev) => ({ ...prev, prices: '' }));
+  };
+
+  const handleRemovePrice = (index: number) => {
+    setPrices(prices.filter((_, i) => i !== index));
+  };
+
+  const handlePriceChange = (
+    index: number,
+    field: 'unit' | 'amount',
+    value: string,
+  ) => {
+    const newPrices = [...prices];
+    newPrices[index] = { ...newPrices[index], [field]: value };
+    setPrices(newPrices);
+    setErrors((prev) => ({ ...prev, prices: '' }));
+  };
+
   const resetForm = () => {
     setApiUrl('');
     setName('');
     setDescription('');
     setSelectedWallet('');
-    setPrice('');
+    setPrices([{ unit: 'lovelace', amount: '' }]);
     setTags([]);
     setCurrentTag('');
     setErrors({});
@@ -164,12 +187,13 @@ export function AddAIAgentDialog({
           },
           AgentPricing: {
             pricingType: 'Fixed',
-            Pricing: [
-              {
-                unit: 'lovelace',
-                amount: (parseFloat(price) * 1000000).toString(),
-              },
-            ],
+            Pricing: prices.map((price) => ({
+              unit: price.unit,
+              amount:
+                price.unit === 'lovelace'
+                  ? (parseFloat(price.amount) * 1000000).toString()
+                  : price.amount,
+            })),
           },
           Author: {
             name: 'Admin',
@@ -290,24 +314,64 @@ export function AddAIAgentDialog({
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Price (ADA) <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={price}
-              onChange={(e) => {
-                setPrice(e.target.value);
-                setErrors((prev) => ({ ...prev, price: '' }));
-              }}
-              min="0"
-              step="0.000001"
-              className={errors.price ? 'border-red-500' : ''}
-            />
-            {errors.price && (
-              <p className="text-sm text-red-500">{errors.price}</p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">
+                Prices <span className="text-red-500">*</span>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddPrice}
+              >
+                Add Price
+              </Button>
+            </div>
+            {prices.map((price, index) => (
+              <div key={index} className="flex gap-2 items-start">
+                <div className="flex-1 space-y-2">
+                  <Select
+                    value={price.unit}
+                    onValueChange={(value) =>
+                      handlePriceChange(index, 'unit', value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lovelace">ADA</SelectItem>
+                      <SelectItem value="USDM">USDM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={price.amount}
+                    onChange={(e) =>
+                      handlePriceChange(index, 'amount', e.target.value)
+                    }
+                    min="0"
+                    step="0.000001"
+                  />
+                </div>
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemovePrice(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {errors.prices && (
+              <p className="text-sm text-red-500">{errors.prices}</p>
             )}
           </div>
 
