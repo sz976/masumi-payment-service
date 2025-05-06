@@ -53,7 +53,7 @@ jobs:
         echo "Deploying ${DEPLOY_REF} to development environment at ${AZURE_VM_IP}..."
         
         # Thorough cleanup before deployment
-        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} 'set -e
           echo "Performing complete cleanup of previous deployment..."
           
           # Stop and clean Docker
@@ -88,7 +88,7 @@ jobs:
         
         # Update code directly on the development VM
         echo "Cloning/updating repository on development VM..."
-        ssh -i ~/.ssh/id_rsa ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
+        ssh ${AZURE_VM_USER}@${AZURE_VM_IP} "set -e
           # Ensure git is installed
           which git || sudo apt-get install -y git
           
