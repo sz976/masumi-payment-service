@@ -49,11 +49,13 @@ COPY --from=backend-builder /usr/src/app/package*.json ./
 COPY --from=backend-builder /usr/src/app/prisma ./prisma
 COPY --from=backend-builder /usr/src/app/smart-contracts ./smart-contracts
 COPY --from=backend-builder /usr/src/app/src ./src
+COPY --from=backend-builder /usr/src/app/tsconfig.json ./tsconfig.json
 # Copy frontend files
 COPY --from=frontend-builder /usr/src/app/frontend/dist ./frontend/dist
 
 #optional copy env file
 COPY .env* ./
+
 
 EXPOSE 3001
 ENV NODE_ENV=production
