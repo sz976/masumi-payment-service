@@ -26,6 +26,14 @@ import { generateHash } from '../src/utils/crypto';
 dotenv.config();
 const prisma = new PrismaClient();
 export const seed = async (prisma: PrismaClient) => {
+  const seedOnlyIfEmpty = process.env.SEED_ONLY_IF_EMPTY;
+  if (seedOnlyIfEmpty?.toLowerCase() === 'true') {
+    const adminKey = await prisma.apiKey.findFirst({});
+    if (adminKey) {
+      console.log('Already seeded, skipping');
+      return;
+    }
+  }
   const adminKey = process.env.ADMIN_KEY;
   if (adminKey != null) {
     if (adminKey.length < 15) {
