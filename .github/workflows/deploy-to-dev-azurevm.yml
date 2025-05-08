@@ -173,7 +173,7 @@ jobs:
           fi
           
           echo \"Running development initialization script...\"
-          ./run.sh \
+          ./run-dev.sh \
             --preprod-key \"${BLOCKFROST_API_KEY_PREPROD}\" \
             --mainnet-key \"${BLOCKFROST_API_KEY_MAINNET}\" \
             --purchase-preprod-mnemonic \"${PURCHASE_WALLET_PREPROD_MNEMONIC}\" \
