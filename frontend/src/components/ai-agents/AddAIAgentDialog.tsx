@@ -47,10 +47,13 @@ const priceSchema = z.object({
 });
 
 const agentSchema = z.object({
-  apiUrl: z.string().url('API URL must be a valid URL').min(1, 'API URL is required').refine(
-    (val) => val.startsWith('http://') || val.startsWith('https://'),
-    { message: 'API URL must start with http:// or https://' }
-  ),
+  apiUrl: z
+    .string()
+    .url('API URL must be a valid URL')
+    .min(1, 'API URL is required')
+    .refine((val) => val.startsWith('http://') || val.startsWith('https://'), {
+      message: 'API URL must start with http:// or https://',
+    }),
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
   selectedWallet: z.string().min(1, 'Wallet is required'),
@@ -89,7 +92,11 @@ export function AddAIAgentDialog({
     },
   });
 
-  const { fields: priceFields, append: appendPrice, remove: removePrice } = useFieldArray({
+  const {
+    fields: priceFields,
+    append: appendPrice,
+    remove: removePrice,
+  } = useFieldArray({
     control,
     name: 'prices',
   });
@@ -183,7 +190,10 @@ export function AddAIAgentDialog({
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setValue('tags', tags.filter((tag) => tag !== tagToRemove));
+    setValue(
+      'tags',
+      tags.filter((tag) => tag !== tagToRemove),
+    );
   };
 
   return (
@@ -232,7 +242,9 @@ export function AddAIAgentDialog({
               className={errors.description ? 'border-red-500' : ''}
             />
             {errors.description && (
-              <p className="text-sm text-red-500">{errors.description.message}</p>
+              <p className="text-sm text-red-500">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
@@ -244,11 +256,10 @@ export function AddAIAgentDialog({
               control={control}
               name="selectedWallet"
               render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger className={errors.selectedWallet ? 'border-red-500' : ''}>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    className={errors.selectedWallet ? 'border-red-500' : ''}
+                  >
                     <SelectValue placeholder="Select a wallet" />
                   </SelectTrigger>
                   <SelectContent>
@@ -264,7 +275,9 @@ export function AddAIAgentDialog({
               )}
             />
             {errors.selectedWallet && (
-              <p className="text-sm text-red-500">{errors.selectedWallet.message}</p>
+              <p className="text-sm text-red-500">
+                {errors.selectedWallet.message}
+              </p>
             )}
           </div>
 
@@ -312,9 +325,13 @@ export function AddAIAgentDialog({
                     min="0"
                     step="0.000001"
                   />
-                  {errors.prices && Array.isArray(errors.prices) && errors.prices[index]?.amount && (
-                    <p className="text-xs text-red-500">{errors.prices[index]?.amount?.message}</p>
-                  )}
+                  {errors.prices &&
+                    Array.isArray(errors.prices) &&
+                    errors.prices[index]?.amount && (
+                      <p className="text-xs text-red-500">
+                        {errors.prices[index]?.amount?.message}
+                      </p>
+                    )}
                 </div>
                 {index > 0 && (
                   <Button
@@ -351,11 +368,7 @@ export function AddAIAgentDialog({
                   }}
                   className={errors.tags ? 'border-red-500' : ''}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddTag}
-                >
+                <Button type="button" variant="outline" onClick={handleAddTag}>
                   Add
                 </Button>
               </div>

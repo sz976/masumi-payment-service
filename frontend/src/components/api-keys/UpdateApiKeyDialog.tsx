@@ -41,7 +41,11 @@ interface UpdateApiKeyDialogProps {
 
 const updateApiKeySchema = z
   .object({
-    newToken: z.string().min(15, 'Token must be at least 15 characters').optional().or(z.literal('')),
+    newToken: z
+      .string()
+      .min(15, 'Token must be at least 15 characters')
+      .optional()
+      .or(z.literal('')),
     status: z.enum(['Active', 'Revoked']),
     credits: z.object({
       lovelace: z.string().optional(),
@@ -96,7 +100,10 @@ export function UpdateApiKeyDialog({
     control,
     reset,
     formState: { errors },
-  } = useForm<UpdateApiKeyFormValues, { apiKeyContext: { apiKey: typeof apiKey } }>({
+  } = useForm<
+    UpdateApiKeyFormValues,
+    { apiKeyContext: { apiKey: typeof apiKey } }
+  >({
     resolver: zodResolver(updateApiKeySchema),
     defaultValues: {
       newToken: '',
@@ -171,7 +178,9 @@ export function UpdateApiKeyDialog({
               {...register('newToken')}
             />
             {errors.newToken && (
-              <p className="text-xs text-destructive mt-1">{errors.newToken.message}</p>
+              <p className="text-xs text-destructive mt-1">
+                {errors.newToken.message}
+              </p>
             )}
             <p className="text-xs text-muted-foreground">
               Must be at least 15 characters if provided
@@ -196,7 +205,9 @@ export function UpdateApiKeyDialog({
               )}
             />
             {errors.status && (
-              <p className="text-xs text-destructive mt-1">{errors.status.message}</p>
+              <p className="text-xs text-destructive mt-1">
+                {errors.status.message}
+              </p>
             )}
           </div>
 
@@ -210,9 +221,13 @@ export function UpdateApiKeyDialog({
                 placeholder="Enter amount (positive to add, negative to remove)"
                 {...register('credits.lovelace')}
               />
-              {errors.credits && 'lovelace' in errors.credits && errors.credits.lovelace && (
-                <p className="text-xs text-destructive mt-1">{(errors.credits.lovelace as any).message}</p>
-              )}
+              {errors.credits &&
+                'lovelace' in errors.credits &&
+                errors.credits.lovelace && (
+                  <p className="text-xs text-destructive mt-1">
+                    {(errors.credits.lovelace as any).message}
+                  </p>
+                )}
               <p className="text-xs text-muted-foreground">
                 Amount in ADA (will be converted to lovelace)
               </p>
@@ -227,9 +242,13 @@ export function UpdateApiKeyDialog({
                 placeholder="Enter amount (positive to add, negative to remove)"
                 {...register('credits.usdm')}
               />
-              {errors.credits && 'usdm' in errors.credits && errors.credits.usdm && (
-                <p className="text-xs text-destructive mt-1">{(errors.credits.usdm as any).message}</p>
-              )}
+              {errors.credits &&
+                'usdm' in errors.credits &&
+                errors.credits.usdm && (
+                  <p className="text-xs text-destructive mt-1">
+                    {(errors.credits.usdm as any).message}
+                  </p>
+                )}
             </div>
           </div>
         </div>
@@ -238,7 +257,11 @@ export function UpdateApiKeyDialog({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} onClick={handleSubmit(onSubmit)}>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            onClick={handleSubmit(onSubmit)}
+          >
             {isLoading ? 'Updating...' : 'Update'}
           </Button>
         </div>

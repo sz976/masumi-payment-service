@@ -513,7 +513,9 @@ function PaymentSourceSetupScreen({
                 placeholder="Enter your Blockfrost API key"
               />
               {errors.blockfrostApiKey && (
-                <p className="text-xs text-destructive mt-1">{errors.blockfrostApiKey.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.blockfrostApiKey.message}
+                </p>
               )}
             </div>
 
@@ -529,7 +531,9 @@ function PaymentSourceSetupScreen({
                 placeholder="Enter fee receiver wallet address"
               />
               {errors.feeReceiverWallet?.walletAddress && (
-                <p className="text-xs text-destructive mt-1">{errors.feeReceiverWallet.walletAddress.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.feeReceiverWallet.walletAddress.message}
+                </p>
               )}
             </div>
 
@@ -545,7 +549,9 @@ function PaymentSourceSetupScreen({
                 max="1000"
               />
               {errors.feePermille && (
-                <p className="text-xs text-destructive mt-1">{errors.feePermille.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.feePermille.message}
+                </p>
               )}
             </div>
 

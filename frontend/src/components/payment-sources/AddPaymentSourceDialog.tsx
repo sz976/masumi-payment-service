@@ -63,7 +63,9 @@ export function AddPaymentSourceDialog({
   const { apiClient, state } = useAppContext();
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [copiedAddresses, setCopiedAddresses] = useState<{ [key: string]: boolean }>({});
+  const [copiedAddresses, setCopiedAddresses] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const {
     register,
@@ -85,9 +87,7 @@ export function AddPaymentSourceDialog({
       purchasingWallets: [
         { walletMnemonic: '', note: '', collectionAddress: '' },
       ],
-      sellingWallets: [
-        { walletMnemonic: '', note: '', collectionAddress: '' },
-      ],
+      sellingWallets: [{ walletMnemonic: '', note: '', collectionAddress: '' }],
       useCustomAdminWallets: false,
       customAdminWallets: [
         { walletAddress: '' },
@@ -223,7 +223,9 @@ export function AddPaymentSourceDialog({
                   <option value="Mainnet">Mainnet</option>
                 </select>
                 {errors.network && (
-                  <p className="text-xs text-destructive mt-1">{errors.network.message}</p>
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.network.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -237,7 +239,9 @@ export function AddPaymentSourceDialog({
                   placeholder="Using default Blockfrost API key"
                 />
                 {errors.blockfrostApiKey && (
-                  <p className="text-xs text-destructive mt-1">{errors.blockfrostApiKey.message}</p>
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.blockfrostApiKey.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -252,7 +256,9 @@ export function AddPaymentSourceDialog({
                   max="1000"
                 />
                 {errors.feePermille && (
-                  <p className="text-xs text-destructive mt-1">{errors.feePermille.message}</p>
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.feePermille.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -271,7 +277,9 @@ export function AddPaymentSourceDialog({
                 placeholder="Enter fee receiver wallet address"
               />
               {errors.feeReceiverWallet?.walletAddress && (
-                <p className="text-xs text-destructive mt-1">{errors.feeReceiverWallet.walletAddress.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.feeReceiverWallet.walletAddress.message}
+                </p>
               )}
             </div>
           </div>
@@ -281,10 +289,7 @@ export function AddPaymentSourceDialog({
               <h3 className="text-lg font-semibold">Admin Wallets</h3>
               <div className="flex items-center gap-2">
                 <label className="text-sm">Use Custom Admin Wallets</label>
-                <input
-                  type="checkbox"
-                  {...register('useCustomAdminWallets')}
-                />
+                <input type="checkbox" {...register('useCustomAdminWallets')} />
               </div>
             </div>
             {useCustomAdminWallets ? (
@@ -299,9 +304,13 @@ export function AddPaymentSourceDialog({
                     {...register('customAdminWallets.0.walletAddress')}
                     placeholder="Enter admin wallet 1 address"
                   />
-                  {errors.customAdminWallets && Array.isArray(errors.customAdminWallets) && errors.customAdminWallets[0]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">{errors.customAdminWallets[0]?.walletAddress?.message}</p>
-                  )}
+                  {errors.customAdminWallets &&
+                    Array.isArray(errors.customAdminWallets) &&
+                    errors.customAdminWallets[0]?.walletAddress && (
+                      <p className="text-xs text-destructive mt-1">
+                        {errors.customAdminWallets[0]?.walletAddress?.message}
+                      </p>
+                    )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -313,9 +322,13 @@ export function AddPaymentSourceDialog({
                     {...register('customAdminWallets.1.walletAddress')}
                     placeholder="Enter admin wallet 2 address"
                   />
-                  {errors.customAdminWallets && Array.isArray(errors.customAdminWallets) && errors.customAdminWallets[1]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">{errors.customAdminWallets[1]?.walletAddress?.message}</p>
-                  )}
+                  {errors.customAdminWallets &&
+                    Array.isArray(errors.customAdminWallets) &&
+                    errors.customAdminWallets[1]?.walletAddress && (
+                      <p className="text-xs text-destructive mt-1">
+                        {errors.customAdminWallets[1]?.walletAddress?.message}
+                      </p>
+                    )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -327,13 +340,20 @@ export function AddPaymentSourceDialog({
                     {...register('customAdminWallets.2.walletAddress')}
                     placeholder="Enter admin wallet 3 address"
                   />
-                  {errors.customAdminWallets && Array.isArray(errors.customAdminWallets) && errors.customAdminWallets[2]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">{errors.customAdminWallets[2]?.walletAddress?.message}</p>
-                  )}
+                  {errors.customAdminWallets &&
+                    Array.isArray(errors.customAdminWallets) &&
+                    errors.customAdminWallets[2]?.walletAddress && (
+                      <p className="text-xs text-destructive mt-1">
+                        {errors.customAdminWallets[2]?.walletAddress?.message}
+                      </p>
+                    )}
                 </div>
-                {errors.customAdminWallets && typeof errors.customAdminWallets.message === 'string' && (
-                  <p className="text-xs text-destructive mt-1">{errors.customAdminWallets.message}</p>
-                )}
+                {errors.customAdminWallets &&
+                  typeof errors.customAdminWallets.message === 'string' && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.customAdminWallets.message}
+                    </p>
+                  )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -378,7 +398,13 @@ export function AddPaymentSourceDialog({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => appendPurchasingWallet({ walletMnemonic: '', note: '', collectionAddress: '' })}
+                onClick={() =>
+                  appendPurchasingWallet({
+                    walletMnemonic: '',
+                    note: '',
+                    collectionAddress: '',
+                  })
+                }
               >
                 Add Purchasing Wallet
               </Button>
@@ -403,11 +429,15 @@ export function AddPaymentSourceDialog({
                   <input
                     type="text"
                     className="w-full p-2 rounded-md bg-background border"
-                    {...register(`purchasingWallets.${index}.walletMnemonic` as const)}
+                    {...register(
+                      `purchasingWallets.${index}.walletMnemonic` as const,
+                    )}
                     placeholder="Enter wallet mnemonic"
                   />
                   {errors.purchasingWallets?.[index]?.walletMnemonic && (
-                    <p className="text-xs text-destructive mt-1">{errors.purchasingWallets[index]?.walletMnemonic?.message}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.purchasingWallets[index]?.walletMnemonic?.message}
+                    </p>
                   )}
                 </div>
                 <input
@@ -419,7 +449,9 @@ export function AddPaymentSourceDialog({
                 <input
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
-                  {...register(`purchasingWallets.${index}.collectionAddress` as const)}
+                  {...register(
+                    `purchasingWallets.${index}.collectionAddress` as const,
+                  )}
                   placeholder="Collection Address (optional)"
                 />
               </div>
@@ -432,7 +464,13 @@ export function AddPaymentSourceDialog({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => appendSellingWallet({ walletMnemonic: '', note: '', collectionAddress: '' })}
+                onClick={() =>
+                  appendSellingWallet({
+                    walletMnemonic: '',
+                    note: '',
+                    collectionAddress: '',
+                  })
+                }
               >
                 Add Selling Wallet
               </Button>
@@ -457,11 +495,15 @@ export function AddPaymentSourceDialog({
                   <input
                     type="text"
                     className="w-full p-2 rounded-md bg-background border"
-                    {...register(`sellingWallets.${index}.walletMnemonic` as const)}
+                    {...register(
+                      `sellingWallets.${index}.walletMnemonic` as const,
+                    )}
                     placeholder="Enter wallet mnemonic"
                   />
                   {errors.sellingWallets?.[index]?.walletMnemonic && (
-                    <p className="text-xs text-destructive mt-1">{errors.sellingWallets[index]?.walletMnemonic?.message}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.sellingWallets[index]?.walletMnemonic?.message}
+                    </p>
                   )}
                 </div>
                 <input
@@ -473,7 +515,9 @@ export function AddPaymentSourceDialog({
                 <input
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
-                  {...register(`sellingWallets.${index}.collectionAddress` as const)}
+                  {...register(
+                    `sellingWallets.${index}.collectionAddress` as const,
+                  )}
                   placeholder="Collection Address (optional)"
                 />
               </div>

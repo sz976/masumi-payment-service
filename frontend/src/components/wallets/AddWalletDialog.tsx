@@ -198,7 +198,9 @@ export function AddWalletDialog({
             <label className="text-sm font-medium">Wallet type</label>
             <Select
               value={type}
-              onValueChange={(value: 'Purchasing' | 'Selling') => setType(value)}
+              onValueChange={(value: 'Purchasing' | 'Selling') =>
+                setType(value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select wallet type" />
@@ -238,7 +240,9 @@ export function AddWalletDialog({
               className="min-h-[100px] font-mono"
             />
             {errors.mnemonic && (
-              <p className="text-xs text-destructive mt-1">{errors.mnemonic.message}</p>
+              <p className="text-xs text-destructive mt-1">
+                {errors.mnemonic.message}
+              </p>
             )}
           </div>
 
@@ -252,7 +256,9 @@ export function AddWalletDialog({
               required
             />
             {errors.note && (
-              <p className="text-xs text-destructive mt-1">{errors.note.message}</p>
+              <p className="text-xs text-destructive mt-1">
+                {errors.note.message}
+              </p>
             )}
           </div>
 
@@ -267,7 +273,9 @@ export function AddWalletDialog({
               required
             />
             {errors.collectionAddress && (
-              <p className="text-xs text-destructive mt-1">{errors.collectionAddress.message}</p>
+              <p className="text-xs text-destructive mt-1">
+                {errors.collectionAddress.message}
+              </p>
             )}
           </div>
 
@@ -280,10 +288,7 @@ export function AddWalletDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? 'Adding...' : 'Add Wallet'}
             </Button>
           </div>
