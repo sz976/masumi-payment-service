@@ -13,6 +13,9 @@ export async function initDB() {
   await prisma.$connect();
   const paymentSources = await prisma.paymentSource.aggregate({
     _count: true,
+    where: {
+      deletedAt: null,
+    },
   });
   logger.info(
     `Found ${paymentSources._count} payment source${paymentSources._count == 1 ? '' : 's'}`,

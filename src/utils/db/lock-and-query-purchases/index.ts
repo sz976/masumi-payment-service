@@ -28,6 +28,7 @@ export async function lockAndQueryPurchases({
           where: {
             paymentType: PaymentType.Web3CardanoV1,
             syncInProgress: false,
+            deletedAt: null,
           },
           include: {
             PurchaseRequests: {
@@ -43,6 +44,7 @@ export async function lockAndQueryPurchases({
                 SmartContractWallet: {
                   PendingTransaction: { is: null },
                   lockedAt: null,
+                  deletedAt: null,
                 },
                 //we only want to lock the purchase if the cooldown time has passed
                 buyerCoolDownTime: { lte: minCooldownTime },
@@ -55,6 +57,9 @@ export async function lockAndQueryPurchases({
                 SmartContractWallet: {
                   include: {
                     Secret: true,
+                  },
+                  where: {
+                    deletedAt: null,
                   },
                 },
               },
@@ -82,7 +87,7 @@ export async function lockAndQueryPurchases({
               !purchasingWallets.some((w) => w.id === wallet.id)
             ) {
               const result = await prisma.hotWallet.update({
-                where: { id: wallet.id },
+                where: { id: wallet.id, deletedAt: null },
                 data: { lockedAt: new Date() },
               });
               wallet.pendingTransactionId = result.pendingTransactionId;

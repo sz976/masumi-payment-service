@@ -75,7 +75,7 @@ export const queryUTXOEndpointGet = readAuthenticatedEndpointFactory.build({
       options.permission,
     );
     const paymentSource = await prisma.paymentSource.findFirst({
-      where: { network: input.network },
+      where: { network: input.network, deletedAt: null },
       include: { PaymentSourceConfig: true },
     });
     if (paymentSource == null) {

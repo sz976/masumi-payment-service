@@ -82,6 +82,7 @@ model HotWallet {
 
   note            String?
   RegistryRequest RegistryRequest[]
+  deletedAt       DateTime?
 
   @@unique([paymentSourceId, walletVkey])
 }
@@ -441,6 +442,7 @@ model PaymentSource {
   HotWallets      HotWallet[]
   WalletBases     WalletBase[]
   RegistryRequest RegistryRequest[]
+  deletedAt       DateTime?
 
   @@unique([network, smartContractAddress])
 }

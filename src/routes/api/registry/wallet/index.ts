@@ -189,8 +189,12 @@ export const queryAgentFromWalletGet = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
-      include: { PaymentSourceConfig: true, HotWallets: true },
+      include: {
+        PaymentSourceConfig: true,
+        HotWallets: { where: { deletedAt: null } },
+      },
     });
     if (paymentSource == null) {
       throw createHttpError(

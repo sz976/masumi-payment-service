@@ -120,6 +120,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
       include: {
         FeeReceiverNetworkWallet: true,
@@ -139,7 +140,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
           },
           include: {
             SellerWallet: true,
-            SmartContractWallet: true,
+            SmartContractWallet: { where: { deletedAt: null } },
             NextAction: true,
             CurrentTransaction: true,
             TransactionHistory: true,
@@ -194,7 +195,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
         PaidFunds: true,
         PaymentSource: true,
         SellerWallet: true,
-        SmartContractWallet: true,
+        SmartContractWallet: { where: { deletedAt: null } },
       },
     });
     return {

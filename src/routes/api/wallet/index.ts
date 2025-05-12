@@ -65,6 +65,7 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
           PaymentSource: {
             network: { in: options.networkLimit },
           },
+          deletedAt: null,
         },
         include: {
           Secret: true,
@@ -117,6 +118,7 @@ export const queryWalletEndpointGet = adminAuthenticatedEndpointFactory.build({
           PaymentSource: {
             network: { in: options.networkLimit },
           },
+          deletedAt: null,
         },
         include: {
           Secret: true,
