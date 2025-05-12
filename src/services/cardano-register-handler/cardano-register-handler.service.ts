@@ -85,7 +85,6 @@ export async function registerAgentV1() {
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
             const firstUtxo = utxos[0];
-            //utxos = utxos.filter((_, index) => index !== filteredUtxos);
 
             const txId = firstUtxo.input.txHash;
             const txIndex = firstUtxo.input.outputIndex;

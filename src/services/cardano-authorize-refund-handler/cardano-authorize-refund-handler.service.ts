@@ -147,20 +147,49 @@ export async function authorizeRefundV1() {
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
               ) + 1;
-            const filteredUtxos = utxos.sort((a, b) => {
-              const aLovelace = parseInt(
-                a.output.amount.find(
-                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                )?.quantity ?? '0',
+            const collateralUtxo = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                return aLovelace - bLovelace;
+              })
+              .find(
+                (utxo) =>
+                  utxo.output.amount.length == 1 &&
+                  (utxo.output.amount[0].unit == 'lovelace' ||
+                    utxo.output.amount[0].unit == '') &&
+                  parseInt(utxo.output.amount[0].quantity) >= 5000000,
               );
-              const bLovelace = parseInt(
-                b.output.amount.find(
-                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                )?.quantity ?? '0',
+            if (!collateralUtxo) {
+              throw new Error('No collateral UTXO found');
+            }
+
+            const filteredUtxos = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                //sort by biggest lovelace
+                return bLovelace - aLovelace;
+              })
+              .filter(
+                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
               );
-              //sort by biggest lovelace
-              return bLovelace - aLovelace;
-            });
             const limitedFilteredUtxos = filteredUtxos.slice(
               0,
               Math.min(4, filteredUtxos.length),
@@ -192,6 +221,7 @@ export async function authorizeRefundV1() {
             unsignedTx.setNetwork(network);
             unsignedTx.txBuilder.invalidBefore(invalidBefore);
             unsignedTx.txBuilder.invalidHereafter(invalidAfter);
+            unsignedTx.setCollateral([collateralUtxo]);
 
             const buildTransaction = await unsignedTx.build();
             const signedTx = await wallet.signTx(buildTransaction);
