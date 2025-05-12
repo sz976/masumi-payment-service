@@ -177,7 +177,8 @@ export async function submitResultV1() {
                   utxo.output.amount.length == 1 &&
                   (utxo.output.amount[0].unit == 'lovelace' ||
                     utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 5000000,
+                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
+                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
               );
             if (!collateralUtxo) {
               throw new Error('No collateral UTXO found');
