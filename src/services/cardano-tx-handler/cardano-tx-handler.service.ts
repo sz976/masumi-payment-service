@@ -54,6 +54,7 @@ export async function checkLatestTransactions(
         const paymentContracts = await prisma.paymentSource.findMany({
           where: {
             paymentType: PaymentType.Web3CardanoV1,
+            deletedAt: null,
             OR: [
               { syncInProgress: false },
               {
@@ -80,7 +81,10 @@ export async function checkLatestTransactions(
         }
 
         await prisma.paymentSource.updateMany({
-          where: { id: { in: paymentContracts.map((x) => x.id) } },
+          where: {
+            id: { in: paymentContracts.map((x) => x.id) },
+            deletedAt: null,
+          },
           data: { syncInProgress: true },
         });
         return paymentContracts.map((x) => {
@@ -162,6 +166,7 @@ export async function checkLatestTransactions(
                     await prisma.hotWallet.update({
                       where: {
                         id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                        deletedAt: null,
                       },
                       data: {
                         lockedAt: null,
@@ -203,6 +208,7 @@ export async function checkLatestTransactions(
                     await prisma.hotWallet.update({
                       where: {
                         id: registryRequest.CurrentTransaction.BlocksWallet.id,
+                        deletedAt: null,
                       },
                       data: {
                         lockedAt: null,
@@ -424,7 +430,7 @@ export async function checkLatestTransactions(
                         },
                       },
                       include: {
-                        SmartContractWallet: true,
+                        SmartContractWallet: { where: { deletedAt: null } },
                         SellerWallet: true,
                         CurrentTransaction: { include: { BlocksWallet: true } },
                       },
@@ -649,6 +655,7 @@ export async function checkLatestTransactions(
                       await prisma.hotWallet.update({
                         where: {
                           id: dbEntry.SmartContractWallet.id,
+                          deletedAt: null,
                         },
                         data: {
                           lockedAt: null,
@@ -681,7 +688,7 @@ export async function checkLatestTransactions(
                       include: {
                         RequestedFunds: true,
                         BuyerWallet: true,
-                        SmartContractWallet: true,
+                        SmartContractWallet: { where: { deletedAt: null } },
                         CurrentTransaction: { include: { BlocksWallet: true } },
                       },
                     });
@@ -948,7 +955,7 @@ export async function checkLatestTransactions(
                 );
               }
               await prisma.paymentSource.update({
-                where: { id: paymentContract.id },
+                where: { id: paymentContract.id, deletedAt: null },
                 data: { lastIdentifierChecked: tx.tx.tx_hash },
               });
             } else {
@@ -1005,7 +1012,7 @@ export async function checkLatestTransactions(
                 },
                 include: {
                   BuyerWallet: true,
-                  SmartContractWallet: true,
+                  SmartContractWallet: { where: { deletedAt: null } },
                   RequestedFunds: true,
                   NextAction: true,
                   CurrentTransaction: true,
@@ -1022,7 +1029,7 @@ export async function checkLatestTransactions(
                     },
                   },
                   include: {
-                    SmartContractWallet: true,
+                    SmartContractWallet: { where: { deletedAt: null } },
                     SellerWallet: true,
                     NextAction: true,
                     CurrentTransaction: true,
@@ -1226,7 +1233,7 @@ export async function checkLatestTransactions(
               }
 
               await prisma.paymentSource.update({
-                where: { id: paymentContract.id },
+                where: { id: paymentContract.id, deletedAt: null },
                 data: { lastIdentifierChecked: tx.tx.tx_hash },
               });
             }
@@ -1247,7 +1254,10 @@ export async function checkLatestTransactions(
       const result = await advancedRetry({
         operation: async () => {
           await prisma.paymentSource.updateMany({
-            where: { id: { in: paymentContracts.map((x) => x.id) } },
+            where: {
+              id: { in: paymentContracts.map((x) => x.id) },
+              deletedAt: null,
+            },
             data: { syncInProgress: false },
           });
         },
@@ -1350,6 +1360,7 @@ async function handlePaymentTransactionCardanoV1(
         await prisma.hotWallet.update({
           where: {
             id: paymentRequest.CurrentTransaction.BlocksWallet.id,
+            deletedAt: null,
           },
           data: { lockedAt: null },
         });
@@ -1438,6 +1449,7 @@ async function handlePurchasingTransactionCardanoV1(
         await prisma.hotWallet.update({
           where: {
             id: purchasingRequest.CurrentTransaction.BlocksWallet.id,
+            deletedAt: null,
           },
           data: { lockedAt: null },
         });

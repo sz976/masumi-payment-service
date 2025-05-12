@@ -28,6 +28,7 @@ export async function lockAndQueryPayments({
         where: {
           paymentType: PaymentType.Web3CardanoV1,
           syncInProgress: false,
+          deletedAt: null,
         },
         include: {
           PaymentRequests: {
@@ -42,6 +43,7 @@ export async function lockAndQueryPayments({
               SmartContractWallet: {
                 PendingTransaction: { is: null },
                 lockedAt: null,
+                deletedAt: null,
               },
               onChainState: onChainState,
               //we only want to lock the payment if the cooldown time has passed
@@ -57,6 +59,7 @@ export async function lockAndQueryPayments({
                 include: {
                   Secret: true,
                 },
+                where: { deletedAt: null },
               },
             },
           },
@@ -85,7 +88,7 @@ export async function lockAndQueryPayments({
             !sellingWallets.some((w) => w.id === wallet.id)
           ) {
             const result = await prisma.hotWallet.update({
-              where: { id: wallet.id },
+              where: { id: wallet.id, deletedAt: null },
               data: { lockedAt: new Date() },
             });
             wallet.pendingTransactionId = result.pendingTransactionId;
@@ -102,6 +105,6 @@ export async function lockAndQueryPayments({
       }
       return newPaymentSources;
     },
-    { isolationLevel: 'Serializable' },
+    { isolationLevel: 'Serializable', timeout: 10000 },
   );
 }

@@ -17,11 +17,17 @@ export async function lockAndQueryRegistryRequests({
         where: {
           paymentType: PaymentType.Web3CardanoV1,
           syncInProgress: false,
+          deletedAt: null,
         },
         include: {
           RegistryRequest: {
             where: {
               state: state,
+              SmartContractWallet: {
+                deletedAt: null,
+                PendingTransaction: { is: null },
+                lockedAt: null,
+              },
             },
             include: {
               SmartContractWallet: {
@@ -43,6 +49,7 @@ export async function lockAndQueryRegistryRequests({
               type: HotWalletType.Selling,
               PendingTransaction: null,
               lockedAt: null,
+              deletedAt: null,
             },
           },
           AdminWallets: true,
@@ -63,7 +70,7 @@ export async function lockAndQueryRegistryRequests({
             !sellingWallets.some((w) => w.id === wallet.id)
           ) {
             const result = await prisma.hotWallet.update({
-              where: { id: wallet.id },
+              where: { id: wallet.id, deletedAt: null },
               data: { lockedAt: new Date() },
             });
             wallet.pendingTransactionId = result.pendingTransactionId;

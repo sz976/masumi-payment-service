@@ -72,7 +72,7 @@ export async function updateWalletTransactionHash() {
             },
           ],
         },
-        include: { SmartContractWallet: true },
+        include: { SmartContractWallet: { where: { deletedAt: null } } },
       });
       for (const paymentRequest of result) {
         if (paymentRequest.currentTransactionId == null) {
@@ -231,7 +231,7 @@ export async function updateWalletTransactionHash() {
             },
           ],
         },
-        include: { SmartContractWallet: true },
+        include: { SmartContractWallet: { where: { deletedAt: null } } },
       });
       for (const purchaseRequest of result) {
         if (purchaseRequest.currentTransactionId == null) {
@@ -365,6 +365,7 @@ export async function updateWalletTransactionHash() {
               RegistrationState.DeregistrationInitiated,
             ],
           },
+          SmartContractWallet: { deletedAt: null },
           OR: [
             {
               updatedAt: {
@@ -517,6 +518,7 @@ export async function updateWalletTransactionHash() {
             lte: new Date(Date.now() - 1000 * 60 * 1),
           },
         },
+        deletedAt: null,
         OR: [
           {
             lockedAt: {
@@ -551,7 +553,7 @@ export async function updateWalletTransactionHash() {
           const txInfo = await provider.fetchTxInfo(txHash);
           if (txInfo) {
             await prisma.hotWallet.update({
-              where: { id: wallet.id },
+              where: { id: wallet.id, deletedAt: null },
               data: {
                 PendingTransaction: { disconnect: true },
                 lockedAt: null,
@@ -579,6 +581,7 @@ export async function updateWalletTransactionHash() {
     const timedOutLockedHotWallets = await prisma.hotWallet.findMany({
       where: {
         lockedAt: { lt: new Date(Date.now() - DEFAULTS.LOCK_TIMEOUT_INTERVAL) },
+        deletedAt: null,
         PendingTransaction: null,
       },
       include: {
@@ -589,7 +592,7 @@ export async function updateWalletTransactionHash() {
       timedOutLockedHotWallets.map(async (wallet) => {
         try {
           await prisma.hotWallet.update({
-            where: { id: wallet.id },
+            where: { id: wallet.id, deletedAt: null },
             data: {
               lockedAt: null,
             },
@@ -688,7 +691,11 @@ export async function updateWalletTransactionHash() {
     }
     try {
       const errorHotWallets = await prisma.hotWallet.findMany({
-        where: { PendingTransaction: { isNot: null }, lockedAt: null },
+        where: {
+          PendingTransaction: { isNot: null },
+          lockedAt: null,
+          deletedAt: null,
+        },
         include: { PendingTransaction: true },
       });
       for (const hotWallet of errorHotWallets) {
@@ -696,7 +703,7 @@ export async function updateWalletTransactionHash() {
           `Hot wallet ${hotWallet.id} was in an invalid locked state (this is likely a bug please report it with the following transaction hash): ${hotWallet.PendingTransaction?.txHash}`,
         );
         await prisma.hotWallet.update({
-          where: { id: hotWallet.id },
+          where: { id: hotWallet.id, deletedAt: null },
           data: {
             lockedAt: null,
             PendingTransaction: { disconnect: true },

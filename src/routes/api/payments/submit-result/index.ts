@@ -118,9 +118,10 @@ export const submitPaymentResultEndpointPost =
             network: input.network,
             smartContractAddress: smartContractAddress,
           },
+          deletedAt: null,
         },
         include: {
-          HotWallets: true,
+          HotWallets: { where: { deletedAt: null } },
           PaymentSourceConfig: true,
           PaymentRequests: {
             where: {
@@ -140,7 +141,7 @@ export const submitPaymentResultEndpointPost =
             },
             include: {
               NextAction: true,
-              SmartContractWallet: true,
+              SmartContractWallet: { where: { deletedAt: null } },
             },
           },
         },
@@ -181,7 +182,7 @@ export const submitPaymentResultEndpointPost =
         include: {
           NextAction: true,
           BuyerWallet: true,
-          SmartContractWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           RequestedFunds: true,
         },
