@@ -117,6 +117,20 @@ export async function collectRefundV1() {
                 fields: [],
               },
             };
+            const filteredUtxos = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              //sort by biggest lovelace
+              return bLovelace - aLovelace;
+            });
             const invalidBefore =
               unixTimeToEnclosingSlot(
                 Date.now() - 150000,
@@ -128,7 +142,10 @@ export async function collectRefundV1() {
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
               ) + 1;
-
+            const limitedFilteredUtxos = filteredUtxos.slice(
+              0,
+              Math.min(4, filteredUtxos.length),
+            );
             const unsignedTx = new Transaction({
               initiator: wallet,
               fetcher: blockchainProvider,
@@ -136,6 +153,7 @@ export async function collectRefundV1() {
               .setMetadata(674, {
                 msg: ['Masumi', 'CollectRefund'],
               })
+              .setTxInputs(limitedFilteredUtxos)
               .redeemValue({
                 value: utxo,
                 script: script,

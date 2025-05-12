@@ -110,9 +110,12 @@ export async function getRegistryScriptV1(
     version: 'V3',
   };
 
-  const policyId = deserializePlutusScript(script.code, script.version)
-    .hash()
-    .toString();
+  const plutusScriptRegistry = deserializePlutusScript(
+    script.code,
+    script.version,
+  );
+
+  const policyId = plutusScriptRegistry.hash().toString();
 
   const networkId = convertNetworkToId(network);
 
