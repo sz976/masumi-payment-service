@@ -120,6 +120,7 @@ export const cancelPurchaseRefundRequestPost =
             network: input.network,
             smartContractAddress: paymentContractAddress,
           },
+          deletedAt: null,
         },
         include: {
           FeeReceiverNetworkWallet: true,
@@ -139,7 +140,7 @@ export const cancelPurchaseRefundRequestPost =
             },
             include: {
               SellerWallet: true,
-              SmartContractWallet: true,
+              SmartContractWallet: { where: { deletedAt: null } },
               NextAction: true,
               CurrentTransaction: true,
               TransactionHistory: true,
@@ -193,7 +194,7 @@ export const cancelPurchaseRefundRequestPost =
           PaidFunds: true,
           PaymentSource: true,
           SellerWallet: true,
-          SmartContractWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
         },
       });
 

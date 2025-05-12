@@ -127,12 +127,16 @@ function valueToStatus(value: any) {
   }
   const constructor = value.constructor;
   switch (constructor) {
+    case 0n:
     case 0:
       return SmartContractState.FundsLocked;
+    case 1n:
     case 1:
       return SmartContractState.ResultSubmitted;
+    case 2n:
     case 2:
       return SmartContractState.RefundRequested;
+    case 3n:
     case 3:
       return SmartContractState.Disputed;
   }

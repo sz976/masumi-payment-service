@@ -98,6 +98,7 @@ export const paymentSourceExtendedEndpointGet =
           network: {
             in: options.networkLimit,
           },
+          deletedAt: null,
         },
         take: input.take,
         orderBy: {
@@ -106,7 +107,7 @@ export const paymentSourceExtendedEndpointGet =
         cursor: input.cursorId ? { id: input.cursorId } : undefined,
         include: {
           AdminWallets: { orderBy: { order: 'asc' } },
-          HotWallets: true,
+          HotWallets: { where: { deletedAt: null } },
           FeeReceiverNetworkWallet: true,
           PaymentSourceConfig: true,
         },
@@ -373,7 +374,7 @@ export const paymentSourceExtendedEndpointPost =
             },
           },
           include: {
-            HotWallets: true,
+            HotWallets: { where: { deletedAt: null } },
             PaymentSourceConfig: true,
             AdminWallets: true,
             FeeReceiverNetworkWallet: true,
@@ -536,9 +537,13 @@ export const paymentSourceExtendedEndpointPatch =
       };
     }) => {
       const paymentSource = await prisma.paymentSource.findUnique({
-        where: { id: input.id, network: { in: options.networkLimit } },
+        where: {
+          id: input.id,
+          network: { in: options.networkLimit },
+          deletedAt: null,
+        },
         include: {
-          HotWallets: true,
+          HotWallets: { where: { deletedAt: null } },
           PaymentSourceConfig: true,
           AdminWallets: true,
           FeeReceiverNetworkWallet: true,
@@ -628,10 +633,9 @@ export const paymentSourceExtendedEndpointPatch =
             where: { id: input.id },
             data: {
               HotWallets: {
-                deleteMany: {
-                  id: {
-                    in: walletIdsToRemove,
-                  },
+                updateMany: {
+                  where: { id: { in: walletIdsToRemove } },
+                  data: { deletedAt: new Date() },
                 },
               },
             },
@@ -658,7 +662,7 @@ export const paymentSourceExtendedEndpointPatch =
             },
           },
           include: {
-            HotWallets: true,
+            HotWallets: { where: { deletedAt: null } },
             PaymentSourceConfig: true,
             AdminWallets: true,
             FeeReceiverNetworkWallet: true,
@@ -702,8 +706,9 @@ export const paymentSourceExtendedEndpointDelete =
         usageLimited: boolean;
       };
     }) => {
-      return await prisma.paymentSource.delete({
+      return await prisma.paymentSource.update({
         where: { id: input.id, network: { in: options.networkLimit } },
+        data: { deletedAt: new Date() },
       });
     },
   });

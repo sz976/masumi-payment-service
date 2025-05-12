@@ -83,10 +83,11 @@ export const paymentSourceEndpointGet = readAuthenticatedEndpointFactory.build({
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       where: {
         network: { in: options.networkLimit },
+        deletedAt: null,
       },
       include: {
         AdminWallets: { orderBy: { order: 'asc' } },
-        HotWallets: true,
+        HotWallets: { where: { deletedAt: null } },
         FeeReceiverNetworkWallet: true,
       },
     });

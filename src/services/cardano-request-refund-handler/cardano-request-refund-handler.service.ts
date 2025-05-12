@@ -151,6 +151,24 @@ export async function requestRefundsV1() {
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
               ) + 1;
+            const filteredUtxos = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              //sort by biggest lovelace
+              return bLovelace - aLovelace;
+            });
+            const limitedFilteredUtxos = filteredUtxos.slice(
+              0,
+              Math.min(4, filteredUtxos.length),
+            );
 
             const unsignedTx = new Transaction({
               initiator: wallet,
@@ -159,6 +177,7 @@ export async function requestRefundsV1() {
               .setMetadata(674, {
                 msg: ['Masumi', 'SetRefundRequested'],
               })
+              .setTxInputs(limitedFilteredUtxos)
               .redeemValue({
                 value: utxo,
                 script: script,

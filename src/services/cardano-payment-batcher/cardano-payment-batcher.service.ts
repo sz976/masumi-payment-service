@@ -40,10 +40,12 @@ export async function batchLatestPaymentEntriesV1() {
       async (prisma) => {
         const paymentContracts = await prisma.paymentSource.findMany({
           where: {
+            deletedAt: null,
             HotWallets: {
               some: {
                 PendingTransaction: null,
                 type: HotWalletType.Purchasing,
+                deletedAt: null,
               },
             },
           },
@@ -60,7 +62,7 @@ export async function batchLatestPaymentEntriesV1() {
               include: {
                 PaidFunds: true,
                 SellerWallet: true,
-                SmartContractWallet: true,
+                SmartContractWallet: { where: { deletedAt: null } },
                 NextAction: true,
                 CurrentTransaction: true,
               },
@@ -71,6 +73,7 @@ export async function batchLatestPaymentEntriesV1() {
                 PendingTransaction: null,
                 lockedAt: null,
                 type: HotWalletType.Purchasing,
+                deletedAt: null,
               },
               include: {
                 Secret: true,
@@ -116,7 +119,7 @@ export async function batchLatestPaymentEntriesV1() {
             if (!walletsToLock.some((w) => w.id === wallet.id)) {
               walletsToLock.push(wallet);
               await prisma.hotWallet.update({
-                where: { id: wallet.id },
+                where: { id: wallet.id, deletedAt: null },
                 data: { lockedAt: new Date() },
               });
             }
@@ -496,7 +499,7 @@ export async function batchLatestPaymentEntriesV1() {
               });
             }
             await prisma.hotWallet.update({
-              where: { id: request.walletId },
+              where: { id: request.walletId, deletedAt: null },
               data: {
                 lockedAt: null,
                 PendingTransaction: { disconnect: true },

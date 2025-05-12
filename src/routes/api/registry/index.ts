@@ -127,8 +127,12 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
-      include: { PaymentSourceConfig: true, HotWallets: true },
+      include: {
+        PaymentSourceConfig: true,
+        HotWallets: { where: { deletedAt: null } },
+      },
     });
     if (paymentSource == null) {
       throw createHttpError(
@@ -142,6 +146,7 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
         PaymentSource: {
           id: paymentSource.id,
         },
+        SmartContractWallet: { deletedAt: null },
       },
       orderBy: {
         createdAt: 'desc',
@@ -336,10 +341,11 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
       include: {
         AdminWallets: true,
-        HotWallets: { include: { Secret: true } },
+        HotWallets: { include: { Secret: true }, where: { deletedAt: null } },
         PaymentSourceConfig: true,
       },
     });
@@ -553,10 +559,11 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
       include: {
         PaymentSourceConfig: true,
-        HotWallets: { include: { Secret: true } },
+        HotWallets: { include: { Secret: true }, where: { deletedAt: null } },
       },
     });
     if (paymentSource == null) {
@@ -602,7 +609,12 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
       throw createHttpError(404, 'Registration not found');
     }
     const result = await prisma.registryRequest.update({
-      where: { id: registryRequest.id },
+      where: {
+        id: registryRequest.id,
+        SmartContractWallet: {
+          deletedAt: null,
+        },
+      },
       data: {
         state: RegistrationState.DeregistrationRequested,
       },

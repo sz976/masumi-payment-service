@@ -162,6 +162,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: paymentContractAddress,
         },
+        deletedAt: null,
       },
     });
     if (paymentSource == null) {
@@ -172,9 +173,10 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       where: { paymentSourceId: paymentSource.id },
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       take: input.limit,
+      orderBy: { createdAt: 'desc' },
       include: {
         SellerWallet: true,
-        SmartContractWallet: true,
+        SmartContractWallet: { where: { deletedAt: null } },
         PaidFunds: true,
         NextAction: true,
         PaymentSource: true,
@@ -379,6 +381,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
       include: { PaymentSourceConfig: true },
     });
@@ -390,7 +393,11 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     }
 
     const wallets = await prisma.hotWallet.aggregate({
-      where: { paymentSourceId: paymentSource.id, type: HotWalletType.Selling },
+      where: {
+        paymentSourceId: paymentSource.id,
+        type: HotWalletType.Selling,
+        deletedAt: null,
+      },
       _count: true,
     });
     if (wallets._count === 0) {
