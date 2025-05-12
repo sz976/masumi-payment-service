@@ -9,6 +9,7 @@ COPY smart-contracts ./smart-contracts
 COPY ./src ./src
 COPY ./prisma ./prisma
 COPY tsconfig.json .
+COPY eslint.config.mjs .
 
 RUN npm install
 RUN npx prisma generate
