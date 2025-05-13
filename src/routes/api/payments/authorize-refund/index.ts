@@ -112,6 +112,7 @@ export const authorizePaymentRefundEndpointPost =
             network: input.network,
             smartContractAddress: paymentContractAddress,
           },
+          deletedAt: null,
         },
         include: {
           FeeReceiverNetworkWallet: true,
@@ -131,7 +132,7 @@ export const authorizePaymentRefundEndpointPost =
             },
             include: {
               BuyerWallet: true,
-              SmartContractWallet: true,
+              SmartContractWallet: { where: { deletedAt: null } },
               NextAction: true,
               CurrentTransaction: true,
               TransactionHistory: true,
@@ -176,7 +177,7 @@ export const authorizePaymentRefundEndpointPost =
         include: {
           NextAction: true,
           BuyerWallet: true,
-          SmartContractWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           RequestedFunds: true,
         },

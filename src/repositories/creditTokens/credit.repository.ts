@@ -127,6 +127,7 @@ async function handlePurchaseCreditInit({
             smartContractAddress: contractAddress,
           },
           paymentType: paymentType,
+          deletedAt: null,
         },
       });
       if (!paymentSource) {
@@ -183,7 +184,7 @@ async function handlePurchaseCreditInit({
         },
         include: {
           SellerWallet: true,
-          SmartContractWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           PaidFunds: true,
           NextAction: true,

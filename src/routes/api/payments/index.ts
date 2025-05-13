@@ -163,9 +163,10 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: paymentSourceAddress,
         },
+        deletedAt: null,
       },
       include: {
-        HotWallets: true,
+        HotWallets: { where: { deletedAt: null } },
         PaymentSourceConfig: true,
       },
     });
@@ -184,7 +185,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
       take: input.limit,
       include: {
         BuyerWallet: true,
-        SmartContractWallet: true,
+        SmartContractWallet: { where: { deletedAt: null } },
         PaymentSource: true,
         RequestedFunds: { include: { AgentFixedPricing: true } },
         NextAction: true,
@@ -350,9 +351,10 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
           network: input.network,
           smartContractAddress: smartContractAddress,
         },
+        deletedAt: null,
       },
       include: {
-        HotWallets: { include: { Secret: true } },
+        HotWallets: { include: { Secret: true }, where: { deletedAt: null } },
         PaymentSourceConfig: true,
       },
     });
@@ -507,7 +509,9 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         },
         inputHash: input.inputHash,
         resultHash: '',
-        SmartContractWallet: { connect: { id: sellingWallet.id } },
+        SmartContractWallet: {
+          connect: { id: sellingWallet.id, deletedAt: null },
+        },
         submitResultTime: input.submitResultTime.getTime(),
         unlockTime: unlockTime,
         externalDisputeUnlockTime: externalDisputeUnlockTime,
@@ -519,7 +523,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       include: {
         RequestedFunds: true,
         BuyerWallet: true,
-        SmartContractWallet: true,
+        SmartContractWallet: { where: { deletedAt: null } },
         PaymentSource: true,
         NextAction: true,
         CurrentTransaction: true,

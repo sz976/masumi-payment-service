@@ -9,6 +9,7 @@ COPY smart-contracts ./smart-contracts
 COPY ./src ./src
 COPY ./prisma ./prisma
 COPY tsconfig.json .
+COPY eslint.config.mjs .
 
 RUN npm install
 RUN npx prisma generate
@@ -50,6 +51,8 @@ COPY --from=backend-builder /usr/src/app/prisma ./prisma
 COPY --from=backend-builder /usr/src/app/smart-contracts ./smart-contracts
 COPY --from=backend-builder /usr/src/app/src ./src
 COPY --from=backend-builder /usr/src/app/tsconfig.json ./tsconfig.json
+COPY --from=backend-builder /usr/src/app/eslint.config.mjs ./eslint.config.mjs
+
 # Copy frontend files
 COPY --from=frontend-builder /usr/src/app/frontend/dist ./frontend/dist
 

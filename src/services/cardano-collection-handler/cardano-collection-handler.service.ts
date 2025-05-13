@@ -178,6 +178,54 @@ export async function collectOutstandingPaymentsV1() {
             if (collectionAddress == null || collectionAddress == '') {
               collectionAddress = request.SmartContractWallet.walletAddress;
             }
+            const collateralUtxo = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                return aLovelace - bLovelace;
+              })
+              .find(
+                (utxo) =>
+                  utxo.output.amount.length == 1 &&
+                  (utxo.output.amount[0].unit == 'lovelace' ||
+                    utxo.output.amount[0].unit == '') &&
+                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
+                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+              );
+            if (!collateralUtxo) {
+              throw new Error('No collateral UTXO found');
+            }
+
+            const filteredUtxos = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                //sort by biggest lovelace
+                return bLovelace - aLovelace;
+              })
+              .filter(
+                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
+              );
+            const limitedFilteredUtxos = filteredUtxos.slice(
+              0,
+              Math.min(4, filteredUtxos.length),
+            );
 
             const unsignedTx = new Transaction({
               initiator: wallet,
@@ -186,6 +234,7 @@ export async function collectOutstandingPaymentsV1() {
               .setMetadata(674, {
                 msg: ['Masumi', 'Completed'],
               })
+              .setTxInputs(limitedFilteredUtxos)
               .redeemValue({
                 value: utxo,
                 script: script,
@@ -204,11 +253,13 @@ export async function collectOutstandingPaymentsV1() {
                 },
                 Object.values(feeAssets),
               )
+              .setCollateral([collateralUtxo])
               .setChangeAddress(address)
               .setRequiredSigners([address]);
 
             unsignedTx.txBuilder.invalidBefore(invalidBefore);
             unsignedTx.txBuilder.invalidHereafter(invalidAfter);
+            unsignedTx.setNetwork(network);
 
             const buildTransaction = await unsignedTx.build();
             const signedTx = await wallet.signTx(buildTransaction);
