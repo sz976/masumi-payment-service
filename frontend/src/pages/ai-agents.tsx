@@ -31,6 +31,7 @@ import {
   WalletWithBalance,
 } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
 type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
@@ -488,9 +489,9 @@ export default function AIAgentsPage() {
                       <td className="p-4 text-sm truncate max-w-[100px]">
                         {agent.AgentPricing?.Pricing?.map((price, index) => (
                           <div key={index} className="whitespace-nowrap">
-                            {price.unit === 'lovelace'
+                            {price.unit === 'lovelace' || !price.unit
                               ? `${useFormatPrice(price.amount)} ADA`
-                              : `${useFormatPrice(price.amount)} ${price.unit}`}
+                              : `${useFormatPrice(price.amount)} ${price.unit === USDM_CONFIG.fullAssetId ? 'USDM' : price.unit === TESTUSDM_CONFIG.unit ? 'tUSDM' : price.unit}`}
                           </div>
                         ))}
                       </td>

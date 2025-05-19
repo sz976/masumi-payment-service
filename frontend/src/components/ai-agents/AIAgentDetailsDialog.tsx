@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { CopyButton } from '@/components/ui/copy-button';
+import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
 
 type AIAgent = {
   id: string;
@@ -68,6 +69,11 @@ const getStatusBadgeVariant = (status: AIAgent['state']) => {
   return 'secondary';
 };
 
+const useFormatPrice = (amount: string | undefined) => {
+  if (!amount) return '—';
+  return useFormatBalance((parseInt(amount) / 1000000).toFixed(2));
+};
+
 export function AIAgentDetailsDialog({
   agent,
   onClose,
@@ -86,7 +92,11 @@ export function AIAgentDetailsDialog({
       <DialogContent className="max-w-2xl">
         {agent && (
           <>
-            <DialogHeader>
+            <DialogHeader
+              onClick={() => {
+                console.log(agent);
+              }}
+            >
               <DialogTitle>{agent.name}</DialogTitle>
             </DialogHeader>
 
@@ -128,15 +138,19 @@ export function AIAgentDetailsDialog({
                     >
                       <span className="text-sm text-muted-foreground">
                         Price (
-                        {price.unit === 'lovelace'
+                        {price.unit === 'lovelace' || !price.unit
                           ? 'ADA'
-                          : price.unit || 'ADA'}
+                          : price.unit === USDM_CONFIG.fullAssetId
+                            ? 'USDM'
+                            : price.unit === TESTUSDM_CONFIG.unit
+                              ? 'tUSDM'
+                              : price.unit}
                         )
                       </span>
                       <span className="font-medium">
-                        {price.unit === 'lovelace'
-                          ? `${useFormatBalance((parseInt(price.amount) / 1000000).toFixed(2))} ADA`
-                          : `${useFormatBalance((parseInt(price.amount) / 1000000).toFixed(2))} ${price.unit}`}
+                        {price.unit === 'lovelace' || !price.unit
+                          ? `${useFormatPrice(price.amount)} ADA`
+                          : `${useFormatPrice(price.amount)} ${price.unit === USDM_CONFIG.fullAssetId ? 'USDM' : price.unit === TESTUSDM_CONFIG.unit ? 'tUSDM' : price.unit}`}
                       </span>
                     </div>
                   ))}

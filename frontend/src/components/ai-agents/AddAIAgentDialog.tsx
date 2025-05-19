@@ -133,10 +133,13 @@ export function AddAIAgentDialog({
   const onSubmit = async (data: AgentFormValues) => {
     try {
       setIsLoading(true);
+      const smartContractAddress =
+        state.paymentSources?.[0]?.smartContractAddress;
       const response = await postRegistry({
         client: apiClient,
         body: {
           network: state.network,
+          smartContractAddress,
           sellingWalletVkey: data.selectedWallet,
           name: data.name,
           description: data.description,
@@ -148,14 +151,14 @@ export function AddAIAgentDialog({
           },
           AgentPricing: {
             pricingType: 'Fixed',
-            Pricing: data.prices.map((price) => ({
-              unit:
-                price.unit === 'USDM' ? USDM_CONFIG.fullAssetId : price.unit,
-              amount:
-                price.unit === 'lovelace'
-                  ? (parseFloat(price.amount) * 1000000).toString()
-                  : price.amount,
-            })),
+            Pricing: data.prices.map((price) => {
+              const unit =
+                price.unit === 'USDM' ? USDM_CONFIG.fullAssetId : price.unit;
+              return {
+                unit,
+                amount: (parseFloat(price.amount) * 1_000_000).toString(),
+              };
+            }),
           },
           Author: {
             name: 'Admin',
