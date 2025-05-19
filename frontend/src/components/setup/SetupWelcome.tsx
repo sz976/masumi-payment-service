@@ -38,7 +38,8 @@ function WelcomeScreen({
   onStart: () => void;
   networkType: string;
 }) {
-  const networkDisplay = networkType === 'mainnet' ? 'Mainnet' : 'Preprod';
+  const networkDisplay =
+    networkType?.toUpperCase() === 'MAINNET' ? 'Mainnet' : 'Preprod';
 
   return (
     <div className="text-center space-y-4 max-w-[600px]">

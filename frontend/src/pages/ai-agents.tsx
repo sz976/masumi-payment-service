@@ -142,10 +142,19 @@ export default function AIAgentsPage() {
         setIsLoadingMore(true);
       }
 
+      const smartContractAddress =
+        state.paymentSources?.[0]?.smartContractAddress || '';
+
+      if (!smartContractAddress) {
+        toast.error('No smart contract address found');
+        return;
+      }
+
       const response = await getRegistry({
         client: apiClient,
         query: {
           network: state.network,
+          smartContractAddress,
           cursorId: cursor || undefined,
         },
       });
@@ -182,8 +191,10 @@ export default function AIAgentsPage() {
   };
 
   useEffect(() => {
-    fetchAgents();
-  }, []);
+    if (state.paymentSources && state.paymentSources.length > 0) {
+      fetchAgents();
+    }
+  }, [state.network, state.paymentSources]);
 
   useEffect(() => {
     filterAgents();
@@ -474,7 +485,7 @@ export default function AIAgentsPage() {
                           />
                         </div>
                       </td>
-                      <td className="p-4 text-sm">
+                      <td className="p-4 text-sm truncate max-w-[100px]">
                         {agent.AgentPricing?.Pricing?.map((price, index) => (
                           <div key={index} className="whitespace-nowrap">
                             {price.unit === 'lovelace'

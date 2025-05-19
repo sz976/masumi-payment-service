@@ -27,6 +27,7 @@ import { Trash2 } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
 
 interface AddAIAgentDialogProps {
   open: boolean;
@@ -148,7 +149,8 @@ export function AddAIAgentDialog({
           AgentPricing: {
             pricingType: 'Fixed',
             Pricing: data.prices.map((price) => ({
-              unit: price.unit,
+              unit:
+                price.unit === 'USDM' ? USDM_CONFIG.fullAssetId : price.unit,
               amount:
                 price.unit === 'lovelace'
                   ? (parseFloat(price.amount) * 1000000).toString()
