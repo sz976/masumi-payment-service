@@ -70,6 +70,69 @@ export async function deRegisterAgentV1() {
             const { script, policyId } =
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
+            const collateralUtxo = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                return aLovelace - bLovelace;
+              })
+              .find(
+                (utxo) =>
+                  utxo.output.amount.length == 1 &&
+                  (utxo.output.amount[0].unit == 'lovelace' ||
+                    utxo.output.amount[0].unit == '') &&
+                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
+                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+              );
+            if (!collateralUtxo) {
+              throw new Error('No collateral UTXO found');
+            }
+            const tokenUtxo = utxos.find(
+              (utxo) =>
+                utxo.output.amount.length > 1 &&
+                utxo.output.amount.some(
+                  (asset) => asset.unit == request.agentIdentifier,
+                ),
+            );
+            if (!tokenUtxo) {
+              throw new Error('No token UTXO found');
+            }
+
+            const filteredUtxos = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                //sort by biggest lovelace
+                return bLovelace - aLovelace;
+              })
+              .filter(
+                (utxo) =>
+                  utxo.input.txHash != collateralUtxo.input.txHash &&
+                  utxo.input.txHash != tokenUtxo?.input.txHash,
+              );
+            const limitedFilteredUtxos = filteredUtxos.slice(
+              0,
+              Math.min(4, filteredUtxos.length),
+            );
+
+            const utxosToUse = [...limitedFilteredUtxos, tokenUtxo];
+
             const redeemer = {
               data: { alternative: 1, fields: [] },
             };
@@ -81,7 +144,7 @@ export async function deRegisterAgentV1() {
               .setMetadata(674, {
                 msg: ['Masumi', 'DeregisterAgent'],
               })
-              .setTxInputs(utxos);
+              .setTxInputs(utxosToUse);
 
             tx.isCollateralNeeded = true;
 
@@ -98,6 +161,7 @@ export async function deRegisterAgentV1() {
             tx.sendLovelace(address, '5000000');
             //sign the transaction with our address
             tx.setChangeAddress(address).setRequiredSigners([address]);
+            tx.setCollateral([collateralUtxo]);
             tx.setNetwork(network);
 
             //build the transaction
