@@ -29,6 +29,7 @@ import { useTransactions } from '@/lib/hooks/useTransactions';
 import { AIAgentDetailsDialog } from '@/components/ai-agents/AIAgentDetailsDialog';
 import { WalletDetailsDialog } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
 
 interface AIAgent {
   id: string;
@@ -107,10 +108,21 @@ export default function Overview() {
           setIsLoadingMore(true);
         }
 
+        const smartContractAddress =
+          state.paymentSources?.[0]?.smartContractAddress || '';
+
+        if (!smartContractAddress) {
+          toast.error('No smart contract address found');
+          setIsLoadingAgents(false);
+          setIsLoadingMore(false);
+          return;
+        }
+
         const response = await getRegistry({
           client: apiClient,
           query: {
             network: state.network,
+            smartContractAddress,
             cursorId: cursor || undefined,
           },
         });
@@ -136,7 +148,7 @@ export default function Overview() {
         setIsLoadingMore(false);
       }
     },
-    [apiClient, state.network],
+    [apiClient, state.network, state.paymentSources],
   );
 
   const handleLoadMore = () => {
@@ -227,10 +239,14 @@ export default function Overview() {
           );
 
           const totalAdaBalance = walletsWithBalances.reduce((sum, wallet) => {
-            return sum + (parseInt(wallet.balance || '0') || 0);
+            const main = parseInt(wallet.balance || '0') || 0;
+            const collection = wallet.collectionBalance && wallet.collectionBalance.ada ? parseInt(wallet.collectionBalance.ada) : 0;
+            return sum + main + collection;
           }, 0);
           const totalUsdmBalance = walletsWithBalances.reduce((sum, wallet) => {
-            return sum + (parseInt(wallet.usdmBalance || '0') || 0);
+            const main = parseInt(wallet.usdmBalance || '0') || 0;
+            const collection = wallet.collectionBalance && wallet.collectionBalance.usdm ? parseInt(wallet.collectionBalance.usdm) : 0;
+            return sum + main + collection;
           }, 0);
 
           setTotalBalance(totalAdaBalance.toString());
@@ -250,9 +266,16 @@ export default function Overview() {
   }, [apiClient, fetchWalletBalance, state.network]);
 
   useEffect(() => {
-    fetchAgents();
-    fetchWallets();
-  }, [fetchAgents, fetchWallets]);
+    if (state.paymentSources && state.paymentSources.length > 0) {
+      fetchAgents();
+    }
+  }, [fetchAgents, state.paymentSources, state.network]);
+
+  useEffect(() => {
+    if (state.paymentSources && state.paymentSources.length > 0) {
+      fetchWallets();
+    }
+  }, [fetchWallets, state.paymentSources, state.network]);
 
   const formatUsdValue = (adaAmount: string, usdmAmount: string) => {
     if (!rate || !adaAmount) return '—';
@@ -391,12 +414,23 @@ export default function Overview() {
                         </div>
                       </div>
                       <div className="text-sm min-w-content flex items-center gap-1">
-                        <span className="text-xs font-normal text-muted-foreground">
-                          {agent.AgentPricing?.Pricing?.[0]?.amount
-                            ? `${parseInt(agent.AgentPricing.Pricing[0].amount) / 1000000}`
-                            : '—'}
-                        </span>
-                        <span>₳</span>
+                        {agent.AgentPricing?.Pricing?.[0] ? (
+                          <>
+                            <span className="text-xs font-normal text-muted-foreground">
+                              {(() => {
+                                const price = agent.AgentPricing.Pricing[0];
+                                const unit = price.unit;
+                                const formatted = (parseInt(price.amount) / 1_000_000).toFixed(2);
+                                if (unit === 'lovelace' || !unit) return `${formatted} ADA`;
+                                if (unit === USDM_CONFIG.fullAssetId) return `${formatted} USDM`;
+                                if (unit === TESTUSDM_CONFIG.unit) return `${formatted} tUSDM`;
+                                return `${formatted} ${unit}`;
+                              })()}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs font-normal text-muted-foreground">—</span>
+                        )}
                       </div>
                     </div>
                   ))}

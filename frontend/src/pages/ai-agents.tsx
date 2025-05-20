@@ -82,6 +82,7 @@ export default function AIAgentsPage() {
     { name: 'Registered', count: null },
     { name: 'Deregistered', count: null },
     { name: 'Pending', count: null },
+    { name: 'Failed', count: null },
   ];
 
   const filterAgents = useCallback(() => {
@@ -98,6 +99,10 @@ export default function AIAgentsPage() {
     } else if (activeTab === 'Pending') {
       filtered = filtered.filter(
         (agent) => parseAgentStatus(agent.state) === 'Pending',
+      );
+    } else if (activeTab === 'Failed') {
+      filtered = filtered.filter(
+        (agent) => agent.state && agent.state.includes('Failed'),
       );
     }
 
