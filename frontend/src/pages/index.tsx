@@ -240,12 +240,18 @@ export default function Overview() {
 
           const totalAdaBalance = walletsWithBalances.reduce((sum, wallet) => {
             const main = parseInt(wallet.balance || '0') || 0;
-            const collection = wallet.collectionBalance && wallet.collectionBalance.ada ? parseInt(wallet.collectionBalance.ada) : 0;
+            const collection =
+              wallet.collectionBalance && wallet.collectionBalance.ada
+                ? parseInt(wallet.collectionBalance.ada)
+                : 0;
             return sum + main + collection;
           }, 0);
           const totalUsdmBalance = walletsWithBalances.reduce((sum, wallet) => {
             const main = parseInt(wallet.usdmBalance || '0') || 0;
-            const collection = wallet.collectionBalance && wallet.collectionBalance.usdm ? parseInt(wallet.collectionBalance.usdm) : 0;
+            const collection =
+              wallet.collectionBalance && wallet.collectionBalance.usdm
+                ? parseInt(wallet.collectionBalance.usdm)
+                : 0;
             return sum + main + collection;
           }, 0);
 
@@ -420,16 +426,23 @@ export default function Overview() {
                               {(() => {
                                 const price = agent.AgentPricing.Pricing[0];
                                 const unit = price.unit;
-                                const formatted = (parseInt(price.amount) / 1_000_000).toFixed(2);
-                                if (unit === 'lovelace' || !unit) return `${formatted} ADA`;
-                                if (unit === USDM_CONFIG.fullAssetId) return `${formatted} USDM`;
-                                if (unit === TESTUSDM_CONFIG.unit) return `${formatted} tUSDM`;
+                                const formatted = (
+                                  parseInt(price.amount) / 1_000_000
+                                ).toFixed(2);
+                                if (unit === 'lovelace' || !unit)
+                                  return `${formatted} ADA`;
+                                if (unit === USDM_CONFIG.fullAssetId)
+                                  return `${formatted} USDM`;
+                                if (unit === TESTUSDM_CONFIG.unit)
+                                  return `${formatted} tUSDM`;
                                 return `${formatted} ${unit}`;
                               })()}
                             </span>
                           </>
                         ) : (
-                          <span className="text-xs font-normal text-muted-foreground">—</span>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </div>
                     </div>
