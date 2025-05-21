@@ -84,7 +84,56 @@ export async function registerAgentV1() {
             const { script, policyId } =
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
-            const firstUtxo = utxos[0];
+            const collateralUtxo = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                return aLovelace - bLovelace;
+              })
+              .find(
+                (utxo) =>
+                  utxo.output.amount.length == 1 &&
+                  (utxo.output.amount[0].unit == 'lovelace' ||
+                    utxo.output.amount[0].unit == '') &&
+                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
+                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+              );
+            if (!collateralUtxo) {
+              throw new Error('No collateral UTXO found');
+            }
+
+            const filteredUtxos = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                //sort by biggest lovelace
+                return bLovelace - aLovelace;
+              })
+              .filter(
+                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
+              );
+            const limitedFilteredUtxos = filteredUtxos.slice(
+              0,
+              Math.min(4, filteredUtxos.length),
+            );
+
+            const firstUtxo = limitedFilteredUtxos[0];
 
             const txId = firstUtxo.input.txHash;
             const txIndex = firstUtxo.input.outputIndex;
@@ -113,7 +162,7 @@ export async function registerAgentV1() {
               .setTxInputs([
                 //ensure our first utxo hash (serializedOutput) is used as first input
                 firstUtxo,
-                ...utxos.slice(1),
+                ...limitedFilteredUtxos.slice(1),
               ]);
 
             tx.isCollateralNeeded = true;
@@ -180,6 +229,7 @@ export async function registerAgentV1() {
             //sign the transaction with our address
             tx.setChangeAddress(address).setRequiredSigners([address]);
             tx.setNetwork(network);
+            tx.setCollateral([collateralUtxo]);
 
             //build the transaction
             const unsignedTx = await tx.build();
