@@ -194,6 +194,8 @@ export const submitPaymentResultEndpointPost =
           SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           RequestedFunds: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 
