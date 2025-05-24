@@ -58,9 +58,18 @@ export const cancelPurchaseRefundRequestSchemaOutput = z.object({
     .nullable(),
   PaidFunds: z.array(
     z.object({
-      id: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForSeller: z.array(
+    z.object({
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForBuyer: z.array(
+    z.object({
       amount: z.string(),
       unit: z.string(),
     }),
@@ -195,6 +204,8 @@ export const cancelPurchaseRefundRequestPost =
           PaymentSource: true,
           SellerWallet: true,
           SmartContractWallet: { where: { deletedAt: null } },
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 
@@ -203,8 +214,22 @@ export const cancelPurchaseRefundRequestPost =
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-        PaidFunds: result.PaidFunds.map((amount) => ({
+        PaidFunds: (
+          result.PaidFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
           ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          result.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          result.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
           amount: amount.amount.toString(),
         })),
       };

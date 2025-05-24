@@ -100,9 +100,18 @@ export const queryPaymentsSchemaOutput = z.object({
         .nullable(),
       RequestedFunds: z.array(
         z.object({
-          id: z.string(),
-          createdAt: z.date(),
-          updatedAt: z.date(),
+          amount: z.string(),
+          unit: z.string(),
+        }),
+      ),
+      WithdrawnForSeller: z.array(
+        z.object({
+          amount: z.string(),
+          unit: z.string(),
+        }),
+      ),
+      WithdrawnForBuyer: z.array(
+        z.object({
           amount: z.string(),
           unit: z.string(),
         }),
@@ -190,6 +199,8 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         RequestedFunds: { include: { AgentFixedPricing: true } },
         NextAction: true,
         CurrentTransaction: true,
+        WithdrawnForSeller: true,
+        WithdrawnForBuyer: true,
         TransactionHistory: {
           orderBy: { createdAt: 'desc' },
           take: input.includeHistory == true ? undefined : 0,
@@ -208,8 +219,22 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         cooldownTimeOtherParty: Number(payment.buyerCoolDownTime),
         unlockTime: payment.unlockTime.toString(),
         externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-        RequestedFunds: payment.RequestedFunds.map((amount) => ({
+        RequestedFunds: (
+          payment.RequestedFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
           ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          payment.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          payment.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
           amount: amount.amount.toString(),
         })),
       })),
@@ -290,9 +315,18 @@ export const createPaymentSchemaOutput = z.object({
   }),
   RequestedFunds: z.array(
     z.object({
-      id: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForSeller: z.array(
+    z.object({
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForBuyer: z.array(
+    z.object({
       amount: z.string(),
       unit: z.string(),
     }),
@@ -528,6 +562,8 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         NextAction: true,
         CurrentTransaction: true,
         TransactionHistory: true,
+        WithdrawnForSeller: true,
+        WithdrawnForBuyer: true,
       },
     });
     if (payment.SmartContractWallet == null) {
@@ -538,8 +574,22 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       submitResultTime: payment.submitResultTime.toString(),
       unlockTime: payment.unlockTime.toString(),
       externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
-      RequestedFunds: payment.RequestedFunds.map((amount) => ({
+      RequestedFunds: (
+        payment.RequestedFunds as Array<{ unit: string; amount: bigint }>
+      ).map((amount) => ({
         ...amount,
+        amount: amount.amount.toString(),
+      })),
+      WithdrawnForSeller: (
+        payment.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+      ).map((amount) => ({
+        unit: amount.unit,
+        amount: amount.amount.toString(),
+      })),
+      WithdrawnForBuyer: (
+        payment.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+      ).map((amount) => ({
+        unit: amount.unit,
         amount: amount.amount.toString(),
       })),
     };

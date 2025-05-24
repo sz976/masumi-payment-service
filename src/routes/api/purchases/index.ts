@@ -99,9 +99,18 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       ),
       PaidFunds: z.array(
         z.object({
-          id: z.string(),
-          createdAt: z.date(),
-          updatedAt: z.date(),
+          amount: z.string(),
+          unit: z.string(),
+        }),
+      ),
+      WithdrawnForSeller: z.array(
+        z.object({
+          amount: z.string(),
+          unit: z.string(),
+        }),
+      ),
+      WithdrawnForBuyer: z.array(
+        z.object({
           amount: z.string(),
           unit: z.string(),
         }),
@@ -181,6 +190,8 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
         NextAction: true,
         PaymentSource: true,
         CurrentTransaction: true,
+        WithdrawnForSeller: true,
+        WithdrawnForBuyer: true,
         TransactionHistory: {
           orderBy: { createdAt: 'desc' },
           take: input.includeHistory == true ? undefined : 0,
@@ -193,8 +204,22 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
     return {
       Purchases: result.map((purchase) => ({
         ...purchase,
-        PaidFunds: purchase.PaidFunds.map((amount) => ({
+        PaidFunds: (
+          purchase.PaidFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
           ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          purchase.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          purchase.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
           amount: amount.amount.toString(),
         })),
         submitResultTime: purchase.submitResultTime.toString(),
@@ -295,9 +320,18 @@ export const createPurchaseInitSchemaOutput = z.object({
     .nullable(),
   PaidFunds: z.array(
     z.object({
-      id: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForSeller: z.array(
+    z.object({
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForBuyer: z.array(
+    z.object({
       amount: z.string(),
       unit: z.string(),
     }),
@@ -643,7 +677,30 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...initialPurchaseRequest,
-      PaidFunds: initialPurchaseRequest.PaidFunds.map((amount) => ({
+      PaidFunds: (
+        initialPurchaseRequest.PaidFunds as Array<{
+          unit: string;
+          amount: bigint;
+        }>
+      ).map((amount) => ({
+        ...amount,
+        amount: amount.amount.toString(),
+      })),
+      WithdrawnForSeller: (
+        initialPurchaseRequest.WithdrawnForSeller as Array<{
+          unit: string;
+          amount: bigint;
+        }>
+      ).map((amount) => ({
+        ...amount,
+        amount: amount.amount.toString(),
+      })),
+      WithdrawnForBuyer: (
+        initialPurchaseRequest.WithdrawnForBuyer as Array<{
+          unit: string;
+          amount: bigint;
+        }>
+      ).map((amount) => ({
         ...amount,
         amount: amount.amount.toString(),
       })),
