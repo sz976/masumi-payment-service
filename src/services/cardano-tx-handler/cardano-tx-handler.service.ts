@@ -31,6 +31,7 @@ import { convertNetwork } from '@/utils/converter/network-convert';
 import { deserializeDatum } from '@meshsdk/core';
 import { SmartContractState } from '@/utils/generator/contract-generator';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { resolvePaymentKeyHash } from '@meshsdk/core';
 
 const mutex = new Mutex();
 
@@ -1110,7 +1111,14 @@ export async function checkLatestTransactions(
               const redeemerJson = redeemer
                 .data()
                 .to_json(PlutusDatumSchema.BasicConversions);
-
+              let sellerWithdrawn: Array<{
+                unit: string;
+                quantity: bigint;
+              }> = [];
+              let buyerWithdrawn: Array<{
+                unit: string;
+                quantity: bigint;
+              }> = [];
               const redeemerJsonObject = JSON.parse(redeemerJson) as {
                 constructor: number;
               };
@@ -1132,11 +1140,108 @@ export async function checkLatestTransactions(
               }
 
               let newState: OnChainState;
+              const tmpSellerInputs = tx.utxos.inputs
+                .filter(
+                  (x) =>
+                    resolvePaymentKeyHash(x.address) ==
+                    decodedOldContract.seller,
+                )
+                .map((x) => x.amount);
+              const tmpSellerOutputs = tx.utxos.outputs
+                .filter(
+                  (x) =>
+                    resolvePaymentKeyHash(x.address) ==
+                    decodedOldContract.seller,
+                )
+                .map((x) => x.amount);
 
+              tmpSellerOutputs.forEach((output) => {
+                output.forEach((amount) => {
+                  const foundSellerWithdrawn = sellerWithdrawn.find((x) => {
+                    return x.unit == amount.unit;
+                  });
+                  if (foundSellerWithdrawn == null) {
+                    const amountNumber = BigInt(amount.quantity);
+                    sellerWithdrawn.push({
+                      unit: amount.unit,
+                      quantity: amountNumber,
+                    });
+                  } else {
+                    foundSellerWithdrawn.quantity += BigInt(amount.quantity);
+                  }
+                });
+              });
+              tmpSellerInputs.forEach((input) => {
+                input.forEach((amount) => {
+                  const foundSellerWithdrawn = sellerWithdrawn.find((x) => {
+                    return x.unit == amount.unit;
+                  });
+                  if (foundSellerWithdrawn == null) {
+                    const amountNumber = -BigInt(amount.quantity);
+                    sellerWithdrawn.push({
+                      unit: amount.unit,
+                      quantity: amountNumber,
+                    });
+                  } else {
+                    foundSellerWithdrawn.quantity -= BigInt(amount.quantity);
+                  }
+                });
+              });
+
+              const tmpBuyerOutputs = tx.utxos.outputs
+                .filter(
+                  (x) =>
+                    resolvePaymentKeyHash(x.address) ==
+                    decodedOldContract.buyer,
+                )
+                .map((x) => x.amount);
+
+              const tmpBuyerInputs = tx.utxos.inputs
+                .filter(
+                  (x) =>
+                    resolvePaymentKeyHash(x.address) ==
+                    decodedOldContract.buyer,
+                )
+                .map((x) => x.amount);
+              tmpBuyerInputs.forEach((input) => {
+                input.forEach((amount) => {
+                  const foundBuyerWithdrawn = buyerWithdrawn.find((x) => {
+                    return x.unit == amount.unit;
+                  });
+                  if (foundBuyerWithdrawn == null) {
+                    const amountNumber = -BigInt(amount.quantity);
+                    buyerWithdrawn.push({
+                      unit: amount.unit,
+                      quantity: amountNumber,
+                    });
+                  } else {
+                    foundBuyerWithdrawn.quantity -= BigInt(amount.quantity);
+                  }
+                });
+              });
+
+              tmpBuyerOutputs.forEach((output) => {
+                output.forEach((amount) => {
+                  const foundBuyerWithdrawn = buyerWithdrawn.find((x) => {
+                    return x.unit == amount.unit;
+                  });
+                  if (foundBuyerWithdrawn == null) {
+                    const amountNumber = BigInt(amount.quantity);
+                    buyerWithdrawn.push({
+                      unit: amount.unit,
+                      quantity: amountNumber,
+                    });
+                  } else {
+                    foundBuyerWithdrawn.quantity += BigInt(amount.quantity);
+                  }
+                });
+              });
               if (redeemerVersion == 0) {
                 //Withdraw
                 newState = OnChainState.Withdrawn;
               } else if (redeemerVersion == 1) {
+                sellerWithdrawn = [];
+                buyerWithdrawn = [];
                 //RequestRefund
                 if (
                   decodedNewContract!.resultHash &&
@@ -1147,6 +1252,8 @@ export async function checkLatestTransactions(
                   newState = OnChainState.RefundRequested;
                 }
               } else if (redeemerVersion == 2) {
+                sellerWithdrawn = [];
+                buyerWithdrawn = [];
                 //CancelRefundRequest
                 if (decodedNewContract!.resultHash) {
                   newState = OnChainState.ResultSubmitted;
@@ -1170,6 +1277,8 @@ export async function checkLatestTransactions(
                 //WithdrawDisputed
                 newState = OnChainState.DisputedWithdrawn;
               } else if (redeemerVersion == 5) {
+                sellerWithdrawn = [];
+                buyerWithdrawn = [];
                 //SubmitResult
                 if (
                   decodedNewContract!.state ==
@@ -1181,6 +1290,8 @@ export async function checkLatestTransactions(
                   newState = OnChainState.ResultSubmitted;
                 }
               } else if (redeemerVersion == 6) {
+                sellerWithdrawn = [];
+                buyerWithdrawn = [];
                 //AllowRefund
                 newState = OnChainState.RefundRequested;
               } else {
@@ -1204,6 +1315,8 @@ export async function checkLatestTransactions(
                       PurchasingAction.None,
                     Number(paymentRequest?.buyerCoolDownTime ?? 0),
                     Number(paymentRequest?.sellerCoolDownTime ?? 0),
+                    sellerWithdrawn,
+                    buyerWithdrawn,
                   );
                 }
               } catch (error) {
@@ -1224,6 +1337,8 @@ export async function checkLatestTransactions(
                       PurchasingAction.None,
                     Number(purchasingRequest?.buyerCoolDownTime ?? 0),
                     Number(purchasingRequest?.sellerCoolDownTime ?? 0),
+                    sellerWithdrawn,
+                    buyerWithdrawn,
                   );
                 }
               } catch (error) {
@@ -1295,6 +1410,8 @@ async function handlePaymentTransactionCardanoV1(
   currentAction: PaymentAction,
   buyerCooldownTime: number,
   sellerCooldownTime: number,
+  sellerWithdrawn: Array<{ unit: string; quantity: bigint }>,
+  buyerWithdrawn: Array<{ unit: string; quantity: bigint }>,
 ) {
   await prisma.$transaction(
     async (prisma) => {
@@ -1341,6 +1458,24 @@ async function handlePaymentTransactionCardanoV1(
               status: TransactionStatus.Confirmed,
             },
           },
+          WithdrawnForSeller: sellerWithdrawn
+            ? {
+                createMany: {
+                  data: sellerWithdrawn.map((sw) => {
+                    return { unit: sw.unit, amount: sw.quantity };
+                  }),
+                },
+              }
+            : undefined,
+          WithdrawnForBuyer: buyerWithdrawn
+            ? {
+                createMany: {
+                  data: buyerWithdrawn.map((bw) => {
+                    return { unit: bw.unit, amount: bw.quantity };
+                  }),
+                },
+              }
+            : undefined,
           buyerCoolDownTime: buyerCooldownTime,
           sellerCoolDownTime: sellerCooldownTime,
           onChainState: newState,
@@ -1383,6 +1518,8 @@ async function handlePurchasingTransactionCardanoV1(
   currentAction: PurchasingAction,
   buyerCooldownTime: number,
   sellerCooldownTime: number,
+  sellerWithdrawn: Array<{ unit: string; quantity: bigint }>,
+  buyerWithdrawn: Array<{ unit: string; quantity: bigint }>,
 ) {
   await prisma.$transaction(
     async (prisma) => {
@@ -1430,6 +1567,24 @@ async function handlePurchasingTransactionCardanoV1(
               status: TransactionStatus.Confirmed,
             },
           },
+          WithdrawnForSeller: sellerWithdrawn
+            ? {
+                createMany: {
+                  data: sellerWithdrawn.map((sw) => {
+                    return { unit: sw.unit, amount: sw.quantity };
+                  }),
+                },
+              }
+            : undefined,
+          WithdrawnForBuyer: buyerWithdrawn
+            ? {
+                createMany: {
+                  data: buyerWithdrawn.map((bw) => {
+                    return { unit: bw.unit, amount: bw.quantity };
+                  }),
+                },
+              }
+            : undefined,
           buyerCoolDownTime: buyerCooldownTime,
           sellerCoolDownTime: sellerCooldownTime,
           onChainState: newStatus,

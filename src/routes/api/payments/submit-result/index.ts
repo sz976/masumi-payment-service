@@ -56,9 +56,18 @@ export const submitPaymentResultSchemaOutput = z.object({
   }),
   RequestedFunds: z.array(
     z.object({
-      id: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForSeller: z.array(
+    z.object({
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForBuyer: z.array(
+    z.object({
       amount: z.string(),
       unit: z.string(),
     }),
@@ -185,6 +194,8 @@ export const submitPaymentResultEndpointPost =
           SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           RequestedFunds: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 
@@ -193,8 +204,22 @@ export const submitPaymentResultEndpointPost =
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-        RequestedFunds: result.RequestedFunds.map((amount) => ({
+        RequestedFunds: (
+          result.RequestedFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
           ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          result.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          result.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
           amount: amount.amount.toString(),
         })),
       };

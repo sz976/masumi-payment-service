@@ -189,6 +189,8 @@ async function handlePurchaseCreditInit({
           PaidFunds: true,
           NextAction: true,
           CurrentTransaction: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 

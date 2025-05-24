@@ -1315,15 +1315,6 @@
                                                                 "items": {
                                                                     "type": "object",
                                                                     "properties": {
-                                                                        "id": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "createdAt": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "updatedAt": {
-                                                                            "type": "string"
-                                                                        },
                                                                         "amount": {
                                                                             "type": "string"
                                                                         },
@@ -1332,9 +1323,42 @@
                                                                         }
                                                                     },
                                                                     "required": [
-                                                                        "id",
-                                                                        "createdAt",
-                                                                        "updatedAt",
+                                                                        "amount",
+                                                                        "unit"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "WithdrawnForSeller": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "amount": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "unit": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "amount",
+                                                                        "unit"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "WithdrawnForBuyer": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "amount": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "unit": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
                                                                         "amount",
                                                                         "unit"
                                                                     ]
@@ -1430,6 +1454,8 @@
                                                             "CurrentTransaction",
                                                             "TransactionHistory",
                                                             "RequestedFunds",
+                                                            "WithdrawnForSeller",
+                                                            "WithdrawnForBuyer",
                                                             "PaymentSource",
                                                             "BuyerWallet",
                                                             "SmartContractWallet",
@@ -1770,15 +1796,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -1787,9 +1804,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -1881,6 +1931,8 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "RequestedFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -2115,15 +2167,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -2132,9 +2175,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -2226,6 +2302,8 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "RequestedFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -2454,15 +2532,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -2471,9 +2540,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -2565,6 +2667,8 @@
                                                 "onChainState",
                                                 "NextAction",
                                                 "RequestedFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "BuyerWallet",
                                                 "SmartContractWallet",
@@ -2899,15 +3003,6 @@
                                                                 "items": {
                                                                     "type": "object",
                                                                     "properties": {
-                                                                        "id": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "createdAt": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "updatedAt": {
-                                                                            "type": "string"
-                                                                        },
                                                                         "amount": {
                                                                             "type": "string"
                                                                         },
@@ -2916,9 +3011,42 @@
                                                                         }
                                                                     },
                                                                     "required": [
-                                                                        "id",
-                                                                        "createdAt",
-                                                                        "updatedAt",
+                                                                        "amount",
+                                                                        "unit"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "WithdrawnForSeller": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "amount": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "unit": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "amount",
+                                                                        "unit"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "WithdrawnForBuyer": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "amount": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "unit": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
                                                                         "amount",
                                                                         "unit"
                                                                     ]
@@ -3014,6 +3142,8 @@
                                                             "CurrentTransaction",
                                                             "TransactionHistory",
                                                             "PaidFunds",
+                                                            "WithdrawnForSeller",
+                                                            "WithdrawnForBuyer",
                                                             "PaymentSource",
                                                             "SellerWallet",
                                                             "SmartContractWallet",
@@ -3354,15 +3484,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -3371,9 +3492,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -3466,6 +3620,8 @@
                                                 "NextAction",
                                                 "CurrentTransaction",
                                                 "PaidFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
@@ -3721,15 +3877,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -3738,9 +3885,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -3832,6 +4012,8 @@
                                                 "NextAction",
                                                 "CurrentTransaction",
                                                 "PaidFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
@@ -4086,15 +4268,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "createdAt": {
-                                                                "type": "string"
-                                                            },
-                                                            "updatedAt": {
-                                                                "type": "string"
-                                                            },
                                                             "amount": {
                                                                 "type": "string"
                                                             },
@@ -4103,9 +4276,42 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "id",
-                                                            "createdAt",
-                                                            "updatedAt",
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForSeller": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "unit"
+                                                        ]
+                                                    }
+                                                },
+                                                "WithdrawnForBuyer": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "amount": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
                                                             "amount",
                                                             "unit"
                                                         ]
@@ -4197,6 +4403,8 @@
                                                 "NextAction",
                                                 "CurrentTransaction",
                                                 "PaidFunds",
+                                                "WithdrawnForSeller",
+                                                "WithdrawnForBuyer",
                                                 "PaymentSource",
                                                 "SellerWallet",
                                                 "SmartContractWallet",
