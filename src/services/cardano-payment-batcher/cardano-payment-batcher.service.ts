@@ -264,8 +264,8 @@ export async function batchLatestPaymentEntriesV1() {
                 agentFixedPricingId: null,
                 sellerWithdrawnPaymentRequestId: null,
                 buyerWithdrawnPaymentRequestId: null,
-                sellerWithdrawnPurchaseRequestId: null,
                 buyerWithdrawnPurchaseRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
               });
             } else if (
               paymentRequest.PaidFunds[lovelaceRequired].amount <
@@ -284,8 +284,8 @@ export async function batchLatestPaymentEntriesV1() {
                 agentFixedPricingId: null,
                 sellerWithdrawnPaymentRequestId: null,
                 buyerWithdrawnPaymentRequestId: null,
-                sellerWithdrawnPurchaseRequestId: null,
                 buyerWithdrawnPurchaseRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
               });
             }
             let isFulfilled = true;
