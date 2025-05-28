@@ -1,4 +1,5 @@
 import {
+  OnChainState,
   PurchaseErrorType,
   PurchasingAction,
   TransactionStatus,
@@ -37,6 +38,10 @@ export async function collectRefundV1() {
   try {
     const paymentContractsWithWalletLocked = await lockAndQueryPurchases({
       purchasingAction: PurchasingAction.WithdrawRefundRequested,
+      onChainState: {
+        in: [OnChainState.RefundRequested, OnChainState.FundsLocked],
+      },
+      resultHash: '',
       submitResultTime: {
         lte: Date.now() - 1000 * 60 * 1, //add 1 minutes for block time
       },
