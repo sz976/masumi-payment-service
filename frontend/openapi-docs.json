@@ -1502,9 +1502,6 @@
                                                     "TransactionHistory": [],
                                                     "RequestedFunds": [
                                                         {
-                                                            "id": "amount_id",
-                                                            "createdAt": "1970-01-20T20:00:36.260Z",
-                                                            "updatedAt": "1970-01-20T20:00:36.260Z",
                                                             "amount": "10000000",
                                                             "unit": ""
                                                         }
@@ -1515,6 +1512,8 @@
                                                         "smartContractAddress": "address",
                                                         "paymentType": "Web3CardanoV1"
                                                     },
+                                                    "WithdrawnForSeller": [],
+                                                    "WithdrawnForBuyer": [],
                                                     "BuyerWallet": null,
                                                     "SmartContractWallet": null,
                                                     "metadata": null
@@ -1970,9 +1969,6 @@
                                             },
                                             "RequestedFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -1985,7 +1981,9 @@
                                             },
                                             "BuyerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
@@ -2341,9 +2339,6 @@
                                             },
                                             "RequestedFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -2356,7 +2351,9 @@
                                             },
                                             "BuyerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
@@ -2419,7 +2416,6 @@
                                 ],
                                 "example": {
                                     "network": "Preprod",
-                                    "paymentContractAddress": "address",
                                     "blockchainIdentifier": "blockchain_identifier"
                                 }
                             }
@@ -2706,9 +2702,6 @@
                                             },
                                             "RequestedFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -2721,7 +2714,9 @@
                                             },
                                             "BuyerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
@@ -3197,7 +3192,9 @@
                                                     "SellerWallet": null,
                                                     "SmartContractWallet": null,
                                                     "CurrentTransaction": null,
-                                                    "TransactionHistory": []
+                                                    "TransactionHistory": [],
+                                                    "WithdrawnForSeller": [],
+                                                    "WithdrawnForBuyer": []
                                                 }
                                             ]
                                         }
@@ -3659,9 +3656,6 @@
                                             "CurrentTransaction": null,
                                             "PaidFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -3674,7 +3668,9 @@
                                             },
                                             "SellerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
@@ -4050,9 +4046,6 @@
                                             "CurrentTransaction": null,
                                             "PaidFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -4065,7 +4058,9 @@
                                             },
                                             "SellerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
@@ -4441,9 +4436,6 @@
                                             "CurrentTransaction": null,
                                             "PaidFunds": [
                                                 {
-                                                    "id": "amount_id",
-                                                    "createdAt": "1970-01-20T20:00:36.260Z",
-                                                    "updatedAt": "1970-01-20T20:00:36.260Z",
                                                     "amount": "10000000",
                                                     "unit": ""
                                                 }
@@ -4456,7 +4448,9 @@
                                             },
                                             "SellerWallet": null,
                                             "SmartContractWallet": null,
-                                            "metadata": null
+                                            "metadata": null,
+                                            "WithdrawnForSeller": [],
+                                            "WithdrawnForBuyer": []
                                         }
                                     }
                                 }
