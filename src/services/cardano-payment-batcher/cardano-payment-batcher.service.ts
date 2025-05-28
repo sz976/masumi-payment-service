@@ -262,6 +262,10 @@ export async function batchLatestPaymentEntriesV1() {
                 purchaseRequestId: null,
                 apiKeyId: null,
                 agentFixedPricingId: null,
+                sellerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPaymentRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
+                buyerWithdrawnPurchaseRequestId: null,
               });
             } else if (
               paymentRequest.PaidFunds[lovelaceRequired].amount <
@@ -278,6 +282,10 @@ export async function batchLatestPaymentEntriesV1() {
                 purchaseRequestId: null,
                 apiKeyId: null,
                 agentFixedPricingId: null,
+                sellerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPaymentRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
+                buyerWithdrawnPurchaseRequestId: null,
               });
             }
             let isFulfilled = true;
@@ -343,7 +351,33 @@ export async function batchLatestPaymentEntriesV1() {
           walletPairings.map(async (walletPairing) => {
             const wallet = walletPairing.wallet;
             const walletId = walletPairing.walletId;
+            const utxos = await wallet.getUtxos();
             const batchedRequests = walletPairing.batchedRequests;
+            const collateralUtxo = utxos
+              .sort((a, b) => {
+                const aLovelace = parseInt(
+                  a.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                const bLovelace = parseInt(
+                  b.output.amount.find(
+                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                  )?.quantity ?? '0',
+                );
+                return aLovelace - bLovelace;
+              })
+              .find(
+                (utxo) =>
+                  utxo.output.amount.length == 1 &&
+                  (utxo.output.amount[0].unit == 'lovelace' ||
+                    utxo.output.amount[0].unit == '') &&
+                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
+                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+              );
+            if (!collateralUtxo) {
+              throw new Error('No collateral UTXO found');
+            }
             //batch payments
             const unsignedTx = new Transaction({
               initiator: wallet,
@@ -420,6 +454,7 @@ export async function batchLatestPaymentEntriesV1() {
               );
             }
             unsignedTx.setNetwork(convertNetwork(paymentContract.network));
+            unsignedTx.setCollateral([collateralUtxo]);
 
             const completeTx = await unsignedTx.build();
             const signedTx = await wallet.signTx(completeTx);
