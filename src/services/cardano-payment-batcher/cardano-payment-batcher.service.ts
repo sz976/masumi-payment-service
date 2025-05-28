@@ -262,6 +262,10 @@ export async function batchLatestPaymentEntriesV1() {
                 purchaseRequestId: null,
                 apiKeyId: null,
                 agentFixedPricingId: null,
+                sellerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPurchaseRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
               });
             } else if (
               paymentRequest.PaidFunds[lovelaceRequired].amount <
@@ -278,6 +282,10 @@ export async function batchLatestPaymentEntriesV1() {
                 purchaseRequestId: null,
                 apiKeyId: null,
                 agentFixedPricingId: null,
+                sellerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPaymentRequestId: null,
+                buyerWithdrawnPurchaseRequestId: null,
+                sellerWithdrawnPurchaseRequestId: null,
               });
             }
             let isFulfilled = true;
@@ -344,6 +352,7 @@ export async function batchLatestPaymentEntriesV1() {
             const wallet = walletPairing.wallet;
             const walletId = walletPairing.walletId;
             const batchedRequests = walletPairing.batchedRequests;
+
             //batch payments
             const unsignedTx = new Transaction({
               initiator: wallet,

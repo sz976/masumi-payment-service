@@ -12,6 +12,7 @@ import { registerAgentV1 } from '../cardano-register-handler/';
 import { deRegisterAgentV1 } from '../cardano-deregister-handler/';
 import { submitResultV1 } from '../cardano-submit-result-handler/';
 import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/';
+import { handleAutomaticDecisions } from '../automatic-decision-handler';
 export async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -176,6 +177,20 @@ export async function initJobs() {
           's',
       );
     }, CONFIG.CHECK_SUBMIT_RESULT_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
+
+  void new Promise((resolve) => setTimeout(resolve, 7500)).then(() => {
+    // Automatic decision handler interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting automatic decision handler');
+      const start = new Date();
+      await handleAutomaticDecisions();
+      logger.info(
+        'Finished automatic decision handler in ' +
+          (new Date().getTime() - start.getTime()) / 1000 +
+          's',
+      );
+    }, CONFIG.AUTO_DECISION_INTERVAL * 1000); // Convert seconds to milliseconds
   });
   await new Promise((resolve) => setTimeout(resolve, 200));
   logger.info('Initialized async intervals');

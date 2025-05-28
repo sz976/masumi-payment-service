@@ -11,14 +11,14 @@ export async function lockAndQueryPurchases({
   purchasingAction,
   unlockTime,
   onChainState = undefined,
-  requestedResultHash = undefined,
   submitResultTime = undefined,
+  resultHash = undefined,
 }: {
   purchasingAction: PurchasingAction;
   unlockTime?: { lte: number } | undefined | { gte: number };
   onChainState?: OnChainState | { in: OnChainState[] } | undefined;
-  requestedResultHash?: string | undefined;
   submitResultTime?: { lte: number } | undefined | { gte: number };
+  resultHash?: string | undefined;
 }) {
   return await prisma.$transaction(
     async (prisma) => {
@@ -39,7 +39,7 @@ export async function lockAndQueryPurchases({
                   requestedAction: purchasingAction,
                   errorType: null,
                 },
-                resultHash: requestedResultHash,
+                resultHash: resultHash,
                 onChainState: onChainState,
                 SmartContractWallet: {
                   PendingTransaction: { is: null },

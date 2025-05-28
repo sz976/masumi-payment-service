@@ -63,6 +63,19 @@ const deregisterAgentInterval = Number(
 if (deregisterAgentInterval < 20)
   throw new Error('DEREGISTER_AGENT_INTERVAL must be at least 20 seconds');
 
+const autoWithdrawPayments =
+  process.env.AUTO_WITHDRAW_PAYMENTS?.toLowerCase() === 'true' ||
+  process.env.AUTO_WITHDRAW_PAYMENTS === '' ||
+  process.env.AUTO_WITHDRAW_PAYMENTS == undefined;
+const autoWithdrawRefunds =
+  process.env.AUTO_WITHDRAW_REFUNDS?.toLowerCase() === 'true' ||
+  process.env.AUTO_WITHDRAW_REFUNDS === '' ||
+  process.env.AUTO_WITHDRAW_REFUNDS == undefined;
+
+const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
+if (autoDecisionInterval < 20)
+  throw new Error('AUTO_DECISION_INTERVAL must be at least 20 seconds');
+
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
   DATABASE_URL: process.env.DATABASE_URL,
@@ -78,6 +91,9 @@ export const CONFIG = {
   REGISTER_AGENT_INTERVAL: registerAgentInterval, // 5 minutes in seconds
   DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval, // 5 minutes in seconds
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  AUTO_WITHDRAW_PAYMENTS: autoWithdrawPayments,
+  AUTO_WITHDRAW_REFUNDS: autoWithdrawRefunds,
+  AUTO_DECISION_INTERVAL: autoDecisionInterval,
 };
 
 export const DEFAULTS = {
