@@ -43,9 +43,6 @@ export async function authorizeRefundV1() {
     //Submit a result for invalid tokens
     const paymentContractsWithWalletLocked = await lockAndQueryPayments({
       paymentStatus: PaymentAction.AuthorizeRefundRequested,
-      submitResultTime: {
-        lte: Date.now() - 1000 * 60 * 1, //remove 1 minute for block time
-      },
       resultHash: { not: '' },
       onChainState: { in: [OnChainState.Disputed] },
     });
@@ -231,7 +228,7 @@ export async function authorizeRefundV1() {
               data: {
                 NextAction: {
                   update: {
-                    requestedAction: PaymentAction.SubmitResultInitiated,
+                    requestedAction: PaymentAction.AuthorizeRefundInitiated,
                     resultHash: request.NextAction.resultHash,
                   },
                 },
