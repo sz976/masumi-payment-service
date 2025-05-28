@@ -531,9 +531,6 @@ export function generateOpenAPI() {
                         TransactionHistory: [],
                         RequestedFunds: [
                           {
-                            id: 'amount_id',
-                            createdAt: new Date(1713636260),
-                            updatedAt: new Date(1713636260),
                             amount: '10000000',
                             unit: '',
                           },
@@ -544,6 +541,8 @@ export function generateOpenAPI() {
                           smartContractAddress: 'address',
                           paymentType: PaymentType.Web3CardanoV1,
                         },
+                        WithdrawnForSeller: [],
+                        WithdrawnForBuyer: [],
                         BuyerWallet: null,
                         SmartContractWallet: null,
                         metadata: null,
@@ -627,9 +626,6 @@ export function generateOpenAPI() {
                     },
                     RequestedFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -643,6 +639,8 @@ export function generateOpenAPI() {
                     BuyerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
@@ -719,9 +717,6 @@ export function generateOpenAPI() {
                     },
                     RequestedFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -735,6 +730,8 @@ export function generateOpenAPI() {
                     BuyerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
@@ -767,7 +764,6 @@ export function generateOpenAPI() {
             schema: authorizePaymentRefundSchemaInput.openapi({
               example: {
                 network: Network.Preprod,
-                paymentContractAddress: 'address',
                 blockchainIdentifier: 'blockchain_identifier',
               },
             }),
@@ -810,9 +806,6 @@ export function generateOpenAPI() {
                     },
                     RequestedFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -826,6 +819,8 @@ export function generateOpenAPI() {
                     BuyerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
@@ -911,6 +906,8 @@ export function generateOpenAPI() {
                         SmartContractWallet: null,
                         CurrentTransaction: null,
                         TransactionHistory: [],
+                        WithdrawnForSeller: [],
+                        WithdrawnForBuyer: [],
                       },
                     ],
                   },
@@ -996,9 +993,6 @@ export function generateOpenAPI() {
                     CurrentTransaction: null,
                     PaidFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -1012,6 +1006,8 @@ export function generateOpenAPI() {
                     SellerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
@@ -1086,9 +1082,6 @@ export function generateOpenAPI() {
                     CurrentTransaction: null,
                     PaidFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -1102,6 +1095,8 @@ export function generateOpenAPI() {
                     SellerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
@@ -1175,9 +1170,6 @@ export function generateOpenAPI() {
                     CurrentTransaction: null,
                     PaidFunds: [
                       {
-                        id: 'amount_id',
-                        createdAt: new Date(1713636260),
-                        updatedAt: new Date(1713636260),
                         amount: '10000000',
                         unit: '',
                       },
@@ -1191,6 +1183,8 @@ export function generateOpenAPI() {
                     SellerWallet: null,
                     SmartContractWallet: null,
                     metadata: null,
+                    WithdrawnForSeller: [],
+                    WithdrawnForBuyer: [],
                   },
                 },
               }),
