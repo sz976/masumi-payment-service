@@ -228,7 +228,7 @@ export async function authorizeRefundV1() {
               data: {
                 NextAction: {
                   update: {
-                    requestedAction: PaymentAction.SubmitResultInitiated,
+                    requestedAction: PaymentAction.AuthorizeRefundInitiated,
                     resultHash: request.NextAction.resultHash,
                   },
                 },
