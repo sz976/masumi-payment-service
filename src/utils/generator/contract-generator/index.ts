@@ -7,7 +7,7 @@ import {
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import paymentPlutus from '@smart-contracts/payment/plutus.json';
 import registryPlutus from '@smart-contracts/registry/plutus.json';
-import { Network, PaymentSource } from '@prisma/client';
+import { Network, OnChainState, PaymentSource } from '@prisma/client';
 import { applyParamsToScript } from '@meshsdk/core';
 import { convertNetworkToId } from '../../converter/network-convert';
 
@@ -128,6 +128,27 @@ export enum SmartContractState {
   ResultSubmitted = 1,
   RefundRequested = 2,
   Disputed = 3,
+}
+
+export function smartContractStateEqualsOnChainState(
+  state: SmartContractState,
+  onChainState: OnChainState | null,
+) {
+  if (onChainState == null) {
+    return false;
+  }
+  switch (onChainState) {
+    case OnChainState.FundsLocked:
+      return state == SmartContractState.FundsLocked;
+    case OnChainState.ResultSubmitted:
+      return state == SmartContractState.ResultSubmitted;
+    case OnChainState.RefundRequested:
+      return state == SmartContractState.RefundRequested;
+    case OnChainState.Disputed:
+      return state == SmartContractState.Disputed;
+    default:
+      return false;
+  }
 }
 
 function getSmartContractStateDatum(state: SmartContractState) {
