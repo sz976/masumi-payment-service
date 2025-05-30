@@ -40,7 +40,7 @@ export async function collectOutstandingPaymentsV1() {
     const paymentContractsWithWalletLocked = await lockAndQueryPayments({
       paymentStatus: PaymentAction.WithdrawRequested,
       resultHash: { not: '' },
-      unlockTime: { lte: Date.now() - 1000 * 60 * 1 },
+      unlockTime: { lte: Date.now() - 1000 * 60 * 10 },
       onChainState: { in: [OnChainState.ResultSubmitted] },
     });
 
