@@ -43,7 +43,7 @@ export async function collectRefundV1() {
       },
       resultHash: '',
       submitResultTime: {
-        lte: Date.now() - 1000 * 60 * 1, //add 1 minutes for block time
+        lte: Date.now() - 1000 * 60 * 10, //add 10 minutes for block time
       },
     });
 
