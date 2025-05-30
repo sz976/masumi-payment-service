@@ -61,7 +61,8 @@ async function handleInitializeAutoWithdrawPayments(
               },
               resultHash: { not: '' },
               unlockTime: {
-                lte: Date.now() - 1000 * 60 * 1,
+                //10 minutes for blockchain time offset
+                lte: Date.now() - 1000 * 60 * 10,
               },
             },
           });
@@ -119,7 +120,8 @@ async function handleInitializeAutoWithdrawRefunds(
               },
               resultHash: '',
               submitResultTime: {
-                lte: Date.now() - 1000 * 60 * 1,
+                //10 minutes for blockchain time offset
+                lte: Date.now() - 1000 * 60 * 10,
               },
             },
           });
