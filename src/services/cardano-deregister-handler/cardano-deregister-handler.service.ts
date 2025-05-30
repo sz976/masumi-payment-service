@@ -172,6 +172,17 @@ export async function deRegisterAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.DeregistrationInitiated,
+                CurrentTransaction: {
+                  create: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet.id,
+                      },
+                    },
+                  },
+                },
               },
             });
             //submit the transaction to the blockchain
@@ -180,14 +191,8 @@ export async function deRegisterAgentV1() {
               where: { id: request.id },
               data: {
                 CurrentTransaction: {
-                  create: {
+                  update: {
                     txHash: newTxHash,
-                    status: TransactionStatus.Pending,
-                    BlocksWallet: {
-                      connect: {
-                        id: request.SmartContractWallet.id,
-                      },
-                    },
                   },
                 },
               },

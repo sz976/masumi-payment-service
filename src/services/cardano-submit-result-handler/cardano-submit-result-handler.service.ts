@@ -246,6 +246,22 @@ export async function submitResultV1() {
                     requestedAction: PaymentAction.SubmitResultInitiated,
                   },
                 },
+                CurrentTransaction: {
+                  create: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet!.id,
+                      },
+                    },
+                  },
+                },
+                TransactionHistory: {
+                  connect: {
+                    id: request.CurrentTransaction!.id,
+                  },
+                },
               },
             });
             //submit the transaction to the blockchain
@@ -255,19 +271,8 @@ export async function submitResultV1() {
                 where: { id: request.id },
                 data: {
                   CurrentTransaction: {
-                    create: {
+                    update: {
                       txHash: newTxHash,
-                      status: TransactionStatus.Pending,
-                      BlocksWallet: {
-                        connect: {
-                          id: request.SmartContractWallet!.id,
-                        },
-                      },
-                    },
-                  },
-                  TransactionHistory: {
-                    connect: {
-                      id: request.CurrentTransaction!.id,
                     },
                   },
                 },

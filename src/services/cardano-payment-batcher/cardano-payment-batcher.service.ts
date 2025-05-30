@@ -437,6 +437,24 @@ export async function batchLatestPaymentEntriesV1() {
                         id: walletId,
                       },
                     },
+                    CurrentTransaction: {
+                      create: {
+                        txHash: '',
+                        status: TransactionStatus.Pending,
+                        BlocksWallet: {
+                          connect: {
+                            id: walletId,
+                          },
+                        },
+                      },
+                    },
+                    TransactionHistory: request.CurrentTransaction
+                      ? {
+                          connect: {
+                            id: request.CurrentTransaction.id,
+                          },
+                        }
+                      : undefined,
                   },
                 });
               }),
@@ -468,23 +486,10 @@ export async function batchLatestPaymentEntriesV1() {
                   where: { id: request.id },
                   data: {
                     CurrentTransaction: {
-                      create: {
+                      update: {
                         txHash: txHash,
-                        status: TransactionStatus.Pending,
-                        BlocksWallet: {
-                          connect: {
-                            id: walletId,
-                          },
-                        },
                       },
                     },
-                    TransactionHistory: request.CurrentTransaction
-                      ? {
-                          connect: {
-                            id: request.CurrentTransaction.id,
-                          },
-                        }
-                      : undefined,
                   },
                 });
               }),
