@@ -61,6 +61,7 @@ export async function updateWalletTransactionHash() {
             },
             {
               CurrentTransaction: {
+                status: TransactionStatus.Pending,
                 updatedAt: {
                   lt: new Date(
                     Date.now() -

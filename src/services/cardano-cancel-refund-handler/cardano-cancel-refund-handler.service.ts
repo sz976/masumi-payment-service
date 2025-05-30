@@ -243,17 +243,9 @@ export async function cancelRefundsV1() {
                       PurchasingAction.UnSetRefundRequestedInitiated,
                   },
                 },
-              },
-            });
-
-            //submit the transaction to the blockchain
-            const newTxHash = await wallet.submitTx(signedTx);
-            await prisma.purchaseRequest.update({
-              where: { id: request.id },
-              data: {
                 CurrentTransaction: {
                   create: {
-                    txHash: newTxHash,
+                    txHash: '',
                     status: TransactionStatus.Pending,
                     BlocksWallet: {
                       connect: {
@@ -265,6 +257,19 @@ export async function cancelRefundsV1() {
                 TransactionHistory: {
                   connect: {
                     id: request.CurrentTransaction!.id,
+                  },
+                },
+              },
+            });
+
+            //submit the transaction to the blockchain
+            const newTxHash = await wallet.submitTx(signedTx);
+            await prisma.purchaseRequest.update({
+              where: { id: request.id },
+              data: {
+                CurrentTransaction: {
+                  update: {
+                    txHash: newTxHash,
                   },
                 },
               },

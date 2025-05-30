@@ -271,17 +271,9 @@ export async function collectOutstandingPaymentsV1() {
                     requestedAction: PaymentAction.WithdrawInitiated,
                   },
                 },
-              },
-            });
-            //submit the transaction to the blockchain
-            const newTxHash = await wallet.submitTx(signedTx);
-
-            await prisma.paymentRequest.update({
-              where: { id: request.id },
-              data: {
                 CurrentTransaction: {
                   update: {
-                    txHash: newTxHash,
+                    txHash: '',
                     status: TransactionStatus.Pending,
                     BlocksWallet: {
                       connect: {
@@ -293,6 +285,19 @@ export async function collectOutstandingPaymentsV1() {
                 TransactionHistory: {
                   connect: {
                     id: request.CurrentTransaction!.id,
+                  },
+                },
+              },
+            });
+            //submit the transaction to the blockchain
+            const newTxHash = await wallet.submitTx(signedTx);
+
+            await prisma.paymentRequest.update({
+              where: { id: request.id },
+              data: {
+                CurrentTransaction: {
+                  update: {
+                    txHash: newTxHash,
                   },
                 },
               },

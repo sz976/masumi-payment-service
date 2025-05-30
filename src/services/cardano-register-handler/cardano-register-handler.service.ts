@@ -239,6 +239,17 @@ export async function registerAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationInitiated,
+                CurrentTransaction: {
+                  create: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet.id,
+                      },
+                    },
+                  },
+                },
               },
             });
             //submit the transaction to the blockchain
@@ -248,14 +259,8 @@ export async function registerAgentV1() {
               data: {
                 agentIdentifier: policyId + assetName,
                 CurrentTransaction: {
-                  create: {
+                  update: {
                     txHash: newTxHash,
-                    status: TransactionStatus.Pending,
-                    BlocksWallet: {
-                      connect: {
-                        id: request.SmartContractWallet.id,
-                      },
-                    },
                   },
                 },
               },

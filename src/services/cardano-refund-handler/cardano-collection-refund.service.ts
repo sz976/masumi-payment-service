@@ -221,6 +221,22 @@ export async function collectRefundV1() {
                     submittedTxHash: null,
                   },
                 },
+                CurrentTransaction: {
+                  update: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet.id,
+                      },
+                    },
+                  },
+                },
+                TransactionHistory: {
+                  connect: {
+                    id: request.CurrentTransaction!.id,
+                  },
+                },
               },
             });
 
@@ -233,17 +249,6 @@ export async function collectRefundV1() {
                 CurrentTransaction: {
                   update: {
                     txHash: newTxHash,
-                    status: TransactionStatus.Pending,
-                    BlocksWallet: {
-                      connect: {
-                        id: request.SmartContractWallet.id,
-                      },
-                    },
-                  },
-                },
-                TransactionHistory: {
-                  connect: {
-                    id: request.CurrentTransaction!.id,
                   },
                 },
               },
