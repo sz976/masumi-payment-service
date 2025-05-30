@@ -14,7 +14,10 @@ import {
   unixTimeToEnclosingSlot,
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
-import { getPaymentScriptFromPaymentSourceV1 } from '@/utils/generator/contract-generator';
+import {
+  getPaymentScriptFromPaymentSourceV1,
+  smartContractStateEqualsOnChainState,
+} from '@/utils/generator/contract-generator';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 import { decodeV1ContractDatum } from '@/utils/converter/string-datum-convert';
@@ -99,7 +102,40 @@ export async function collectOutstandingPaymentsV1() {
 
             const utxoByHash = await blockchainProvider.fetchUTxOs(txHash);
 
-            const utxo = utxoByHash.find((utxo) => utxo.input.txHash == txHash);
+            const utxo = utxoByHash.find((utxo) => {
+              if (utxo.input.txHash != txHash) {
+                return false;
+              }
+              const utxoDatum = utxo.output.plutusData;
+              if (!utxoDatum) {
+                return false;
+              }
+
+              const decodedDatum: unknown = deserializeDatum(utxoDatum);
+              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              if (decodedContract == null) {
+                return false;
+              }
+
+              return (
+                smartContractStateEqualsOnChainState(
+                  decodedContract.state,
+                  request.onChainState,
+                ) &&
+                decodedContract.buyer == request.BuyerWallet!.walletVkey &&
+                decodedContract.seller ==
+                  request.SmartContractWallet!.walletVkey &&
+                decodedContract.blockchainIdentifier ==
+                  request.blockchainIdentifier &&
+                decodedContract.inputHash == request.inputHash &&
+                BigInt(decodedContract.resultTime) ==
+                  BigInt(request.submitResultTime) &&
+                BigInt(decodedContract.unlockTime) ==
+                  BigInt(request.unlockTime) &&
+                BigInt(decodedContract.externalDisputeUnlockTime) ==
+                  BigInt(request.externalDisputeUnlockTime)
+              );
+            });
 
             if (!utxo) {
               throw new Error('UTXO not found');
