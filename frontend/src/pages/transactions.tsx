@@ -76,6 +76,10 @@ export default function Transactions() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cursorId, setCursorId] = useState<string | null>(null);
+  const [purchaseCursorId, setPurchaseCursorId] = useState<string | null>(null);
+  const [paymentCursorId, setPaymentCursorId] = useState<string | null>(null);
+  const [hasMorePurchases, setHasMorePurchases] = useState(true);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const tabs = [
@@ -154,77 +158,93 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  const fetchTransactions = async (cursor?: string) => {
+  const fetchTransactions = async (reset = false) => {
     try {
-      if (!cursor) {
+      if (reset) {
         setIsLoading(true);
         setAllTransactions([]);
+        setPurchaseCursorId(null);
+        setPaymentCursorId(null);
+        setHasMorePurchases(true);
+        setHasMorePayments(true);
       } else {
         setIsLoadingMore(true);
       }
 
-      const combined: Transaction[] = [];
-
-      const purchases = await getPurchase({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (purchases.data?.data?.Purchases) {
-        purchases.data.data.Purchases.forEach((purchase) => {
-          combined.push({
+      // Fetch purchases
+      let purchases: Transaction[] = [];
+      let newPurchaseCursor: string | null = purchaseCursorId;
+      let morePurchases = hasMorePurchases;
+      if (hasMorePurchases) {
+        const purchaseRes = await getPurchase({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: purchaseCursorId || undefined,
+            includeHistory: 'true',
+            limit: 10,
+          },
+        });
+        if (purchaseRes.data?.data?.Purchases) {
+          purchases = purchaseRes.data.data.Purchases.map((purchase) => ({
             ...purchase,
             type: 'purchase',
-          });
-        });
+          }));
+          if (purchases.length > 0) {
+            newPurchaseCursor = purchases[purchases.length - 1].id;
+          }
+          morePurchases = purchases.length === 10;
+        } else {
+          morePurchases = false;
+        }
       }
 
-      const payments = await getPayment({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (payments.data?.data?.Payments) {
-        payments.data.data.Payments.forEach((payment) => {
-          combined.push({
+      // Fetch payments
+      let payments: Transaction[] = [];
+      let newPaymentCursor: string | null = paymentCursorId;
+      let morePayments = hasMorePayments;
+      if (hasMorePayments) {
+        const paymentRes = await getPayment({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: paymentCursorId || undefined,
+            includeHistory: 'true',
+            limit: 10,
+          },
+        });
+        if (paymentRes.data?.data?.Payments) {
+          payments = paymentRes.data.data.Payments.map((payment) => ({
             ...payment,
             type: 'payment',
-          });
-        });
+          }));
+          if (payments.length > 0) {
+            newPaymentCursor = payments[payments.length - 1].id;
+          }
+          morePayments = payments.length === 10;
+        } else {
+          morePayments = false;
+        }
       }
 
-      const seenHashes = new Set();
+      // Combine and dedupe by type+hash
+      const combined = [...(reset ? [] : allTransactions), ...purchases, ...payments];
+      const seen = new Set();
       const deduped = combined.filter((tx) => {
-        const hash = tx.CurrentTransaction?.txHash;
-        if (!hash) return true;
-        if (seenHashes.has(hash)) return false;
-        seenHashes.add(hash);
+        const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       });
-
-      const newTransactions = deduped.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-
-      if (cursor) {
-        setAllTransactions((prev) => [...prev, ...newTransactions]);
-      } else {
-        setAllTransactions(newTransactions);
-      }
-
-      setHasMore(newTransactions.length === 20);
-      setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
+      // Sort by createdAt
+      const sorted = deduped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setAllTransactions(sorted);
+      setPurchaseCursorId(newPurchaseCursor);
+      setPaymentCursorId(newPaymentCursor);
+      setHasMorePurchases(morePurchases);
+      setHasMorePayments(morePayments);
+      setHasMore(morePurchases || morePayments);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
       toast.error('Failed to load transactions');
@@ -235,16 +255,16 @@ export default function Transactions() {
   };
 
   useEffect(() => {
-    fetchTransactions();
-  }, [state.network]);
+    fetchTransactions(true);
+  }, [state.network, activeTab]);
 
   useEffect(() => {
     filterTransactions();
   }, [filterTransactions, searchQuery, activeTab]);
 
   const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && cursorId) {
-      fetchTransactions(cursorId);
+    if (!isLoadingMore && (hasMorePurchases || hasMorePayments)) {
+      fetchTransactions();
     }
   };
 
