@@ -228,7 +228,11 @@ export default function Transactions() {
       }
 
       // Combine and dedupe by type+hash
-      const combined = [...(reset ? [] : allTransactions), ...purchases, ...payments];
+      const combined = [
+        ...(reset ? [] : allTransactions),
+        ...purchases,
+        ...payments,
+      ];
       const seen = new Set();
       const deduped = combined.filter((tx) => {
         const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
@@ -238,7 +242,10 @@ export default function Transactions() {
         return true;
       });
       // Sort by createdAt
-      const sorted = deduped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const sorted = deduped.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
       setAllTransactions(sorted);
       setPurchaseCursorId(newPurchaseCursor);
       setPaymentCursorId(newPaymentCursor);

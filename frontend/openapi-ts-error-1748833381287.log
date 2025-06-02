@@ -1,0 +1,9 @@
+EACCES, Directory not empty: /Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/src/lib/api/generated '/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/src/lib/api/generated'
+Error: EACCES, Directory not empty: /Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/src/lib/api/generated '/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/src/lib/api/generated'
+    at Object.rmSync (node:fs:1248:18)
+    at Mn (/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/node_modules/@hey-api/openapi-ts/dist/index.cjs:4:7059)
+    at Gs (/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/node_modules/@hey-api/openapi-ts/dist/index.cjs:10:113)
+    at lo (/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/node_modules/@hey-api/openapi-ts/dist/index.cjs:14:88823)
+    at async Promise.all (index 0)
+    at async oj (/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/node_modules/@hey-api/openapi-ts/dist/index.cjs:1311:4468)
+    at async start (/Users/isaacadebayo/Documents/NMKR/masumi-payment-service/frontend/node_modules/@hey-api/openapi-ts/bin/index.cjs:120:21)
