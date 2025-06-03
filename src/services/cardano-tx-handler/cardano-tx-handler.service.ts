@@ -674,8 +674,8 @@ export async function checkLatestTransactions(
                     {
                       isolationLevel:
                         Prisma.TransactionIsolationLevel.Serializable,
-                      timeout: 10000,
-                      maxWait: 10000,
+                      timeout: 15000,
+                      maxWait: 15000,
                     },
                   );
                   await prisma.$transaction(
@@ -964,8 +964,8 @@ export async function checkLatestTransactions(
                     {
                       isolationLevel:
                         Prisma.TransactionIsolationLevel.Serializable,
-                      timeout: 10000,
-                      maxWait: 10000,
+                      timeout: 15000,
+                      maxWait: 15000,
                     },
                   );
                 }

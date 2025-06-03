@@ -11,6 +11,7 @@ import {
   applyParamsToScript,
   pubKeyAddress,
   integer,
+  BlockfrostProvider,
 } from '@meshsdk/core';
 import fs from 'node:fs';
 import 'dotenv/config';
@@ -20,6 +21,9 @@ console.log('Submitting result as example');
 const network = 'preprod';
 const blockchainProvider = new KoiosProvider(network);
 const koios = new KoiosProvider('preprod');
+const blockfrost = new BlockfrostProvider(
+  'preprodlJppz49eYEKOfuitQxNIZLo1olPKMUlT',
+);
 
 const wallet = new MeshWallet({
   networkId: 0,
@@ -91,7 +95,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  '3905ad197a8797b2bb3e084c481033bae9093e423edb9688331b4905e79cf481',
+  'd7f2dda416e9c89af5b8cf3a267518fabe89910fda5e57eb23a1576979b3dc6b',
 );
 
 if (!utxo) {
@@ -176,6 +180,8 @@ unsignedTx.isCollateralNeeded = true;
 unsignedTx.setNetwork(network);
 
 const buildTransaction = await unsignedTx.build();
+const estimatedFee = await blockfrost.evaluateTx(buildTransaction);
+console.log(estimatedFee);
 const signedTx = await wallet.signTx(buildTransaction);
 
 //submit the transaction to the blockchain
