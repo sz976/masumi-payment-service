@@ -270,7 +270,42 @@ export async function submitResultV1() {
             unsignedTx.setNetwork(network);
 
             const buildTransaction = await unsignedTx.build();
-            const signedTx = await wallet.signTx(buildTransaction);
+            const estimatedFee = (await blockchainProvider.evaluateTx(
+              buildTransaction,
+            )) as Array<{ budget: { mem: number; steps: number } }>;
+            const unsignedTxFinal = new Transaction({
+              initiator: wallet,
+              fetcher: blockchainProvider,
+            })
+              .setTxInputs(limitedFilteredUtxos)
+              .setMetadata(674, {
+                msg: ['Masumi', 'SubmitResult'],
+              })
+              .redeemValue({
+                value: utxo,
+                script: script,
+                redeemer: {
+                  data: redeemer.data,
+                  budget: estimatedFee[0].budget,
+                },
+              })
+              .sendAssets(
+                {
+                  address: smartContractAddress,
+                  datum: datum,
+                },
+                utxo.output.amount,
+              )
+              .setChangeAddress(address)
+              .setCollateral([collateralUtxo])
+              .setRequiredSigners([address]);
+
+            unsignedTxFinal.txBuilder.invalidBefore(invalidBefore);
+            unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
+            unsignedTxFinal.setNetwork(network);
+
+            const buildTransactionFinal = await unsignedTxFinal.build();
+            const signedTx = await wallet.signTx(buildTransactionFinal);
 
             await prisma.paymentRequest.update({
               where: { id: request.id },
