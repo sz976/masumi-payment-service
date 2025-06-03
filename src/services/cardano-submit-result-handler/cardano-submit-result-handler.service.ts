@@ -304,7 +304,7 @@ export async function submitResultV1() {
             unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
             unsignedTxFinal.setNetwork(network);
 
-            const buildTransactionFinal = await unsignedTx.build();
+            const buildTransactionFinal = await unsignedTxFinal.build();
             const signedTx = await wallet.signTx(buildTransactionFinal);
 
             await prisma.paymentRequest.update({

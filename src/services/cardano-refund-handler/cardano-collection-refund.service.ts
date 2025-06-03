@@ -279,7 +279,7 @@ export async function collectRefundV1() {
             unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
             unsignedTxFinal.setNetwork(network);
 
-            const buildTransactionFinal = await unsignedTx.build();
+            const buildTransactionFinal = await unsignedTxFinal.build();
             const signedTx = await wallet.signTx(buildTransactionFinal);
             await prisma.purchaseRequest.update({
               where: { id: request.id },
