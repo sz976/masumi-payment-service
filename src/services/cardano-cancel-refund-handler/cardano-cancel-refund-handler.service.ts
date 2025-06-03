@@ -267,7 +267,44 @@ export async function cancelRefundsV1() {
             unsignedTx.setNetwork(network);
 
             const buildTransaction = await unsignedTx.build();
-            const signedTx = await wallet.signTx(buildTransaction);
+
+            const estimatedFee = (await blockchainProvider.evaluateTx(
+              buildTransaction,
+            )) as Array<{ budget: { mem: number; steps: number } }>;
+            const unsignedTxFinal = new Transaction({
+              initiator: wallet,
+              fetcher: blockchainProvider,
+            })
+              .redeemValue({
+                value: utxo,
+                script: script,
+                redeemer: {
+                  data: redeemer.data,
+                  budget: estimatedFee[0].budget,
+                },
+              })
+              .setTxInputs(limitedFilteredUtxos)
+              .setMetadata(674, {
+                msg: ['Masumi', 'UnsetRefundRequested'],
+              })
+              .sendAssets(
+                {
+                  address: smartContractAddress,
+                  datum: datum,
+                },
+                utxo.output.amount,
+              )
+              .setChangeAddress(address)
+              .setCollateral([collateralUtxo])
+              .setRequiredSigners([address]);
+
+            unsignedTxFinal.txBuilder.invalidBefore(invalidBefore);
+            unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
+            unsignedTxFinal.setNetwork(network);
+
+            const buildTransactionFinal = await unsignedTx.build();
+
+            const signedTx = await wallet.signTx(buildTransactionFinal);
             await prisma.purchaseRequest.update({
               where: { id: request.id },
               data: {
