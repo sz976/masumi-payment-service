@@ -33,8 +33,8 @@ import { parseError } from '@/lib/utils';
 type Transaction =
   | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
   | (GetPurchaseResponses['200']['data']['Purchases'][0] & {
-    type: 'purchase';
-  });
+      type: 'purchase';
+    });
 
 interface ApiError {
   message: string;
@@ -156,107 +156,120 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  const fetchTransactions = useCallback(async (reset = false) => {
-    try {
-      if (reset) {
-        setIsLoading(true);
-        setAllTransactions([]);
-        setPurchaseCursorId(null);
-        setPaymentCursorId(null);
-        setHasMorePurchases(true);
-        setHasMorePayments(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      // Fetch purchases
-      let purchases: Transaction[] = [];
-      let newPurchaseCursor: string | null = purchaseCursorId;
-      let morePurchases = hasMorePurchases;
-      if (hasMorePurchases) {
-        const purchaseRes = await getPurchase({
-          client: apiClient,
-          query: {
-            network: state.network,
-            cursorId: purchaseCursorId || undefined,
-            includeHistory: 'true',
-            limit: 10,
-          },
-        });
-        if (purchaseRes.data?.data?.Purchases) {
-          purchases = purchaseRes.data.data.Purchases.map((purchase) => ({
-            ...purchase,
-            type: 'purchase',
-          }));
-          if (purchases.length > 0) {
-            newPurchaseCursor = purchases[purchases.length - 1].id;
-          }
-          morePurchases = purchases.length === 10;
+  const fetchTransactions = useCallback(
+    async (reset = false) => {
+      try {
+        if (reset) {
+          setIsLoading(true);
+          setAllTransactions([]);
+          setPurchaseCursorId(null);
+          setPaymentCursorId(null);
+          setHasMorePurchases(true);
+          setHasMorePayments(true);
         } else {
-          morePurchases = false;
+          setIsLoadingMore(true);
         }
-      }
 
-      // Fetch payments
-      let payments: Transaction[] = [];
-      let newPaymentCursor: string | null = paymentCursorId;
-      let morePayments = hasMorePayments;
-      if (hasMorePayments) {
-        const paymentRes = await getPayment({
-          client: apiClient,
-          query: {
-            network: state.network,
-            cursorId: paymentCursorId || undefined,
-            includeHistory: 'true',
-            limit: 10,
-          },
-        });
-        if (paymentRes.data?.data?.Payments) {
-          payments = paymentRes.data.data.Payments.map((payment) => ({
-            ...payment,
-            type: 'payment',
-          }));
-          if (payments.length > 0) {
-            newPaymentCursor = payments[payments.length - 1].id;
+        // Fetch purchases
+        let purchases: Transaction[] = [];
+        let newPurchaseCursor: string | null = purchaseCursorId;
+        let morePurchases = hasMorePurchases;
+        if (hasMorePurchases) {
+          const purchaseRes = await getPurchase({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: purchaseCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+            },
+          });
+          if (purchaseRes.data?.data?.Purchases) {
+            purchases = purchaseRes.data.data.Purchases.map((purchase) => ({
+              ...purchase,
+              type: 'purchase',
+            }));
+            if (purchases.length > 0) {
+              newPurchaseCursor = purchases[purchases.length - 1].id;
+            }
+            morePurchases = purchases.length === 10;
+          } else {
+            morePurchases = false;
           }
-          morePayments = payments.length === 10;
-        } else {
-          morePayments = false;
         }
-      }
 
-      // Combine and dedupe by type+hash
-      const combined = [
-        ...(reset ? [] : allTransactions),
-        ...purchases,
-        ...payments,
-      ];
-      const seen = new Set();
-      const deduped = combined.filter((tx) => {
-        const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
-        if (!key) return true;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      // Sort by createdAt
-      const sorted = deduped.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      setAllTransactions(sorted);
-      setPurchaseCursorId(newPurchaseCursor);
-      setPaymentCursorId(newPaymentCursor);
-      setHasMorePurchases(morePurchases);
-      setHasMorePayments(morePayments);
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
-      toast.error('Failed to load transactions');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [apiClient, state.network, purchaseCursorId, paymentCursorId, hasMorePurchases, hasMorePayments, allTransactions, activeTab, searchQuery]);
+        // Fetch payments
+        let payments: Transaction[] = [];
+        let newPaymentCursor: string | null = paymentCursorId;
+        let morePayments = hasMorePayments;
+        if (hasMorePayments) {
+          const paymentRes = await getPayment({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: paymentCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+            },
+          });
+          if (paymentRes.data?.data?.Payments) {
+            payments = paymentRes.data.data.Payments.map((payment) => ({
+              ...payment,
+              type: 'payment',
+            }));
+            if (payments.length > 0) {
+              newPaymentCursor = payments[payments.length - 1].id;
+            }
+            morePayments = payments.length === 10;
+          } else {
+            morePayments = false;
+          }
+        }
+
+        // Combine and dedupe by type+hash
+        const combined = [
+          ...(reset ? [] : allTransactions),
+          ...purchases,
+          ...payments,
+        ];
+        const seen = new Set();
+        const deduped = combined.filter((tx) => {
+          const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
+          if (!key) return true;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        // Sort by createdAt
+        const sorted = deduped.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        setAllTransactions(sorted);
+        setPurchaseCursorId(newPurchaseCursor);
+        setPaymentCursorId(newPaymentCursor);
+        setHasMorePurchases(morePurchases);
+        setHasMorePayments(morePayments);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+        toast.error('Failed to load transactions');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [
+      apiClient,
+      state.network,
+      purchaseCursorId,
+      paymentCursorId,
+      hasMorePurchases,
+      hasMorePayments,
+      allTransactions,
+      activeTab,
+      searchQuery,
+    ],
+  );
 
   useEffect(() => {
     fetchTransactions(true);
@@ -591,10 +604,10 @@ export default function Transactions() {
                       </td>
                       <td className="p-4">
                         {transaction.type === 'payment' &&
-                          transaction.RequestedFunds?.[0]
+                        transaction.RequestedFunds?.[0]
                           ? `${(parseInt(transaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                           : transaction.type === 'purchase' &&
-                            transaction.PaidFunds?.[0]
+                              transaction.PaidFunds?.[0]
                             ? `${(parseInt(transaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                             : '—'}
                       </td>
@@ -629,7 +642,13 @@ export default function Transactions() {
           <div className="flex flex-col gap-4 items-center">
             {!isLoading && (
               <Pagination
-                hasMore={activeTab === 'All' || activeTab === "Refund Requests" ? hasMorePurchases || hasMorePayments : activeTab === 'Payments' ? hasMorePayments : hasMorePurchases}
+                hasMore={
+                  activeTab === 'All' || activeTab === 'Refund Requests'
+                    ? hasMorePurchases || hasMorePayments
+                    : activeTab === 'Payments'
+                      ? hasMorePayments
+                      : hasMorePurchases
+                }
                 isLoading={isLoadingMore}
                 onLoadMore={handleLoadMore}
               />
@@ -779,10 +798,10 @@ export default function Transactions() {
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
                       {selectedTransaction.type === 'payment' &&
-                        selectedTransaction.RequestedFunds?.[0]
+                      selectedTransaction.RequestedFunds?.[0]
                         ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                         : selectedTransaction.type === 'purchase' &&
-                          selectedTransaction.PaidFunds?.[0]
+                            selectedTransaction.PaidFunds?.[0]
                           ? `${(parseInt(selectedTransaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                           : '—'}
                     </p>
