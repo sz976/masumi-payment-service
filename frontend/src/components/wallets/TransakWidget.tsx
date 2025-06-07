@@ -53,7 +53,10 @@ export function TransakWidget({
 
   if (isPreprod) {
     const handleOpenFaucet = () => {
-      window.open('https://docs.cardano.org/cardano-testnet/tools/faucet/', '_blank');
+      window.open(
+        'https://docs.cardano.org/cardano-testnet/tools/faucet/',
+        '_blank',
+      );
     };
 
     return (
@@ -67,7 +70,9 @@ export function TransakWidget({
           </DialogHeader>
           <div className="space-y-4 mt-2 h-full">
             <div className="bg-muted p-3 rounded-lg break-all flex items-center justify-between">
-              <p className="text-sm font-mono text-foreground">{shortenAddress(walletAddress)}</p>
+              <p className="text-sm font-mono text-foreground">
+                {shortenAddress(walletAddress)}
+              </p>
               <CopyButton value={walletAddress} />
             </div>
             <Button onClick={handleOpenFaucet} className="w-full mt-2">
