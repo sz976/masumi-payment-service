@@ -7666,7 +7666,7 @@
                                                                             "type": "integer",
                                                                             "nullable": true,
                                                                             "minimum": 0,
-                                                                            "maximum": 10000000000
+                                                                            "maximum": 100000000000000
                                                                         }
                                                                     },
                                                                     "required": [
