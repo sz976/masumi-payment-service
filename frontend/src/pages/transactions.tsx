@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress } from '@/lib/utils';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
@@ -28,6 +28,7 @@ import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 import { CopyButton } from '@/components/ui/copy-button';
+import { parseError } from '@/lib/utils';
 
 type Transaction =
   | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
@@ -72,9 +73,11 @@ export default function Transactions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursorId, setCursorId] = useState<string | null>(null);
+  const [purchaseCursorId, setPurchaseCursorId] = useState<string | null>(null);
+  const [paymentCursorId, setPaymentCursorId] = useState<string | null>(null);
+  const [hasMorePurchases, setHasMorePurchases] = useState(true);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const tabs = [
@@ -85,7 +88,14 @@ export default function Transactions() {
   ];
 
   const filterTransactions = useCallback(() => {
-    let filtered = [...allTransactions];
+    const seenHashes = new Set();
+    let filtered = [...allTransactions].filter((tx) => {
+      const hash = tx.CurrentTransaction?.txHash;
+      if (!hash) return true;
+      if (seenHashes.has(hash)) return false;
+      seenHashes.add(hash);
+      return true;
+    });
 
     if (activeTab === 'Payments') {
       filtered = filtered.filter((t) => t.type === 'payment');
@@ -146,88 +156,132 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  const fetchTransactions = async (cursor?: string) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllTransactions([]);
-      } else {
-        setIsLoadingMore(true);
-      }
+  const fetchTransactions = useCallback(
+    async (reset = false) => {
+      try {
+        if (reset) {
+          setIsLoading(true);
+          setAllTransactions([]);
+          setPurchaseCursorId(null);
+          setPaymentCursorId(null);
+          setHasMorePurchases(true);
+          setHasMorePayments(true);
+        } else {
+          setIsLoadingMore(true);
+        }
 
-      const combined: Transaction[] = [];
-
-      const purchases = await getPurchase({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (purchases.data?.data?.Purchases) {
-        purchases.data.data.Purchases.forEach((purchase) => {
-          combined.push({
-            ...purchase,
-            type: 'purchase',
+        // Fetch purchases
+        let purchases: Transaction[] = [];
+        let newPurchaseCursor: string | null = purchaseCursorId;
+        let morePurchases = hasMorePurchases;
+        if (hasMorePurchases) {
+          const purchaseRes = await getPurchase({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: purchaseCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+            },
           });
-        });
-      }
+          if (purchaseRes.data?.data?.Purchases) {
+            purchases = purchaseRes.data.data.Purchases.map((purchase) => ({
+              ...purchase,
+              type: 'purchase',
+            }));
+            if (purchases.length > 0) {
+              newPurchaseCursor = purchases[purchases.length - 1].id;
+            }
+            morePurchases = purchases.length === 10;
+          } else {
+            morePurchases = false;
+          }
+        }
 
-      const payments = await getPayment({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (payments.data?.data?.Payments) {
-        payments.data.data.Payments.forEach((payment) => {
-          combined.push({
-            ...payment,
-            type: 'payment',
+        // Fetch payments
+        let payments: Transaction[] = [];
+        let newPaymentCursor: string | null = paymentCursorId;
+        let morePayments = hasMorePayments;
+        if (hasMorePayments) {
+          const paymentRes = await getPayment({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: paymentCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+            },
           });
+          if (paymentRes.data?.data?.Payments) {
+            payments = paymentRes.data.data.Payments.map((payment) => ({
+              ...payment,
+              type: 'payment',
+            }));
+            if (payments.length > 0) {
+              newPaymentCursor = payments[payments.length - 1].id;
+            }
+            morePayments = payments.length === 10;
+          } else {
+            morePayments = false;
+          }
+        }
+
+        // Combine and dedupe by type+hash
+        const combined = [
+          ...(reset ? [] : allTransactions),
+          ...purchases,
+          ...payments,
+        ];
+        const seen = new Set();
+        const deduped = combined.filter((tx) => {
+          const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
+          if (!key) return true;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
+        // Sort by createdAt
+        const sorted = deduped.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        setAllTransactions(sorted);
+        setPurchaseCursorId(newPurchaseCursor);
+        setPaymentCursorId(newPaymentCursor);
+        setHasMorePurchases(morePurchases);
+        setHasMorePayments(morePayments);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+        toast.error('Failed to load transactions');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-
-      const newTransactions = combined.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-
-      if (cursor) {
-        setAllTransactions((prev) => [...prev, ...newTransactions]);
-      } else {
-        setAllTransactions(newTransactions);
-      }
-
-      setHasMore(newTransactions.length === 20);
-      setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
-      toast.error('Failed to load transactions');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [
+      apiClient,
+      state.network,
+      purchaseCursorId,
+      paymentCursorId,
+      hasMorePurchases,
+      hasMorePayments,
+      allTransactions,
+      activeTab,
+      searchQuery,
+    ],
+  );
 
   useEffect(() => {
-    fetchTransactions();
-  }, [state.network]);
+    fetchTransactions(true);
+  }, [state.network, apiClient]);
 
   useEffect(() => {
     filterTransactions();
   }, [filterTransactions, searchQuery, activeTab]);
 
   const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && cursorId) {
-      fetchTransactions(cursorId);
+    if (!isLoadingMore && (hasMorePurchases || hasMorePayments)) {
+      fetchTransactions();
     }
   };
 
@@ -326,64 +380,105 @@ export default function Transactions() {
 
   const handleRefundRequest = async (transaction: Transaction) => {
     try {
-      await postPurchaseRequestRefund({
+      const body = {
+        blockchainIdentifier: transaction.blockchainIdentifier,
+        network: state.network,
+        smartContractAddress: transaction.PaymentSource.smartContractAddress,
+      };
+      const response = await postPurchaseRequestRefund({
         client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            smartContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
+        data: { body },
       });
-      toast.success('Refund request submitted successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
+      if (
+        response?.status &&
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data?.data
+      ) {
+        toast.success('Refund request submitted successfully');
+        fetchTransactions(true);
+        setSelectedTransaction(null);
+      } else {
+        throw new Error('Refund request failed');
+      }
     } catch (error) {
-      handleError(error as ApiError);
+      console.error('Refund error:', error);
+      toast.error(parseError(error));
     }
   };
 
   const handleAllowRefund = async (transaction: Transaction) => {
     try {
-      await postPaymentAuthorizeRefund({
+      const body = {
+        blockchainIdentifier: transaction.blockchainIdentifier,
+        network: state.network,
+        paymentContractAddress: transaction.PaymentSource.smartContractAddress,
+      };
+      console.log('Allow refund body:', body);
+      const response = await postPaymentAuthorizeRefund({
         client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            paymentContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
+        data: { body },
       });
-      toast.success('Refund authorized successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
+      if (
+        response?.data &&
+        typeof response.data === 'object' &&
+        'error' in response.data &&
+        response.data.error &&
+        typeof response.data.error === 'object' &&
+        'message' in response.data.error &&
+        typeof response.data.error.message === 'string'
+      ) {
+        throw {
+          message: response.data.error.message,
+          error: response.data.error,
+        };
+      }
+      if (
+        response?.status &&
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data?.data
+      ) {
+        toast.success('Refund authorized successfully');
+        fetchTransactions(true);
+        setSelectedTransaction(null);
+      } else {
+        throw new Error('Refund authorization failed');
+      }
     } catch (error) {
-      handleError(error as ApiError);
+      console.error('Allow refund error:', error);
+      toast.error(parseError(error));
     }
   };
 
   const handleCancelRefund = async (transaction: Transaction) => {
     try {
-      await postPurchaseCancelRefundRequest({
+      const body = {
+        blockchainIdentifier: transaction.blockchainIdentifier,
+        network: state.network,
+        smartContractAddress: transaction.PaymentSource.smartContractAddress,
+      };
+      console.log('Cancel refund body:', body);
+      const response = await postPurchaseCancelRefundRequest({
         client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            smartContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
+        data: { body },
       });
-      toast.success('Refund request cancelled successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
+      console.log('Cancel refund response:', response);
+      if (
+        response?.status &&
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data?.data
+      ) {
+        toast.success('Refund request cancelled successfully');
+        fetchTransactions(true);
+        setSelectedTransaction(null);
+      } else {
+        throw new Error('Refund cancel failed');
+      }
     } catch (error) {
-      handleError(error as ApiError);
+      console.error('Cancel refund error:', error);
+      toast.error(parseError(error));
     }
   };
 
@@ -413,10 +508,8 @@ export default function Transactions() {
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              setAllTransactions([]);
-              setCursorId(null);
-              setHasMore(true);
-              fetchTransactions();
+              //setAllTransactions([]);
+              //fetchTransactions();
             }}
           />
 
@@ -549,7 +642,13 @@ export default function Transactions() {
           <div className="flex flex-col gap-4 items-center">
             {!isLoading && (
               <Pagination
-                hasMore={hasMore}
+                hasMore={
+                  activeTab === 'All' || activeTab === 'Refund Requests'
+                    ? hasMorePurchases || hasMorePayments
+                    : activeTab === 'Payments'
+                      ? hasMorePayments
+                      : hasMorePurchases
+                }
                 isLoading={isLoadingMore}
                 onLoadMore={handleLoadMore}
               />
@@ -579,6 +678,23 @@ export default function Transactions() {
                   </div>
                 </div>
 
+                <div className="col-span-2 my-4">
+                  <h4 className="font-semibold mb-1">Network</h4>
+                  <p className="text-sm capitalize">
+                    {selectedTransaction.PaymentSource.network}
+                  </p>
+                </div>
+
+                <div className="col-span-2 w-full mb-4">
+                  <h4 className="font-semibold mb-1">Blockchain Identifier</h4>
+                  <p className="text-sm font-mono break-all flex gap-2 items-center">
+                    {shortenAddress(selectedTransaction.blockchainIdentifier)}
+                    <CopyButton
+                      value={selectedTransaction.blockchainIdentifier}
+                    />
+                  </p>
+                </div>
+
                 <div>
                   <h4 className="font-semibold mb-1">Type</h4>
                   <p className="text-sm capitalize">
@@ -590,6 +706,73 @@ export default function Transactions() {
                   <p className="text-sm">
                     {new Date(selectedTransaction.createdAt).toLocaleString()}
                   </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold">Onchain state</h4>
+                <div className="rounded-md border p-4 bg-muted/10">
+                  <p className="text-sm font-medium">
+                    {(() => {
+                      const state =
+                        selectedTransaction.onChainState?.toLowerCase();
+                      switch (state) {
+                        case 'fundslocked':
+                          return 'Funds Locked';
+                        case 'resultsubmitted':
+                          return 'Result Submitted';
+                        case 'refundrequested':
+                          return 'Refund Requested (waiting for approval)';
+                        case 'refundwithdrawn':
+                          return 'Refund Withdrawn';
+                        case 'disputed':
+                          return 'Disputed';
+                        case 'disputedwithdrawn':
+                          return 'Disputed Withdrawn';
+                        default:
+                          return state
+                            ? state.charAt(0).toUpperCase() + state.slice(1)
+                            : '—';
+                      }
+                    })()}
+                  </p>
+                  {selectedTransaction.NextAction?.requestedAction && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Next action:{' '}
+                      {(() => {
+                        const action =
+                          selectedTransaction.NextAction.requestedAction;
+                        switch (action) {
+                          case 'None':
+                            return 'None';
+                          case 'Ignore':
+                            return 'Ignore';
+                          case 'WaitingForManualAction':
+                            return 'Waiting for manual action';
+                          case 'WaitingForExternalAction':
+                            return 'Waiting for external action';
+                          case 'FundsLockingRequested':
+                            return 'Funds locking requested';
+                          case 'FundsLockingInitiated':
+                            return 'Funds locking initiated';
+                          case 'SetRefundRequestedRequested':
+                            return 'Refund request initiated';
+                          case 'SetRefundRequestedInitiated':
+                            return 'Refund request in progress';
+                          case 'WithdrawRequested':
+                            return 'Withdraw requested';
+                          case 'WithdrawInitiated':
+                            return 'Withdraw initiated';
+                          case 'WithdrawRefundRequested':
+                            return 'Refund withdraw requested';
+                          case 'WithdrawRefundInitiated':
+                            return 'Refund withdraw initiated';
+                          default:
+                            return action;
+                        }
+                      })()}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -746,7 +929,7 @@ export default function Transactions() {
                               await clearTransactionError(selectedTransaction)
                             ) {
                               setSelectedTransaction(null);
-                              fetchTransactions();
+                              fetchTransactions(true);
                             }
                           }}
                         >
@@ -765,7 +948,7 @@ export default function Transactions() {
                               ))
                             ) {
                               setSelectedTransaction(null);
-                              fetchTransactions();
+                              fetchTransactions(true);
                             }
                           }}
                         >

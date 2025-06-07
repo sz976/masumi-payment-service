@@ -41,7 +41,11 @@ export const getUTXOSchemaOutput = z.object({
       Amounts: z.array(
         z.object({
           unit: z.string(),
-          quantity: z.number({ coerce: true }).int().min(0).max(10000000000),
+          quantity: z
+            .number({ coerce: true })
+            .int()
+            .min(0)
+            .max(100000000000000),
         }),
       ),
       dataHash: z.string().nullable(),
