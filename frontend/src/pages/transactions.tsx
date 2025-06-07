@@ -33,8 +33,8 @@ import { parseError } from '@/lib/utils';
 type Transaction =
   | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
   | (GetPurchaseResponses['200']['data']['Purchases'][0] & {
-      type: 'purchase';
-    });
+    type: 'purchase';
+  });
 
 interface ApiError {
   message: string;
@@ -73,9 +73,7 @@ export default function Transactions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursorId, setCursorId] = useState<string | null>(null);
   const [purchaseCursorId, setPurchaseCursorId] = useState<string | null>(null);
   const [paymentCursorId, setPaymentCursorId] = useState<string | null>(null);
   const [hasMorePurchases, setHasMorePurchases] = useState(true);
@@ -158,7 +156,7 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  const fetchTransactions = async (reset = false) => {
+  const fetchTransactions = useCallback(async (reset = false) => {
     try {
       if (reset) {
         setIsLoading(true);
@@ -251,7 +249,6 @@ export default function Transactions() {
       setPaymentCursorId(newPaymentCursor);
       setHasMorePurchases(morePurchases);
       setHasMorePayments(morePayments);
-      setHasMore(morePurchases || morePayments);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
       toast.error('Failed to load transactions');
@@ -259,11 +256,11 @@ export default function Transactions() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [apiClient, state.network, purchaseCursorId, paymentCursorId, hasMorePurchases, hasMorePayments, allTransactions, activeTab, searchQuery]);
 
   useEffect(() => {
     fetchTransactions(true);
-  }, [state.network, activeTab]);
+  }, [state.network, apiClient]);
 
   useEffect(() => {
     filterTransactions();
@@ -375,12 +372,10 @@ export default function Transactions() {
         network: state.network,
         smartContractAddress: transaction.PaymentSource.smartContractAddress,
       };
-      console.log('Refund request body:', body);
       const response = await postPurchaseRequestRefund({
         client: apiClient,
         data: { body },
       });
-      console.log('Refund response:', response);
       if (
         response?.status &&
         response.status >= 200 &&
@@ -388,7 +383,7 @@ export default function Transactions() {
         response.data?.data
       ) {
         toast.success('Refund request submitted successfully');
-        fetchTransactions();
+        fetchTransactions(true);
         setSelectedTransaction(null);
       } else {
         throw new Error('Refund request failed');
@@ -431,9 +426,8 @@ export default function Transactions() {
         response.status < 300 &&
         response.data?.data
       ) {
-        console.log('Allow refund response:', response);
         toast.success('Refund authorized successfully');
-        fetchTransactions();
+        fetchTransactions(true);
         setSelectedTransaction(null);
       } else {
         throw new Error('Refund authorization failed');
@@ -464,7 +458,7 @@ export default function Transactions() {
         response.data?.data
       ) {
         toast.success('Refund request cancelled successfully');
-        fetchTransactions();
+        fetchTransactions(true);
         setSelectedTransaction(null);
       } else {
         throw new Error('Refund cancel failed');
@@ -501,10 +495,8 @@ export default function Transactions() {
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              setAllTransactions([]);
-              setCursorId(null);
-              setHasMore(true);
-              fetchTransactions();
+              //setAllTransactions([]);
+              //fetchTransactions();
             }}
           />
 
@@ -599,10 +591,10 @@ export default function Transactions() {
                       </td>
                       <td className="p-4">
                         {transaction.type === 'payment' &&
-                        transaction.RequestedFunds?.[0]
+                          transaction.RequestedFunds?.[0]
                           ? `${(parseInt(transaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                           : transaction.type === 'purchase' &&
-                              transaction.PaidFunds?.[0]
+                            transaction.PaidFunds?.[0]
                             ? `${(parseInt(transaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                             : '—'}
                       </td>
@@ -637,7 +629,7 @@ export default function Transactions() {
           <div className="flex flex-col gap-4 items-center">
             {!isLoading && (
               <Pagination
-                hasMore={hasMore}
+                hasMore={activeTab === 'All' || activeTab === "Refund Requests" ? hasMorePurchases || hasMorePayments : activeTab === 'Payments' ? hasMorePayments : hasMorePurchases}
                 isLoading={isLoadingMore}
                 onLoadMore={handleLoadMore}
               />
@@ -787,10 +779,10 @@ export default function Transactions() {
                     <h5 className="text-sm font-medium mb-1">Amount</h5>
                     <p className="text-sm">
                       {selectedTransaction.type === 'payment' &&
-                      selectedTransaction.RequestedFunds?.[0]
+                        selectedTransaction.RequestedFunds?.[0]
                         ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
                         : selectedTransaction.type === 'purchase' &&
-                            selectedTransaction.PaidFunds?.[0]
+                          selectedTransaction.PaidFunds?.[0]
                           ? `${(parseInt(selectedTransaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
                           : '—'}
                     </p>
@@ -918,7 +910,7 @@ export default function Transactions() {
                               await clearTransactionError(selectedTransaction)
                             ) {
                               setSelectedTransaction(null);
-                              fetchTransactions();
+                              fetchTransactions(true);
                             }
                           }}
                         >
@@ -937,7 +929,7 @@ export default function Transactions() {
                               ))
                             ) {
                               setSelectedTransaction(null);
-                              fetchTransactions();
+                              fetchTransactions(true);
                             }
                           }}
                         >
