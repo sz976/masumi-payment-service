@@ -194,7 +194,7 @@ export function WalletDetailsDialog({
         },
       });
       setExportedMnemonic(response.data?.data?.Secret?.mnemonic || '');
-    } catch (err) {
+    } catch {
       toast.error('Failed to export wallet');
     } finally {
       setIsExporting(false);
@@ -216,7 +216,9 @@ export function WalletDetailsDialog({
       note: wallet.note,
       mnemonic: exportedMnemonic,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -248,7 +250,13 @@ export function WalletDetailsDialog({
                 </span>
                 <CopyButton value={wallet.walletAddress} />
                 {wallet.type !== 'Collection' && (
-                  <Button size="icon" variant="ghost" onClick={handleExport} disabled={isExporting} title="Export Wallet">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    title="Export Wallet"
+                  >
                     <span className="sr-only">Export Wallet</span>
                     <Share className="h-4 w-4" />
                   </Button>
@@ -261,7 +269,12 @@ export function WalletDetailsDialog({
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium mb-2">Mnemonic</div>
                   <div>
-                    <Button size="icon" variant="ghost" onClick={() => setExportedMnemonic(null)} aria-label="Close">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setExportedMnemonic(null)}
+                      aria-label="Close"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -274,8 +287,12 @@ export function WalletDetailsDialog({
                   style={{ resize: 'none' }}
                 />
                 <div className="flex gap-2">
-                  <Button onClick={handleCopyMnemonic} size="sm">Copy Mnemonic</Button>
-                  <Button onClick={handleDownload} size="sm" variant="outline">Download JSON</Button>
+                  <Button onClick={handleCopyMnemonic} size="sm">
+                    Copy Mnemonic
+                  </Button>
+                  <Button onClick={handleDownload} size="sm" variant="outline">
+                    Download JSON
+                  </Button>
                 </div>
               </div>
             )}
