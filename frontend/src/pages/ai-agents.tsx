@@ -519,22 +519,7 @@ export default function AIAgentsPage() {
                         </Badge>
                       </td>
                       <td className="p-4">
-                        {agent.state !== 'RegistrationConfirmed' ? (
-                          <>
-                            {(agent.state === 'RegistrationInitiated' ||
-                              agent.state === 'DeregistrationInitiated') && (
-                              <div className="flex items-center justify-center w-8 h-8">
-                                <Spinner size={16} />
-                              </div>
-                            )}
-                            {(agent.state === 'RegistrationRequested' ||
-                              agent.state === 'DeregistrationRequested') && (
-                              <div className="flex items-center justify-center w-8 h-8">
-                                <FaRegClock size={12} />
-                              </div>
-                            )}
-                          </>
-                        ) : (
+                        {['RegistrationConfirmed', 'RegistrationFailed', 'DeregistrationFailed'].includes(agent.state) ? (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -546,6 +531,18 @@ export default function AIAgentsPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        ) : (
+                          (agent.state === 'RegistrationInitiated' || agent.state === 'DeregistrationInitiated') ? (
+                            <div className="flex items-center justify-center w-8 h-8">
+                              <Spinner size={16} />
+                            </div>
+                          ) : (
+                            (agent.state === 'RegistrationRequested' || agent.state === 'DeregistrationRequested') && (
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <FaRegClock size={12} />
+                              </div>
+                            )
+                          )
                         )}
                       </td>
                     </tr>
