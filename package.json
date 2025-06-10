@@ -37,6 +37,7 @@
         "@meshsdk/core-cst": "1.8.14",
         "@paralleldrive/cuid2": "^2.2.2",
         "@prisma/client": "^6.6.0",
+        "@radix-ui/react-dialog": "^1.1.14",
         "@types/express": "^5.0.0",
         "@types/swagger-ui-express": "^4.1.8",
         "@typescript-eslint/eslint-plugin": "^8.31.1",
