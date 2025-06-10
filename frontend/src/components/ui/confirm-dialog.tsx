@@ -26,12 +26,12 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title ?? 'Confirm'}</DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 mb-20">
           <p className="text-sm text-muted-foreground">
             {description ?? '...'}
           </p>
