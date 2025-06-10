@@ -638,6 +638,9 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         );
       }
     }
+    if (!isHexString(parsedBlockchainIdentifier.data.data)) {
+      throw createHttpError(400, 'Invalid blockchain identifier, data not hex');
+    }
 
     const identifierIsSignedCorrectly = checkSignature(
       parsedBlockchainIdentifier.data.data,
@@ -711,3 +714,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     };
   },
 });
+function isHexString(data: string) {
+  return /^[0-9a-fA-F]+$/.test(data);
+}

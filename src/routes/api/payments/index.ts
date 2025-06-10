@@ -512,7 +512,9 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       },
     });
 
-    const encodedBlockchainIdentifier = JSON.stringify(blockchainIdentifier);
+    const encodedBlockchainIdentifier = Buffer.from(
+      JSON.stringify(blockchainIdentifier),
+    ).toString('hex');
     const signedBlockchainIdentifier = await meshWallet.signData(
       encodedBlockchainIdentifier,
       sellingWallet.walletAddress,
