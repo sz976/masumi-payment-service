@@ -34,9 +34,7 @@ export function decodeV1ContractDatum(decodedDatum: any) {
       return null;
     }
 
-    const blockchainIdentifier = Buffer.from(fields[2].bytes, 'hex').toString(
-      'utf-8',
-    );
+    const blockchainIdentifier = Buffer.from(fields[2].bytes).toString('utf-8');
     if (fields[3] == null || fields[3].bytes == null) {
       //invalid transaction
       return null;
