@@ -22,6 +22,10 @@ import { logger } from '@/utils/logger';
 import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
 import { handlePurchaseCreditInit } from '@/services/token-credit';
+import stringify from 'canonical-json';
+import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
+import LZString from 'lz-string';
+import { generateHash } from '@/utils/crypto';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -358,31 +362,6 @@ export const createPurchaseInitSchemaOutput = z.object({
   metadata: z.string().nullable(),
 });
 
-const singedBlockchainIdentifierSchema = z.object({
-  data: z.string().min(100).max(4000),
-  signature: z.string().min(25).max(2000),
-  key: z.string().min(15).max(2000),
-});
-
-const blockchainIdentifierDataSchema = z.object({
-  inputHash: z.string().max(250),
-  agentIdentifier: z.string().min(15).max(250),
-  purchaserIdentifier: z.string().min(15).max(25),
-  sellerAddress: z.string().min(15).max(150),
-  sellerIdentifier: z.string().min(15).max(25),
-  RequestedFunds: z
-    .array(
-      z.object({
-        amount: z.string().min(1).max(25),
-        unit: z.string().min(0).max(150),
-      }),
-    )
-    .max(7),
-  submitResultTime: z.string().min(1).max(50),
-  unlockTime: z.string().min(1).max(50),
-  externalDisputeUnlockTime: z.string().min(1).max(50),
-});
-
 export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
   method: 'post',
   input: createPurchaseInitSchemaInput,
@@ -511,108 +490,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       throw createHttpError(400, 'Agent identifier pricing type not supported');
     }
     const amounts = pricing.fixedPricing;
-    if (input.Amounts != undefined) {
-      throw createHttpError(
-        400,
-        'Agent identifier amounts must not be provided for fixed pricing',
-      );
-    }
-
-    const decodedBlockchainIdentifier = Buffer.from(
-      input.blockchainIdentifier,
-      'base64',
-    ).toString('utf-8');
-    const parsedBlockchainIdentifier =
-      singedBlockchainIdentifierSchema.safeParse(
-        JSON.parse(decodedBlockchainIdentifier),
-      );
-    if (!parsedBlockchainIdentifier.success) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, format invalid',
-      );
-    }
-
-    const parsedBlockchainIdentifierData =
-      blockchainIdentifierDataSchema.safeParse(
-        JSON.parse(parsedBlockchainIdentifier.data.data),
-      );
-    if (!parsedBlockchainIdentifierData.success) {
-      const error = parsedBlockchainIdentifierData.error;
-      logger.error('Error parsing blockchain identifier', { error });
-      throw createHttpError(400, 'Invalid blockchain identifier, data invalid');
-    }
-    if (parsedBlockchainIdentifierData.data.inputHash != input.inputHash) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, input hash invalid',
-      );
-    }
-
-    if (
-      parsedBlockchainIdentifierData.data.agentIdentifier !=
-      input.agentIdentifier
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, agent identifier invalid',
-      );
-    }
-    if (parsedBlockchainIdentifierData.data.sellerAddress != addressOfAsset) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, seller address invalid',
-      );
-    }
-    if (
-      parsedBlockchainIdentifierData.data.submitResultTime !=
-      input.submitResultTime
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, submit result time invalid',
-      );
-    }
-    if (parsedBlockchainIdentifierData.data.unlockTime != input.unlockTime) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, unlock time invalid',
-      );
-    }
-    if (
-      parsedBlockchainIdentifierData.data.externalDisputeUnlockTime !=
-      input.externalDisputeUnlockTime
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, external dispute unlock time invalid',
-      );
-    }
-    if (
-      parsedBlockchainIdentifierData.data.purchaserIdentifier !=
-      input.identifierFromPurchaser
-    ) {
-      throw createHttpError(
-        400,
-        'Invalid blockchain identifier, purchaser identifier invalid',
-      );
-    }
-    //input amounts must match the agent identifier amounts summed up per coin
-    const inputAmountsMap = new Map<string, bigint>();
-    for (const amount of parsedBlockchainIdentifierData.data.RequestedFunds) {
-      const unit =
-        amount.unit.toLowerCase() == 'lovelace'
-          ? ''
-          : metadataToString(amount.unit)!;
-      if (inputAmountsMap.has(unit)) {
-        inputAmountsMap.set(
-          unit,
-          inputAmountsMap.get(unit)! + BigInt(amount.amount),
-        );
-      } else {
-        inputAmountsMap.set(unit, BigInt(amount.amount));
-      }
-    }
 
     const agentIdentifierAmountsMap = new Map<string, bigint>();
     for (const amount of amounts) {
@@ -629,23 +506,66 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         agentIdentifierAmountsMap.set(unit, BigInt(amount.amount));
       }
     }
-
-    for (const [unit, amount] of inputAmountsMap.entries()) {
-      if (agentIdentifierAmountsMap.get(unit)! != amount) {
-        throw createHttpError(
-          400,
-          'Agent identifier amounts invalid, for fixed pricing they must match the registry',
-        );
-      }
+    //for fixed pricing, the amounts must not be provided
+    if (input.Amounts != undefined) {
+      throw createHttpError(
+        400,
+        'Agent identifier amounts must not be provided for fixed pricing',
+      );
     }
 
+    const decompressedEncodedBlockchainIdentifier =
+      LZString.decompressFromUint8Array(
+        Buffer.from(input.blockchainIdentifier, 'hex'),
+      );
+    const blockchainIdentifierSplit =
+      decompressedEncodedBlockchainIdentifier.split('.');
+    if (blockchainIdentifierSplit.length != 3) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, format invalid',
+      );
+    }
+    const sellerId = blockchainIdentifierSplit[0];
+    const signature = blockchainIdentifierSplit[1];
+    const key = blockchainIdentifierSplit[2];
+    const cosePublicKey = getPublicKeyFromCoseKey(key);
+    if (cosePublicKey == null) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, key not found',
+      );
+    }
+    const publicKeyHash = await cosePublicKey.hash();
+    if (publicKeyHash.hex() != input.sellerVkey) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, key does not match',
+      );
+    }
+
+    const reconstructedBlockchainIdentifier = {
+      inputHash: input.inputHash,
+      agentIdentifier: input.agentIdentifier,
+      purchaserIdentifier: input.identifierFromPurchaser,
+      sellerIdentifier: sellerId,
+      //RequestedFunds: is null for fixed pricing
+      RequestedFunds: null,
+      submitResultTime: input.submitResultTime,
+      unlockTime: unlockTime.toString(),
+      externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
+    };
+
+    const hashedBlockchainIdentifier = generateHash(
+      stringify(reconstructedBlockchainIdentifier),
+    );
+
     const identifierIsSignedCorrectly = checkSignature(
-      parsedBlockchainIdentifier.data.data,
+      hashedBlockchainIdentifier,
       {
-        signature: parsedBlockchainIdentifier.data.signature,
-        key: parsedBlockchainIdentifier.data.key,
+        signature: signature,
+        key: key,
       },
-      addressOfAsset,
     );
     if (!identifierIsSignedCorrectly) {
       throw createHttpError(
@@ -656,13 +576,15 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     const initialPurchaseRequest = await handlePurchaseCreditInit({
       id: options.id,
-      cost: Array.from(inputAmountsMap.entries()).map(([unit, amount]) => {
-        if (unit.toLowerCase() == 'lovelace') {
-          return { amount: amount, unit: '' };
-        } else {
-          return { amount: amount, unit: unit };
-        }
-      }),
+      cost: Array.from(agentIdentifierAmountsMap.entries()).map(
+        ([unit, amount]) => {
+          if (unit.toLowerCase() == 'lovelace') {
+            return { amount: amount, unit: '' };
+          } else {
+            return { amount: amount, unit: unit };
+          }
+        },
+      ),
       metadata: input.metadata,
       network: input.network,
       blockchainIdentifier: input.blockchainIdentifier,
