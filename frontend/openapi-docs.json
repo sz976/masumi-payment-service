@@ -3329,11 +3329,11 @@
                                     "identifierFromPurchaser"
                                 ],
                                 "example": {
-                                    "identifierFromPurchaser": "cuid_v2_send_to_seller",
-                                    "blockchainIdentifier": "blockchain_identifier",
+                                    "identifierFromPurchaser": "unique_key_from_purchaser",
                                     "network": "Preprod",
                                     "sellerVkey": "seller_vkey",
                                     "paymentType": "Web3CardanoV1",
+                                    "blockchainIdentifier": "blockchain_identifier",
                                     "submitResultTime": "1713636260",
                                     "unlockTime": "1713636260",
                                     "externalDisputeUnlockTime": "1713636260",

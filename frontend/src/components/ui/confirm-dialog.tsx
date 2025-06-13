@@ -31,7 +31,7 @@ export function ConfirmDialog({
           <DialogTitle>{title ?? 'Confirm'}</DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 mb-20">
           <p className="text-sm text-muted-foreground">
             {description ?? '...'}
           </p>

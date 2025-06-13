@@ -10,6 +10,13 @@ import { cn } from '@/lib/utils';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { CopyButton } from '@/components/ui/copy-button';
 import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
+import { useAppContext } from '@/lib/contexts/AppContext';
+import { deleteRegistry } from '@/lib/api/generated';
+import { toast } from 'react-toastify';
+import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 type AIAgent = {
   id: string;
@@ -78,6 +85,10 @@ export function AIAgentDetailsDialog({
   agent,
   onClose,
 }: AIAgentDetailsDialogProps) {
+  const { apiClient, state } = useAppContext();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -85,6 +96,28 @@ export function AIAgentDetailsDialog({
   const shortenAddress = (address: string) => {
     if (!address) return '';
     return `${address.slice(0, 8)}...${address.slice(-8)}`;
+  };
+
+  const handleDelete = async () => {
+    if (!agent?.agentIdentifier) {
+      toast.error('Cannot delete agent: Missing identifier');
+      return;
+    }
+    try {
+      await deleteRegistry({
+        client: apiClient,
+        query: {
+          agentIdentifier: agent.agentIdentifier,
+          network: state.network,
+          smartContractAddress: state.paymentSources?.[0]?.smartContractAddress,
+        },
+      });
+      toast.success('AI agent deleted successfully');
+      onClose();
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      toast.error('Failed to delete AI agent');
+    }
   };
 
   return (
@@ -100,7 +133,7 @@ export function AIAgentDetailsDialog({
               <DialogTitle>{agent.name}</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
+            <div className="space-y-6 py-4 max-h-[70vh] overflow-auto pb-20">
               {/* Description */}
               <div>
                 <h3 className="font-medium mb-2">Description</h3>
@@ -244,6 +277,44 @@ export function AIAgentDetailsDialog({
                 </div>
               </div>
             </div>
+            {/* Actions Section */}
+            <div className="pt-4 border-t flex justify-end gap-2 bg-background absolute bottom-0 left-0 w-full p-4 z-10">
+              <Button
+                onClick={() => setIsPurchaseDialogOpen(true)}
+                disabled
+                className="font-semibold"
+              >
+                Trigger Purchase
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <ConfirmDialog
+              open={isDeleteDialogOpen}
+              onClose={() => setIsDeleteDialogOpen(false)}
+              title="Delete AI Agent"
+              description={`Are you sure you want to delete "${agent?.name}"? This action cannot be undone.`}
+              onConfirm={async () => {
+                await handleDelete();
+                setIsDeleteDialogOpen(false);
+              }}
+              isLoading={false}
+            />
+            <ConfirmDialog
+              open={isPurchaseDialogOpen}
+              onClose={() => setIsPurchaseDialogOpen(false)}
+              title="Trigger Purchase"
+              description={`Are you sure you want to trigger a purchase for "${agent?.name}"?`}
+              onConfirm={async () => {
+                // TODO: call postPurchase here
+                setIsPurchaseDialogOpen(false);
+              }}
+              isLoading={false}
+            />
           </>
         )}
       </DialogContent>
