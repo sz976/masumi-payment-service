@@ -520,15 +520,25 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       );
     const blockchainIdentifierSplit =
       decompressedEncodedBlockchainIdentifier.split('.');
-    if (blockchainIdentifierSplit.length != 3) {
+    if (blockchainIdentifierSplit.length != 4) {
       throw createHttpError(
         400,
         'Invalid blockchain identifier, format invalid',
       );
     }
     const sellerId = blockchainIdentifierSplit[0];
-    const signature = blockchainIdentifierSplit[1];
-    const key = blockchainIdentifierSplit[2];
+    const purchaserId = blockchainIdentifierSplit[1];
+    const purchaserIdDecoded = Buffer.from(purchaserId, 'hex').toString(
+      'utf-8',
+    );
+    if (purchaserIdDecoded != input.identifierFromPurchaser) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, purchaser id mismatch',
+      );
+    }
+    const signature = blockchainIdentifierSplit[2];
+    const key = blockchainIdentifierSplit[3];
     const cosePublicKey = getPublicKeyFromCoseKey(key);
     if (cosePublicKey == null) {
       throw createHttpError(
@@ -547,7 +557,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const reconstructedBlockchainIdentifier = {
       inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
-      purchaserIdentifier: input.identifierFromPurchaser,
+      purchaserIdentifier: purchaserIdDecoded,
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,

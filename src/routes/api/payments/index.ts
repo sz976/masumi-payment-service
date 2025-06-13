@@ -521,8 +521,15 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       hashedBlockchainIdentifier,
       sellingWallet.walletAddress,
     );
+    const encodedPurchaserId = Buffer.from(
+      input.identifierFromPurchaser,
+      'utf-8',
+    ).toString('hex');
+
     const signedEncodedBlockchainIdentifier = Buffer.from(
       sellerId +
+        '.' +
+        encodedPurchaserId +
         '.' +
         signedBlockchainIdentifier.signature +
         '.' +
