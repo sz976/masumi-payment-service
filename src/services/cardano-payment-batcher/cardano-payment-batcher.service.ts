@@ -21,6 +21,13 @@ import { convertNetwork } from '@/utils/converter/network-convert';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 import cbor from 'cbor';
+import {
+  Address,
+  Datum,
+  toPlutusData,
+  toValue,
+  TransactionOutput,
+} from '@meshsdk/core-cst';
 
 const mutex = new Mutex();
 
@@ -214,7 +221,8 @@ export async function batchLatestPaymentEntriesV1() {
               sellerVerificationKeyHash: sellerVerificationKeyHash,
               blockchainIdentifier: paymentRequest.blockchainIdentifier,
               inputHash: paymentRequest.inputHash,
-              resultHash: '',
+              resultHash:
+                'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
               resultTime: Number(paymentRequest.submitResultTime),
               unlockTime: Number(paymentRequest.unlockTime),
               externalDisputeUnlockTime: Number(
@@ -227,25 +235,59 @@ export async function batchLatestPaymentEntriesV1() {
 
             const cborEncodedDatum = cbor.encode(tmpDatum.value);
 
-            const defaultOverheadSize = 200;
-            const bufferSizeTxOutputHash = 70;
-            const bufferSizeCooldownTime = 10;
+            const defaultOverheadSize = 160;
+            const bufferSizeCooldownTime = 15;
             const bufferSizePerUnit = 50;
+            const bufferSizeTxOutputHash = 50;
 
             const otherUnits = paymentRequest.PaidFunds.filter(
               (amount) =>
                 amount.unit.toLowerCase() != '' &&
                 amount.unit.toLowerCase() != 'lovelace',
             ).length;
+
             const totalLength =
               cborEncodedDatum.byteLength +
               defaultOverheadSize +
               bufferSizeTxOutputHash +
               bufferSizeCooldownTime +
               bufferSizePerUnit * otherUnits;
-            const overestimatedMinUtxoCost = BigInt(
+            let overestimatedMinUtxoCost = BigInt(
               Math.ceil(protocolParameter.coinsPerUtxoSize * totalLength),
             );
+
+            const lovelaceAmount =
+              paymentRequest.PaidFunds.find(
+                (amount) => amount.unit == '' || amount.unit == 'lovelace',
+              )?.amount ?? 0;
+            const dummyOutput = new TransactionOutput(
+              Address.fromBech32(walletData.scriptAddress),
+              toValue([
+                ...paymentRequest.PaidFunds.filter(
+                  (amount) => amount.unit != '' && amount.unit != 'lovelace',
+                ).map((amount) => ({
+                  unit: amount.unit,
+                  quantity: amount.amount.toString(),
+                })),
+                {
+                  unit: 'lovelace',
+                  quantity:
+                    lovelaceAmount > overestimatedMinUtxoCost
+                      ? lovelaceAmount.toString()
+                      : overestimatedMinUtxoCost.toString(),
+                },
+              ]),
+            );
+            dummyOutput.setDatum(
+              Datum.newInlineData(toPlutusData(tmpDatum.value)),
+            );
+            const dummyCbor = dummyOutput.toCbor();
+            overestimatedMinUtxoCost =
+              BigInt(
+                defaultOverheadSize +
+                  bufferSizeCooldownTime +
+                  Math.ceil(dummyCbor.length / 2),
+              ) * BigInt(protocolParameter.coinsPerUtxoSize);
 
             //set min ada required;
             const lovelaceRequired = paymentRequest.PaidFunds.findIndex(
@@ -474,11 +516,19 @@ export async function batchLatestPaymentEntriesV1() {
             unsignedTx.setNetwork(convertNetwork(paymentContract.network));
             unsignedTx.setCollateral([collateralUtxo]);
 
+            unsignedTx.sendLovelace(
+              {
+                address: collateralUtxo.output.address,
+              },
+              collateralUtxo.output.amount[0].quantity,
+            );
+
             const completeTx = await unsignedTx.build();
             const signedTx = await wallet.signTx(completeTx);
+            const txHash = await wallet.submitTx(signedTx);
+
             //submit the transaction to the blockchain
 
-            const txHash = await wallet.submitTx(signedTx);
             //update purchase requests
             const purchaseRequestsUpdated = await Promise.allSettled(
               batchedRequests.map(async (request) => {

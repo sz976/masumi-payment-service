@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   patchPaymentSourceExtended,
   getPaymentSourceExtended,
@@ -82,14 +82,20 @@ export function AddWalletDialog({
     }
   }, [open]);
 
-  const fetchPaymentSource = async () => {
+  const fetchPaymentSource = useCallback(async () => {
     try {
       const response = await getPaymentSourceExtended({
         client: apiClient,
       });
-
-      if (response.data?.data?.ExtendedPaymentSources?.[0]?.id) {
-        setPaymentSourceId(response.data.data.ExtendedPaymentSources[0].id);
+      const paymentSources =
+        response.data?.data?.ExtendedPaymentSources?.filter((p) => {
+          return p.network == state.network;
+        });
+      if (paymentSources?.length == 0) {
+        console.error('No payment source for network found');
+      }
+      if (paymentSources?.[0]?.id) {
+        setPaymentSourceId(paymentSources?.[0].id);
       } else {
         setError('No payment source found');
         onClose();
@@ -99,7 +105,7 @@ export function AddWalletDialog({
       setError('Failed to load payment source');
       onClose();
     }
-  };
+  }, [state, state.network]);
 
   const handleGenerateMnemonic = async () => {
     try {

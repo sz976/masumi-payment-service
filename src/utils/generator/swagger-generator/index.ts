@@ -942,11 +942,11 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
-                identifierFromPurchaser: 'cuid_v2_send_to_seller',
-                blockchainIdentifier: 'blockchain_identifier',
+                identifierFromPurchaser: 'unique_key_from_purchaser',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
                 paymentType: PaymentType.Web3CardanoV1,
+                blockchainIdentifier: 'blockchain_identifier',
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
                 externalDisputeUnlockTime: (1713636260).toString(),

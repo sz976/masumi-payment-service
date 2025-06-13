@@ -23,6 +23,9 @@ import { convertNetworkToId } from '@/utils/converter/network-convert';
 import { decrypt } from '@/utils/security/encryption';
 import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
+import { generateHash } from '@/utils/crypto';
+import stringify from 'canonical-json';
+import LZString from 'lz-string';
 
 export const queryPaymentsSchemaInput = z.object({
   limit: z
@@ -490,16 +493,15 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         'Agent identifier not found in selling wallets',
       );
     }
+    const sellerCUID = cuid2.createId();
+    const sellerId = generateHash(sellerCUID);
     const blockchainIdentifier = {
       inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
       purchaserIdentifier: input.identifierFromPurchaser,
-      sellerAddress: sellingWallet.walletAddress,
-      sellerIdentifier: cuid2.createId(),
-      RequestedFunds: amounts.map((amount) => ({
-        amount: BigInt(amount.amount).toString(),
-        unit: amount.unit,
-      })),
+      sellerIdentifier: sellerId,
+      //RequestedFunds: is null for fixed pricing
+      RequestedFunds: null,
       submitResultTime: input.submitResultTime.getTime().toString(),
       unlockTime: unlockTime.toString(),
       externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
@@ -512,22 +514,35 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       },
     });
 
-    const encodedBlockchainIdentifier = JSON.stringify(blockchainIdentifier);
+    const hashedBlockchainIdentifier = generateHash(
+      stringify(blockchainIdentifier),
+    );
     const signedBlockchainIdentifier = await meshWallet.signData(
-      encodedBlockchainIdentifier,
+      hashedBlockchainIdentifier,
       sellingWallet.walletAddress,
     );
+    const encodedPurchaserId = Buffer.from(
+      input.identifierFromPurchaser,
+      'utf-8',
+    ).toString('hex');
+
     const signedEncodedBlockchainIdentifier = Buffer.from(
-      JSON.stringify({
-        data: encodedBlockchainIdentifier,
-        signature: signedBlockchainIdentifier.signature,
-        key: signedBlockchainIdentifier.key,
-      }),
-    ).toString('base64');
+      sellerId +
+        '.' +
+        encodedPurchaserId +
+        '.' +
+        signedBlockchainIdentifier.signature +
+        '.' +
+        signedBlockchainIdentifier.key,
+    ).toString('utf-8');
+
+    const compressedEncodedBlockchainIdentifier = Buffer.from(
+      LZString.compressToUint8Array(signedEncodedBlockchainIdentifier),
+    ).toString('hex');
 
     const payment = await prisma.paymentRequest.create({
       data: {
-        blockchainIdentifier: signedEncodedBlockchainIdentifier,
+        blockchainIdentifier: compressedEncodedBlockchainIdentifier,
         PaymentSource: { connect: { id: specifiedPaymentContract.id } },
         RequestedFunds: {
           createMany: {
@@ -590,7 +605,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         payment.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
       ).map((amount) => ({
         unit: amount.unit,
-        amount: amount.amount.toString(),
+        amount: BigInt(amount.amount).toString(),
       })),
     };
   },

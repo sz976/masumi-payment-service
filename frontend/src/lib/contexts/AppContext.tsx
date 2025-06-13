@@ -19,15 +19,17 @@ interface AppState {
     smartContractAddress: string;
     network: string;
     paymentType: string;
-    collectionWallet: {
+    CollectionWallet: {
       walletAddress: string;
       note?: string;
     };
-    purchasingWallets: {
+    PurchasingWallets: {
       walletMnemonic: string;
       note?: string;
     }[];
-    sellingWallets: {
+    SellingWallets: {
+      id: string;
+      walletVkey: string;
       walletMnemonic: string;
       note?: string;
     }[];
