@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, } from 'react';
 import { Badge } from '../ui/badge';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { postRegistry, getPaymentSource } from '@/lib/api/generated';
@@ -73,6 +73,7 @@ export function AddAIAgentDialog({
   const [sellingWallets, setSellingWallets] = useState<SellingWallet[]>([]);
   const { apiClient, state } = useAppContext();
 
+
   const {
     register,
     handleSubmit,
@@ -119,9 +120,15 @@ export function AddAIAgentDialog({
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources[0];
-        if (paymentSource) {
-          setSellingWallets(paymentSource.SellingWallets);
+        const paymentSources = response.data.data.PaymentSources.filter((s) => s.network == state.network);
+        if (paymentSources.length > 0) {
+          const aggregatedWallets: SellingWallet[] = []
+          paymentSources.forEach((ps) => {
+            ps.SellingWallets.forEach((w) => {
+              aggregatedWallets.push(w)
+            })
+          })
+          setSellingWallets(aggregatedWallets);
         }
       }
     } catch (error) {
@@ -130,16 +137,24 @@ export function AddAIAgentDialog({
     }
   };
 
-  const onSubmit = async (data: AgentFormValues) => {
+  const onSubmit = useCallback(async (data: AgentFormValues) => {
     try {
+      console.log(data, state)
       setIsLoading(true);
-      const smartContractAddress =
-        state.paymentSources?.[0]?.smartContractAddress;
+      const selectedWallet = data.selectedWallet;
+      const paymentSource =
+        state.paymentSources?.find((ps) => {
+          console.log(ps)
+          return ps.SellingWallets?.find((s) => { return s.walletVkey == selectedWallet }) != null
+        });
+      if (!paymentSource) {
+        console.error("Smart contract wallet not found in payment sources", selectedWallet)
+      }
       const response = await postRegistry({
         client: apiClient,
         body: {
           network: state.network,
-          smartContractAddress,
+          smartContractAddress: paymentSource?.smartContractAddress,
           sellingWalletVkey: data.selectedWallet,
           name: data.name,
           description: data.description,
@@ -183,7 +198,7 @@ export function AddAIAgentDialog({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [state, state.network, state.paymentSources]);
 
   // Tag management
   const handleAddTag = () => {
