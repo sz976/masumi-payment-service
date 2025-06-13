@@ -109,7 +109,7 @@ export function TransakWidget({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0">
+      <DialogContent className="p-0 h-full max-h-[600px]">
         <iframe
           src={transakUrl.toString()}
           className="w-full h-full rounded-lg"
