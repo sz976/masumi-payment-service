@@ -515,6 +515,7 @@ export async function batchLatestPaymentEntriesV1() {
             }
             unsignedTx.setNetwork(convertNetwork(paymentContract.network));
             unsignedTx.setCollateral([collateralUtxo]);
+
             unsignedTx.sendLovelace(
               {
                 address: collateralUtxo.output.address,
