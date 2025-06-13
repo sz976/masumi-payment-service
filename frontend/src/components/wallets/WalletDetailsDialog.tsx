@@ -135,6 +135,7 @@ export function WalletDetailsDialog({
       setTokenBalances([]);
       setError(null);
       setIsLoading(true);
+      setExportedMnemonic(null);
       fetchTokenBalances();
     }
   }, [isOpen, wallet?.walletAddress]);
@@ -243,7 +244,7 @@ export function WalletDetailsDialog({
 
           <div className="space-y-4 mt-4">
             <div className="bg-muted rounded-lg p-4">
-                <div className="text-sm font-medium">Wallet Address</div>
+              <div className="text-sm font-medium">Wallet Address</div>
               <div className="flex items-center gap-2 mt-1">
                 <span className="font-mono text-sm">
                   {shortenAddress(wallet.walletAddress)}
@@ -279,7 +280,7 @@ export function WalletDetailsDialog({
 
             <div className="bg-muted rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Token Balances</div>
+                <div className="text-sm font-medium">Token Balances</div>
                 <Button
                   variant="ghost"
                   size="icon"
