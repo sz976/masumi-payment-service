@@ -126,7 +126,7 @@ export function useSearch() {
     const dynamicResults: SearchableItem[] = [];
 
     state.paymentSources?.forEach((source) => {
-      source.purchasingWallets?.forEach((wallet) => {
+      source.PurchasingWallets?.forEach((wallet) => {
         dynamicResults.push({
           id: wallet.walletMnemonic,
           title: 'Buying Wallet',
@@ -137,7 +137,7 @@ export function useSearch() {
         });
       });
 
-      source.sellingWallets?.forEach((wallet) => {
+      source.SellingWallets?.forEach((wallet) => {
         dynamicResults.push({
           id: wallet.walletMnemonic,
           title: 'Selling Wallet',

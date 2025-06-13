@@ -314,7 +314,11 @@ export default function Overview() {
               {isLoadingAgents ? (
                 <Spinner size={20} addContainer />
               ) : (
-                <div className="text-2xl font-semibold">{agents.length}</div>
+                <div className="text-2xl font-semibold">
+                  {agents.filter(
+                    (agent) => agent.state === 'RegistrationConfirmed',
+                  ).length}
+                </div>
               )}
             </div>
             <div className="border rounded-lg p-6">
