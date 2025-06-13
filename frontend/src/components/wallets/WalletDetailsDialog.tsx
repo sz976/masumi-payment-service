@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Share, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { getUtxos } from '@/lib/api/generated';
+import { getUtxos, getWallet } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { shortenAddress } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
@@ -60,6 +60,8 @@ export function WalletDetailsDialog({
     useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<WalletWithBalance | null>(null);
+  const [exportedMnemonic, setExportedMnemonic] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchTokenBalances = async () => {
     if (!wallet) return;
@@ -179,6 +181,52 @@ export function WalletDetailsDialog({
     };
   };
 
+  const handleExport = async () => {
+    if (!wallet || wallet.type === 'Collection') return;
+    setIsExporting(true);
+    try {
+      const response = await getWallet({
+        client: apiClient,
+        query: {
+          walletType: wallet.type as 'Purchasing' | 'Selling',
+          id: wallet.id,
+          includeSecret: 'true',
+        },
+      });
+      setExportedMnemonic(response.data?.data?.Secret?.mnemonic || '');
+    } catch {
+      toast.error('Failed to export wallet');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleCopyMnemonic = async () => {
+    if (exportedMnemonic) {
+      await navigator.clipboard.writeText(exportedMnemonic);
+      toast.success('Mnemonic copied to clipboard');
+    }
+  };
+
+  const handleDownload = () => {
+    if (!wallet || !exportedMnemonic) return;
+    const data = {
+      walletAddress: wallet.walletAddress,
+      walletVkey: wallet.walletVkey,
+      note: wallet.note,
+      mnemonic: exportedMnemonic,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wallet-export-${wallet.walletAddress}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!wallet) return null;
 
   return (
@@ -203,6 +251,7 @@ export function WalletDetailsDialog({
                 <CopyButton value={wallet.walletAddress} />
               </div>
             </div>
+
             <div className="bg-muted rounded-lg p-4">
               <div className="text-sm font-medium">vKey</div>
               <div className="flex items-center gap-2 mt-1">
@@ -283,6 +332,51 @@ export function WalletDetailsDialog({
                 </div>
               )}
             </div>
+            {wallet.type !== 'Collection' && (
+              <div className="flex items-center">
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  title="Export Wallet"
+                >
+                  <span className="">Export Wallet</span>
+                  <Share className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {exportedMnemonic && (
+              <div className="bg-muted rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium ">Mnemonic</div>
+                  <div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setExportedMnemonic(null)}
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <textarea
+                  className="w-full font-mono text-sm bg-background rounded p-2 mb-2"
+                  value={exportedMnemonic}
+                  readOnly
+                  rows={3}
+                  style={{ resize: 'none' }}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleCopyMnemonic} size="sm">
+                    Copy Mnemonic
+                  </Button>
+                  <Button onClick={handleDownload} size="sm" variant="outline">
+                    Download JSON
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
