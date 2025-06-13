@@ -249,53 +249,8 @@ export function WalletDetailsDialog({
                   {shortenAddress(wallet.walletAddress)}
                 </span>
                 <CopyButton value={wallet.walletAddress} />
-                {wallet.type !== 'Collection' && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={handleExport}
-                    disabled={isExporting}
-                    title="Export Wallet"
-                  >
-                    <span className="sr-only">Export Wallet</span>
-                    <Share className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
             </div>
-
-            {exportedMnemonic && (
-              <div className="bg-muted rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium mb-2">Mnemonic</div>
-                  <div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setExportedMnemonic(null)}
-                      aria-label="Close"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <textarea
-                  className="w-full font-mono text-sm bg-background rounded p-2 mb-2"
-                  value={exportedMnemonic}
-                  readOnly
-                  rows={3}
-                  style={{ resize: 'none' }}
-                />
-                <div className="flex gap-2">
-                  <Button onClick={handleCopyMnemonic} size="sm">
-                    Copy Mnemonic
-                  </Button>
-                  <Button onClick={handleDownload} size="sm" variant="outline">
-                    Download JSON
-                  </Button>
-                </div>
-              </div>
-            )}
 
             <div className="bg-muted rounded-lg p-4">
               <div className="text-sm font-medium">vKey</div>
@@ -377,6 +332,51 @@ export function WalletDetailsDialog({
                 </div>
               )}
             </div>
+            {wallet.type !== 'Collection' && (
+              <div className="flex items-center">
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  title="Export Wallet"
+                >
+                  <span className="">Export Wallet</span>
+                  <Share className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {exportedMnemonic && (
+              <div className="bg-muted rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium ">Mnemonic</div>
+                  <div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setExportedMnemonic(null)}
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <textarea
+                  className="w-full font-mono text-sm bg-background rounded p-2 mb-2"
+                  value={exportedMnemonic}
+                  readOnly
+                  rows={3}
+                  style={{ resize: 'none' }}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleCopyMnemonic} size="sm">
+                    Copy Mnemonic
+                  </Button>
+                  <Button onClick={handleDownload} size="sm" variant="outline">
+                    Download JSON
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
