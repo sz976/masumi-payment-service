@@ -87,11 +87,12 @@ export function AddWalletDialog({
       const response = await getPaymentSourceExtended({
         client: apiClient,
       });
-      const paymentSources = response.data?.data?.ExtendedPaymentSources?.filter((p) => {
-        return p.network == state.network
-      })
+      const paymentSources =
+        response.data?.data?.ExtendedPaymentSources?.filter((p) => {
+          return p.network == state.network;
+        });
       if (paymentSources?.length == 0) {
-        console.error("No payment source for network found")
+        console.error('No payment source for network found');
       }
       if (paymentSources?.[0]?.id) {
         setPaymentSourceId(paymentSources?.[0].id);
@@ -154,12 +155,12 @@ export function AddWalletDialog({
           [type === 'Purchasing'
             ? 'AddPurchasingWallets'
             : 'AddSellingWallets']: [
-              {
-                walletMnemonic: data.mnemonic.trim(),
-                note: data.note.trim(),
-                collectionAddress: data.collectionAddress.trim(),
-              },
-            ],
+            {
+              walletMnemonic: data.mnemonic.trim(),
+              note: data.note.trim(),
+              collectionAddress: data.collectionAddress.trim(),
+            },
+          ],
         },
       });
 

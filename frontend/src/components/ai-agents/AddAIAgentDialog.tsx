@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useState, useEffect, useCallback, } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge } from '../ui/badge';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import { postRegistry, getPaymentSource } from '@/lib/api/generated';
@@ -73,7 +73,6 @@ export function AddAIAgentDialog({
   const [sellingWallets, setSellingWallets] = useState<SellingWallet[]>([]);
   const { apiClient, state } = useAppContext();
 
-
   const {
     register,
     handleSubmit,
@@ -120,14 +119,16 @@ export function AddAIAgentDialog({
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSources = response.data.data.PaymentSources.filter((s) => s.network == state.network);
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (s) => s.network == state.network,
+        );
         if (paymentSources.length > 0) {
-          const aggregatedWallets: SellingWallet[] = []
+          const aggregatedWallets: SellingWallet[] = [];
           paymentSources.forEach((ps) => {
             ps.SellingWallets.forEach((w) => {
-              aggregatedWallets.push(w)
-            })
-          })
+              aggregatedWallets.push(w);
+            });
+          });
           setSellingWallets(aggregatedWallets);
         }
       }
@@ -137,68 +138,77 @@ export function AddAIAgentDialog({
     }
   };
 
-  const onSubmit = useCallback(async (data: AgentFormValues) => {
-    try {
-      console.log(data, state)
-      setIsLoading(true);
-      const selectedWallet = data.selectedWallet;
-      const paymentSource =
-        state.paymentSources?.find((ps) => {
-          console.log(ps)
-          return ps.SellingWallets?.find((s) => { return s.walletVkey == selectedWallet }) != null
+  const onSubmit = useCallback(
+    async (data: AgentFormValues) => {
+      try {
+        console.log(data, state);
+        setIsLoading(true);
+        const selectedWallet = data.selectedWallet;
+        const paymentSource = state.paymentSources?.find((ps) => {
+          console.log(ps);
+          return (
+            ps.SellingWallets?.find((s) => {
+              return s.walletVkey == selectedWallet;
+            }) != null
+          );
         });
-      if (!paymentSource) {
-        console.error("Smart contract wallet not found in payment sources", selectedWallet)
-      }
-      const response = await postRegistry({
-        client: apiClient,
-        body: {
-          network: state.network,
-          smartContractAddress: paymentSource?.smartContractAddress,
-          sellingWalletVkey: data.selectedWallet,
-          name: data.name,
-          description: data.description,
-          apiBaseUrl: data.apiUrl,
-          Tags: data.tags,
-          Capability: {
-            name: 'Custom Agent',
-            version: '1.0.0',
+        if (!paymentSource) {
+          console.error(
+            'Smart contract wallet not found in payment sources',
+            selectedWallet,
+          );
+        }
+        const response = await postRegistry({
+          client: apiClient,
+          body: {
+            network: state.network,
+            smartContractAddress: paymentSource?.smartContractAddress,
+            sellingWalletVkey: data.selectedWallet,
+            name: data.name,
+            description: data.description,
+            apiBaseUrl: data.apiUrl,
+            Tags: data.tags,
+            Capability: {
+              name: 'Custom Agent',
+              version: '1.0.0',
+            },
+            AgentPricing: {
+              pricingType: 'Fixed',
+              Pricing: data.prices.map((price) => {
+                const unit =
+                  price.unit === 'USDM' ? USDM_CONFIG.fullAssetId : price.unit;
+                return {
+                  unit,
+                  amount: (parseFloat(price.amount) * 1_000_000).toString(),
+                };
+              }),
+            },
+            Author: {
+              name: 'Admin',
+            },
+            ExampleOutputs: [],
           },
-          AgentPricing: {
-            pricingType: 'Fixed',
-            Pricing: data.prices.map((price) => {
-              const unit =
-                price.unit === 'USDM' ? USDM_CONFIG.fullAssetId : price.unit;
-              return {
-                unit,
-                amount: (parseFloat(price.amount) * 1_000_000).toString(),
-              };
-            }),
-          },
-          Author: {
-            name: 'Admin',
-          },
-          ExampleOutputs: [],
-        },
-      });
+        });
 
-      if (!response.data?.data?.id) {
-        throw new Error(
-          'Failed to create AI agent: Invalid response from server',
-        );
-      }
+        if (!response.data?.data?.id) {
+          throw new Error(
+            'Failed to create AI agent: Invalid response from server',
+          );
+        }
 
-      toast.success('AI agent created successfully');
-      onSuccess();
-      onClose();
-      reset();
-    } catch (error: any) {
-      console.error('Error creating AI agent:', error);
-      toast.error(error?.message ?? 'Failed to create AI agent');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [state, state.network, state.paymentSources]);
+        toast.success('AI agent created successfully');
+        onSuccess();
+        onClose();
+        reset();
+      } catch (error: any) {
+        console.error('Error creating AI agent:', error);
+        toast.error(error?.message ?? 'Failed to create AI agent');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [state, state.network, state.paymentSources],
+  );
 
   // Tag management
   const handleAddTag = () => {

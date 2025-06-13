@@ -123,16 +123,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 export const AppContext = createContext<
   | {
-    state: AppState;
-    dispatch: React.Dispatch<AppAction>;
-    showError: (error: {
-      code?: number;
-      message: string;
-      details?: unknown;
-    }) => void;
-    apiClient: Client;
-    setApiClient: React.Dispatch<React.SetStateAction<Client>>;
-  }
+      state: AppState;
+      dispatch: React.Dispatch<AppAction>;
+      showError: (error: {
+        code?: number;
+        message: string;
+        details?: unknown;
+      }) => void;
+      apiClient: Client;
+      setApiClient: React.Dispatch<React.SetStateAction<Client>>;
+    }
   | undefined
 >(undefined);
 
