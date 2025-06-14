@@ -15,6 +15,7 @@ import { blake2b } from 'ethereum-cryptography/blake2b';
 import { stringToMetadata } from '@/utils/converter/metadata-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { convertErrorString } from '@/utils/converter/error-string-convert';
 
 const mutex = new Mutex();
 
@@ -287,6 +288,7 @@ export async function registerAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationFailed,
+                error: convertErrorString(error),
                 SmartContractWallet: {
                   update: {
                     lockedAt: null,
