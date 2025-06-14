@@ -71,6 +71,9 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS?.toLowerCase() === 'true' ||
   process.env.AUTO_WITHDRAW_REFUNDS === '' ||
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
+const collateralInterval = Number(process.env.COLLATERAL_INTERVAL ?? '30');
+if (collateralInterval < 20)
+  throw new Error('COLLATERAL_INTERVAL must be at least 20 seconds');
 
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
 if (autoDecisionInterval < 20)
@@ -94,6 +97,7 @@ export const CONFIG = {
   AUTO_WITHDRAW_PAYMENTS: autoWithdrawPayments,
   AUTO_WITHDRAW_REFUNDS: autoWithdrawRefunds,
   AUTO_DECISION_INTERVAL: autoDecisionInterval,
+  COLLATERAL_INTERVAL: collateralInterval,
 };
 
 export const DEFAULTS = {

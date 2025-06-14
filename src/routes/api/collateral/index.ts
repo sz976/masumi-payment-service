@@ -34,8 +34,6 @@ export const queryCollateralRequestSchemaOutput = z.object({
     z.object({
       id: z.string(),
       state: z.nativeEnum(CollateralRequestState),
-      createdAt: z.date(),
-      updatedAt: z.date(),
       HotWallet: z.object({
         id: z.string(),
         walletAddress: z.string(),
@@ -160,6 +158,7 @@ export const postCollateralSchemaOutput = z.object({
     id: z.string(),
     walletAddress: z.string(),
     type: z.nativeEnum(HotWalletType),
+    walletVkey: z.string(),
   }),
   Transaction: z.object({
     txHash: z.string(),

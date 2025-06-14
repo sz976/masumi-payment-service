@@ -2735,6 +2735,308 @@
                 }
             }
         },
+        "/collateral-setup/": {
+            "get": {
+                "description": "Gets a collateral request.",
+                "summary": "REQUIRES API KEY Authentication (+READ)",
+                "tags": [
+                    "collateral"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "description": "The cursor id to paginate through the results"
+                        },
+                        "required": false,
+                        "description": "The cursor id to paginate through the results",
+                        "name": "cursorId",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Preprod",
+                                "Mainnet"
+                            ],
+                            "description": "The Cardano network used to register the agent on"
+                        },
+                        "required": true,
+                        "description": "The Cardano network used to register the agent on",
+                        "name": "network",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 250,
+                            "description": "The smart contract address of the payment source to which the registration belongs"
+                        },
+                        "required": false,
+                        "description": "The smart contract address of the payment source to which the registration belongs",
+                        "name": "smartContractAddress",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Collateral request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "CollateralRequests": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "state": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "Pending",
+                                                            "Confirmed",
+                                                            "Failed"
+                                                        ]
+                                                    },
+                                                    "HotWallet": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "walletAddress": {
+                                                                "type": "string"
+                                                            },
+                                                            "walletVkey": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "Selling",
+                                                                    "Purchasing"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "walletAddress",
+                                                            "walletVkey",
+                                                            "type"
+                                                        ]
+                                                    },
+                                                    "Transaction": {
+                                                        "type": "object",
+                                                        "nullable": true,
+                                                        "properties": {
+                                                            "txHash": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "Pending",
+                                                                    "Confirmed",
+                                                                    "FailedViaTimeout"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "txHash",
+                                                            "status"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "state",
+                                                    "HotWallet",
+                                                    "Transaction"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "CollateralRequests"
+                                    ],
+                                    "example": {
+                                        "CollateralRequests": [
+                                            {
+                                                "id": "cuid_v2_auto_generated",
+                                                "state": "Pending",
+                                                "HotWallet": {
+                                                    "type": "Selling",
+                                                    "id": "hot_wallet_id",
+                                                    "walletAddress": "wallet_address",
+                                                    "walletVkey": "wallet_vkey"
+                                                },
+                                                "Transaction": {
+                                                    "txHash": "tx_hash",
+                                                    "status": "Pending"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a collateral request.",
+                "summary": "REQUIRES API KEY Authentication (+PAY)",
+                "tags": [
+                    "collateral"
+                ],
+                "security": [
+                    {
+                        "API-Key": []
+                    }
+                ],
+                "requestBody": {
+                    "description": "",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "network": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Preprod",
+                                            "Mainnet"
+                                        ],
+                                        "description": "The Cardano network used to register the collateral on"
+                                    },
+                                    "smartContractAddress": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The smart contract address of the payment source to be registered for"
+                                    },
+                                    "sellingWalletVkey": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The payment key of a specific wallet used for the collateral"
+                                    }
+                                },
+                                "required": [
+                                    "network",
+                                    "sellingWalletVkey"
+                                ],
+                                "example": {
+                                    "network": "Preprod",
+                                    "smartContractAddress": "address",
+                                    "sellingWalletVkey": "wallet_vkey"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Collateral request created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "state": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Pending",
+                                                "Confirmed",
+                                                "Failed"
+                                            ]
+                                        },
+                                        "HotWallet": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "walletAddress": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Selling",
+                                                        "Purchasing"
+                                                    ]
+                                                },
+                                                "walletVkey": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "walletAddress",
+                                                "type",
+                                                "walletVkey"
+                                            ]
+                                        },
+                                        "Transaction": {
+                                            "type": "object",
+                                            "properties": {
+                                                "txHash": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Pending",
+                                                        "Confirmed",
+                                                        "FailedViaTimeout"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "txHash",
+                                                "status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "state",
+                                        "HotWallet",
+                                        "Transaction"
+                                    ],
+                                    "example": {
+                                        "id": "cuid_v2_auto_generated",
+                                        "state": "Pending",
+                                        "HotWallet": {
+                                            "id": "hot_wallet_id",
+                                            "walletAddress": "wallet_address",
+                                            "type": "Selling",
+                                            "walletVkey": "wallet_vkey"
+                                        },
+                                        "Transaction": {
+                                            "txHash": "tx_hash",
+                                            "status": "Pending"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/purchase/": {
             "get": {
                 "description": "Gets the purchase status. It needs to be created first with a POST request.",

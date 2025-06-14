@@ -13,6 +13,7 @@ import { deRegisterAgentV1 } from '../cardano-deregister-handler/';
 import { submitResultV1 } from '../cardano-submit-result-handler/';
 import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/';
 import { handleAutomaticDecisions } from '../automatic-decision-handler';
+import { fixCollateral } from '../cardano-collateral-handler/cardano-collateral-handler.service';
 export async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -191,6 +192,19 @@ export async function initJobs() {
           's',
       );
     }, CONFIG.AUTO_DECISION_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
+  void new Promise((resolve) => setTimeout(resolve, 2500)).then(() => {
+    // Automatic decision handler interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting collateral handler');
+      const start = new Date();
+      await fixCollateral();
+      logger.info(
+        'Finished collateral handler in ' +
+          (new Date().getTime() - start.getTime()) / 1000 +
+          's',
+      );
+    }, CONFIG.COLLATERAL_INTERVAL * 1000); // Convert seconds to milliseconds
   });
   await new Promise((resolve) => setTimeout(resolve, 200));
   logger.info('Initialized async intervals');
