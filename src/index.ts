@@ -10,6 +10,7 @@ import { generateOpenAPI } from '@/utils/generator/swagger-generator';
 import { cleanupDB, initDB } from '@/utils/db';
 import path from 'path';
 import { requestLogger } from '@/utils/middleware/request-logger';
+import fs from 'fs';
 
 const __dirname = path.resolve();
 
@@ -47,16 +48,38 @@ initialize()
         };
         const docs = generateOpenAPI();
         const docsString = JSON.stringify(docs, replacer, 4);
+
+        // Read custom CSS
+        let customCss = '';
+        try {
+          customCss = fs.readFileSync(
+            path.join(__dirname, 'public/assets/swagger-custom.css'),
+            'utf8',
+          );
+        } catch {
+          logger.warn('Custom CSS file not found, using default styling');
+        }
+
         logger.info(
           '************** Now serving the API documentation at localhost:' +
             PORT +
             '/docs **************',
         );
+
+        // Serve static assets
+        app.use(
+          '/assets',
+          express.static(path.join(__dirname, 'public/assets')),
+        );
+
         app.use(
           '/docs',
           ui.serve,
           ui.setup(JSON.parse(docsString) as JsonObject, {
             explorer: false,
+            customSiteTitle: 'Payment Service API Documentation',
+            customfavIcon: '/assets/favicon.png',
+            customCss: customCss,
             swaggerOptions: {
               persistAuthorization: true,
               tryItOutEnabled: true,

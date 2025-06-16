@@ -2113,8 +2113,9 @@ export function generateOpenAPI() {
     openapi: '3.0.0',
     info: {
       version: '1.0.0',
-      title: 'Template API',
-      description: 'This is the default API from a template',
+      title: 'Masumi Payment Service API',
+      description:
+        'A comprehensive payment service API for the Masumi ecosystem, providing secure payment processing, agent registry management, and wallet operations.',
     },
 
     servers: [{ url: './../api/v1/' }],

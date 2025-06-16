@@ -1,0 +1,120 @@
+/* Custom Swagger UI Styling */
+
+/* Import Google Font Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Set Inter as the default font for the entire Swagger UI, excluding code elements */
+.swagger-ui  {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Ensure code elements keep monospace fonts */
+.swagger-ui code,
+.swagger-ui pre,
+.swagger-ui .highlight-code,
+.swagger-ui .microlight,
+.swagger-ui .language-json,
+.swagger-ui .language-javascript,
+.swagger-ui .language-xml,
+.swagger-ui .model-example,
+.swagger-ui .renderedMarkdown code,
+.swagger-ui .response-content-type,
+.swagger-ui textarea {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
+}
+
+/* Hide the default Swagger logo
+.swagger-ui .topbar .download-url-wrapper {
+  display: none;
+} */
+
+/* Custom header styling */
+.swagger-ui .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #ff6400 0%, #FA008C 100%);
+  padding: 10px 20px;
+  position: relative;
+}
+
+/* Logo on the right side of topbar */
+.swagger-ui .topbar::after {
+  content: '';
+  background-image: url('/assets/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 150px;
+  height: 40px;
+  display: block;
+  margin-left: auto;
+}
+
+.topbar .wrapper {
+    padding: 0;
+}
+
+/* Custom title styling */
+.swagger-ui .info .title {
+  color: #1a202c;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+  letter-spacing: -0.025em; /* Tighter letter spacing for Inter */
+}
+
+/* Custom description styling */
+.swagger-ui .info .description {
+  color: #4a5568;
+  font-size: 1.1rem;
+  font-weight: 400;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.6; /* Better line height for Inter */
+}
+
+
+
+
+/* Enhance the overall appearance */
+.swagger-ui .info {
+  margin: 30px 0;
+}
+
+/* Custom operation styling */
+.swagger-ui .opblock {
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom button styling */
+.swagger-ui .btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Custom input styling */
+.swagger-ui input[type=text], 
+.swagger-ui input[type=password], 
+.swagger-ui textarea {
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+  transition: border-color 0.2s ease;
+}
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .swagger-ui .topbar::before {
+    width: 120px;
+    height: 32px;
+    margin-left: 10px;
+  }
+  
+  .swagger-ui .info .title {
+    font-size: 2rem;
+  }
+} 
