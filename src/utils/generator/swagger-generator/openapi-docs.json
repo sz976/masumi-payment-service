@@ -2404,7 +2404,7 @@
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
                                     },
-                                    "paymentContractAddress": {
+                                    "smartContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract holding the purchase"
@@ -2731,308 +2731,6 @@
                     },
                     "500": {
                         "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/collateral-setup/": {
-            "get": {
-                "description": "Gets a collateral request.",
-                "summary": "REQUIRES API KEY Authentication (+READ)",
-                "tags": [
-                    "collateral"
-                ],
-                "security": [
-                    {
-                        "API-Key": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "description": "The cursor id to paginate through the results"
-                        },
-                        "required": false,
-                        "description": "The cursor id to paginate through the results",
-                        "name": "cursorId",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "Preprod",
-                                "Mainnet"
-                            ],
-                            "description": "The Cardano network used to register the agent on"
-                        },
-                        "required": true,
-                        "description": "The Cardano network used to register the agent on",
-                        "name": "network",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The smart contract address of the payment source to which the registration belongs"
-                        },
-                        "required": false,
-                        "description": "The smart contract address of the payment source to which the registration belongs",
-                        "name": "smartContractAddress",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Collateral request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "CollateralRequests": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "state": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "Pending",
-                                                            "Confirmed",
-                                                            "Failed"
-                                                        ]
-                                                    },
-                                                    "HotWallet": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "walletAddress": {
-                                                                "type": "string"
-                                                            },
-                                                            "walletVkey": {
-                                                                "type": "string"
-                                                            },
-                                                            "type": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "Selling",
-                                                                    "Purchasing"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "required": [
-                                                            "id",
-                                                            "walletAddress",
-                                                            "walletVkey",
-                                                            "type"
-                                                        ]
-                                                    },
-                                                    "Transaction": {
-                                                        "type": "object",
-                                                        "nullable": true,
-                                                        "properties": {
-                                                            "txHash": {
-                                                                "type": "string"
-                                                            },
-                                                            "status": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "Pending",
-                                                                    "Confirmed",
-                                                                    "FailedViaTimeout"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "required": [
-                                                            "txHash",
-                                                            "status"
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "id",
-                                                    "state",
-                                                    "HotWallet",
-                                                    "Transaction"
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "CollateralRequests"
-                                    ],
-                                    "example": {
-                                        "CollateralRequests": [
-                                            {
-                                                "id": "cuid_v2_auto_generated",
-                                                "state": "Pending",
-                                                "HotWallet": {
-                                                    "type": "Selling",
-                                                    "id": "hot_wallet_id",
-                                                    "walletAddress": "wallet_address",
-                                                    "walletVkey": "wallet_vkey"
-                                                },
-                                                "Transaction": {
-                                                    "txHash": "tx_hash",
-                                                    "status": "Pending"
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a collateral request.",
-                "summary": "REQUIRES API KEY Authentication (+PAY)",
-                "tags": [
-                    "collateral"
-                ],
-                "security": [
-                    {
-                        "API-Key": []
-                    }
-                ],
-                "requestBody": {
-                    "description": "",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "network": {
-                                        "type": "string",
-                                        "enum": [
-                                            "Preprod",
-                                            "Mainnet"
-                                        ],
-                                        "description": "The Cardano network used to register the collateral on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The smart contract address of the payment source to be registered for"
-                                    },
-                                    "walletVkey": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The payment key of a specific wallet used for the collateral"
-                                    }
-                                },
-                                "required": [
-                                    "network",
-                                    "walletVkey"
-                                ],
-                                "example": {
-                                    "network": "Preprod",
-                                    "smartContractAddress": "address",
-                                    "walletVkey": "wallet_vkey"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Collateral request created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Pending",
-                                                "Confirmed",
-                                                "Failed"
-                                            ]
-                                        },
-                                        "HotWallet": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string"
-                                                },
-                                                "walletAddress": {
-                                                    "type": "string"
-                                                },
-                                                "type": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "Selling",
-                                                        "Purchasing"
-                                                    ]
-                                                },
-                                                "walletVkey": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "id",
-                                                "walletAddress",
-                                                "type",
-                                                "walletVkey"
-                                            ]
-                                        },
-                                        "Transaction": {
-                                            "type": "object",
-                                            "properties": {
-                                                "txHash": {
-                                                    "type": "string"
-                                                },
-                                                "status": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "Pending",
-                                                        "Confirmed",
-                                                        "FailedViaTimeout"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "txHash",
-                                                "status"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "id",
-                                        "state",
-                                        "HotWallet",
-                                        "Transaction"
-                                    ],
-                                    "example": {
-                                        "id": "cuid_v2_auto_generated",
-                                        "state": "Pending",
-                                        "HotWallet": {
-                                            "id": "hot_wallet_id",
-                                            "walletAddress": "wallet_address",
-                                            "type": "Selling",
-                                            "walletVkey": "wallet_vkey"
-                                        },
-                                        "Transaction": {
-                                            "txHash": "tx_hash",
-                                            "status": "Pending"
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -5160,6 +4858,10 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "error": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
                                                             "id": {
                                                                 "type": "string"
                                                             },
@@ -5370,6 +5072,7 @@
                                                             }
                                                         },
                                                         "required": [
+                                                            "error",
                                                             "id",
                                                             "name",
                                                             "description",
@@ -5405,6 +5108,7 @@
                                         "data": {
                                             "Assets": [
                                                 {
+                                                    "error": null,
                                                     "id": "asset_id",
                                                     "name": "name",
                                                     "description": "description",
@@ -5969,44 +5673,44 @@
                         "API-Key": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The identifier of the registration (asset) to be deregistered"
-                        },
-                        "required": true,
-                        "description": "The identifier of the registration (asset) to be deregistered",
-                        "name": "agentIdentifier",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "Preprod",
-                                "Mainnet"
-                            ],
-                            "description": "The network the registration was made on"
-                        },
-                        "required": true,
-                        "description": "The network the registration was made on",
-                        "name": "network",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The smart contract address of the payment contract to which the registration belongs"
-                        },
-                        "required": false,
-                        "description": "The smart contract address of the payment contract to which the registration belongs",
-                        "name": "smartContractAddress",
-                        "in": "query"
+                "requestBody": {
+                    "description": "",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "agentIdentifier": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The identifier of the registration (asset) to be deregistered"
+                                    },
+                                    "network": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Preprod",
+                                            "Mainnet"
+                                        ],
+                                        "description": "The network the registration was made on"
+                                    },
+                                    "smartContractAddress": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The smart contract address of the payment contract to which the registration belongs"
+                                    }
+                                },
+                                "required": [
+                                    "agentIdentifier",
+                                    "network"
+                                ],
+                                "example": {
+                                    "agentIdentifier": "agentIdentifier",
+                                    "network": "Preprod"
+                                }
+                            }
+                        }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Payment source deleted",
@@ -6937,6 +6641,12 @@
                                         "maximum": 1000,
                                         "description": "The fee in permille to be used for the payment source. The default contract uses 50 (5%)"
                                     },
+                                    "cooldownTime": {
+                                        "type": "number",
+                                        "nullable": true,
+                                        "minimum": 0,
+                                        "description": "The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)"
+                                    },
                                     "AdminWallets": {
                                         "type": "array",
                                         "items": {
@@ -7801,18 +7511,28 @@
                         "API-Key": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "description": "The id of the payment source to be deleted"
-                        },
-                        "required": true,
-                        "description": "The id of the payment source to be deleted",
-                        "name": "id",
-                        "in": "query"
+                "requestBody": {
+                    "description": "",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "The id of the payment source to be deleted"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ],
+                                "example": {
+                                    "id": "unique_cuid_v2_auto_generated"
+                                }
+                            }
+                        }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Payment source deleted",

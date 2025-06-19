@@ -260,7 +260,7 @@ export default function AIAgentsPage() {
       setIsDeleting(true);
       await deleteRegistry({
         client: apiClient,
-        query: {
+        body: {
           agentIdentifier: selectedAgentToDelete.agentIdentifier,
           network: state.network,
         },

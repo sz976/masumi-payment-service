@@ -261,7 +261,7 @@ export default function PaymentSourcesPage() {
 
       const response = await deletePaymentSourceExtended({
         client: apiClient,
-        query: {
+        body: {
           id: sourceToDelete.id,
         },
       });

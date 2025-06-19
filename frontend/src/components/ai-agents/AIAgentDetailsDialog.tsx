@@ -106,7 +106,7 @@ export function AIAgentDetailsDialog({
     try {
       await deleteRegistry({
         client: apiClient,
-        query: {
+        body: {
           agentIdentifier: agent.agentIdentifier,
           network: state.network,
           smartContractAddress: state.paymentSources?.[0]?.smartContractAddress,
