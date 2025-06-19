@@ -22,7 +22,7 @@ export const authorizePaymentRefundSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the Cardano wallet will be used on'),
-  paymentContractAddress: z
+  smartContractAddress: z
     .string()
     .max(250)
     .optional()
@@ -110,8 +110,8 @@ export const authorizePaymentRefundEndpointPost =
         input.network,
         options.permission,
       );
-      const paymentContractAddress =
-        input.paymentContractAddress ??
+      const smartContractAddress =
+        input.smartContractAddress ??
         (input.network == Network.Mainnet
           ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
           : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
@@ -119,7 +119,7 @@ export const authorizePaymentRefundEndpointPost =
         where: {
           network_smartContractAddress: {
             network: input.network,
-            smartContractAddress: paymentContractAddress,
+            smartContractAddress: smartContractAddress,
           },
           deletedAt: null,
         },

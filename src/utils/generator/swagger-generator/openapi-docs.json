@@ -2924,7 +2924,7 @@
                                         "maxLength": 250,
                                         "description": "The smart contract address of the payment source to be registered for"
                                     },
-                                    "sellingWalletVkey": {
+                                    "walletVkey": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The payment key of a specific wallet used for the collateral"
@@ -2932,12 +2932,12 @@
                                 },
                                 "required": [
                                     "network",
-                                    "sellingWalletVkey"
+                                    "walletVkey"
                                 ],
                                 "example": {
                                     "network": "Preprod",
                                     "smartContractAddress": "address",
-                                    "sellingWalletVkey": "wallet_vkey"
+                                    "walletVkey": "wallet_vkey"
                                 }
                             }
                         }

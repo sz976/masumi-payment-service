@@ -29,14 +29,9 @@ import { authorizePaymentRefundEndpointPost } from './payments/authorize-refund'
 import { requestPurchaseRefundPost } from './purchases/request-refund';
 import { cancelPurchaseRefundRequestPost } from './purchases/cancel-refund-request';
 import { queryAgentFromWalletGet } from './registry/wallet';
-import { postCollateralPost, queryCollateralRequestGet } from './collateral';
 
 export const apiRouter: Routing = {
   v1: {
-    'collateral-setup': new DependsOnMethod({
-      get: queryCollateralRequestGet,
-      post: postCollateralPost,
-    }),
     health: healthEndpointGet,
     purchase: new DependsOnMethod({
       get: queryPurchaseRequestGet,

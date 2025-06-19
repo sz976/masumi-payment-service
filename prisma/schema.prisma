@@ -227,7 +227,7 @@ model RegistryRequest {
   state           RegistrationState
 
   CurrentTransaction   Transaction? @relation(fields: [currentTransactionId], references: [id])
-  currentTransactionId String?      @unique
+  currentTransactionId String?
 
   error String?
 }
@@ -471,8 +471,8 @@ model PaymentSource {
   AdminWallets             AdminWallet[] @relation("AdminWallets")
   FeeReceiverNetworkWallet AdminWallet   @relation("FeeReceiverNetworkWallet", fields: [adminWalletId], references: [id], onDelete: Cascade)
   adminWalletId            String
-  feeRatePermille          Int           @default(50)
-  cooldownTime             Int           @default(600000)
+  feeRatePermille          Int
+  cooldownTime             Int
 
   PaymentSourceConfig   PaymentSourceConfig @relation(fields: [paymentSourceConfigId], references: [id])
   paymentSourceConfigId String              @unique

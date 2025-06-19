@@ -12,6 +12,7 @@ import {
   pubKeyAddress,
   integer,
   BlockfrostProvider,
+  MeshTxBuilder,
 } from '@meshsdk/core';
 import fs from 'node:fs';
 import 'dotenv/config';
@@ -21,9 +22,6 @@ console.log('Submitting result as example');
 const network = 'preprod';
 const blockchainProvider = new KoiosProvider(network);
 const koios = new KoiosProvider('preprod');
-const blockfrost = new BlockfrostProvider(
-  'preprodlJppz49eYEKOfuitQxNIZLo1olPKMUlT',
-);
 
 const wallet = new MeshWallet({
   networkId: 0,
@@ -81,6 +79,9 @@ const script = {
 };
 
 const utxos = await wallet.getUtxos();
+for (const utxo of utxos) {
+  console.log(utxo.output.amount);
+}
 if (utxos.length === 0) {
   //this is if the seller wallet is empty
   throw new Error('No UTXOs found in the wallet. Wallet is empty.');
@@ -95,7 +96,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  'd7f2dda416e9c89af5b8cf3a267518fabe89910fda5e57eb23a1576979b3dc6b',
+  '00a532c09a8db65312897bcfbccd5896759a23e8e45ac1c764bc48374f4997bc',
 );
 
 if (!utxo) {
@@ -174,20 +175,56 @@ const unsignedTx = new Transaction({ initiator: wallet, fetcher: koios })
   .setChangeAddress(address)
   .setRequiredSigners([address]);
 
+unsignedTx.isCollateralNeeded = true;
+
+const ctxbuilder = new MeshTxBuilder({
+  fetcher: blockchainProvider,
+});
+const deserializedAddress =
+  ctxbuilder.serializer.deserializer.key.deserializeAddress(address);
+const ctx = await ctxbuilder
+  .spendingPlutusScript(script.version)
+  .txIn(
+    utxo.input.txHash,
+    utxo.input.outputIndex,
+    utxo.output.amount,
+    utxo.output.address,
+    utxo.output.scriptRef ? utxo.output.scriptRef.length / 2 : 0,
+  )
+  .txInScript(script.code, script.version)
+  .txInRedeemerValue(redeemer.data, 'Mesh', {
+    mem: 7e6,
+    steps: 3e9,
+  })
+  .txInInlineDatumPresent()
+  .txInCollateral(utxos[1].input.txHash, utxos[1].input.outputIndex)
+  .setTotalCollateral('5000000')
+  .txOut(resolvePlutusScriptAddress(script, 0), utxo.output.amount)
+  .txOutInlineDatumValue(datum.value)
+  .txIn(utxos[0].input.txHash, utxos[0].input.outputIndex)
+  .changeAddress(address)
+  .invalidBefore(invalidBefore)
+  .invalidHereafter(invalidAfter)
+  .requiredSignerHash(deserializedAddress.pubKeyHash)
+  .setNetwork(network)
+  .setMetadata(674, {
+    msg: ['Masumi', 'SubmitResult'],
+  })
+  .complete();
+
 unsignedTx.txBuilder.invalidBefore(invalidBefore);
 unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-unsignedTx.isCollateralNeeded = true;
 unsignedTx.setNetwork(network);
 
 const buildTransaction = await unsignedTx.build();
-const estimatedFee = await blockfrost.evaluateTx(buildTransaction);
-console.log(estimatedFee);
-const signedTx = await wallet.signTx(buildTransaction);
+//const estimatedFee = await blockfrost.evaluateTx(ctx);
+//console.log(estimatedFee);
+const signedTx = await wallet.signTx(ctx);
 
 //submit the transaction to the blockchain
 const txHash = await wallet.submitTx(signedTx);
 
-console.log(`Created withdrawal transaction:
+console.log(`Created submit result transaction:
     Tx ID: ${txHash}
     View (after a bit) on https://${
       network === 'preprod' ? 'preprod.' : ''

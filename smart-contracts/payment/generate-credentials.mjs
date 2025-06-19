@@ -32,9 +32,9 @@ if (!fs.existsSync('wallet_2.sk')) {
     },
   });
 
-  fs.writeFileSync('wallet_2.addr', wallet2.getUnusedAddresses()[0]);
+  fs.writeFileSync('wallet_2.addr', (await wallet2.getUnusedAddresses())[0]);
   console.log(
-    `Other Wallet address generated: ${wallet2.getUnusedAddresses()[0]}`,
+    `Other Wallet address generated: ${(await wallet2.getUnusedAddresses())[0]}`,
   );
 } else {
   console.log('Wallet_2 does exist, skipped...');

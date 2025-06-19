@@ -1,6 +1,13 @@
 import { TransactionStatus, RegistrationState } from '@prisma/client';
 import { prisma } from '@/utils/db';
-import { BlockfrostProvider, Transaction } from '@meshsdk/core';
+import {
+  BlockfrostProvider,
+  IFetcher,
+  LanguageVersion,
+  MeshTxBuilder,
+  Network,
+  UTxO,
+} from '@meshsdk/core';
 import { logger } from '@/utils/logger';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
@@ -71,31 +78,6 @@ export async function deRegisterAgentV1() {
             const { script, policyId } =
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
-              );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
             const tokenUtxo = utxos.find(
               (utxo) =>
                 utxo.output.amount.length > 1 &&
@@ -107,67 +89,56 @@ export async function deRegisterAgentV1() {
               throw new Error('No token UTXO found');
             }
 
-            const filteredUtxos = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                //sort by biggest lovelace
-                return bLovelace - aLovelace;
-              })
-              .filter(
-                (utxo) =>
-                  utxo.input.txHash != collateralUtxo.input.txHash &&
-                  utxo.input.txHash != tokenUtxo?.input.txHash,
+            const filteredUtxos = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
               );
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              //sort by biggest lovelace
+              return bLovelace - aLovelace;
+            });
+
+            const collateralUtxo = filteredUtxos[0];
+
             const limitedFilteredUtxos = filteredUtxos.slice(
               0,
               Math.min(4, filteredUtxos.length),
             );
 
-            const utxosToUse = [...limitedFilteredUtxos, tokenUtxo];
+            const evaluationTx = await generateDeregisterAgentTransaction(
+              blockchainProvider,
+              network,
+              script,
+              address,
+              policyId,
+              request.agentIdentifier.slice(policyId.length),
+              tokenUtxo,
+              collateralUtxo,
+              limitedFilteredUtxos,
+            );
+            const estimatedFee = (await blockchainProvider.evaluateTx(
+              evaluationTx,
+            )) as Array<{ budget: { mem: number; steps: number } }>;
+            const unsignedTx = await generateDeregisterAgentTransaction(
+              blockchainProvider,
+              network,
+              script,
+              address,
+              policyId,
+              request.agentIdentifier.slice(policyId.length),
+              tokenUtxo,
+              collateralUtxo,
+              limitedFilteredUtxos,
+              estimatedFee[0].budget,
+            );
 
-            const redeemer = {
-              data: { alternative: 1, fields: [] },
-            };
-
-            const tx = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'DeregisterAgent'],
-              })
-              .setTxInputs(utxosToUse);
-
-            tx.isCollateralNeeded = true;
-
-            //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
-            tx.txBuilder
-              .mintPlutusScript(script.version)
-              .mint(
-                '-1',
-                policyId,
-                request.agentIdentifier.slice(policyId.length),
-              )
-              .mintingScript(script.code)
-              .mintRedeemerValue(redeemer.data, 'Mesh');
-            tx.sendLovelace(address, '5000000');
-            //sign the transaction with our address
-            tx.setChangeAddress(address).setRequiredSigners([address]);
-            tx.setCollateral([collateralUtxo]);
-            tx.setNetwork(network);
-
-            //build the transaction
-            const unsignedTx = await tx.build();
-            const signedTx = await wallet.signTx(unsignedTx, true);
+            const signedTx = await wallet.signTx(unsignedTx);
 
             await prisma.registryRequest.update({
               where: { id: request.id },
@@ -186,6 +157,7 @@ export async function deRegisterAgentV1() {
                 },
               },
             });
+
             //submit the transaction to the blockchain
             const newTxHash = await wallet.submitTx(signedTx);
             await prisma.registryRequest.update({
@@ -238,4 +210,54 @@ export async function deRegisterAgentV1() {
   } finally {
     release();
   }
+}
+
+async function generateDeregisterAgentTransaction(
+  blockchainProvider: IFetcher,
+  network: Network,
+  script: {
+    version: LanguageVersion;
+    code: string;
+  },
+  walletAddress: string,
+  policyId: string,
+  assetName: string,
+  assetUtxo: UTxO,
+  collateralUtxo: UTxO,
+  utxos: UTxO[],
+  exUnits: {
+    mem: number;
+    steps: number;
+  } = {
+    mem: 7e6,
+    steps: 3e9,
+  },
+) {
+  const txBuilder = new MeshTxBuilder({
+    fetcher: blockchainProvider,
+  });
+  const deserializedAddress =
+    txBuilder.serializer.deserializer.key.deserializeAddress(walletAddress);
+  //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
+  txBuilder
+    .txIn(assetUtxo.input.txHash, assetUtxo.input.outputIndex)
+    .mintPlutusScript(script.version)
+    .mint('-1', policyId, assetName)
+    .mintingScript(script.code)
+    .mintRedeemerValue({ alternative: 1, fields: [] }, 'Mesh', exUnits)
+    .txIn(collateralUtxo.input.txHash, collateralUtxo.input.outputIndex)
+    .txInCollateral(
+      collateralUtxo.input.txHash,
+      collateralUtxo.input.outputIndex,
+    )
+    .setTotalCollateral('5000000');
+  for (const utxo of utxos) {
+    txBuilder.txIn(utxo.input.txHash, utxo.input.outputIndex);
+  }
+  return await txBuilder
+    .requiredSignerHash(deserializedAddress.pubKeyHash)
+    .setNetwork(network)
+    .metadataValue(674, { msg: ['Masumi', 'DeregisterAgent'] })
+    .changeAddress(walletAddress)
+    .complete();
 }

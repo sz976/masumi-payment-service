@@ -71,9 +71,6 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS?.toLowerCase() === 'true' ||
   process.env.AUTO_WITHDRAW_REFUNDS === '' ||
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
-const collateralInterval = Number(process.env.COLLATERAL_INTERVAL ?? '30');
-if (collateralInterval < 20)
-  throw new Error('COLLATERAL_INTERVAL must be at least 20 seconds');
 
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
 if (autoDecisionInterval < 20)
@@ -97,7 +94,6 @@ export const CONFIG = {
   AUTO_WITHDRAW_PAYMENTS: autoWithdrawPayments,
   AUTO_WITHDRAW_REFUNDS: autoWithdrawRefunds,
   AUTO_DECISION_INTERVAL: autoDecisionInterval,
-  COLLATERAL_INTERVAL: collateralInterval,
 };
 
 export const DEFAULTS = {
@@ -129,12 +125,12 @@ export const DEFAULTS = {
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
 
   PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wrsr3luhqv0ftxjc6yrafw0tfesvtecrpck0s83arm0ttfqq77nu3',
+    'addr_test1wp2dvq9e8692rns5s5hfgdl3gw77308dhvjqqjphq9xg92qlw88mr',
   REGISTRY_POLICY_ID_PREPROD:
-    '0c2912d4088fbc6a0c725dbe5233735821109bd741acfa9f13902302',
+    '276ce1ed7c96044591d6b6b9dfc14b69179ffc8849debad659d7802a',
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1w8sr3luhqv0ftxjc6yrafw0tfesvtecrpck0s83arm0ttfqmk20n5',
+    'addr1w92dvq9e8692rns5s5hfgdl3gw77308dhvjqqjphq9xg92qyxnm5x',
   REGISTRY_POLICY_ID_MAINNET:
-    '01cca9f42943e3a8342dfa501f9360e3afba9bcd04c7655aa7577de1',
+    '72ae9f6c97f9b0fdb4abf16374808a448281ca4c57d712b9349739c7',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };

@@ -164,7 +164,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const paymentContractAddress =
+    const smartContractAddress =
       input.smartContractAddress ??
       (input.network == Network.Mainnet
         ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
@@ -173,7 +173,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       where: {
         network_smartContractAddress: {
           network: input.network,
-          smartContractAddress: paymentContractAddress,
+          smartContractAddress: smartContractAddress,
         },
         deletedAt: null,
       },
@@ -546,7 +546,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, key not found',
       );
     }
-    const publicKeyHash = await cosePublicKey.hash();
+    const publicKeyHash = cosePublicKey.hash();
     if (publicKeyHash.hex() != input.sellerVkey) {
       throw createHttpError(
         400,
@@ -570,7 +570,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       stringify(reconstructedBlockchainIdentifier),
     );
 
-    const identifierIsSignedCorrectly = checkSignature(
+    const identifierIsSignedCorrectly = await checkSignature(
       hashedBlockchainIdentifier,
       {
         signature: signature,

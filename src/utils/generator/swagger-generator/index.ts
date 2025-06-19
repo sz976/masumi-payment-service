@@ -60,9 +60,6 @@ import {
   ApiKeyStatus,
   RPCProvider,
   PricingType,
-  HotWalletType,
-  CollateralRequestState,
-  TransactionStatus,
 } from '@prisma/client';
 import {
   authorizePaymentRefundSchemaInput,
@@ -94,12 +91,6 @@ import {
   queryAgentFromWalletSchemaInput,
   queryAgentFromWalletSchemaOutput,
 } from '@/routes/api/registry/wallet';
-import {
-  postCollateralSchemaInput,
-  postCollateralSchemaOutput,
-  queryCollateralRequestSchemaInput,
-  queryCollateralRequestSchemaOutput,
-} from '@/routes/api/collateral';
 
 extendZodWithOpenApi(z);
 
@@ -848,104 +839,6 @@ export function generateOpenAPI() {
     },
   });
 
-  /********************* COLLATERAL *****************************/
-  registry.registerPath({
-    method: 'get',
-    path: '/collateral-setup/',
-    description: 'Gets a collateral request.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
-    tags: ['collateral'],
-    request: {
-      query: queryCollateralRequestSchemaInput.openapi({
-        example: {
-          network: Network.Preprod,
-          smartContractAddress: 'address',
-          cursorId: 'cuid_v2_of_last_cursor_entry',
-        },
-      }),
-    },
-    security: [{ [apiKeyAuth.name]: [] }],
-    responses: {
-      200: {
-        description: 'Collateral request',
-        content: {
-          'application/json': {
-            schema: queryCollateralRequestSchemaOutput.openapi({
-              example: {
-                CollateralRequests: [
-                  {
-                    id: 'cuid_v2_auto_generated',
-                    state: CollateralRequestState.Pending,
-                    HotWallet: {
-                      type: HotWalletType.Selling,
-                      id: 'hot_wallet_id',
-                      walletAddress: 'wallet_address',
-                      walletVkey: 'wallet_vkey',
-                    },
-                    Transaction: {
-                      txHash: 'tx_hash',
-                      status: TransactionStatus.Pending,
-                    },
-                  },
-                ],
-              },
-            }),
-          },
-        },
-      },
-    },
-  });
-
-  registry.registerPath({
-    method: 'post',
-    path: '/collateral-setup/',
-    description: 'Creates a collateral request.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
-    tags: ['collateral'],
-    request: {
-      body: {
-        description: '',
-        content: {
-          'application/json': {
-            schema: postCollateralSchemaInput.openapi({
-              example: {
-                network: Network.Preprod,
-                smartContractAddress: 'address',
-                sellingWalletVkey: 'wallet_vkey',
-              },
-            }),
-          },
-        },
-      },
-    },
-    security: [{ [apiKeyAuth.name]: [] }],
-    responses: {
-      200: {
-        description: 'Collateral request created',
-        content: {
-          'application/json': {
-            schema: postCollateralSchemaOutput.openapi({
-              example: {
-                id: 'cuid_v2_auto_generated',
-                state: CollateralRequestState.Pending,
-                HotWallet: {
-                  id: 'hot_wallet_id',
-                  walletAddress: 'wallet_address',
-                  type: HotWalletType.Selling,
-                  walletVkey: 'wallet_vkey',
-                },
-                Transaction: {
-                  txHash: 'tx_hash',
-                  status: TransactionStatus.Pending,
-                },
-              },
-            }),
-          },
-        },
-      },
-    },
-  });
-
   /********************* PURCHASE *****************************/
   registry.registerPath({
     method: 'get',
@@ -1420,6 +1313,7 @@ export function generateOpenAPI() {
                   data: {
                     Assets: [
                       {
+                        error: null,
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
@@ -1589,12 +1483,19 @@ export function generateOpenAPI() {
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: unregisterAgentSchemaInput.openapi({
-        example: {
-          agentIdentifier: 'agentIdentifier',
-          network: Network.Preprod,
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: unregisterAgentSchemaInput.openapi({
+              example: {
+                agentIdentifier: 'agentIdentifier',
+                network: Network.Preprod,
+              },
+            }),
+          },
         },
-      }),
+      },
     },
     responses: {
       200: {
@@ -2099,9 +2000,16 @@ export function generateOpenAPI() {
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: paymentSourceExtendedDeleteSchemaInput.openapi({
-        example: { id: 'unique_cuid_v2_auto_generated' },
-      }),
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: paymentSourceExtendedDeleteSchemaInput.openapi({
+              example: { id: 'unique_cuid_v2_auto_generated' },
+            }),
+          },
+        },
+      },
     },
     responses: {
       200: {
