@@ -10,7 +10,6 @@ import {
   BlockfrostProvider,
   deserializeDatum,
   SLOT_CONFIG_NETWORK,
-  Transaction,
   unixTimeToEnclosingSlot,
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
@@ -25,6 +24,7 @@ import { lockAndQueryPayments } from '@/utils/db/lock-and-query-payments';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { generateMasumiSmartContractWithdrawTransaction } from '@/utils/generator/transaction-generator';
 
 const mutex = new Mutex();
 
@@ -152,12 +152,6 @@ export async function collectOutstandingPaymentsV1() {
               throw new Error('Invalid datum');
             }
 
-            const redeemer = {
-              data: {
-                alternative: 0,
-                fields: [],
-              },
-            };
             const invalidBefore =
               unixTimeToEnclosingSlot(
                 Date.now() - 150000,
@@ -214,133 +208,79 @@ export async function collectOutstandingPaymentsV1() {
             if (collectionAddress == null || collectionAddress == '') {
               collectionAddress = request.SmartContractWallet.walletAddress;
             }
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+            const utxosSortedByLovelaceDesc = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
               );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              return bLovelace - aLovelace;
+            });
 
-            const filteredUtxos = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                //sort by biggest lovelace
-                return bLovelace - aLovelace;
-              })
-              .filter(
-                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
-              );
-            const limitedFilteredUtxos = filteredUtxos.slice(
+            const limitedFilteredUtxos = utxosSortedByLovelaceDesc.slice(
               0,
-              Math.min(4, filteredUtxos.length),
+              Math.min(4, utxosSortedByLovelaceDesc.length),
             );
 
-            const unsignedTx = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'Completed'],
-              })
-              .setTxInputs(limitedFilteredUtxos)
-              .redeemValue({
-                value: utxo,
-                script: script,
-                redeemer: redeemer,
-              })
-              .sendAssets(
+            const collateralUtxo = limitedFilteredUtxos[0];
+
+            const evaluationTx =
+              await generateMasumiSmartContractWithdrawTransaction(
+                'CollectCompleted',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                collateralUtxo,
+                limitedFilteredUtxos,
                 {
-                  address: collectionAddress,
+                  collectAssets: Object.values(remainingAssets),
+                  collectionAddress: collectionAddress,
                 },
-                Object.values(remainingAssets),
-              )
-              .sendAssets(
                 {
-                  address:
+                  feeAssets: Object.values(feeAssets),
+                  feeAddress:
                     paymentContract.FeeReceiverNetworkWallet.walletAddress,
                 },
-                Object.values(feeAssets),
-              )
-              .setCollateral([collateralUtxo])
-              .setChangeAddress(address)
-              .setRequiredSigners([address]);
-
-            unsignedTx.txBuilder.invalidBefore(invalidBefore);
-            unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-            unsignedTx.setNetwork(network);
-
-            const buildTransaction = await unsignedTx.build();
+                invalidBefore,
+                invalidAfter,
+              );
 
             const estimatedFee = (await blockchainProvider.evaluateTx(
-              buildTransaction,
+              evaluationTx,
             )) as Array<{ budget: { mem: number; steps: number } }>;
-            const unsignedTxFinal = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'Completed'],
-              })
-              .setTxInputs(limitedFilteredUtxos)
-              .redeemValue({
-                value: utxo,
-                script: script,
-                redeemer: {
-                  data: redeemer.data,
-                  budget: estimatedFee[0].budget,
-                },
-              })
-              .sendAssets(
+
+            const unsignedTx =
+              await generateMasumiSmartContractWithdrawTransaction(
+                'CollectCompleted',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                collateralUtxo,
+                limitedFilteredUtxos,
                 {
-                  address: collectionAddress,
+                  collectAssets: Object.values(remainingAssets),
+                  collectionAddress: collectionAddress,
                 },
-                Object.values(remainingAssets),
-              )
-              .sendAssets(
                 {
-                  address:
+                  feeAssets: Object.values(feeAssets),
+                  feeAddress:
                     paymentContract.FeeReceiverNetworkWallet.walletAddress,
                 },
-                Object.values(feeAssets),
-              )
-              .setCollateral([collateralUtxo])
-              .setChangeAddress(address)
-              .setRequiredSigners([address]);
+                invalidBefore,
+                invalidAfter,
+                estimatedFee[0].budget,
+              );
 
-            unsignedTxFinal.txBuilder.invalidBefore(invalidBefore);
-            unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
-            unsignedTxFinal.setNetwork(network);
-
-            const buildTransactionFinal = await unsignedTxFinal.build();
-            const signedTx = await wallet.signTx(buildTransactionFinal);
+            const signedTx = await wallet.signTx(unsignedTx);
             await prisma.paymentRequest.update({
               where: { id: request.id },
               data: {

@@ -2404,7 +2404,7 @@
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
                                     },
-                                    "paymentContractAddress": {
+                                    "smartContractAddress": {
                                         "type": "string",
                                         "maxLength": 250,
                                         "description": "The address of the smart contract holding the purchase"
@@ -4858,6 +4858,10 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "error": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
                                                             "id": {
                                                                 "type": "string"
                                                             },
@@ -5068,6 +5072,7 @@
                                                             }
                                                         },
                                                         "required": [
+                                                            "error",
                                                             "id",
                                                             "name",
                                                             "description",
@@ -5103,6 +5108,7 @@
                                         "data": {
                                             "Assets": [
                                                 {
+                                                    "error": null,
                                                     "id": "asset_id",
                                                     "name": "name",
                                                     "description": "description",
@@ -5667,44 +5673,44 @@
                         "API-Key": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The identifier of the registration (asset) to be deregistered"
-                        },
-                        "required": true,
-                        "description": "The identifier of the registration (asset) to be deregistered",
-                        "name": "agentIdentifier",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "Preprod",
-                                "Mainnet"
-                            ],
-                            "description": "The network the registration was made on"
-                        },
-                        "required": true,
-                        "description": "The network the registration was made on",
-                        "name": "network",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The smart contract address of the payment contract to which the registration belongs"
-                        },
-                        "required": false,
-                        "description": "The smart contract address of the payment contract to which the registration belongs",
-                        "name": "smartContractAddress",
-                        "in": "query"
+                "requestBody": {
+                    "description": "",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "agentIdentifier": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The identifier of the registration (asset) to be deregistered"
+                                    },
+                                    "network": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Preprod",
+                                            "Mainnet"
+                                        ],
+                                        "description": "The network the registration was made on"
+                                    },
+                                    "smartContractAddress": {
+                                        "type": "string",
+                                        "maxLength": 250,
+                                        "description": "The smart contract address of the payment contract to which the registration belongs"
+                                    }
+                                },
+                                "required": [
+                                    "agentIdentifier",
+                                    "network"
+                                ],
+                                "example": {
+                                    "agentIdentifier": "agentIdentifier",
+                                    "network": "Preprod"
+                                }
+                            }
+                        }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Payment source deleted",
@@ -6635,6 +6641,12 @@
                                         "maximum": 1000,
                                         "description": "The fee in permille to be used for the payment source. The default contract uses 50 (5%)"
                                     },
+                                    "cooldownTime": {
+                                        "type": "number",
+                                        "nullable": true,
+                                        "minimum": 0,
+                                        "description": "The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)"
+                                    },
                                     "AdminWallets": {
                                         "type": "array",
                                         "items": {
@@ -7499,18 +7511,28 @@
                         "API-Key": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string",
-                            "description": "The id of the payment source to be deleted"
-                        },
-                        "required": true,
-                        "description": "The id of the payment source to be deleted",
-                        "name": "id",
-                        "in": "query"
+                "requestBody": {
+                    "description": "",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "The id of the payment source to be deleted"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ],
+                                "example": {
+                                    "id": "unique_cuid_v2_auto_generated"
+                                }
+                            }
+                        }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Payment source deleted",

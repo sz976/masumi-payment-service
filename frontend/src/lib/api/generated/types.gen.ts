@@ -707,7 +707,7 @@ export type PostPaymentAuthorizeRefundData = {
         /**
          * The address of the smart contract holding the purchase
          */
-        paymentContractAddress?: string;
+        smartContractAddress?: string;
     };
     path?: never;
     query?: never;
@@ -1320,9 +1320,7 @@ export type GetRegistryWalletResponses = {
 export type GetRegistryWalletResponse = GetRegistryWalletResponses[keyof GetRegistryWalletResponses];
 
 export type DeleteRegistryData = {
-    body?: never;
-    path?: never;
-    query: {
+    body?: {
         /**
          * The identifier of the registration (asset) to be deregistered
          */
@@ -1336,6 +1334,8 @@ export type DeleteRegistryData = {
          */
         smartContractAddress?: string;
     };
+    path?: never;
+    query?: never;
     url: '/registry/';
 };
 
@@ -1417,6 +1417,7 @@ export type GetRegistryResponses = {
         status: string;
         data: {
             Assets: Array<{
+                error: string | null;
                 id: string;
                 name: string;
                 description: string | null;
@@ -1656,14 +1657,14 @@ export type GetPaymentSourceResponses = {
 export type GetPaymentSourceResponse = GetPaymentSourceResponses[keyof GetPaymentSourceResponses];
 
 export type DeletePaymentSourceExtendedData = {
-    body?: never;
-    path?: never;
-    query: {
+    body?: {
         /**
          * The id of the payment source to be deleted
          */
         id: string;
     };
+    path?: never;
+    query?: never;
     url: '/payment-source-extended/';
 };
 
@@ -1879,6 +1880,10 @@ export type PostPaymentSourceExtendedData = {
          * The fee in permille to be used for the payment source. The default contract uses 50 (5%)
          */
         feeRatePermille: number | null;
+        /**
+         * The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)
+         */
+        cooldownTime?: number | null;
         /**
          * The wallet addresses of the admin wallets (exactly 3)
          */

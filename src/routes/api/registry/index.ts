@@ -36,6 +36,7 @@ export const queryRegistryRequestSchemaInput = z.object({
 export const queryRegistryRequestSchemaOutput = z.object({
   Assets: z.array(
     z.object({
+      error: z.string().nullable(),
       id: z.string(),
       name: z.string(),
       description: z.string().nullable(),

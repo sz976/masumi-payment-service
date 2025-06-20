@@ -344,8 +344,8 @@ export const getRegistryWallet = <ThrowOnError extends boolean = false>(options:
  * Deregisters an agent from the specified registry. (admin access required +PAY)
  * Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)
  */
-export const deleteRegistry = <ThrowOnError extends boolean = false>(options: Options<DeleteRegistryData, ThrowOnError>) => {
-    return (options.client ?? _heyApiClient).delete<DeleteRegistryResponse, unknown, ThrowOnError>({
+export const deleteRegistry = <ThrowOnError extends boolean = false>(options?: Options<DeleteRegistryData, ThrowOnError>) => {
+    return (options?.client ?? _heyApiClient).delete<DeleteRegistryResponse, unknown, ThrowOnError>({
         security: [
             {
                 name: 'token',
@@ -353,7 +353,11 @@ export const deleteRegistry = <ThrowOnError extends boolean = false>(options: Op
             }
         ],
         url: '/registry/',
-        ...options
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options?.headers
+        }
     });
 };
 
@@ -416,8 +420,8 @@ export const getPaymentSource = <ThrowOnError extends boolean = false>(options?:
  * Delete an existing payment source. (+ADMIN access required)
  * Deletes a payment source. WARNING will also delete all associated wallets and transactions.
  */
-export const deletePaymentSourceExtended = <ThrowOnError extends boolean = false>(options: Options<DeletePaymentSourceExtendedData, ThrowOnError>) => {
-    return (options.client ?? _heyApiClient).delete<DeletePaymentSourceExtendedResponse, unknown, ThrowOnError>({
+export const deletePaymentSourceExtended = <ThrowOnError extends boolean = false>(options?: Options<DeletePaymentSourceExtendedData, ThrowOnError>) => {
+    return (options?.client ?? _heyApiClient).delete<DeletePaymentSourceExtendedResponse, unknown, ThrowOnError>({
         security: [
             {
                 name: 'token',
@@ -425,7 +429,11 @@ export const deletePaymentSourceExtended = <ThrowOnError extends boolean = false
             }
         ],
         url: '/payment-source-extended/',
-        ...options
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options?.headers
+        }
     });
 };
 

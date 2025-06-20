@@ -393,33 +393,8 @@ export async function batchLatestPaymentEntriesV1() {
           walletPairings.map(async (walletPairing) => {
             const wallet = walletPairing.wallet;
             const walletId = walletPairing.walletId;
-            const utxos = await wallet.getUtxos();
             const batchedRequests = walletPairing.batchedRequests;
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
-              );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
+
             //batch payments
             const unsignedTx = new Transaction({
               initiator: wallet,
@@ -514,14 +489,6 @@ export async function batchLatestPaymentEntriesV1() {
               );
             }
             unsignedTx.setNetwork(convertNetwork(paymentContract.network));
-            unsignedTx.setCollateral([collateralUtxo]);
-
-            unsignedTx.sendLovelace(
-              {
-                address: collateralUtxo.output.address,
-              },
-              collateralUtxo.output.amount[0].quantity,
-            );
 
             const completeTx = await unsignedTx.build();
             const signedTx = await wallet.signTx(completeTx);

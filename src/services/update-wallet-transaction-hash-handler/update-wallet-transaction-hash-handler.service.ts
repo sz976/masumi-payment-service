@@ -434,6 +434,7 @@ export async function updateWalletTransactionHash() {
                 registryRequest.state == RegistrationState.RegistrationInitiated
                   ? RegistrationState.RegistrationFailed
                   : RegistrationState.DeregistrationFailed,
+              error: 'Timeout, force unlocked',
             },
           });
         } else {

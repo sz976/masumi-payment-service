@@ -1320,6 +1320,7 @@ export function generateOpenAPI() {
                   data: {
                     Assets: [
                       {
+                        error: null,
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
@@ -1490,12 +1491,19 @@ export function generateOpenAPI() {
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: unregisterAgentSchemaInput.openapi({
-        example: {
-          agentIdentifier: 'agentIdentifier',
-          network: Network.Preprod,
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: unregisterAgentSchemaInput.openapi({
+              example: {
+                agentIdentifier: 'agentIdentifier',
+                network: Network.Preprod,
+              },
+            }),
+          },
         },
-      }),
+      },
     },
     responses: {
       200: {
@@ -2002,9 +2010,16 @@ export function generateOpenAPI() {
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: paymentSourceExtendedDeleteSchemaInput.openapi({
-        example: { id: 'unique_cuid_v2_auto_generated' },
-      }),
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: paymentSourceExtendedDeleteSchemaInput.openapi({
+              example: { id: 'unique_cuid_v2_auto_generated' },
+            }),
+          },
+        },
+      },
     },
     responses: {
       200: {

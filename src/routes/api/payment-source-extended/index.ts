@@ -14,6 +14,7 @@ import createHttpError from 'http-errors';
 import { z } from 'zod';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { DEFAULTS } from '@/utils/config';
 
 export const paymentSourceExtendedSchemaInput = z.object({
   take: z
@@ -151,6 +152,13 @@ export const paymentSourceExtendedCreateSchemaInput = z.object({
     .max(1000)
     .describe(
       'The fee in permille to be used for the payment source. The default contract uses 50 (5%)',
+    ),
+  cooldownTime: z
+    .number({ coerce: true })
+    .min(0)
+    .optional()
+    .describe(
+      'The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)',
     ),
   AdminWallets: z
     .array(
@@ -299,7 +307,10 @@ export const paymentSourceExtendedEndpointPost =
           input.AdminWallets[2].walletAddress,
           input.FeeReceiverNetworkWallet.walletAddress,
           input.feeRatePermille,
-          1000 * 60 * 15,
+          input.cooldownTime ??
+            (input.network == Network.Preprod
+              ? DEFAULTS.COOLDOWN_TIME_PREPROD
+              : DEFAULTS.COOLDOWN_TIME_MAINNET),
           input.network,
         );
 
@@ -352,6 +363,11 @@ export const paymentSourceExtendedEndpointPost =
                 rpcProvider: input.PaymentSourceConfig.rpcProvider,
               },
             },
+            cooldownTime:
+              input.cooldownTime ??
+              (input.network == Network.Preprod
+                ? DEFAULTS.COOLDOWN_TIME_PREPROD
+                : DEFAULTS.COOLDOWN_TIME_MAINNET),
             AdminWallets: {
               createMany: {
                 data: input.AdminWallets.map((aw, index) => ({

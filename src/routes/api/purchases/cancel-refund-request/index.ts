@@ -118,7 +118,7 @@ export const cancelPurchaseRefundRequestPost =
         input.network,
         options.permission,
       );
-      const paymentContractAddress =
+      const smartContractAddress =
         input.smartContractAddress ??
         (input.network == Network.Mainnet
           ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
@@ -127,7 +127,7 @@ export const cancelPurchaseRefundRequestPost =
         where: {
           network_smartContractAddress: {
             network: input.network,
-            smartContractAddress: paymentContractAddress,
+            smartContractAddress: smartContractAddress,
           },
           deletedAt: null,
         },
