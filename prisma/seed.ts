@@ -64,7 +64,7 @@ export const seed = async (prisma: PrismaClient) => {
     console.log('ADMIN_KEY is not seeded. Provide ADMIN_KEY in .env');
   }
 
-  let collectionWalletPreprodAddress =
+  let collectionWalletPreprodAddress: string | null | undefined =
     process.env.COLLECTION_WALLET_PREPROD_ADDRESS;
   let purchaseWalletPreprodMnemonic =
     process.env.PURCHASE_WALLET_PREPROD_MNEMONIC;
@@ -79,19 +79,10 @@ export const seed = async (prisma: PrismaClient) => {
     sellingWalletPreprodMnemonic = secret_key.join(' ');
   }
   if (!collectionWalletPreprodAddress) {
-    const sellingWallet = new MeshWallet({
-      networkId: 0,
-      key: {
-        type: 'mnemonic',
-        words: sellingWalletPreprodMnemonic.split(' '),
-      },
-    });
-    collectionWalletPreprodAddress = (
-      await sellingWallet.getUnusedAddresses()
-    )[0];
+    collectionWalletPreprodAddress = null;
   }
 
-  let collectionWalletMainnetAddress =
+  let collectionWalletMainnetAddress: string | null | undefined =
     process.env.COLLECTION_WALLET_MAINNET_ADDRESS;
   let purchaseWalletMainnetMnemonic =
     process.env.PURCHASE_WALLET_MAINNET_MNEMONIC;
@@ -106,16 +97,7 @@ export const seed = async (prisma: PrismaClient) => {
     sellingWalletMainnetMnemonic = secret_key.join(' ');
   }
   if (!collectionWalletMainnetAddress) {
-    const sellingWallet = new MeshWallet({
-      networkId: 1,
-      key: {
-        type: 'mnemonic',
-        words: sellingWalletMainnetMnemonic.split(' '),
-      },
-    });
-    collectionWalletMainnetAddress = (
-      await sellingWallet.getUnusedAddresses()
-    )[0];
+    collectionWalletMainnetAddress = null;
   }
 
   const blockfrostApiKeyPreprod = process.env.BLOCKFROST_API_KEY_PREPROD;
@@ -228,9 +210,15 @@ export const seed = async (prisma: PrismaClient) => {
       const sellingWalletSecretId = await prisma.walletSecret.create({
         data: { encryptedMnemonic: sellingWalletSecret },
       });
+
+      const { policyId } = await getRegistryScriptV1(
+        smartContractAddress,
+        Network.Preprod,
+      );
       await prisma.paymentSource.create({
         data: {
           smartContractAddress: smartContractAddress,
+          policyId: policyId,
           network: Network.Preprod,
           PaymentSourceConfig: {
             create: {
@@ -286,10 +274,7 @@ export const seed = async (prisma: PrismaClient) => {
           cooldownTime: cooldownTimePreprod,
         },
       });
-      const { policyId } = await getRegistryScriptV1(
-        smartContractAddress,
-        Network.Preprod,
-      );
+
       console.log(
         'Contract seeded on preprod: ' +
           smartContractAddress +
@@ -411,9 +396,14 @@ export const seed = async (prisma: PrismaClient) => {
       const sellingWalletSecretId = await prisma.walletSecret.create({
         data: { encryptedMnemonic: sellingWalletSecret },
       });
+      const { policyId } = await getRegistryScriptV1(
+        smartContractAddress,
+        Network.Mainnet,
+      );
       await prisma.paymentSource.create({
         data: {
           smartContractAddress: smartContractAddress,
+          policyId: policyId,
           lastIdentifierChecked:
             latestTx && latestTx.length > 0 ? latestTx[0].tx_hash : null,
           network: Network.Mainnet,
@@ -469,10 +459,7 @@ export const seed = async (prisma: PrismaClient) => {
           cooldownTime: cooldownTimeMainnet,
         },
       });
-      const { policyId } = await getRegistryScriptV1(
-        smartContractAddress,
-        Network.Mainnet,
-      );
+
       console.log(
         'Contract seeded on mainnet: ' +
           smartContractAddress +

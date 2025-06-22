@@ -62,10 +62,16 @@ export async function lockAndQueryPayments({
                 where: { deletedAt: null },
               },
             },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
           AdminWallets: true,
           FeeReceiverNetworkWallet: true,
           PaymentSourceConfig: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
         },
       });
       const sellingWallets: HotWallet[] = [];

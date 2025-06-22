@@ -1122,17 +1122,6 @@
                     {
                         "schema": {
                             "type": "string",
-                            "maxLength": 250,
-                            "description": "The address of the smart contract where the payments were made to"
-                        },
-                        "required": false,
-                        "description": "The address of the smart contract where the payments were made to",
-                        "name": "smartContractAddress",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
                             "default": "false",
                             "description": "Whether to include the full transaction and status history of the payments"
                         },
@@ -1380,6 +1369,10 @@
                                                                     "smartContractAddress": {
                                                                         "type": "string"
                                                                     },
+                                                                    "policyId": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
                                                                     "paymentType": {
                                                                         "type": "string",
                                                                         "enum": [
@@ -1391,6 +1384,7 @@
                                                                     "id",
                                                                     "network",
                                                                     "smartContractAddress",
+                                                                    "policyId",
                                                                     "paymentType"
                                                                 ]
                                                             },
@@ -1510,6 +1504,7 @@
                                                         "id": "payment_source_id",
                                                         "network": "Preprod",
                                                         "smartContractAddress": "address",
+                                                        "policyId": "policy_id",
                                                         "paymentType": "Web3CardanoV1"
                                                     },
                                                     "WithdrawnForSeller": [],
@@ -1568,7 +1563,7 @@
                                     },
                                     "agentIdentifier": {
                                         "type": "string",
-                                        "minLength": 15,
+                                        "minLength": 57,
                                         "maxLength": 250,
                                         "description": "The identifier of the agent that will be paid"
                                     },
@@ -1600,11 +1595,6 @@
                                             "Web3CardanoV1"
                                         ],
                                         "description": "The type of payment contract used"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract where the payment will be made to"
                                     },
                                     "submitResultTime": {
                                         "anyOf": [
@@ -1860,6 +1850,10 @@
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "paymentType": {
                                                             "type": "string",
                                                             "enum": [
@@ -1871,6 +1865,7 @@
                                                         "id",
                                                         "network",
                                                         "smartContractAddress",
+                                                        "policyId",
                                                         "paymentType"
                                                     ]
                                                 },
@@ -1975,6 +1970,7 @@
                                             ],
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
+                                                "policyId": "policy_id",
                                                 "network": "Preprod",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
@@ -2028,11 +2024,6 @@
                                             "Mainnet"
                                         ],
                                         "description": "The network the payment was received on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract where the payment was made to"
                                     },
                                     "submitResultHash": {
                                         "type": "string",
@@ -2227,6 +2218,10 @@
                                                                 "Mainnet"
                                                             ]
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
@@ -2240,6 +2235,7 @@
                                                     "required": [
                                                         "id",
                                                         "network",
+                                                        "policyId",
                                                         "smartContractAddress",
                                                         "paymentType"
                                                     ]
@@ -2346,6 +2342,7 @@
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
                                                 "network": "Preprod",
+                                                "policyId": "policy_id",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
                                             },
@@ -2403,11 +2400,6 @@
                                             "Mainnet"
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract holding the purchase"
                                     }
                                 },
                                 "required": [
@@ -2593,6 +2585,10 @@
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "paymentType": {
                                                             "type": "string",
                                                             "enum": [
@@ -2604,6 +2600,7 @@
                                                         "id",
                                                         "network",
                                                         "smartContractAddress",
+                                                        "policyId",
                                                         "paymentType"
                                                     ]
                                                 },
@@ -2709,6 +2706,7 @@
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
                                                 "network": "Preprod",
+                                                "policyId": "policy_id",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
                                             },
@@ -2783,17 +2781,6 @@
                         "required": true,
                         "description": "The network the purchases were made on",
                         "name": "network",
-                        "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The address of the smart contract where the purchases were made to"
-                        },
-                        "required": false,
-                        "description": "The address of the smart contract where the purchases were made to",
-                        "name": "smartContractAddress",
                         "in": "query"
                     },
                     {
@@ -3063,6 +3050,10 @@
                                                                     "smartContractAddress": {
                                                                         "type": "string"
                                                                     },
+                                                                    "policyId": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
                                                                     "paymentType": {
                                                                         "type": "string",
                                                                         "enum": [
@@ -3074,6 +3065,7 @@
                                                                     "id",
                                                                     "network",
                                                                     "smartContractAddress",
+                                                                    "policyId",
                                                                     "paymentType"
                                                                 ]
                                                             },
@@ -3186,6 +3178,7 @@
                                                     "PaymentSource": {
                                                         "id": "payment_source_id",
                                                         "network": "Preprod",
+                                                        "policyId": "policy_id",
                                                         "smartContractAddress": "address",
                                                         "paymentType": "Web3CardanoV1"
                                                     },
@@ -3256,13 +3249,9 @@
                                     },
                                     "agentIdentifier": {
                                         "type": "string",
+                                        "minLength": 57,
                                         "maxLength": 250,
                                         "description": "The identifier of the agent that is being purchased"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract where the purchase will be made to"
                                     },
                                     "Amounts": {
                                         "type": "array",
@@ -3543,6 +3532,10 @@
                                                                 "Mainnet"
                                                             ]
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
@@ -3556,6 +3549,7 @@
                                                     "required": [
                                                         "id",
                                                         "network",
+                                                        "policyId",
                                                         "smartContractAddress",
                                                         "paymentType"
                                                     ]
@@ -3662,6 +3656,7 @@
                                             ],
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
+                                                "policyId": "policy_id",
                                                 "network": "Preprod",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
@@ -3720,11 +3715,6 @@
                                             "Mainnet"
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract holding the purchase"
                                     }
                                 },
                                 "required": [
@@ -3935,6 +3925,10 @@
                                                                 "Mainnet"
                                                             ]
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
@@ -3948,6 +3942,7 @@
                                                     "required": [
                                                         "id",
                                                         "network",
+                                                        "policyId",
                                                         "smartContractAddress",
                                                         "paymentType"
                                                     ]
@@ -4052,6 +4047,7 @@
                                             ],
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
+                                                "policyId": "policy_id",
                                                 "network": "Preprod",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
@@ -4110,11 +4106,6 @@
                                             "Mainnet"
                                         ],
                                         "description": "The network the Cardano wallet will be used on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The address of the smart contract holding the purchase"
                                     }
                                 },
                                 "required": [
@@ -4325,6 +4316,10 @@
                                                                 "Mainnet"
                                                             ]
                                                         },
+                                                        "policyId": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
                                                         "smartContractAddress": {
                                                             "type": "string"
                                                         },
@@ -4338,6 +4333,7 @@
                                                     "required": [
                                                         "id",
                                                         "network",
+                                                        "policyId",
                                                         "smartContractAddress",
                                                         "paymentType"
                                                     ]
@@ -4442,6 +4438,7 @@
                                             ],
                                             "PaymentSource": {
                                                 "id": "payment_source_id",
+                                                "policyId": "policy_id",
                                                 "network": "Preprod",
                                                 "smartContractAddress": "address",
                                                 "paymentType": "Web3CardanoV1"
@@ -4826,17 +4823,6 @@
                         "description": "The Cardano network used to register the agent on",
                         "name": "network",
                         "in": "query"
-                    },
-                    {
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 250,
-                            "description": "The smart contract address of the payment source to which the registration belongs"
-                        },
-                        "required": false,
-                        "description": "The smart contract address of the payment source to which the registration belongs",
-                        "name": "smartContractAddress",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4997,7 +4983,9 @@
                                                             },
                                                             "agentIdentifier": {
                                                                 "type": "string",
-                                                                "nullable": true
+                                                                "nullable": true,
+                                                                "minLength": 57,
+                                                                "maxLength": 250
                                                             },
                                                             "AgentPricing": {
                                                                 "type": "object",
@@ -5187,11 +5175,6 @@
                                             "Mainnet"
                                         ],
                                         "description": "The Cardano network used to register the agent on"
-                                    },
-                                    "smartContractAddress": {
-                                        "type": "string",
-                                        "maxLength": 250,
-                                        "description": "The smart contract address of the payment contract to be registered for"
                                     },
                                     "sellingWalletVkey": {
                                         "type": "string",
@@ -5682,6 +5665,7 @@
                                 "properties": {
                                     "agentIdentifier": {
                                         "type": "string",
+                                        "minLength": 57,
                                         "maxLength": 250,
                                         "description": "The identifier of the registration (asset) to be deregistered"
                                     },
@@ -6046,6 +6030,10 @@
                                                                     "Mainnet"
                                                                 ]
                                                             },
+                                                            "policyId": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
                                                             "smartContractAddress": {
                                                                 "type": "string"
                                                             },
@@ -6167,6 +6155,7 @@
                                                             "createdAt",
                                                             "updatedAt",
                                                             "network",
+                                                            "policyId",
                                                             "smartContractAddress",
                                                             "paymentType",
                                                             "lastIdentifierChecked",
@@ -6200,6 +6189,7 @@
                                                     "network": "Mainnet",
                                                     "paymentType": "Web3CardanoV1",
                                                     "smartContractAddress": "address_of_the_smart_contract",
+                                                    "policyId": "policy_id",
                                                     "AdminWallets": [
                                                         {
                                                             "walletAddress": "wallet_address",
@@ -6335,6 +6325,10 @@
                                                                     "Preprod",
                                                                     "Mainnet"
                                                                 ]
+                                                            },
+                                                            "policyId": {
+                                                                "type": "string",
+                                                                "nullable": true
                                                             },
                                                             "smartContractAddress": {
                                                                 "type": "string"
@@ -6478,6 +6472,7 @@
                                                             "createdAt",
                                                             "updatedAt",
                                                             "network",
+                                                            "policyId",
                                                             "smartContractAddress",
                                                             "paymentType",
                                                             "PaymentSourceConfig",
@@ -6514,6 +6509,7 @@
                                                     "paymentType": "Web3CardanoV1",
                                                     "feeRatePermille": 50,
                                                     "syncInProgress": true,
+                                                    "policyId": "policy_id",
                                                     "smartContractAddress": "address_of_the_smart_contract",
                                                     "AdminWallets": [
                                                         {

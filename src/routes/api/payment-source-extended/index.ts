@@ -1,4 +1,7 @@
-import { getPaymentScriptV1 } from '@/utils/generator/contract-generator';
+import {
+  getPaymentScriptV1,
+  getRegistryScriptV1,
+} from '@/utils/generator/contract-generator';
 import { prisma } from '@/utils/db';
 import { encrypt } from '@/utils/security/encryption';
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
@@ -36,6 +39,7 @@ export const paymentSourceExtendedSchemaOutput = z.object({
       createdAt: z.date(),
       updatedAt: z.date(),
       network: z.nativeEnum(Network),
+      policyId: z.string().nullable(),
       smartContractAddress: z.string(),
       paymentType: z.nativeEnum(PaymentType),
       PaymentSourceConfig: z.object({
@@ -314,6 +318,11 @@ export const paymentSourceExtendedEndpointPost =
           input.network,
         );
 
+        const { policyId } = await getRegistryScriptV1(
+          smartContractAddress,
+          input.network,
+        );
+
         const sellingWallets = await Promise.all(
           sellingWalletsMesh.map(async (sw) => {
             return {
@@ -356,6 +365,7 @@ export const paymentSourceExtendedEndpointPost =
           data: {
             network: input.network,
             smartContractAddress: smartContractAddress,
+            policyId: policyId,
             paymentType: input.paymentType,
             PaymentSourceConfig: {
               create: {

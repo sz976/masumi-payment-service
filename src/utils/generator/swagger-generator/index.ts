@@ -539,6 +539,7 @@ export function generateOpenAPI() {
                           id: 'payment_source_id',
                           network: Network.Preprod,
                           smartContractAddress: 'address',
+                          policyId: 'policy_id',
                           paymentType: PaymentType.Web3CardanoV1,
                         },
                         WithdrawnForSeller: [],
@@ -632,6 +633,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -725,6 +727,7 @@ export function generateOpenAPI() {
                     PaymentSource: {
                       id: 'payment_source_id',
                       network: Network.Preprod,
+                      policyId: 'policy_id',
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
                     },
@@ -815,6 +818,7 @@ export function generateOpenAPI() {
                     PaymentSource: {
                       id: 'payment_source_id',
                       network: Network.Preprod,
+                      policyId: 'policy_id',
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
                     },
@@ -902,6 +906,7 @@ export function generateOpenAPI() {
                         PaymentSource: {
                           id: 'payment_source_id',
                           network: Network.Preprod,
+                          policyId: 'policy_id',
                           smartContractAddress: 'address',
                           paymentType: PaymentType.Web3CardanoV1,
                         },
@@ -1002,6 +1007,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1092,6 +1098,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1181,6 +1188,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1602,6 +1610,7 @@ export function generateOpenAPI() {
                         network: Network.Mainnet,
                         paymentType: PaymentType.Web3CardanoV1,
                         smartContractAddress: 'address_of_the_smart_contract',
+                        policyId: 'policy_id',
                         AdminWallets: [
                           { walletAddress: 'wallet_address', order: 0 },
                           { walletAddress: 'wallet_address', order: 1 },
@@ -1697,6 +1706,7 @@ export function generateOpenAPI() {
                         paymentType: PaymentType.Web3CardanoV1,
                         feeRatePermille: 50,
                         syncInProgress: true,
+                        policyId: 'policy_id',
                         smartContractAddress: 'address_of_the_smart_contract',
                         AdminWallets: [
                           { walletAddress: 'wallet_address', order: 0 },

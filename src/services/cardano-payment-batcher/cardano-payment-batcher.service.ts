@@ -73,6 +73,9 @@ export async function batchLatestPaymentEntriesV1() {
                 NextAction: true,
                 CurrentTransaction: true,
               },
+              orderBy: {
+                createdAt: 'asc',
+              },
             },
             PaymentSourceConfig: true,
             HotWallets: {
