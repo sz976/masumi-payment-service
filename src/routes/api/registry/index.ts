@@ -24,13 +24,6 @@ export const queryRegistryRequestSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The Cardano network used to register the agent on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The smart contract address of the payment source to which the registration belongs',
-    ),
 });
 
 export const queryRegistryRequestSchemaOutput = z.object({
@@ -70,7 +63,7 @@ export const queryRegistryRequestSchemaOutput = z.object({
           }),
         )
         .max(25),
-      agentIdentifier: z.string().nullable(),
+      agentIdentifier: z.string().min(57).max(250).nullable(),
       AgentPricing: z.object({
         pricingType: z.enum([PricingType.Fixed]),
         Pricing: z
@@ -117,35 +110,12 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
-      where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
-        deletedAt: null,
-      },
-      include: {
-        PaymentSourceConfig: true,
-        HotWallets: { where: { deletedAt: null } },
-      },
-    });
-    if (paymentSource == null) {
-      throw createHttpError(
-        404,
-        'Network and Address combination not supported',
-      );
-    }
 
     const result = await prisma.registryRequest.findMany({
       where: {
         PaymentSource: {
-          id: paymentSource.id,
+          network: input.network,
+          deletedAt: null,
         },
         SmartContractWallet: { deletedAt: null },
       },
@@ -198,13 +168,6 @@ export const registerAgentSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The Cardano network used to register the agent on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The smart contract address of the payment contract to be registered for',
-    ),
   sellingWalletVkey: z
     .string()
     .max(250)
@@ -331,26 +294,27 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
       options.permission,
     );
 
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
+    const sellingWallet = await prisma.hotWallet.findUnique({
       where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
+        walletVkey: input.sellingWalletVkey,
+        type: HotWalletType.Selling,
+
         deletedAt: null,
       },
       include: {
-        AdminWallets: true,
-        HotWallets: { include: { Secret: true }, where: { deletedAt: null } },
-        PaymentSourceConfig: true,
+        PaymentSource: {
+          include: {
+            AdminWallets: true,
+            HotWallets: {
+              include: { Secret: true },
+              where: { deletedAt: null },
+            },
+            PaymentSourceConfig: true,
+          },
+        },
       },
     });
-    if (paymentSource == null) {
+    if (sellingWallet == null) {
       throw createHttpError(
         404,
         'Network and Address combination not supported',
@@ -362,13 +326,21 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
       options.permission,
     );
 
-    const sellingWallet = paymentSource.HotWallets.find(
-      (wallet) =>
-        wallet.walletVkey == input.sellingWalletVkey &&
-        wallet.type == HotWalletType.Selling,
-    );
     if (sellingWallet == null) {
       throw createHttpError(404, 'Selling wallet not found');
+    }
+    const paymentSource = sellingWallet.PaymentSource;
+    if (paymentSource == null) {
+      throw createHttpError(404, 'Selling wallet has no payment source');
+    }
+    if (paymentSource.network != input.network) {
+      throw createHttpError(
+        400,
+        'Selling wallet is not on the requested network',
+      );
+    }
+    if (paymentSource.deletedAt != null) {
+      throw createHttpError(400, 'Payment source is deleted');
     }
     const result = await prisma.registryRequest.create({
       data: {
@@ -468,6 +440,7 @@ export const registerAgentPost = payAuthenticatedEndpointFactory.build({
 export const unregisterAgentSchemaInput = z.object({
   agentIdentifier: z
     .string()
+    .min(57)
     .max(250)
     .describe('The identifier of the registration (asset) to be deregistered'),
   network: z

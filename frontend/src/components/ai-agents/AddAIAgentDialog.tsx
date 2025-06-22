@@ -162,7 +162,6 @@ export function AddAIAgentDialog({
           client: apiClient,
           body: {
             network: state.network,
-            smartContractAddress: paymentSource?.smartContractAddress,
             sellingWalletVkey: data.selectedWallet,
             name: data.name,
             description: data.description,

@@ -40,6 +40,9 @@ export async function lockAndQueryRegistryRequests({
               },
               ExampleOutputs: true,
             },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
           HotWallets: {
             include: {

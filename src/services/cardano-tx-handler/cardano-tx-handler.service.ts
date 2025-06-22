@@ -258,7 +258,7 @@ export async function checkLatestTransactions(
             if (txs.length == 0) {
               if (latestTx.length == 0) {
                 logger.warn('No transactions found for payment contract', {
-                  paymentContract: paymentContract,
+                  paymentContractAddress: paymentContract.smartContractAddress,
                 });
               }
               break;
@@ -421,11 +421,9 @@ export async function checkLatestTransactions(
 
                       const dbEntry = await prisma.purchaseRequest.findUnique({
                         where: {
-                          paymentSourceId_blockchainIdentifier: {
-                            paymentSourceId: paymentContract.id,
-                            blockchainIdentifier:
-                              decodedNewContract.blockchainIdentifier,
-                          },
+                          blockchainIdentifier:
+                            decodedNewContract.blockchainIdentifier,
+                          paymentSourceId: paymentContract.id,
                           NextAction: {
                             requestedAction:
                               PurchasingAction.FundsLockingInitiated,
@@ -682,11 +680,9 @@ export async function checkLatestTransactions(
                     async (prisma) => {
                       const dbEntry = await prisma.paymentRequest.findUnique({
                         where: {
-                          paymentSourceId_blockchainIdentifier: {
-                            blockchainIdentifier:
-                              decodedNewContract.blockchainIdentifier,
-                            paymentSourceId: paymentContract.id,
-                          },
+                          blockchainIdentifier:
+                            decodedNewContract.blockchainIdentifier,
+                          paymentSourceId: paymentContract.id,
                           BuyerWallet: null,
                           NextAction: {
                             requestedAction:
@@ -1017,11 +1013,9 @@ export async function checkLatestTransactions(
 
                 const paymentRequest = await prisma.paymentRequest.findUnique({
                   where: {
-                    paymentSourceId_blockchainIdentifier: {
-                      paymentSourceId: paymentContract.id,
-                      blockchainIdentifier:
-                        decodedOldContract.blockchainIdentifier,
-                    },
+                    paymentSourceId: paymentContract.id,
+                    blockchainIdentifier:
+                      decodedOldContract.blockchainIdentifier,
                   },
                   include: {
                     BuyerWallet: true,
@@ -1035,11 +1029,9 @@ export async function checkLatestTransactions(
                 const purchasingRequest =
                   await prisma.purchaseRequest.findUnique({
                     where: {
-                      paymentSourceId_blockchainIdentifier: {
-                        paymentSourceId: paymentContract.id,
-                        blockchainIdentifier:
-                          decodedOldContract.blockchainIdentifier,
-                      },
+                      paymentSourceId: paymentContract.id,
+                      blockchainIdentifier:
+                        decodedOldContract.blockchainIdentifier,
                     },
                     include: {
                       SmartContractWallet: { where: { deletedAt: null } },
@@ -1435,10 +1427,8 @@ async function handlePaymentTransactionCardanoV1(
       //we dont need to do sanity checks as the tx hash is unique
       const paymentRequest = await prisma.paymentRequest.findUnique({
         where: {
-          paymentSourceId_blockchainIdentifier: {
-            paymentSourceId: paymentContractId,
-            blockchainIdentifier: blockchainIdentifier,
-          },
+          paymentSourceId: paymentContractId,
+          blockchainIdentifier: blockchainIdentifier,
         },
         include: {
           CurrentTransaction: { include: { BlocksWallet: true } },
@@ -1543,10 +1533,8 @@ async function handlePurchasingTransactionCardanoV1(
       //we dont need to do sanity checks as the tx hash is unique
       const purchasingRequest = await prisma.purchaseRequest.findUnique({
         where: {
-          paymentSourceId_blockchainIdentifier: {
-            paymentSourceId: paymentContractId,
-            blockchainIdentifier: blockchainIdentifier,
-          },
+          paymentSourceId: paymentContractId,
+          blockchainIdentifier: blockchainIdentifier,
         },
         include: {
           CurrentTransaction: { include: { BlocksWallet: true } },

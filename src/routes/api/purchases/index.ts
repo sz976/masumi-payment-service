@@ -12,12 +12,10 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { DEFAULTS } from '@/utils/config';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
-import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
 import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
@@ -43,13 +41,6 @@ export const queryPurchaseRequestSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the purchases were made on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the purchases were made to',
-    ),
   includeHistory: z
     .string()
     .optional()
@@ -123,6 +114,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         id: z.string(),
         network: z.nativeEnum(Network),
         smartContractAddress: z.string(),
+        policyId: z.string().nullable(),
         paymentType: z.nativeEnum(PaymentType),
       }),
       SellerWallet: z
@@ -164,26 +156,14 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
-      where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
-        deletedAt: null,
-      },
-    });
-    if (paymentSource == null) {
-      throw createHttpError(404, 'Payment source not found');
-    }
 
     const result = await prisma.purchaseRequest.findMany({
-      where: { paymentSourceId: paymentSource.id },
+      where: {
+        PaymentSource: {
+          deletedAt: null,
+          network: input.network,
+        },
+      },
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       take: input.limit,
       orderBy: { createdAt: 'desc' },
@@ -252,15 +232,9 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe('The verification key of the seller'),
   agentIdentifier: z
     .string()
+    .min(57)
     .max(250)
     .describe('The identifier of the agent that is being purchased'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the purchase will be made to',
-    ),
   Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
@@ -343,6 +317,7 @@ export const createPurchaseInitSchemaOutput = z.object({
   PaymentSource: z.object({
     id: z.string(),
     network: z.nativeEnum(Network),
+    policyId: z.string().nullable(),
     smartContractAddress: z.string(),
     paymentType: z.nativeEnum(PaymentType),
   }),
@@ -383,25 +358,21 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
+    const policyId = input.agentIdentifier.substring(0, 56);
+
+    const paymentSource = await prisma.paymentSource.findFirst({
       where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
+        policyId: policyId,
+        network: input.network,
         deletedAt: null,
       },
       include: { PaymentSourceConfig: true },
     });
+
     if (paymentSource == null) {
       throw createHttpError(
         404,
-        'Network and Address combination not supported',
+        'No payment source found for agent identifiers policy id',
       );
     }
 
@@ -447,10 +418,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,
     });
 
-    const { policyId } = await getRegistryScriptV1(
-      smartContractAddress,
-      input.network,
-    );
     const assetId = input.agentIdentifier;
     const policyAsset = assetId.startsWith(policyId)
       ? assetId
@@ -583,6 +550,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, signature invalid',
       );
     }
+    const smartContractAddress = paymentSource.smartContractAddress;
 
     const initialPurchaseRequest = await handlePurchaseCreditInit({
       id: options.id,

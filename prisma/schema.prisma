@@ -68,7 +68,7 @@ model HotWallet {
   id            String        @id @default(cuid())
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  walletVkey    String
+  walletVkey    String        @unique
   walletAddress String
   type          HotWalletType
 
@@ -92,8 +92,6 @@ model HotWallet {
   RegistryRequest   RegistryRequest[]
   deletedAt         DateTime?
   CollateralRequest CollateralRequest[]
-
-  @@unique([paymentSourceId, walletVkey])
 }
 
 model Transaction {
@@ -289,7 +287,7 @@ model PaymentRequest {
 
   RequestedFunds UnitValue[]
 
-  blockchainIdentifier      String
+  blockchainIdentifier      String        @unique
   submitResultTime          BigInt
   unlockTime                BigInt
   externalDisputeUnlockTime BigInt
@@ -308,8 +306,6 @@ model PaymentRequest {
   TransactionHistory   Transaction[] @relation("PaymentTransactionHistory")
   CurrentTransaction   Transaction?  @relation("CurrentPaymentTransaction", fields: [currentTransactionId], references: [id])
   currentTransactionId String?       @unique
-
-  @@unique([paymentSourceId, blockchainIdentifier])
 }
 
 model PaymentActionData {
@@ -347,7 +343,7 @@ model PurchaseRequest {
 
   PaidFunds UnitValue[]
 
-  blockchainIdentifier String
+  blockchainIdentifier String @unique
 
   submitResultTime          BigInt
   unlockTime                BigInt
@@ -369,8 +365,6 @@ model PurchaseRequest {
   CurrentTransaction   Transaction?  @relation("CurrentPurchaseTransaction", fields: [currentTransactionId], references: [id])
   currentTransactionId String?       @unique
   TransactionHistory   Transaction[] @relation("PurchaseTransactionHistory")
-
-  @@unique([paymentSourceId, blockchainIdentifier])
 }
 
 model PurchaseActionData {
@@ -467,6 +461,7 @@ model PaymentSource {
   lastIdentifierChecked String?
   syncInProgress        Boolean @default(false)
 
+  policyId                 String? //optional for now until migration is completed
   smartContractAddress     String
   AdminWallets             AdminWallet[] @relation("AdminWallets")
   FeeReceiverNetworkWallet AdminWallet   @relation("FeeReceiverNetworkWallet", fields: [adminWalletId], references: [id], onDelete: Cascade)
@@ -489,6 +484,7 @@ model PaymentSource {
   CollateralRequest CollateralRequest[]
 
   @@unique([network, smartContractAddress])
+  @@unique([network, policyId])
 }
 
 model AdminWallet {

@@ -8,60 +8,58 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length <= 20)
   );
 
 const batchPaymentInterval = Number(process.env.BATCH_PAYMENT_INTERVAL ?? '80');
-if (batchPaymentInterval < 20)
-  throw new Error('BATCH_PAYMENT_INTERVAL must be at least 20 seconds');
-const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '120');
+if (batchPaymentInterval < 5)
+  throw new Error('BATCH_PAYMENT_INTERVAL must be at least 5 seconds');
+const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '40');
 if (checkTxInterval < 20)
   throw new Error('CHECK_TX_INTERVAL must be at least 20 seconds');
 const checkCollectionInterval = Number(
-  process.env.CHECK_COLLECTION_INTERVAL ?? '180',
+  process.env.CHECK_COLLECTION_INTERVAL ?? '30',
 );
-if (checkCollectionInterval < 20)
-  throw new Error('CHECK_COLLECTION_INTERVAL must be at least 20 seconds');
+if (checkCollectionInterval < 5)
+  throw new Error('CHECK_COLLECTION_INTERVAL must be at least 5 seconds');
 const checkCollectRefundInterval = Number(
-  process.env.CHECK_COLLECT_REFUND_INTERVAL ?? '180',
+  process.env.CHECK_COLLECT_REFUND_INTERVAL ?? '30',
 );
-if (checkCollectRefundInterval < 20)
-  throw new Error('CHECK_COLLECT_REFUND_INTERVAL must be at least 20 seconds');
+if (checkCollectRefundInterval < 5)
+  throw new Error('CHECK_COLLECT_REFUND_INTERVAL must be at least 5 seconds');
 const checkSetRefundInterval = Number(
-  process.env.CHECK_SET_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_SET_REFUND_INTERVAL ?? '30',
 );
-if (checkSetRefundInterval < 20)
-  throw new Error('CHECK_SET_REFUND_INTERVAL must be at least 20 seconds');
+if (checkSetRefundInterval < 5)
+  throw new Error('CHECK_SET_REFUND_INTERVAL must be at least 5 seconds');
 const checkUnsetRefundInterval = Number(
-  process.env.CHECK_UNSET_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_UNSET_REFUND_INTERVAL ?? '30',
 );
-if (checkUnsetRefundInterval < 20)
-  throw new Error('CHECK_UNSET_REFUND_INTERVAL must be at least 20 seconds');
+if (checkUnsetRefundInterval < 5)
+  throw new Error('CHECK_UNSET_REFUND_INTERVAL must be at least 5 seconds');
 const checkWalletTransactionHashInterval = Number(
-  process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? '50',
+  process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? '30',
 );
-if (checkWalletTransactionHashInterval < 20)
+if (checkWalletTransactionHashInterval < 5)
   throw new Error(
-    'CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 20 seconds',
+    'CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 5 seconds',
   );
 const checkAuthorizeRefundInterval = Number(
-  process.env.CHECK_AUTHORIZE_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_AUTHORIZE_REFUND_INTERVAL ?? '30',
 );
-if (checkAuthorizeRefundInterval < 20)
-  throw new Error(
-    'CHECK_AUTHORIZE_REFUND_INTERVAL must be at least 20 seconds',
-  );
+if (checkAuthorizeRefundInterval < 5)
+  throw new Error('CHECK_AUTHORIZE_REFUND_INTERVAL must be at least 5 seconds');
 const checkSubmitResultInterval = Number(
-  process.env.CHECK_SUBMIT_RESULT_INTERVAL ?? '120',
+  process.env.CHECK_SUBMIT_RESULT_INTERVAL ?? '30',
 );
-if (checkSubmitResultInterval < 20)
-  throw new Error('CHECK_SUBMIT_RESULT_INTERVAL must be at least 20 seconds');
+if (checkSubmitResultInterval < 5)
+  throw new Error('CHECK_SUBMIT_RESULT_INTERVAL must be at least 5 seconds');
 const registerAgentInterval = Number(
-  process.env.REGISTER_AGENT_INTERVAL ?? '60',
+  process.env.REGISTER_AGENT_INTERVAL ?? '30',
 );
-if (registerAgentInterval < 20)
-  throw new Error('REGISTER_AGENT_INTERVAL must be at least 20 seconds');
+if (registerAgentInterval < 5)
+  throw new Error('REGISTER_AGENT_INTERVAL must be at least 5 seconds');
 const deregisterAgentInterval = Number(
-  process.env.DEREGISTER_AGENT_INTERVAL ?? '60',
+  process.env.DEREGISTER_AGENT_INTERVAL ?? '30',
 );
-if (deregisterAgentInterval < 20)
-  throw new Error('DEREGISTER_AGENT_INTERVAL must be at least 20 seconds');
+if (deregisterAgentInterval < 5)
+  throw new Error('DEREGISTER_AGENT_INTERVAL must be at least 5 seconds');
 
 const autoWithdrawPayments =
   process.env.AUTO_WITHDRAW_PAYMENTS?.toLowerCase() === 'true' ||
@@ -73,8 +71,8 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
 
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
-if (autoDecisionInterval < 20)
-  throw new Error('AUTO_DECISION_INTERVAL must be at least 20 seconds');
+if (autoDecisionInterval < 5)
+  throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
 
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',

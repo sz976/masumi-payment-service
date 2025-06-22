@@ -16,8 +16,6 @@ import { ez } from 'express-zod-api';
 import cuid2 from '@paralleldrive/cuid2';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { MeshWallet, resolvePaymentKeyHash } from '@meshsdk/core';
-import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
-import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { convertNetworkToId } from '@/utils/converter/network-convert';
 import { decrypt } from '@/utils/security/encryption';
@@ -43,13 +41,6 @@ export const queryPaymentsSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the payments were made on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the payments were made to',
-    ),
   includeHistory: z
     .string()
     .optional()
@@ -123,6 +114,7 @@ export const queryPaymentsSchemaOutput = z.object({
         id: z.string(),
         network: z.nativeEnum(Network),
         smartContractAddress: z.string(),
+        policyId: z.string().nullable(),
         paymentType: z.nativeEnum(PaymentType),
       }),
       BuyerWallet: z
@@ -164,30 +156,14 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const paymentSourceAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
-      where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: paymentSourceAddress,
-        },
-        deletedAt: null,
-      },
-      include: {
-        HotWallets: { where: { deletedAt: null } },
-        PaymentSourceConfig: true,
-      },
-    });
-    if (!paymentSource) {
-      throw createHttpError(404, 'Payment source not found');
-    }
 
     const result = await prisma.paymentRequest.findMany({
-      where: { paymentSourceId: paymentSource.id },
+      where: {
+        PaymentSource: {
+          network: input.network,
+          deletedAt: null,
+        },
+      },
       orderBy: { createdAt: 'desc' },
       cursor: input.cursorId
         ? {
@@ -252,7 +228,7 @@ export const createPaymentsSchemaInput = z.object({
     .describe('The network the payment will be received on'),
   agentIdentifier: z
     .string()
-    .min(15)
+    .min(57)
     .max(250)
     .describe('The identifier of the agent that will be paid'),
   RequestedFunds: z
@@ -263,13 +239,6 @@ export const createPaymentsSchemaInput = z.object({
   paymentType: z
     .nativeEnum(PaymentType)
     .describe('The type of payment contract used'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the payment will be made to',
-    ),
   submitResultTime: ez
     .dateIn()
     .default(new Date(1000 * 60 * 60 * 12).toISOString())
@@ -338,6 +307,7 @@ export const createPaymentSchemaOutput = z.object({
     id: z.string(),
     network: z.nativeEnum(Network),
     smartContractAddress: z.string(),
+    policyId: z.string().nullable(),
     paymentType: z.nativeEnum(PaymentType),
   }),
   BuyerWallet: z
@@ -377,17 +347,12 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const specifiedPaymentContract = await prisma.paymentSource.findUnique({
+    const policyId = input.agentIdentifier.slice(0, 56);
+
+    const specifiedPaymentContract = await prisma.paymentSource.findFirst({
       where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
+        network: input.network,
+        policyId: policyId,
         deletedAt: null,
       },
       include: {
@@ -398,7 +363,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
     if (specifiedPaymentContract == null) {
       throw createHttpError(
         404,
-        'Network and Address combination not supported',
+        'Network and policyId combination not supported',
       );
     }
     await checkIsAllowedNetworkOrThrowUnauthorized(
@@ -412,21 +377,19 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         ? input.unlockTime.getTime()
         : new Date(
             input.submitResultTime.getTime() + 1000 * 60 * 60 * 6,
-          ).getTime(); // 6h
+          ).getTime(); // default +6h
+
     const externalDisputeUnlockTime =
       input.externalDisputeUnlockTime != undefined
         ? input.externalDisputeUnlockTime.getTime()
         : new Date(
             input.submitResultTime.getTime() + 1000 * 60 * 60 * 12,
-          ).getTime(); // 12h
+          ).getTime(); // default +12h
 
     const provider = new BlockFrostAPI({
       projectId: specifiedPaymentContract.PaymentSourceConfig.rpcProviderApiKey,
     });
-    const { policyId } = await getRegistryScriptV1(
-      smartContractAddress,
-      input.network,
-    );
+
     if (input.agentIdentifier.startsWith(policyId) == false) {
       throw createHttpError(
         404,

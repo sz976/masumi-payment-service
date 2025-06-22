@@ -49,6 +49,9 @@ export async function lockAndQueryPurchases({
                 //we only want to lock the purchase if the cooldown time has passed
                 buyerCoolDownTime: { lte: minCooldownTime },
               },
+              orderBy: {
+                createdAt: 'asc',
+              },
               include: {
                 NextAction: true,
                 CurrentTransaction: true,
