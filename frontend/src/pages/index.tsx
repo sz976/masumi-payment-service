@@ -122,7 +122,6 @@ export default function Overview() {
           client: apiClient,
           query: {
             network: state.network,
-            smartContractAddress,
             cursorId: cursor || undefined,
           },
         });
@@ -315,9 +314,11 @@ export default function Overview() {
                 <Spinner size={20} addContainer />
               ) : (
                 <div className="text-2xl font-semibold">
-                  {agents.filter(
-                    (agent) => agent.state === 'RegistrationConfirmed',
-                  ).length}
+                  {
+                    agents.filter(
+                      (agent) => agent.state === 'RegistrationConfirmed',
+                    ).length
+                  }
                 </div>
               )}
             </div>

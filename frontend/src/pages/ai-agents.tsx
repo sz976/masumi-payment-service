@@ -160,7 +160,6 @@ export default function AIAgentsPage() {
         client: apiClient,
         query: {
           network: state.network,
-          smartContractAddress,
           cursorId: cursor || undefined,
         },
       });
