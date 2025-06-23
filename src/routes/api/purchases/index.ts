@@ -12,12 +12,10 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { DEFAULTS } from '@/utils/config';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { checkSignature, resolvePaymentKeyHash } from '@meshsdk/core';
 import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
-import { getRegistryScriptV1 } from '@/utils/generator/contract-generator';
 import { logger } from '@/utils/logger';
 import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
@@ -26,6 +24,7 @@ import stringify from 'canonical-json';
 import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
 import LZString from 'lz-string';
 import { generateHash } from '@/utils/crypto';
+import { validateHexString } from '@/utils/generator/contract-generator';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -43,13 +42,6 @@ export const queryPurchaseRequestSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the purchases were made on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the purchases were made to',
-    ),
   includeHistory: z
     .string()
     .optional()
@@ -73,6 +65,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       externalDisputeUnlockTime: z.string(),
       requestedById: z.string(),
       onChainState: z.nativeEnum(OnChainState).nullable(),
+      collateralReturnLovelace: z.string().nullable(),
       cooldownTime: z.number(),
       cooldownTimeOtherParty: z.number(),
       inputHash: z.string(),
@@ -123,6 +116,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
         id: z.string(),
         network: z.nativeEnum(Network),
         smartContractAddress: z.string(),
+        policyId: z.string().nullable(),
         paymentType: z.nativeEnum(PaymentType),
       }),
       SellerWallet: z
@@ -164,26 +158,14 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const paymentContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
-      where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: paymentContractAddress,
-        },
-        deletedAt: null,
-      },
-    });
-    if (paymentSource == null) {
-      throw createHttpError(404, 'Payment source not found');
-    }
 
     const result = await prisma.purchaseRequest.findMany({
-      where: { paymentSourceId: paymentSource.id },
+      where: {
+        PaymentSource: {
+          deletedAt: null,
+          network: input.network,
+        },
+      },
       cursor: input.cursorId ? { id: input.cursorId } : undefined,
       take: input.limit,
       orderBy: { createdAt: 'desc' },
@@ -226,6 +208,8 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           unit: amount.unit,
           amount: amount.amount.toString(),
         })),
+        collateralReturnLovelace:
+          purchase.collateralReturnLovelace?.toString() ?? null,
         submitResultTime: purchase.submitResultTime.toString(),
         unlockTime: purchase.unlockTime.toString(),
         externalDisputeUnlockTime:
@@ -245,22 +229,21 @@ export const createPurchaseInitSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the transaction will be made on'),
-  inputHash: z.string().max(250),
+  inputHash: z
+    .string()
+    .max(250)
+    .describe(
+      'The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format',
+    ),
   sellerVkey: z
     .string()
     .max(250)
     .describe('The verification key of the seller'),
   agentIdentifier: z
     .string()
+    .min(57)
     .max(250)
     .describe('The identifier of the agent that is being purchased'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the purchase will be made to',
-    ),
   Amounts: z
     .array(z.object({ amount: z.string().max(25), unit: z.string().max(150) }))
     .max(7)
@@ -284,6 +267,11 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe(
       'The time by which the result has to be submitted. In unix time (number)',
     ),
+  payByTime: z
+    .string()
+    .describe(
+      'The time after which the purchase has to be submitted to the smart contract',
+    ),
   metadata: z
     .string()
     .optional()
@@ -292,7 +280,9 @@ export const createPurchaseInitSchemaInput = z.object({
     .string()
     .min(15)
     .max(25)
-    .describe('The cuid2 identifier of the purchaser of the purchase'),
+    .describe(
+      'The nounce of the purchaser of the purchase, needs to be in hex format',
+    ),
 });
 
 export const createPurchaseInitSchemaOutput = z.object({
@@ -343,6 +333,7 @@ export const createPurchaseInitSchemaOutput = z.object({
   PaymentSource: z.object({
     id: z.string(),
     network: z.nativeEnum(Network),
+    policyId: z.string().nullable(),
     smartContractAddress: z.string(),
     paymentType: z.nativeEnum(PaymentType),
   }),
@@ -383,25 +374,25 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
-    const smartContractAddress =
-      input.smartContractAddress ??
-      (input.network == Network.Mainnet
-        ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-        : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-    const paymentSource = await prisma.paymentSource.findUnique({
+    const policyId = input.agentIdentifier.substring(0, 56);
+
+    const paymentSource = await prisma.paymentSource.findFirst({
       where: {
-        network_smartContractAddress: {
-          network: input.network,
-          smartContractAddress: smartContractAddress,
-        },
+        policyId: policyId,
+        network: input.network,
         deletedAt: null,
       },
       include: { PaymentSourceConfig: true },
     });
+    const inputHash = input.inputHash;
+    if (validateHexString(inputHash) == false) {
+      throw createHttpError(400, 'Input hash is not a valid hex string');
+    }
+
     if (paymentSource == null) {
       throw createHttpError(
         404,
-        'Network and Address combination not supported',
+        'No payment source found for agent identifiers policy id',
       );
     }
 
@@ -419,15 +410,29 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     //require at least 3 hours between unlock time and the submit result time
     const additionalExternalDisputeUnlockTime = BigInt(1000 * 60 * 15);
     const submitResultTime = BigInt(input.submitResultTime);
+    const payByTime = BigInt(input.payByTime);
     const unlockTime = BigInt(input.unlockTime);
     const externalDisputeUnlockTime = BigInt(input.externalDisputeUnlockTime);
+    if (payByTime > submitResultTime - BigInt(1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be before submit result time (min. 5 minutes)',
+      );
+    }
+    if (payByTime < BigInt(Date.now() - 1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be in the future (max. 5 minutes)',
+      );
+    }
+
     if (
       externalDisputeUnlockTime <
       unlockTime + additionalExternalDisputeUnlockTime
     ) {
       throw createHttpError(
         400,
-        'External dispute unlock time must be after unlock time with at least 15 minutes difference',
+        'External dispute unlock time must be after unlock time (min. 15 minutes difference)',
       );
     }
     if (submitResultTime < BigInt(Date.now() + 1000 * 60 * 15)) {
@@ -447,10 +452,6 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       projectId: paymentSource.PaymentSourceConfig.rpcProviderApiKey,
     });
 
-    const { policyId } = await getRegistryScriptV1(
-      smartContractAddress,
-      input.network,
-    );
     const assetId = input.agentIdentifier;
     const policyAsset = assetId.startsWith(policyId)
       ? assetId
@@ -537,6 +538,15 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser id mismatch',
       );
     }
+    if (validateHexString(purchaserId) == false) {
+      throw createHttpError(
+        400,
+        'Purchaser identifier is not a valid hex string',
+      );
+    }
+    if (validateHexString(sellerId) == false) {
+      throw createHttpError(400, 'Seller identifier is not a valid hex string');
+    }
     const signature = blockchainIdentifierSplit[2];
     const key = blockchainIdentifierSplit[3];
     const cosePublicKey = getPublicKeyFromCoseKey(key);
@@ -546,7 +556,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, key not found',
       );
     }
-    const publicKeyHash = await cosePublicKey.hash();
+    const publicKeyHash = cosePublicKey.hash();
     if (publicKeyHash.hex() != input.sellerVkey) {
       throw createHttpError(
         400,
@@ -561,16 +571,18 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,
+      payByTime: input.payByTime,
       submitResultTime: input.submitResultTime,
       unlockTime: unlockTime.toString(),
       externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
+      sellerAddress: addressOfAsset,
     };
 
     const hashedBlockchainIdentifier = generateHash(
       stringify(reconstructedBlockchainIdentifier),
     );
 
-    const identifierIsSignedCorrectly = checkSignature(
+    const identifierIsSignedCorrectly = await checkSignature(
       hashedBlockchainIdentifier,
       {
         signature: signature,
@@ -583,6 +595,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, signature invalid',
       );
     }
+    const smartContractAddress = paymentSource.smartContractAddress;
 
     const initialPurchaseRequest = await handlePurchaseCreditInit({
       id: options.id,
@@ -601,6 +614,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       paymentType: input.paymentType,
       contractAddress: smartContractAddress,
       sellerVkey: input.sellerVkey,
+      sellerAddress: addressOfAsset,
+      payByTime: payByTime,
       submitResultTime: submitResultTime,
       unlockTime: unlockTime,
       externalDisputeUnlockTime: externalDisputeUnlockTime,

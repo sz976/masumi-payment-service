@@ -68,7 +68,7 @@ model HotWallet {
   id            String        @id @default(cuid())
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  walletVkey    String
+  walletVkey    String        @unique
   walletAddress String
   type          HotWalletType
 
@@ -88,11 +88,10 @@ model HotWallet {
 
   lockedAt DateTime?
 
-  note            String?
-  RegistryRequest RegistryRequest[]
-  deletedAt       DateTime?
-
-  @@unique([paymentSourceId, walletVkey])
+  note              String?
+  RegistryRequest   RegistryRequest[]
+  deletedAt         DateTime?
+  CollateralRequest CollateralRequest[]
 }
 
 model Transaction {
@@ -110,10 +109,12 @@ model Transaction {
   PaymentRequestHistory   PaymentRequest? @relation("PaymentTransactionHistory", fields: [paymentRequestHistoryId], references: [id])
   paymentRequestHistoryId String?
 
-  PurchaseRequestCurrent   PurchaseRequest?  @relation("CurrentPurchaseTransaction")
-  PurchaseRequestHistory   PurchaseRequest?  @relation("PurchaseTransactionHistory", fields: [purchaseRequestHistoryId], references: [id])
+  PurchaseRequestCurrent   PurchaseRequest? @relation("CurrentPurchaseTransaction")
+  PurchaseRequestHistory   PurchaseRequest? @relation("PurchaseTransactionHistory", fields: [purchaseRequestHistoryId], references: [id])
   purchaseRequestHistoryId String?
-  RegistryRequest          RegistryRequest[]
+
+  RegistryRequest   RegistryRequest[]
+  CollateralRequest CollateralRequest[]
 }
 
 model WalletSecret {
@@ -131,19 +132,20 @@ enum WalletType {
 }
 
 model WalletBase {
-  id         String     @id @default(cuid())
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  walletVkey String
-  note       String?
-  type       WalletType
+  id            String     @id @default(cuid())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  walletVkey    String
+  walletAddress String     @default("")
+  note          String?
+  type          WalletType
 
   PaymentRequest  PaymentRequest[]
   PurchaseRequest PurchaseRequest[]
   PaymentSource   PaymentSource     @relation(fields: [paymentSourceId], references: [id])
   paymentSourceId String
 
-  @@unique([paymentSourceId, walletVkey, type])
+  @@unique([paymentSourceId, walletVkey, walletAddress, type])
 }
 
 enum RegistrationState {
@@ -156,6 +158,31 @@ enum RegistrationState {
   DeregistrationInitiated
   DeregistrationConfirmed
   DeregistrationFailed
+}
+
+model CollateralRequest {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastCheckedAt DateTime?
+
+  paymentSourceId String
+  PaymentSource   PaymentSource @relation(fields: [paymentSourceId], references: [id])
+
+  HotWallet   HotWallet @relation(fields: [hotWalletId], references: [id])
+  hotWalletId String
+
+  agentIdentifier String?                @unique
+  state           CollateralRequestState
+  Transaction     Transaction?           @relation(fields: [transactionId], references: [id])
+  transactionId   String?
+  error           String?
+}
+
+enum CollateralRequestState {
+  Pending
+  Confirmed
+  Failed
 }
 
 model RegistryRequest {
@@ -200,6 +227,8 @@ model RegistryRequest {
 
   CurrentTransaction   Transaction? @relation(fields: [currentTransactionId], references: [id])
   currentTransactionId String?
+
+  error String?
 }
 
 model ExampleOutput {
@@ -259,7 +288,9 @@ model PaymentRequest {
 
   RequestedFunds UnitValue[]
 
-  blockchainIdentifier      String
+  collateralReturnLovelace  BigInt?
+  blockchainIdentifier      String        @unique
+  payByTime                 BigInt?
   submitResultTime          BigInt
   unlockTime                BigInt
   externalDisputeUnlockTime BigInt
@@ -278,8 +309,6 @@ model PaymentRequest {
   TransactionHistory   Transaction[] @relation("PaymentTransactionHistory")
   CurrentTransaction   Transaction?  @relation("CurrentPaymentTransaction", fields: [currentTransactionId], references: [id])
   currentTransactionId String?       @unique
-
-  @@unique([paymentSourceId, blockchainIdentifier])
 }
 
 model PaymentActionData {
@@ -317,8 +346,10 @@ model PurchaseRequest {
 
   PaidFunds UnitValue[]
 
-  blockchainIdentifier String
+  blockchainIdentifier String @unique
 
+  collateralReturnLovelace  BigInt?
+  payByTime                 BigInt?
   submitResultTime          BigInt
   unlockTime                BigInt
   externalDisputeUnlockTime BigInt
@@ -339,8 +370,6 @@ model PurchaseRequest {
   CurrentTransaction   Transaction?  @relation("CurrentPurchaseTransaction", fields: [currentTransactionId], references: [id])
   currentTransactionId String?       @unique
   TransactionHistory   Transaction[] @relation("PurchaseTransactionHistory")
-
-  @@unique([paymentSourceId, blockchainIdentifier])
 }
 
 model PurchaseActionData {
@@ -437,12 +466,13 @@ model PaymentSource {
   lastIdentifierChecked String?
   syncInProgress        Boolean @default(false)
 
+  policyId                 String? //optional for now until migration is completed
   smartContractAddress     String
   AdminWallets             AdminWallet[] @relation("AdminWallets")
   FeeReceiverNetworkWallet AdminWallet   @relation("FeeReceiverNetworkWallet", fields: [adminWalletId], references: [id], onDelete: Cascade)
   adminWalletId            String
-  feeRatePermille          Int           @default(50)
-  cooldownTime             Int           @default(600000)
+  feeRatePermille          Int
+  cooldownTime             Int
 
   PaymentSourceConfig   PaymentSourceConfig @relation(fields: [paymentSourceConfigId], references: [id])
   paymentSourceConfigId String              @unique
@@ -452,12 +482,16 @@ model PaymentSource {
 
   paymentType PaymentType
 
-  HotWallets      HotWallet[]
-  WalletBases     WalletBase[]
-  RegistryRequest RegistryRequest[]
-  deletedAt       DateTime?
+  HotWallets        HotWallet[]
+  WalletBases       WalletBase[]
+  RegistryRequest   RegistryRequest[]
+  deletedAt         DateTime?
+  disablePaymentAt  DateTime?
+  disableSyncAt     DateTime?
+  CollateralRequest CollateralRequest[]
 
   @@unique([network, smartContractAddress])
+  @@unique([network, policyId])
 }
 
 model AdminWallet {

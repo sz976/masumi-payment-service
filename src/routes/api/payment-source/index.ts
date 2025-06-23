@@ -23,6 +23,7 @@ export const paymentSourceSchemaOutput = z.object({
       createdAt: z.date(),
       updatedAt: z.date(),
       network: z.nativeEnum(Network),
+      policyId: z.string().nullable(),
       smartContractAddress: z.string(),
       paymentType: z.nativeEnum(PaymentType),
       lastIdentifierChecked: z.string().nullable(),

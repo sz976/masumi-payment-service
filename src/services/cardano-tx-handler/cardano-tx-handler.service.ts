@@ -1,4 +1,5 @@
 import {
+  Network,
   OnChainState,
   PaymentAction,
   PaymentErrorType,
@@ -56,6 +57,7 @@ export async function checkLatestTransactions(
           where: {
             paymentType: PaymentType.Web3CardanoV1,
             deletedAt: null,
+            disableSyncAt: null,
             OR: [
               { syncInProgress: false },
               {
@@ -258,7 +260,7 @@ export async function checkLatestTransactions(
             if (txs.length == 0) {
               if (latestTx.length == 0) {
                 logger.warn('No transactions found for payment contract', {
-                  paymentContract: paymentContract,
+                  paymentContractAddress: paymentContract.smartContractAddress,
                 });
               }
               break;
@@ -279,7 +281,7 @@ export async function checkLatestTransactions(
 
           if (latestTx.length == 0) {
             logger.info('No new transactions found for payment contract', {
-              paymentContract: paymentContract,
+              paymentContractAddress: paymentContract.smartContractAddress,
             });
             return;
           }
@@ -397,8 +399,12 @@ export async function checkLatestTransactions(
                   }
                   const decodedOutputDatum: unknown =
                     deserializeDatum(outputDatum);
-                  const decodedNewContract =
-                    decodeV1ContractDatum(decodedOutputDatum);
+                  const decodedNewContract = decodeV1ContractDatum(
+                    decodedOutputDatum,
+                    paymentContract.network == Network.Mainnet
+                      ? 'mainnet'
+                      : 'preprod',
+                  );
                   if (decodedNewContract == null) {
                     //invalid transaction
                     continue;
@@ -408,9 +414,10 @@ export async function checkLatestTransactions(
                     async (prisma) => {
                       const sellerWallet = await prisma.walletBase.findUnique({
                         where: {
-                          paymentSourceId_walletVkey_type: {
+                          paymentSourceId_walletVkey_walletAddress_type: {
                             paymentSourceId: paymentContract.id,
-                            walletVkey: decodedNewContract.seller,
+                            walletVkey: decodedNewContract.sellerVkey,
+                            walletAddress: decodedNewContract.sellerAddress,
                             type: WalletType.Seller,
                           },
                         },
@@ -421,11 +428,9 @@ export async function checkLatestTransactions(
 
                       const dbEntry = await prisma.purchaseRequest.findUnique({
                         where: {
-                          paymentSourceId_blockchainIdentifier: {
-                            paymentSourceId: paymentContract.id,
-                            blockchainIdentifier:
-                              decodedNewContract.blockchainIdentifier,
-                          },
+                          blockchainIdentifier:
+                            decodedNewContract.blockchainIdentifier,
+                          paymentSourceId: paymentContract.id,
                           NextAction: {
                             requestedAction:
                               PurchasingAction.FundsLockingInitiated,
@@ -499,30 +504,95 @@ export async function checkLatestTransactions(
 
                       //We soft ignore those transactions
                       if (
-                        decodedNewContract.seller !=
-                        dbEntry.SellerWallet.walletVkey
+                        decodedNewContract.sellerVkey !=
+                          dbEntry.SellerWallet.walletVkey ||
+                        decodedNewContract.sellerAddress !=
+                          dbEntry.SellerWallet.walletAddress
                       ) {
                         logger.warn(
                           'Seller does not match seller in db. This likely is a spoofing attempt.',
                           {
                             purchaseRequest: dbEntry,
-                            sender: decodedNewContract.seller,
+                            sender: decodedNewContract.sellerVkey,
+                            senderAddress: decodedNewContract.sellerAddress,
                             senderDb: dbEntry.SmartContractWallet?.walletVkey,
+                            senderDbAddress:
+                              dbEntry.SmartContractWallet?.walletAddress,
+                          },
+                        );
+                        return;
+                      }
+                      if (
+                        tx.utxos.inputs.find(
+                          (x) => x.address == decodedNewContract.buyerAddress,
+                        ) == null
+                      ) {
+                        logger.warn(
+                          'Buyer address not found in inputs, this likely is a spoofing attempt.',
+                          {
+                            purchaseRequest: dbEntry,
+                            buyerAddress: decodedNewContract.buyerAddress,
                           },
                         );
                         return;
                       }
 
                       if (
-                        decodedNewContract.buyer !=
-                        dbEntry.SmartContractWallet.walletVkey
+                        BigInt(decodedNewContract.collateralReturnLovelace) !=
+                        dbEntry.collateralReturnLovelace
+                      ) {
+                        logger.warn(
+                          'Collateral return lovelace does not match collateral return lovelace in db. This likely is a spoofing attempt.',
+                          {
+                            purchaseRequest: dbEntry,
+                            collateralReturnLovelace:
+                              decodedNewContract.collateralReturnLovelace,
+                            collateralReturnLovelaceDb:
+                              dbEntry.collateralReturnLovelace,
+                          },
+                        );
+                        return;
+                      }
+
+                      if (
+                        BigInt(decodedNewContract.payByTime) !=
+                        dbEntry.payByTime
+                      ) {
+                        logger.warn(
+                          'Pay by time does not match pay by time in db. This likely is a spoofing attempt.',
+                          { purchaseRequest: dbEntry },
+                        );
+                        return;
+                      }
+
+                      const blockTime = tx.blockTime;
+                      if (blockTime > decodedNewContract.payByTime) {
+                        logger.warn(
+                          'Block time is after pay by time. This is a timed out purchase.',
+                          {
+                            purchaseRequest: dbEntry,
+                            blockTime: blockTime,
+                            payByTime: decodedNewContract.payByTime,
+                          },
+                        );
+                        return;
+                      }
+
+                      if (
+                        decodedNewContract.buyerVkey !=
+                          dbEntry.SmartContractWallet.walletVkey ||
+                        decodedNewContract.buyerAddress !=
+                          dbEntry.SmartContractWallet.walletAddress
                       ) {
                         logger.warn(
                           'Buyer does not match buyer in db. This likely is a spoofing attempt.',
                           {
                             purchaseRequest: dbEntry,
-                            buyer: decodedNewContract.buyer,
+                            buyer: decodedNewContract.buyerVkey,
+                            buyerAddress: decodedNewContract.buyerAddress,
                             buyerDb: dbEntry.SmartContractWallet?.walletVkey,
+                            buyerDbAddress:
+                              dbEntry.SmartContractWallet?.walletAddress,
                           },
                         );
                         return;
@@ -682,11 +752,9 @@ export async function checkLatestTransactions(
                     async (prisma) => {
                       const dbEntry = await prisma.paymentRequest.findUnique({
                         where: {
-                          paymentSourceId_blockchainIdentifier: {
-                            blockchainIdentifier:
-                              decodedNewContract.blockchainIdentifier,
-                            paymentSourceId: paymentContract.id,
-                          },
+                          blockchainIdentifier:
+                            decodedNewContract.blockchainIdentifier,
+                          paymentSourceId: paymentContract.id,
                           BuyerWallet: null,
                           NextAction: {
                             requestedAction:
@@ -753,6 +821,49 @@ export async function checkLatestTransactions(
                         PaymentAction.WaitingForExternalAction;
                       let newState: OnChainState = OnChainState.FundsLocked;
                       const errorNote: string[] = [];
+                      if (
+                        tx.utxos.inputs.find(
+                          (x) => x.address == decodedNewContract.buyerAddress,
+                        ) == null
+                      ) {
+                        logger.warn(
+                          'Buyer address not found in inputs, this likely is a spoofing attempt.',
+                          {
+                            paymentRequest: dbEntry,
+                            buyerAddress: decodedNewContract.buyerAddress,
+                          },
+                        );
+                        return;
+                      }
+                      if (
+                        BigInt(decodedNewContract.payByTime) !=
+                        dbEntry.payByTime
+                      ) {
+                        const errorMessage =
+                          'Pay by time does not match pay by time in db. This likely is a spoofing attempt.';
+                        logger.warn(errorMessage, {
+                          paymentRequest: dbEntry,
+                          payByTime: decodedNewContract.payByTime,
+                          payByTimeDb: dbEntry.payByTime,
+                        });
+                        newAction = PaymentAction.WaitingForManualAction;
+                        newState = OnChainState.FundsOrDatumInvalid;
+                        errorNote.push(errorMessage);
+                      }
+                      const blockTime = tx.blockTime;
+                      if (blockTime > decodedNewContract.payByTime) {
+                        const errorMessage =
+                          'Block time is after pay by time. This is a timed out purchase.';
+                        logger.warn(errorMessage, {
+                          paymentRequest: dbEntry,
+                          blockTime: blockTime,
+                          payByTime: decodedNewContract.payByTime,
+                        });
+                        newAction = PaymentAction.WaitingForManualAction;
+                        newState = OnChainState.FundsOrDatumInvalid;
+                        errorNote.push(errorMessage);
+                      }
+
                       if (output.reference_script_hash != null) {
                         const errorMessage =
                           'Reference script hash is not null. This likely is a spoofing attempt.';
@@ -762,15 +873,20 @@ export async function checkLatestTransactions(
                         errorNote.push(errorMessage);
                       }
                       if (
-                        decodedNewContract.seller !=
-                        dbEntry.SmartContractWallet.walletVkey
+                        decodedNewContract.sellerVkey !=
+                          dbEntry.SmartContractWallet.walletVkey ||
+                        decodedNewContract.sellerAddress !=
+                          dbEntry.SmartContractWallet.walletAddress
                       ) {
                         const errorMessage =
                           'Seller does not match seller in db. This likely is a spoofing attempt.';
                         logger.warn(errorMessage, {
                           paymentRequest: dbEntry,
-                          seller: decodedNewContract.seller,
+                          seller: decodedNewContract.sellerVkey,
+                          sellerAddress: decodedNewContract.sellerAddress,
                           sellerDb: dbEntry.SmartContractWallet?.walletVkey,
+                          sellerDbAddress:
+                            dbEntry.SmartContractWallet?.walletAddress,
                         });
                         newAction = PaymentAction.WaitingForManualAction;
                         newState = OnChainState.FundsOrDatumInvalid;
@@ -883,6 +999,7 @@ export async function checkLatestTransactions(
                       const valueMatches = checkPaymentAmountsMatch(
                         dbEntry.RequestedFunds,
                         output.amount,
+                        decodedNewContract.collateralReturnLovelace,
                       );
                       if (valueMatches == false) {
                         const errorMessage =
@@ -916,6 +1033,8 @@ export async function checkLatestTransactions(
                       await prisma.paymentRequest.update({
                         where: { id: dbEntry.id },
                         data: {
+                          collateralReturnLovelace:
+                            decodedNewContract.collateralReturnLovelace,
                           NextAction: {
                             create: {
                               requestedAction: newAction,
@@ -942,14 +1061,17 @@ export async function checkLatestTransactions(
                           BuyerWallet: {
                             connectOrCreate: {
                               where: {
-                                paymentSourceId_walletVkey_type: {
+                                paymentSourceId_walletVkey_walletAddress_type: {
                                   paymentSourceId: paymentContract.id,
-                                  walletVkey: decodedNewContract.buyer,
+                                  walletVkey: decodedNewContract.buyerVkey,
+                                  walletAddress:
+                                    decodedNewContract.buyerAddress,
                                   type: WalletType.Buyer,
                                 },
                               },
                               create: {
-                                walletVkey: decodedNewContract.buyer,
+                                walletVkey: decodedNewContract.buyerVkey,
+                                walletAddress: decodedNewContract.buyerAddress,
                                 type: WalletType.Buyer,
                                 PaymentSource: {
                                   connect: { id: paymentContract.id },
@@ -995,8 +1117,12 @@ export async function checkLatestTransactions(
                 }
 
                 const decodedInputDatum: unknown = deserializeDatum(inputDatum);
-                const decodedOldContract =
-                  decodeV1ContractDatum(decodedInputDatum);
+                const decodedOldContract = decodeV1ContractDatum(
+                  decodedInputDatum,
+                  paymentContract.network == Network.Mainnet
+                    ? 'mainnet'
+                    : 'preprod',
+                );
                 if (decodedOldContract == null) {
                   //invalid transaction
                   continue;
@@ -1012,15 +1138,30 @@ export async function checkLatestTransactions(
                     : null;
                 const decodedOutputDatum: unknown =
                   outputDatum != null ? deserializeDatum(outputDatum) : null;
-                const decodedNewContract =
-                  decodeV1ContractDatum(decodedOutputDatum);
+                const decodedNewContract = decodeV1ContractDatum(
+                  decodedOutputDatum,
+                  paymentContract.network == Network.Mainnet
+                    ? 'mainnet'
+                    : 'preprod',
+                );
 
                 const paymentRequest = await prisma.paymentRequest.findUnique({
                   where: {
-                    paymentSourceId_blockchainIdentifier: {
-                      paymentSourceId: paymentContract.id,
-                      blockchainIdentifier:
-                        decodedOldContract.blockchainIdentifier,
+                    paymentSourceId: paymentContract.id,
+                    blockchainIdentifier:
+                      decodedOldContract.blockchainIdentifier,
+                    payByTime: decodedOldContract.payByTime,
+                    submitResultTime: decodedOldContract.resultTime,
+                    unlockTime: decodedOldContract.unlockTime,
+                    externalDisputeUnlockTime:
+                      decodedOldContract.externalDisputeUnlockTime,
+                    BuyerWallet: {
+                      walletVkey: decodedOldContract.buyerVkey,
+                      walletAddress: decodedOldContract.buyerAddress,
+                    },
+                    SmartContractWallet: {
+                      walletVkey: decodedOldContract.sellerVkey,
+                      walletAddress: decodedOldContract.sellerAddress,
                     },
                   },
                   include: {
@@ -1035,10 +1176,21 @@ export async function checkLatestTransactions(
                 const purchasingRequest =
                   await prisma.purchaseRequest.findUnique({
                     where: {
-                      paymentSourceId_blockchainIdentifier: {
-                        paymentSourceId: paymentContract.id,
-                        blockchainIdentifier:
-                          decodedOldContract.blockchainIdentifier,
+                      paymentSourceId: paymentContract.id,
+                      blockchainIdentifier:
+                        decodedOldContract.blockchainIdentifier,
+                      payByTime: decodedOldContract.payByTime,
+                      submitResultTime: decodedOldContract.resultTime,
+                      unlockTime: decodedOldContract.unlockTime,
+                      externalDisputeUnlockTime:
+                        decodedOldContract.externalDisputeUnlockTime,
+                      SellerWallet: {
+                        walletVkey: decodedOldContract.sellerVkey,
+                        walletAddress: decodedOldContract.sellerAddress,
+                      },
+                      SmartContractWallet: {
+                        walletVkey: decodedOldContract.buyerVkey,
+                        walletAddress: decodedOldContract.buyerAddress,
                       },
                     },
                     include: {
@@ -1057,65 +1209,80 @@ export async function checkLatestTransactions(
                 }
 
                 let inputTxHashMatchPaymentRequest =
-                  paymentRequest?.CurrentTransaction?.txHash ==
-                  valueInput.tx_hash;
+                  paymentRequest?.CurrentTransaction?.txHash == tx.tx.tx_hash;
+
+                let txHistory: string[] | null = null;
                 if (
                   paymentRequest != null &&
                   inputTxHashMatchPaymentRequest == false
                 ) {
+                  //check the other inputs match the payment request
+                  txHistory = await getSmartContractInteractionTxHistoryList(
+                    blockfrost,
+                    paymentContract.smartContractAddress,
+                    tx.tx.tx_hash,
+                    paymentRequest.CurrentTransaction?.txHash ?? 'no-tx',
+                  );
                   //find tx hash in history
-                  inputTxHashMatchPaymentRequest =
-                    paymentRequest?.TransactionHistory.find(
-                      (x) => x.txHash == valueInput.tx_hash,
-                    ) != null;
+                  for (const txHash of txHistory) {
+                    if (
+                      paymentRequest?.TransactionHistory.find(
+                        (x) => x.txHash == txHash,
+                      ) != null ||
+                      paymentRequest.CurrentTransaction?.txHash == txHash
+                    ) {
+                      inputTxHashMatchPaymentRequest = true;
+                      break;
+                    }
+                  }
+
                   if (inputTxHashMatchPaymentRequest == false) {
+                    //TODO find all input utxos and see if there are some from the script address
                     logger.warn(
                       'Input tx hash does not match payment request tx hash. This likely is a spoofing attempt',
                       {
                         paymentRequest: paymentRequest,
-                        txHash: valueInput.tx_hash,
+                        txHash: tx.tx.tx_hash,
                       },
                     );
-                    continue;
                   }
-                  logger.warn(
-                    'Input tx hash of checked payment request did not match current status, but was found in the history. This is likely due to a failed transaction.',
-                    {
-                      paymentRequest: paymentRequest,
-                      txHash: valueInput.tx_hash,
-                    },
-                  );
                 }
                 let inputTxHashMatchPurchasingRequest =
                   purchasingRequest?.CurrentTransaction?.txHash ==
-                  valueInput.tx_hash;
+                  tx.tx.tx_hash;
                 if (
                   purchasingRequest != null &&
                   inputTxHashMatchPurchasingRequest == false
                 ) {
+                  txHistory = await getSmartContractInteractionTxHistoryList(
+                    blockfrost,
+                    paymentContract.smartContractAddress,
+                    tx.tx.tx_hash,
+                    purchasingRequest.CurrentTransaction?.txHash ?? 'no-tx',
+                  );
+
                   //find tx hash in history
-                  inputTxHashMatchPurchasingRequest =
-                    purchasingRequest?.TransactionHistory.find(
-                      (x) => x.txHash == valueInput.tx_hash,
-                    ) != null;
+                  for (const txHash of txHistory) {
+                    if (
+                      purchasingRequest?.TransactionHistory.find(
+                        (x) => x.txHash == txHash,
+                      ) != null ||
+                      purchasingRequest.CurrentTransaction?.txHash == txHash
+                    ) {
+                      inputTxHashMatchPurchasingRequest = true;
+                      break;
+                    }
+                  }
 
                   if (inputTxHashMatchPurchasingRequest == false) {
                     logger.warn(
                       'Input tx hash does not match purchasing request tx hash. This likely is a spoofing attempt',
                       {
                         purchasingRequest: purchasingRequest,
-                        txHash: valueInput.tx_hash,
+                        txHash: tx.tx.tx_hash,
                       },
                     );
-                    continue;
                   }
-                  logger.warn(
-                    'Input tx hash of checked purchasing request did not match current status, but was found in the history. This is likely due to a failed transaction.',
-                    {
-                      purchasingRequest: purchasingRequest,
-                      txHash: valueInput.tx_hash,
-                    },
-                  );
                 }
 
                 const redeemer = redeemers.get(0);
@@ -1176,6 +1343,7 @@ export async function checkLatestTransactions(
                         purchasingRequest?.PaidFunds ??
                         [],
                       valueOutputs[0].amount,
+                      decodedOldContract.collateralReturnLovelace,
                     );
                     newState =
                       valueMatches == true
@@ -1190,14 +1358,14 @@ export async function checkLatestTransactions(
                     .filter(
                       (x) =>
                         resolvePaymentKeyHash(x.address) ==
-                        decodedOldContract.seller,
+                        decodedOldContract.sellerVkey,
                     )
                     .map((x) => x.amount);
                   const tmpSellerOutputs = tx.utxos.outputs
                     .filter(
                       (x) =>
                         resolvePaymentKeyHash(x.address) ==
-                        decodedOldContract.seller,
+                        decodedOldContract.sellerVkey,
                     )
                     .map((x) => x.amount);
 
@@ -1242,7 +1410,7 @@ export async function checkLatestTransactions(
                     .filter(
                       (x) =>
                         resolvePaymentKeyHash(x.address) ==
-                        decodedOldContract.buyer,
+                        decodedOldContract.buyerVkey,
                     )
                     .map((x) => x.amount);
 
@@ -1250,7 +1418,7 @@ export async function checkLatestTransactions(
                     .filter(
                       (x) =>
                         resolvePaymentKeyHash(x.address) ==
-                        decodedOldContract.buyer,
+                        decodedOldContract.buyerVkey,
                     )
                     .map((x) => x.amount);
                   tmpBuyerInputs.forEach((input) => {
@@ -1323,8 +1491,8 @@ export async function checkLatestTransactions(
                         decodedOldContract.resultHash,
                       paymentRequest?.NextAction?.requestedAction ??
                         PurchasingAction.None,
-                      Number(paymentRequest?.buyerCoolDownTime ?? 0),
-                      Number(paymentRequest?.sellerCoolDownTime ?? 0),
+                      Number(decodedNewContract?.buyerCooldownTime ?? 0),
+                      Number(decodedNewContract?.sellerCooldownTime ?? 0),
                       sellerWithdrawn,
                       buyerWithdrawn,
                     );
@@ -1345,8 +1513,8 @@ export async function checkLatestTransactions(
                         decodedOldContract.resultHash,
                       purchasingRequest?.NextAction?.requestedAction ??
                         PurchasingAction.None,
-                      Number(purchasingRequest?.buyerCoolDownTime ?? 0),
-                      Number(purchasingRequest?.sellerCoolDownTime ?? 0),
+                      Number(decodedNewContract?.buyerCooldownTime ?? 0),
+                      Number(decodedNewContract?.sellerCooldownTime ?? 0),
                       sellerWithdrawn,
                       buyerWithdrawn,
                     );
@@ -1435,10 +1603,8 @@ async function handlePaymentTransactionCardanoV1(
       //we dont need to do sanity checks as the tx hash is unique
       const paymentRequest = await prisma.paymentRequest.findUnique({
         where: {
-          paymentSourceId_blockchainIdentifier: {
-            paymentSourceId: paymentContractId,
-            blockchainIdentifier: blockchainIdentifier,
-          },
+          paymentSourceId: paymentContractId,
+          blockchainIdentifier: blockchainIdentifier,
         },
         include: {
           CurrentTransaction: { include: { BlocksWallet: true } },
@@ -1543,10 +1709,8 @@ async function handlePurchasingTransactionCardanoV1(
       //we dont need to do sanity checks as the tx hash is unique
       const purchasingRequest = await prisma.purchaseRequest.findUnique({
         where: {
-          paymentSourceId_blockchainIdentifier: {
-            paymentSourceId: paymentContractId,
-            blockchainIdentifier: blockchainIdentifier,
-          },
+          paymentSourceId: paymentContractId,
+          blockchainIdentifier: blockchainIdentifier,
         },
         include: {
           CurrentTransaction: { include: { BlocksWallet: true } },
@@ -1638,7 +1802,14 @@ async function handlePurchasingTransactionCardanoV1(
 function checkPaymentAmountsMatch(
   expectedAmounts: Array<{ unit: string; amount: bigint }>,
   actualAmounts: Array<{ unit: string; quantity: string }>,
+  collateralReturn: bigint,
 ) {
+  if (collateralReturn < 0n) {
+    return false;
+  }
+  if (collateralReturn > 0n && collateralReturn < 1435230n) {
+    return false;
+  }
   return expectedAmounts.every((x) => {
     if (x.unit.toLowerCase() == 'lovelace') {
       x.unit = '';
@@ -1652,9 +1823,47 @@ function checkPaymentAmountsMatch(
     if (existingAmount == null) return false;
     //allow for some overpayment to handle min lovelace requirements
     if (x.unit == '') {
-      return x.amount <= BigInt(existingAmount.quantity);
+      return x.amount <= BigInt(existingAmount.quantity) - collateralReturn;
     }
     //require exact match for non-lovelace amounts
     return x.amount == BigInt(existingAmount.quantity);
   });
+}
+
+//returns all tx hashes that are part of the smart contract interaction, excluding the initial purchase tx hash
+async function getSmartContractInteractionTxHistoryList(
+  blockfrost: BlockFrostAPI,
+  scriptAddress: string,
+  txHash: string,
+  lastTxHash: string,
+  maxLevels: number = 10,
+) {
+  let remainingLevels = maxLevels;
+  let hashToCheck = txHash;
+  const txHashes = [];
+  while (remainingLevels > 0) {
+    const tx = await blockfrost.txsUtxos(hashToCheck);
+    const inputUtxos = tx.inputs.filter((x) =>
+      x.address.startsWith(scriptAddress),
+    );
+    const outputUtxos = tx.outputs.filter((x) =>
+      x.address.startsWith(scriptAddress),
+    );
+    if (inputUtxos.length != 1) {
+      if (inputUtxos.find((x) => x.tx_hash == lastTxHash) != null) {
+        txHashes.push(lastTxHash);
+      }
+      break;
+    }
+    txHashes.push(...inputUtxos.map((x) => x.tx_hash));
+    if (txHashes.find((x) => x == lastTxHash) != null) {
+      break;
+    }
+    if (outputUtxos.length > 1) {
+      return [];
+    }
+    hashToCheck = inputUtxos[0].tx_hash;
+    remainingLevels--;
+  }
+  return [...new Set(txHashes)];
 }

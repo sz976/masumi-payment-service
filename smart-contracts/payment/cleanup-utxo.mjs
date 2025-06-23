@@ -21,10 +21,13 @@ const wallet = new MeshWallet({
 });
 console.log('Utxo cleanup starting...');
 
-const address = (await wallet.getUnusedAddresses())[0];
+const address = await wallet.getAddresses();
+console.log(address.baseAddressBech32);
+const utxos = await wallet.getUtxos();
 
 const tx = new Transaction({ initiator: wallet });
-tx.sendLovelace(address, '120000000');
+tx.setTxInputs(utxos);
+tx.sendLovelace(address, '70000000');
 tx.setRequiredSigners([address]).setChangeAddress(address).setNetwork(network);
 
 const unsignedTx = await tx.build();

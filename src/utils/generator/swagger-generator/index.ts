@@ -127,7 +127,7 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/api-key-status/',
     description: 'Gets api key status',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary: 'Get information about your current API key.',
     tags: ['api-key'],
     security: [{ [apiKeyAuth.name]: [] }],
     responses: {
@@ -161,7 +161,7 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/wallet/',
     description: 'Gets wallet status',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'Get information about a wallet. (admin access required)',
     tags: ['wallet'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -206,7 +206,7 @@ export function generateOpenAPI() {
     path: '/wallet/',
     description:
       'Creates a wallet, it will not be saved in the database, please ensure to remember the mnemonic',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'Create a new wallet. (admin access required)',
     tags: ['wallet'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -245,7 +245,7 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/api-key/',
     description: 'Gets api key status',
-    summary: 'REQUIRES API KEY Authentication (+admin)',
+    summary: 'Get information about all API keys. (admin access required)',
     tags: ['api-key'],
     request: {
       query: getAPIKeySchemaInput.openapi({
@@ -302,7 +302,7 @@ export function generateOpenAPI() {
     method: 'post',
     path: '/api-key/',
     description: 'Creates a API key',
-    summary: 'REQUIRES API KEY Authentication (+admin)',
+    summary: 'Create a new API key. (admin access required)',
     tags: ['api-key'],
     request: {
       body: {
@@ -360,7 +360,7 @@ export function generateOpenAPI() {
     method: 'patch',
     path: '/api-key/',
     description: 'Creates a API key',
-    summary: 'REQUIRES API KEY Authentication (+admin)',
+    summary: 'Update an existing API key. (admin access required)',
     tags: ['api-key'],
     request: {
       body: {
@@ -422,7 +422,7 @@ export function generateOpenAPI() {
     method: 'delete',
     path: '/api-key/',
     description: 'Removes a API key',
-    summary: 'REQUIRES API KEY Authentication (+admin)',
+    summary: 'Delete an existing API key. (admin access required)',
     tags: ['api-key'],
     request: {
       body: {
@@ -481,7 +481,7 @@ export function generateOpenAPI() {
     path: '/payment/',
     description:
       'Gets the payment status. It needs to be created first with a POST request.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary: 'Get information about a payment request. (admin access required)',
     tags: ['payment'],
     request: {
       query: queryPaymentsSchemaInput.openapi({
@@ -516,6 +516,7 @@ export function generateOpenAPI() {
                         lastCheckedAt: null,
                         cooldownTime: 0,
                         cooldownTimeOtherParty: 0,
+                        collateralReturnLovelace: null,
                         requestedById: 'requester_id',
                         resultHash: 'result_hash',
                         onChainState: null,
@@ -539,6 +540,7 @@ export function generateOpenAPI() {
                           id: 'payment_source_id',
                           network: Network.Preprod,
                           smartContractAddress: 'address',
+                          policyId: 'policy_id',
                           paymentType: PaymentType.Web3CardanoV1,
                         },
                         WithdrawnForSeller: [],
@@ -571,7 +573,7 @@ export function generateOpenAPI() {
     path: '/payment/',
     description:
       'Creates a payment request and identifier. This will check incoming payments in the background.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary: 'Create a new payment request. (admin access required +PAY)',
     tags: ['payment'],
     request: {
       body: {
@@ -582,12 +584,14 @@ export function generateOpenAPI() {
               example: {
                 agentIdentifier: 'agent_identifier',
                 network: Network.Preprod,
-                inputHash: 'input_hash',
+                inputHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+                payByTime: new Date(1713626260).toISOString(),
                 metadata:
                   '(private) metadata to be stored with the payment request',
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
-                identifierFromPurchaser: 'unique_key_from_purchaser',
+                identifierFromPurchaser: 'aabbaabb11221122aabb',
               },
             }),
           },
@@ -611,6 +615,7 @@ export function generateOpenAPI() {
                     blockchainIdentifier: 'blockchain_identifier',
                     createdAt: new Date(1713636260),
                     updatedAt: new Date(1713636260),
+                    payByTime: '0',
                     submitResultTime: '0',
                     unlockTime: '0',
                     externalDisputeUnlockTime: '0',
@@ -632,6 +637,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -663,8 +669,9 @@ export function generateOpenAPI() {
     method: 'post',
     path: '/payment/submit-result',
     description:
-      'Completes a payment request. This will collect the funds after the unlock time.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+      'Submit the hash of their completed job for a payment request, which triggers the fund unlock process so the seller can collect payment after the unlock time expires. (admin access required +PAY)',
+    summary:
+      'Completes a payment request. This will collect the funds after the unlock time. (admin access required +PAY)',
     tags: ['payment'],
     request: {
       body: {
@@ -675,7 +682,8 @@ export function generateOpenAPI() {
               example: {
                 network: Network.Preprod,
                 blockchainIdentifier: 'identifier',
-                submitResultHash: 'hash',
+                submitResultHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
               },
             }),
           },
@@ -724,6 +732,7 @@ export function generateOpenAPI() {
                     PaymentSource: {
                       id: 'payment_source_id',
                       network: Network.Preprod,
+                      policyId: 'policy_id',
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
                     },
@@ -754,7 +763,8 @@ export function generateOpenAPI() {
     path: '/payment/authorize-refund',
     description:
       'Authorizes a refund for a payment request. This will stop the right to receive a payment and initiate a refund for the other party.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary:
+      'Authorizes a refund for a payment request. This will stop the right to receive a payment and initiate a refund for the other party. (admin access required +PAY)',
     tags: ['payment'],
     request: {
       body: {
@@ -813,6 +823,7 @@ export function generateOpenAPI() {
                     PaymentSource: {
                       id: 'payment_source_id',
                       network: Network.Preprod,
+                      policyId: 'policy_id',
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
                     },
@@ -845,7 +856,8 @@ export function generateOpenAPI() {
     path: '/purchase/',
     description:
       'Gets the purchase status. It needs to be created first with a POST request.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary:
+      'Get information about an existing purchase request. (READ access required)',
     tags: ['purchase'],
     request: {
       query: queryPurchaseRequestSchemaInput.openapi({
@@ -882,6 +894,7 @@ export function generateOpenAPI() {
                         resultHash: '',
                         cooldownTime: 0,
                         cooldownTimeOtherParty: 0,
+                        collateralReturnLovelace: null,
                         inputHash: 'input_hash',
                         NextAction: {
                           requestedAction:
@@ -899,6 +912,7 @@ export function generateOpenAPI() {
                         PaymentSource: {
                           id: 'payment_source_id',
                           network: Network.Preprod,
+                          policyId: 'policy_id',
                           smartContractAddress: 'address',
                           paymentType: PaymentType.Web3CardanoV1,
                         },
@@ -933,7 +947,7 @@ export function generateOpenAPI() {
     path: '/purchase/',
     description:
       'Creates a purchase and pays the seller. This requires funds to be available.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary: 'Create a new purchase request and pay. (access required +PAY)',
     tags: ['purchase'],
     request: {
       body: {
@@ -942,16 +956,18 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
-                identifierFromPurchaser: 'unique_key_from_purchaser',
+                identifierFromPurchaser: 'aabbaabb11221122aabb',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
                 paymentType: PaymentType.Web3CardanoV1,
                 blockchainIdentifier: 'blockchain_identifier',
+                payByTime: (1713626260).toString(),
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
                 externalDisputeUnlockTime: (1713636260).toString(),
                 agentIdentifier: 'agent_identifier',
-                inputHash: 'input_hash',
+                inputHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
               },
             }),
           },
@@ -999,6 +1015,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1031,7 +1048,8 @@ export function generateOpenAPI() {
     path: '/purchase/request-refund',
     description:
       'Requests a refund for a completed purchase. This will collect the refund after the refund time.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary:
+      'Request a refund for a completed purchase, which will be automatically collected after the refund time period expires. (+PAY access required)',
     tags: ['purchase'],
     request: {
       body: {
@@ -1088,6 +1106,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1119,7 +1138,8 @@ export function generateOpenAPI() {
     path: '/purchase/cancel-refund-request',
     description:
       'Requests a refund for a completed purchase. This will collect the refund after the refund time.',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary:
+      'Cancel a previously requested refund for a purchase, reverting the transaction back to its normal processing state. (+PAY access required)',
     tags: ['purchase'],
     request: {
       body: {
@@ -1176,6 +1196,7 @@ export function generateOpenAPI() {
                     ],
                     PaymentSource: {
                       id: 'payment_source_id',
+                      policyId: 'policy_id',
                       network: Network.Preprod,
                       smartContractAddress: 'address',
                       paymentType: PaymentType.Web3CardanoV1,
@@ -1208,7 +1229,8 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/registry/wallet',
     description: 'Gets the agent metadata.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary:
+      'Fetch all agents (and their full metadata) that are registered to a specified wallet. (READ access required)',
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1286,7 +1308,8 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/registry/',
     description: 'Gets the agent metadata.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary:
+      'List every agent that is recorded in the Masumi Registry. (READ access required)',
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1313,6 +1336,7 @@ export function generateOpenAPI() {
                   data: {
                     Assets: [
                       {
+                        error: null,
                         id: 'asset_id',
                         name: 'name',
                         description: 'description',
@@ -1368,7 +1392,7 @@ export function generateOpenAPI() {
     path: '/registry/',
     description:
       'Registers an agent to the registry (Please note that while it it is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary: 'Registers an agent to the registry (+PAY access required)',
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1478,16 +1502,24 @@ export function generateOpenAPI() {
     path: '/registry/',
     description:
       'Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
-    summary: 'REQUIRES API KEY Authentication (+PAY)',
+    summary:
+      'Deregisters an agent from the specified registry. (admin access required +PAY)',
     tags: ['registry'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: unregisterAgentSchemaInput.openapi({
-        example: {
-          agentIdentifier: 'agentIdentifier',
-          network: Network.Preprod,
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: unregisterAgentSchemaInput.openapi({
+              example: {
+                agentIdentifier: 'agentIdentifier',
+                network: Network.Preprod,
+              },
+            }),
+          },
         },
-      }),
+      },
     },
     responses: {
       200: {
@@ -1555,7 +1587,8 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/payment-source/',
     description: 'Gets the payment source.',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary:
+      'List payment sources with their public details. (READ access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1585,6 +1618,7 @@ export function generateOpenAPI() {
                         network: Network.Mainnet,
                         paymentType: PaymentType.Web3CardanoV1,
                         smartContractAddress: 'address_of_the_smart_contract',
+                        policyId: 'policy_id',
                         AdminWallets: [
                           { walletAddress: 'wallet_address', order: 0 },
                           { walletAddress: 'wallet_address', order: 1 },
@@ -1645,7 +1679,8 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/payment-source-extended/',
     description: 'Gets the payment contracts including the status.',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary:
+      'List payment sources with their public details augmented with internal configuration and sync status infromation. (admin access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1679,6 +1714,7 @@ export function generateOpenAPI() {
                         paymentType: PaymentType.Web3CardanoV1,
                         feeRatePermille: 50,
                         syncInProgress: true,
+                        policyId: 'policy_id',
                         smartContractAddress: 'address_of_the_smart_contract',
                         AdminWallets: [
                           { walletAddress: 'wallet_address', order: 0 },
@@ -1742,7 +1778,7 @@ export function generateOpenAPI() {
     method: 'post',
     path: '/payment-source-extended/',
     description: 'Creates a payment source.',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'Create a new payment source. (+ADMIN access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1867,7 +1903,7 @@ export function generateOpenAPI() {
     method: 'patch',
     path: '/payment-source-extended/',
     description: 'Updates a payment source.',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'Update an existing payment source. (+ADMIN access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -1988,13 +2024,20 @@ export function generateOpenAPI() {
     path: '/payment-source-extended/',
     description:
       'Deletes a payment source. WARNING will also delete all associated wallets and transactions.',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'Delete an existing payment source. (+ADMIN access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
-      query: paymentSourceExtendedDeleteSchemaInput.openapi({
-        example: { id: 'unique_cuid_v2_auto_generated' },
-      }),
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: paymentSourceExtendedDeleteSchemaInput.openapi({
+              example: { id: 'unique_cuid_v2_auto_generated' },
+            }),
+          },
+        },
+      },
     },
     responses: {
       200: {
@@ -2022,7 +2065,8 @@ export function generateOpenAPI() {
     method: 'get',
     path: '/utxos/',
     description: 'Gets UTXOs (internal)',
-    summary: 'REQUIRES API KEY Authentication (+READ)',
+    summary:
+      'Helper endpoint that lets you ask the payment service for the current UTXOs sitting at a particular Cardano address. (READ access required)',
     tags: ['utxos'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -2073,7 +2117,7 @@ export function generateOpenAPI() {
     path: '/rpc-api-keys/',
     description:
       'Gets rpc api keys, currently only blockfrost is supported (internal)',
-    summary: 'REQUIRES API KEY Authentication (+ADMIN)',
+    summary: 'List Blockfrost API keys. (admin access required)',
     tags: ['rpc-api-keys'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {
@@ -2113,8 +2157,9 @@ export function generateOpenAPI() {
     openapi: '3.0.0',
     info: {
       version: '1.0.0',
-      title: 'Template API',
-      description: 'This is the default API from a template',
+      title: 'Masumi Payment Service API',
+      description:
+        'A comprehensive payment service API for the Masumi ecosystem, providing secure payment processing, agent registry management, and wallet operations.',
     },
 
     servers: [{ url: './../api/v1/' }],

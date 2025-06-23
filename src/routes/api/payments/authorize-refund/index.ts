@@ -11,7 +11,6 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 
 export const authorizePaymentRefundSchemaInput = z.object({
@@ -22,11 +21,6 @@ export const authorizePaymentRefundSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the Cardano wallet will be used on'),
-  paymentContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe('The address of the smart contract holding the purchase'),
 });
 
 export const authorizePaymentRefundSchemaOutput = z.object({
@@ -70,6 +64,7 @@ export const authorizePaymentRefundSchemaOutput = z.object({
     id: z.string(),
     network: z.nativeEnum(Network),
     smartContractAddress: z.string(),
+    policyId: z.string().nullable(),
     paymentType: z.nativeEnum(PaymentType),
   }),
   BuyerWallet: z
@@ -110,55 +105,51 @@ export const authorizePaymentRefundEndpointPost =
         input.network,
         options.permission,
       );
-      const paymentContractAddress =
-        input.paymentContractAddress ??
-        (input.network == Network.Mainnet
-          ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-          : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-      const specifiedPaymentContract = await prisma.paymentSource.findUnique({
+
+      const payment = await prisma.paymentRequest.findUnique({
         where: {
-          network_smartContractAddress: {
-            network: input.network,
-            smartContractAddress: paymentContractAddress,
+          blockchainIdentifier: input.blockchainIdentifier,
+          NextAction: {
+            requestedAction: {
+              in: [PaymentAction.WaitingForExternalAction],
+            },
           },
-          deletedAt: null,
+          onChainState: {
+            in: [OnChainState.Disputed],
+          },
         },
         include: {
-          FeeReceiverNetworkWallet: true,
-          AdminWallets: true,
-          PaymentSourceConfig: true,
-          PaymentRequests: {
-            where: {
-              blockchainIdentifier: input.blockchainIdentifier,
-              NextAction: {
-                requestedAction: {
-                  in: [PaymentAction.WaitingForExternalAction],
-                },
-              },
-              onChainState: {
-                in: [OnChainState.RefundRequested, OnChainState.Disputed],
-              },
-            },
+          PaymentSource: {
             include: {
-              BuyerWallet: true,
-              SmartContractWallet: { where: { deletedAt: null } },
-              NextAction: true,
-              CurrentTransaction: true,
-              TransactionHistory: true,
+              FeeReceiverNetworkWallet: true,
+              AdminWallets: true,
+              PaymentSourceConfig: true,
             },
           },
+
+          BuyerWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
+          NextAction: true,
+          CurrentTransaction: true,
+          TransactionHistory: true,
         },
       });
-      if (specifiedPaymentContract == null) {
-        throw createHttpError(
-          404,
-          'Network and Address combination not supported',
-        );
-      }
-      if (specifiedPaymentContract.PaymentRequests.length == 0) {
+
+      if (payment == null) {
         throw createHttpError(404, 'Payment not found or in invalid state');
       }
-      const payment = specifiedPaymentContract.PaymentRequests[0];
+      if (payment.PaymentSource == null) {
+        throw createHttpError(404, 'Payment has no payment source');
+      }
+      if (payment.PaymentSource.deletedAt != null) {
+        throw createHttpError(404, 'Payment source is deleted');
+      }
+      if (payment.PaymentSource.network != input.network) {
+        throw createHttpError(
+          400,
+          'Payment was not made on the requested network',
+        );
+      }
       if (payment.SmartContractWallet == null) {
         throw createHttpError(404, 'Smart contract wallet not found');
       }
@@ -175,7 +166,7 @@ export const authorizePaymentRefundEndpointPost =
         );
       }
       const result = await prisma.paymentRequest.update({
-        where: { id: specifiedPaymentContract.PaymentRequests[0].id },
+        where: { id: payment.id },
         data: {
           NextAction: {
             update: {

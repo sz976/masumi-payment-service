@@ -75,7 +75,7 @@ export const getStaticProps: GetStaticProps = async () => {
 };
 
 export default function Overview() {
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [wallets, setWallets] = useState<WalletWithBalance[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
@@ -108,8 +108,12 @@ export default function Overview() {
           setIsLoadingMore(true);
         }
 
+        const selectedPaymentSource =
+          state.paymentSources?.find(
+            (ps) => ps.id === selectedPaymentSourceId,
+          ) || state.paymentSources?.[0];
         const smartContractAddress =
-          state.paymentSources?.[0]?.smartContractAddress || '';
+          selectedPaymentSource?.smartContractAddress || '';
 
         if (!smartContractAddress) {
           toast.error('No smart contract address found');
@@ -122,7 +126,6 @@ export default function Overview() {
           client: apiClient,
           query: {
             network: state.network,
-            smartContractAddress,
             cursorId: cursor || undefined,
           },
         });
@@ -148,7 +151,7 @@ export default function Overview() {
         setIsLoadingMore(false);
       }
     },
-    [apiClient, state.network, state.paymentSources],
+    [apiClient, state.network, state.paymentSources, selectedPaymentSourceId],
   );
 
   const handleLoadMore = () => {
@@ -205,9 +208,10 @@ export default function Overview() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources.find(
-          (source) => source.network === state.network,
-        );
+        const paymentSource =
+          response.data.data.PaymentSources.find(
+            (source) => source.id === selectedPaymentSourceId,
+          ) || response.data.data.PaymentSources[0];
         if (paymentSource) {
           const allWallets: Wallet[] = [
             ...paymentSource.PurchasingWallets.map((wallet) => ({
@@ -269,19 +273,37 @@ export default function Overview() {
     } finally {
       setIsLoadingWallets(false);
     }
-  }, [apiClient, fetchWalletBalance, state.network]);
+  }, [apiClient, fetchWalletBalance, selectedPaymentSourceId]);
 
   useEffect(() => {
-    if (state.paymentSources && state.paymentSources.length > 0) {
+    if (
+      state.paymentSources &&
+      state.paymentSources.length > 0 &&
+      selectedPaymentSourceId
+    ) {
       fetchAgents();
     }
-  }, [fetchAgents, state.paymentSources, state.network]);
+  }, [
+    fetchAgents,
+    state.paymentSources,
+    state.network,
+    selectedPaymentSourceId,
+  ]);
 
   useEffect(() => {
-    if (state.paymentSources && state.paymentSources.length > 0) {
+    if (
+      state.paymentSources &&
+      state.paymentSources.length > 0 &&
+      selectedPaymentSourceId
+    ) {
       fetchWallets();
     }
-  }, [fetchWallets, state.paymentSources, state.network]);
+  }, [
+    fetchWallets,
+    state.paymentSources,
+    state.network,
+    selectedPaymentSourceId,
+  ]);
 
   const formatUsdValue = (adaAmount: string, usdmAmount: string) => {
     if (!rate || !adaAmount) return '—';
@@ -315,9 +337,11 @@ export default function Overview() {
                 <Spinner size={20} addContainer />
               ) : (
                 <div className="text-2xl font-semibold">
-                  {agents.filter(
-                    (agent) => agent.state === 'RegistrationConfirmed',
-                  ).length}
+                  {
+                    agents.filter(
+                      (agent) => agent.state === 'RegistrationConfirmed',
+                    ).length
+                  }
                 </div>
               )}
             </div>
@@ -504,10 +528,10 @@ export default function Overview() {
 
               <div className="mb-4">
                 <div className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 text-sm text-muted-foreground mb-2">
-                  <div>Type</div>
-                  <div>Name</div>
-                  <div>Address</div>
-                  <div className="text-left">Balance</div>
+                  <div className="truncate">Type</div>
+                  <div className="truncate">Name</div>
+                  <div className="truncate">Address</div>
+                  <div className="text-left truncate">Balance</div>
                 </div>
 
                 {isLoadingWallets ? (
@@ -520,7 +544,7 @@ export default function Overview() {
                         className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
                         onClick={() => setSelectedWalletForDetails(wallet)}
                       >
-                        <div>
+                        <div className="truncate">
                           <span
                             className={cn(
                               'text-xs font-medium px-2 py-0.5 rounded-full',
@@ -534,7 +558,7 @@ export default function Overview() {
                               : 'Selling'}
                           </span>
                         </div>
-                        <div>
+                        <div className="truncate">
                           <div className="text-sm font-medium truncate">
                             {wallet.type === 'Purchasing'
                               ? 'Buying wallet'
@@ -544,7 +568,7 @@ export default function Overview() {
                             {wallet.note || 'Created by seeding'}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 truncate">
                           <span className="font-mono text-xs text-muted-foreground">
                             {wallet.walletAddress.slice(0, 12)}...
                           </span>
@@ -618,12 +642,12 @@ export default function Overview() {
                             })
                           }
                         >
-                          <div>
+                          <div className="truncate">
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
                               Collection
                             </span>
                           </div>
-                          <div>
+                          <div className="truncate">
                             <div className="text-xs font-medium truncate">
                               Collection wallet
                             </div>
@@ -631,13 +655,13 @@ export default function Overview() {
                               {wallet.note && `${wallet.note}`}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 truncate">
                             <span className="font-mono text-xs text-muted-foreground">
                               {wallet.collectionAddress.slice(0, 12)}...
                             </span>
                             <CopyButton value={wallet.collectionAddress!} />
                           </div>
-                          <div className="flex flex-col items-start">
+                          <div className="flex flex-col items-start truncate">
                             <span className="text-sm flex items-center gap-1">
                               {useFormatBalance(
                                 (

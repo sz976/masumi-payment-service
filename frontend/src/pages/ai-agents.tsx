@@ -68,7 +68,7 @@ export default function AIAgentsPage() {
   const [selectedAgentToDelete, setSelectedAgentToDelete] =
     useState<AIAgent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -148,8 +148,11 @@ export default function AIAgentsPage() {
         setIsLoadingMore(true);
       }
 
+      const selectedPaymentSource = state.paymentSources.find(
+        (ps) => ps.id === selectedPaymentSourceId,
+      );
       const smartContractAddress =
-        state.paymentSources?.[0]?.smartContractAddress || '';
+        selectedPaymentSource?.smartContractAddress || '';
 
       if (!smartContractAddress) {
         toast.error('No smart contract address found');
@@ -160,7 +163,6 @@ export default function AIAgentsPage() {
         client: apiClient,
         query: {
           network: state.network,
-          smartContractAddress,
           cursorId: cursor || undefined,
         },
       });
@@ -197,10 +199,14 @@ export default function AIAgentsPage() {
   };
 
   useEffect(() => {
-    if (state.paymentSources && state.paymentSources.length > 0) {
+    if (
+      state.paymentSources &&
+      state.paymentSources.length > 0 &&
+      selectedPaymentSourceId
+    ) {
       fetchAgents();
     }
-  }, [state.network, state.paymentSources]);
+  }, [state.network, state.paymentSources, selectedPaymentSourceId]);
 
   useEffect(() => {
     filterAgents();
@@ -260,7 +266,7 @@ export default function AIAgentsPage() {
       setIsDeleting(true);
       await deleteRegistry({
         client: apiClient,
-        query: {
+        body: {
           agentIdentifier: selectedAgentToDelete.agentIdentifier,
           network: state.network,
         },

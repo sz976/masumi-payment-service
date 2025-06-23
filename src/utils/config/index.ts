@@ -8,60 +8,58 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length <= 20)
   );
 
 const batchPaymentInterval = Number(process.env.BATCH_PAYMENT_INTERVAL ?? '80');
-if (batchPaymentInterval < 20)
-  throw new Error('BATCH_PAYMENT_INTERVAL must be at least 20 seconds');
-const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '120');
+if (batchPaymentInterval < 5)
+  throw new Error('BATCH_PAYMENT_INTERVAL must be at least 5 seconds');
+const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '40');
 if (checkTxInterval < 20)
   throw new Error('CHECK_TX_INTERVAL must be at least 20 seconds');
 const checkCollectionInterval = Number(
-  process.env.CHECK_COLLECTION_INTERVAL ?? '180',
+  process.env.CHECK_COLLECTION_INTERVAL ?? '30',
 );
-if (checkCollectionInterval < 20)
-  throw new Error('CHECK_COLLECTION_INTERVAL must be at least 20 seconds');
+if (checkCollectionInterval < 5)
+  throw new Error('CHECK_COLLECTION_INTERVAL must be at least 5 seconds');
 const checkCollectRefundInterval = Number(
-  process.env.CHECK_COLLECT_REFUND_INTERVAL ?? '180',
+  process.env.CHECK_COLLECT_REFUND_INTERVAL ?? '30',
 );
-if (checkCollectRefundInterval < 20)
-  throw new Error('CHECK_COLLECT_REFUND_INTERVAL must be at least 20 seconds');
+if (checkCollectRefundInterval < 5)
+  throw new Error('CHECK_COLLECT_REFUND_INTERVAL must be at least 5 seconds');
 const checkSetRefundInterval = Number(
-  process.env.CHECK_SET_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_SET_REFUND_INTERVAL ?? '30',
 );
-if (checkSetRefundInterval < 20)
-  throw new Error('CHECK_SET_REFUND_INTERVAL must be at least 20 seconds');
+if (checkSetRefundInterval < 5)
+  throw new Error('CHECK_SET_REFUND_INTERVAL must be at least 5 seconds');
 const checkUnsetRefundInterval = Number(
-  process.env.CHECK_UNSET_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_UNSET_REFUND_INTERVAL ?? '30',
 );
-if (checkUnsetRefundInterval < 20)
-  throw new Error('CHECK_UNSET_REFUND_INTERVAL must be at least 20 seconds');
+if (checkUnsetRefundInterval < 5)
+  throw new Error('CHECK_UNSET_REFUND_INTERVAL must be at least 5 seconds');
 const checkWalletTransactionHashInterval = Number(
-  process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? '50',
+  process.env.CHECK_WALLET_TRANSACTION_HASH_INTERVAL ?? '30',
 );
-if (checkWalletTransactionHashInterval < 20)
+if (checkWalletTransactionHashInterval < 5)
   throw new Error(
-    'CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 20 seconds',
+    'CHECK_WALLET_TRANSACTION_HASH_INTERVAL must be at least 5 seconds',
   );
 const checkAuthorizeRefundInterval = Number(
-  process.env.CHECK_AUTHORIZE_REFUND_INTERVAL ?? '120',
+  process.env.CHECK_AUTHORIZE_REFUND_INTERVAL ?? '30',
 );
-if (checkAuthorizeRefundInterval < 20)
-  throw new Error(
-    'CHECK_AUTHORIZE_REFUND_INTERVAL must be at least 20 seconds',
-  );
+if (checkAuthorizeRefundInterval < 5)
+  throw new Error('CHECK_AUTHORIZE_REFUND_INTERVAL must be at least 5 seconds');
 const checkSubmitResultInterval = Number(
-  process.env.CHECK_SUBMIT_RESULT_INTERVAL ?? '120',
+  process.env.CHECK_SUBMIT_RESULT_INTERVAL ?? '30',
 );
-if (checkSubmitResultInterval < 20)
-  throw new Error('CHECK_SUBMIT_RESULT_INTERVAL must be at least 20 seconds');
+if (checkSubmitResultInterval < 5)
+  throw new Error('CHECK_SUBMIT_RESULT_INTERVAL must be at least 5 seconds');
 const registerAgentInterval = Number(
-  process.env.REGISTER_AGENT_INTERVAL ?? '60',
+  process.env.REGISTER_AGENT_INTERVAL ?? '30',
 );
-if (registerAgentInterval < 20)
-  throw new Error('REGISTER_AGENT_INTERVAL must be at least 20 seconds');
+if (registerAgentInterval < 5)
+  throw new Error('REGISTER_AGENT_INTERVAL must be at least 5 seconds');
 const deregisterAgentInterval = Number(
-  process.env.DEREGISTER_AGENT_INTERVAL ?? '60',
+  process.env.DEREGISTER_AGENT_INTERVAL ?? '30',
 );
-if (deregisterAgentInterval < 20)
-  throw new Error('DEREGISTER_AGENT_INTERVAL must be at least 20 seconds');
+if (deregisterAgentInterval < 5)
+  throw new Error('DEREGISTER_AGENT_INTERVAL must be at least 5 seconds');
 
 const autoWithdrawPayments =
   process.env.AUTO_WITHDRAW_PAYMENTS?.toLowerCase() === 'true' ||
@@ -73,8 +71,8 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
 
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
-if (autoDecisionInterval < 20)
-  throw new Error('AUTO_DECISION_INTERVAL must be at least 20 seconds');
+if (autoDecisionInterval < 5)
+  throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
 
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
@@ -97,8 +95,8 @@ export const CONFIG = {
 };
 
 export const DEFAULTS = {
-  TX_TIMEOUT_INTERVAL: 1000 * 60 * 15, // 5 minutes in seconds
-  LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 15 minutes in seconds
+  TX_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 5 minutes in seconds
+  LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 3, // 3 minutes in seconds
   DEFAULT_METADATA_VERSION: 1,
   DEFAULT_IMAGE: 'ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f',
 
@@ -125,12 +123,12 @@ export const DEFAULTS = {
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
 
   PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wrsr3luhqv0ftxjc6yrafw0tfesvtecrpck0s83arm0ttfqq77nu3',
+    'addr_test1wz7j4kmg2cs7yf92uat3ed4a3u97kr7axxr4avaz0lhwdsqukgwfm',
   REGISTRY_POLICY_ID_PREPROD:
-    '0c2912d4088fbc6a0c725dbe5233735821109bd741acfa9f13902302',
+    '7e8bdaf2b2b919a3a4b94002cafb50086c0c845fe535d07a77ab7f77',
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1w8sr3luhqv0ftxjc6yrafw0tfesvtecrpck0s83arm0ttfqmk20n5',
+    'addr1wx7j4kmg2cs7yf92uat3ed4a3u97kr7axxr4avaz0lhwdsq87ujx7',
   REGISTRY_POLICY_ID_MAINNET:
-    '01cca9f42943e3a8342dfa501f9360e3afba9bcd04c7655aa7577de1',
+    'ad6424e3ce9e47bbd8364984bd731b41de591f1d11f6d7d43d0da9b9',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };

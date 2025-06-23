@@ -8,12 +8,11 @@ import {
   BlockfrostProvider,
   deserializeDatum,
   SLOT_CONFIG_NETWORK,
-  Transaction,
   unixTimeToEnclosingSlot,
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
 import {
-  getDatum,
+  getDatumFromBlockchainIdentifier,
   getPaymentScriptFromPaymentSourceV1,
   SmartContractState,
   smartContractStateEqualsOnChainState,
@@ -28,6 +27,7 @@ import { lockAndQueryPurchases } from '@/utils/db/lock-and-query-purchases';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { generateMasumiSmartContractInteractionTransaction } from '@/utils/generator/transaction-generator';
 
 const mutex = new Mutex();
 
@@ -75,6 +75,14 @@ export async function requestRefundsV1() {
             }),
           ],
           operations: purchaseRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
             const purchasingWallet = request.SmartContractWallet;
             if (purchasingWallet == null)
               throw new Error('Purchasing wallet not found');
@@ -109,7 +117,10 @@ export async function requestRefundsV1() {
               }
 
               const decodedDatum: unknown = deserializeDatum(utxoDatum);
-              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
               if (decodedContract == null) {
                 return false;
               }
@@ -119,9 +130,13 @@ export async function requestRefundsV1() {
                   decodedContract.state,
                   request.onChainState,
                 ) &&
-                decodedContract.buyer ==
+                decodedContract.buyerVkey ==
                   request.SmartContractWallet!.walletVkey &&
-                decodedContract.seller == request.SellerWallet.walletVkey &&
+                decodedContract.sellerVkey == request.SellerWallet.walletVkey &&
+                decodedContract.buyerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SellerWallet.walletAddress &&
                 decodedContract.blockchainIdentifier ==
                   request.blockchainIdentifier &&
                 decodedContract.inputHash == request.inputHash &&
@@ -130,7 +145,10 @@ export async function requestRefundsV1() {
                 BigInt(decodedContract.unlockTime) ==
                   BigInt(request.unlockTime) &&
                 BigInt(decodedContract.externalDisputeUnlockTime) ==
-                  BigInt(request.externalDisputeUnlockTime)
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
               );
             });
 
@@ -144,23 +162,29 @@ export async function requestRefundsV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
-            const datum = getDatum({
-              buyerVerificationKeyHash: request.SmartContractWallet!.walletVkey,
-              sellerVerificationKeyHash: request.SellerWallet.walletVkey,
+            const datum = getDatumFromBlockchainIdentifier({
+              buyerAddress: request.SmartContractWallet!.walletAddress,
+              sellerAddress: request.SellerWallet.walletAddress,
               blockchainIdentifier: request.blockchainIdentifier,
+              payByTime: decodedContract.payByTime,
+              collateralReturnLovelace:
+                decodedContract.collateralReturnLovelace,
               resultHash: decodedContract.resultHash,
               resultTime: decodedContract.resultTime,
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
               inputHash: decodedContract.inputHash,
-              newCooldownTimeSeller: 0,
+              newCooldownTimeSeller: BigInt(0),
               newCooldownTimeBuyer: newCooldownTime(
-                paymentContract.cooldownTime,
+                BigInt(paymentContract.cooldownTime),
               ),
               state:
                 decodedContract.resultHash == ''
@@ -168,12 +192,6 @@ export async function requestRefundsV1() {
                   : SmartContractState.Disputed,
             });
 
-            const redeemer = {
-              data: {
-                alternative: 1,
-                fields: [],
-              },
-            };
             const invalidBefore =
               unixTimeToEnclosingSlot(
                 Date.now() - 150000,
@@ -185,120 +203,61 @@ export async function requestRefundsV1() {
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
               ) + 1;
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
-              );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
 
-            const filteredUtxos = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                //sort by biggest lovelace
-                return bLovelace - aLovelace;
-              })
-              .filter(
-                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
+            //sort by biggest lovelace first
+            const sortedUtxosByLovelaceDesc = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
               );
-            const limitedFilteredUtxos = filteredUtxos.slice(
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              return bLovelace - aLovelace;
+            });
+            const limitedUtxos = sortedUtxosByLovelaceDesc.slice(
               0,
-              Math.min(4, filteredUtxos.length),
+              Math.min(4, sortedUtxosByLovelaceDesc.length),
             );
 
-            const unsignedTx = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'SetRefundRequested'],
-              })
-              .setTxInputs(limitedFilteredUtxos)
-              .redeemValue({
-                value: utxo,
-                script: script,
-                redeemer: redeemer,
-              })
-              .setCollateral([collateralUtxo])
-              .sendAssets(
-                {
-                  address: smartContractAddress,
-                  datum: datum,
-                },
-                utxo.output.amount,
-              )
-              .setChangeAddress(address)
-              .setRequiredSigners([address]);
-
-            unsignedTx.txBuilder.invalidBefore(invalidBefore);
-            unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-            unsignedTx.setNetwork(network);
-
-            const buildTransaction = await unsignedTx.build();
+            const evaluationTx =
+              await generateMasumiSmartContractInteractionTransaction(
+                'RequestRefund',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                sortedUtxosByLovelaceDesc[0],
+                limitedUtxos,
+                datum.value,
+                invalidBefore,
+                invalidAfter,
+              );
             const estimatedFee = (await blockchainProvider.evaluateTx(
-              buildTransaction,
+              evaluationTx,
             )) as Array<{ budget: { mem: number; steps: number } }>;
-            const unsignedTxFinal = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'SetRefundRequested'],
-              })
-              .setTxInputs(limitedFilteredUtxos)
-              .redeemValue({
-                value: utxo,
-                script: script,
-                redeemer: {
-                  data: redeemer.data,
-                  budget: estimatedFee[0].budget,
-                },
-              })
-              .setCollateral([collateralUtxo])
-              .sendAssets(
-                {
-                  address: smartContractAddress,
-                  datum: datum,
-                },
-                utxo.output.amount,
-              )
-              .setChangeAddress(address)
-              .setRequiredSigners([address]);
+            const unsignedTx =
+              await generateMasumiSmartContractInteractionTransaction(
+                'RequestRefund',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                sortedUtxosByLovelaceDesc[0],
+                sortedUtxosByLovelaceDesc,
+                datum.value,
+                invalidBefore,
+                invalidAfter,
+                estimatedFee[0].budget,
+              );
 
-            unsignedTxFinal.txBuilder.invalidBefore(invalidBefore);
-            unsignedTxFinal.txBuilder.invalidHereafter(invalidAfter);
-            unsignedTxFinal.setNetwork(network);
+            const signedTx = await wallet.signTx(unsignedTx);
 
-            const buildTransactionFinal = await unsignedTxFinal.build();
-            const signedTx = await wallet.signTx(buildTransactionFinal);
             await prisma.purchaseRequest.update({
               where: { id: request.id },
               data: {
