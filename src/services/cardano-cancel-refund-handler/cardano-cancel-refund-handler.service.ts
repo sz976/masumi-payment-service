@@ -13,7 +13,7 @@ import {
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
 import {
-  getDatum,
+  getDatumFromBlockchainIdentifier,
   getPaymentScriptFromPaymentSourceV1,
   SmartContractState,
   smartContractStateEqualsOnChainState,
@@ -79,6 +79,14 @@ export async function cancelRefundsV1() {
             }),
           ],
           operations: purchaseRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
             const purchasingWallet = request.SmartContractWallet;
             if (purchasingWallet == null)
               throw new Error('Purchasing wallet not found');
@@ -113,7 +121,10 @@ export async function cancelRefundsV1() {
               }
 
               const decodedDatum: unknown = deserializeDatum(utxoDatum);
-              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
               if (decodedContract == null) {
                 return false;
               }
@@ -123,9 +134,13 @@ export async function cancelRefundsV1() {
                   decodedContract.state,
                   request.onChainState,
                 ) &&
-                decodedContract.buyer ==
+                decodedContract.buyerVkey ==
                   request.SmartContractWallet!.walletVkey &&
-                decodedContract.seller == request.SellerWallet.walletVkey &&
+                decodedContract.sellerVkey == request.SellerWallet.walletVkey &&
+                decodedContract.buyerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SellerWallet.walletAddress &&
                 decodedContract.blockchainIdentifier ==
                   request.blockchainIdentifier &&
                 decodedContract.inputHash == request.inputHash &&
@@ -134,7 +149,10 @@ export async function cancelRefundsV1() {
                 BigInt(decodedContract.unlockTime) ==
                   BigInt(request.unlockTime) &&
                 BigInt(decodedContract.externalDisputeUnlockTime) ==
-                  BigInt(request.externalDisputeUnlockTime)
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
               );
             });
 
@@ -148,23 +166,29 @@ export async function cancelRefundsV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
-            const datum = getDatum({
-              buyerVerificationKeyHash: request.SmartContractWallet!.walletVkey,
-              sellerVerificationKeyHash: request.SellerWallet.walletVkey,
+            const datum = getDatumFromBlockchainIdentifier({
+              buyerAddress: request.SmartContractWallet!.walletAddress,
+              sellerAddress: request.SellerWallet.walletAddress,
               blockchainIdentifier: request.blockchainIdentifier,
               inputHash: decodedContract.inputHash,
               resultHash: decodedContract.resultHash,
+              payByTime: decodedContract.payByTime,
+              collateralReturnLovelace:
+                decodedContract.collateralReturnLovelace,
               resultTime: decodedContract.resultTime,
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
-              newCooldownTimeSeller: 0,
+              newCooldownTimeSeller: BigInt(0),
               newCooldownTimeBuyer: newCooldownTime(
-                paymentContract.cooldownTime,
+                BigInt(paymentContract.cooldownTime),
               ),
               state:
                 decodedContract.resultHash == ''

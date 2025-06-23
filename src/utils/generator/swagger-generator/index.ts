@@ -516,6 +516,7 @@ export function generateOpenAPI() {
                         lastCheckedAt: null,
                         cooldownTime: 0,
                         cooldownTimeOtherParty: 0,
+                        collateralReturnLovelace: null,
                         requestedById: 'requester_id',
                         resultHash: 'result_hash',
                         onChainState: null,
@@ -583,12 +584,14 @@ export function generateOpenAPI() {
               example: {
                 agentIdentifier: 'agent_identifier',
                 network: Network.Preprod,
-                inputHash: 'input_hash',
+                inputHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+                payByTime: new Date(1713626260).toISOString(),
                 metadata:
                   '(private) metadata to be stored with the payment request',
                 paymentType: PaymentType.Web3CardanoV1,
                 submitResultTime: new Date(1713636260).toISOString(),
-                identifierFromPurchaser: 'unique_key_from_purchaser',
+                identifierFromPurchaser: 'aabbaabb11221122aabb',
               },
             }),
           },
@@ -612,6 +615,7 @@ export function generateOpenAPI() {
                     blockchainIdentifier: 'blockchain_identifier',
                     createdAt: new Date(1713636260),
                     updatedAt: new Date(1713636260),
+                    payByTime: '0',
                     submitResultTime: '0',
                     unlockTime: '0',
                     externalDisputeUnlockTime: '0',
@@ -678,7 +682,8 @@ export function generateOpenAPI() {
               example: {
                 network: Network.Preprod,
                 blockchainIdentifier: 'identifier',
-                submitResultHash: 'hash',
+                submitResultHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
               },
             }),
           },
@@ -889,6 +894,7 @@ export function generateOpenAPI() {
                         resultHash: '',
                         cooldownTime: 0,
                         cooldownTimeOtherParty: 0,
+                        collateralReturnLovelace: null,
                         inputHash: 'input_hash',
                         NextAction: {
                           requestedAction:
@@ -950,16 +956,18 @@ export function generateOpenAPI() {
           'application/json': {
             schema: createPurchaseInitSchemaInput.openapi({
               example: {
-                identifierFromPurchaser: 'unique_key_from_purchaser',
+                identifierFromPurchaser: 'aabbaabb11221122aabb',
                 network: Network.Preprod,
                 sellerVkey: 'seller_vkey',
                 paymentType: PaymentType.Web3CardanoV1,
                 blockchainIdentifier: 'blockchain_identifier',
+                payByTime: (1713626260).toString(),
                 submitResultTime: (1713636260).toString(),
                 unlockTime: (1713636260).toString(),
                 externalDisputeUnlockTime: (1713636260).toString(),
                 agentIdentifier: 'agent_identifier',
-                inputHash: 'input_hash',
+                inputHash:
+                  '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
               },
             }),
           },

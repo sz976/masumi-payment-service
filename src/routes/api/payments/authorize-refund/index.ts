@@ -115,7 +115,7 @@ export const authorizePaymentRefundEndpointPost =
             },
           },
           onChainState: {
-            in: [OnChainState.RefundRequested, OnChainState.Disputed],
+            in: [OnChainState.Disputed],
           },
         },
         include: {
@@ -136,7 +136,7 @@ export const authorizePaymentRefundEndpointPost =
       });
 
       if (payment == null) {
-        throw createHttpError(404, 'Payment not found');
+        throw createHttpError(404, 'Payment not found or in invalid state');
       }
       if (payment.PaymentSource == null) {
         throw createHttpError(404, 'Payment has no payment source');

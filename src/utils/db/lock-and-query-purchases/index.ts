@@ -29,6 +29,7 @@ export async function lockAndQueryPurchases({
             paymentType: PaymentType.Web3CardanoV1,
             syncInProgress: false,
             deletedAt: null,
+            disablePaymentAt: null,
           },
           include: {
             PurchaseRequests: {

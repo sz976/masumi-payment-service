@@ -24,6 +24,7 @@ import stringify from 'canonical-json';
 import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
 import LZString from 'lz-string';
 import { generateHash } from '@/utils/crypto';
+import { validateHexString } from '@/utils/generator/contract-generator';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -64,6 +65,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       externalDisputeUnlockTime: z.string(),
       requestedById: z.string(),
       onChainState: z.nativeEnum(OnChainState).nullable(),
+      collateralReturnLovelace: z.string().nullable(),
       cooldownTime: z.number(),
       cooldownTimeOtherParty: z.number(),
       inputHash: z.string(),
@@ -206,6 +208,8 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           unit: amount.unit,
           amount: amount.amount.toString(),
         })),
+        collateralReturnLovelace:
+          purchase.collateralReturnLovelace?.toString() ?? null,
         submitResultTime: purchase.submitResultTime.toString(),
         unlockTime: purchase.unlockTime.toString(),
         externalDisputeUnlockTime:
@@ -225,7 +229,12 @@ export const createPurchaseInitSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the transaction will be made on'),
-  inputHash: z.string().max(250),
+  inputHash: z
+    .string()
+    .max(250)
+    .describe(
+      'The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format',
+    ),
   sellerVkey: z
     .string()
     .max(250)
@@ -258,6 +267,11 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe(
       'The time by which the result has to be submitted. In unix time (number)',
     ),
+  payByTime: z
+    .string()
+    .describe(
+      'The time after which the purchase has to be submitted to the smart contract',
+    ),
   metadata: z
     .string()
     .optional()
@@ -266,7 +280,9 @@ export const createPurchaseInitSchemaInput = z.object({
     .string()
     .min(15)
     .max(25)
-    .describe('The cuid2 identifier of the purchaser of the purchase'),
+    .describe(
+      'The nounce of the purchaser of the purchase, needs to be in hex format',
+    ),
 });
 
 export const createPurchaseInitSchemaOutput = z.object({
@@ -368,6 +384,10 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       },
       include: { PaymentSourceConfig: true },
     });
+    const inputHash = input.inputHash;
+    if (validateHexString(inputHash) == false) {
+      throw createHttpError(400, 'Input hash is not a valid hex string');
+    }
 
     if (paymentSource == null) {
       throw createHttpError(
@@ -390,15 +410,29 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     //require at least 3 hours between unlock time and the submit result time
     const additionalExternalDisputeUnlockTime = BigInt(1000 * 60 * 15);
     const submitResultTime = BigInt(input.submitResultTime);
+    const payByTime = BigInt(input.payByTime);
     const unlockTime = BigInt(input.unlockTime);
     const externalDisputeUnlockTime = BigInt(input.externalDisputeUnlockTime);
+    if (payByTime > submitResultTime - BigInt(1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be before submit result time (min. 5 minutes)',
+      );
+    }
+    if (payByTime < BigInt(Date.now() - 1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be in the future (max. 5 minutes)',
+      );
+    }
+
     if (
       externalDisputeUnlockTime <
       unlockTime + additionalExternalDisputeUnlockTime
     ) {
       throw createHttpError(
         400,
-        'External dispute unlock time must be after unlock time with at least 15 minutes difference',
+        'External dispute unlock time must be after unlock time (min. 15 minutes difference)',
       );
     }
     if (submitResultTime < BigInt(Date.now() + 1000 * 60 * 15)) {
@@ -504,6 +538,15 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Invalid blockchain identifier, purchaser id mismatch',
       );
     }
+    if (validateHexString(purchaserId) == false) {
+      throw createHttpError(
+        400,
+        'Purchaser identifier is not a valid hex string',
+      );
+    }
+    if (validateHexString(sellerId) == false) {
+      throw createHttpError(400, 'Seller identifier is not a valid hex string');
+    }
     const signature = blockchainIdentifierSplit[2];
     const key = blockchainIdentifierSplit[3];
     const cosePublicKey = getPublicKeyFromCoseKey(key);
@@ -528,9 +571,11 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,
+      payByTime: input.payByTime,
       submitResultTime: input.submitResultTime,
       unlockTime: unlockTime.toString(),
       externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
+      sellerAddress: addressOfAsset,
     };
 
     const hashedBlockchainIdentifier = generateHash(
@@ -569,6 +614,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       paymentType: input.paymentType,
       contractAddress: smartContractAddress,
       sellerVkey: input.sellerVkey,
+      sellerAddress: addressOfAsset,
+      payByTime: payByTime,
       submitResultTime: submitResultTime,
       unlockTime: unlockTime,
       externalDisputeUnlockTime: externalDisputeUnlockTime,

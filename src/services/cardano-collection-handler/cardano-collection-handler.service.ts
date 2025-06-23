@@ -78,8 +78,22 @@ export async function collectOutstandingPaymentsV1() {
             }),
           ],
           operations: paymentRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
             if (request.SmartContractWallet == null)
               throw new Error('Smart contract wallet not found');
+
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
 
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentContract.network,
@@ -112,7 +126,10 @@ export async function collectOutstandingPaymentsV1() {
               }
 
               const decodedDatum: unknown = deserializeDatum(utxoDatum);
-              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
               if (decodedContract == null) {
                 return false;
               }
@@ -122,8 +139,12 @@ export async function collectOutstandingPaymentsV1() {
                   decodedContract.state,
                   request.onChainState,
                 ) &&
-                decodedContract.buyer == request.BuyerWallet!.walletVkey &&
-                decodedContract.seller ==
+                decodedContract.buyerAddress ==
+                  request.BuyerWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
+                decodedContract.buyerVkey == request.BuyerWallet!.walletVkey &&
+                decodedContract.sellerVkey ==
                   request.SmartContractWallet!.walletVkey &&
                 decodedContract.blockchainIdentifier ==
                   request.blockchainIdentifier &&
@@ -133,7 +154,10 @@ export async function collectOutstandingPaymentsV1() {
                 BigInt(decodedContract.unlockTime) ==
                   BigInt(request.unlockTime) &&
                 BigInt(decodedContract.externalDisputeUnlockTime) ==
-                  BigInt(request.externalDisputeUnlockTime)
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
               );
             });
 
@@ -147,9 +171,29 @@ export async function collectOutstandingPaymentsV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
+            }
+
+            if (
+              BigInt(decodedContract.collateralReturnLovelace) !=
+              request.collateralReturnLovelace
+            ) {
+              logger.error(
+                'Collateral return lovelace does not match collateral return lovelace in db. This likely is a spoofing attempt.',
+                {
+                  purchaseRequest: request,
+                  collateralReturnLovelace:
+                    decodedContract.collateralReturnLovelace,
+                },
+              );
+              throw new Error(
+                'Collateral return lovelace does not match collateral return lovelace in db. This likely is a spoofing attempt.',
+              );
             }
 
             const invalidBefore =
@@ -163,6 +207,27 @@ export async function collectOutstandingPaymentsV1() {
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
               ) + 1;
+
+            const buyerAddress = request.BuyerWallet?.walletAddress;
+            if (buyerAddress == null) {
+              throw new Error('Buyer wallet not found');
+            }
+            if (buyerAddress != decodedContract.buyerAddress) {
+              throw new Error('Buyer wallet does not match buyer in contract');
+            }
+
+            const collateralReturnLovelace = request.collateralReturnLovelace;
+            if (collateralReturnLovelace == null) {
+              throw new Error('Collateral return lovelace not found');
+            }
+            if (
+              BigInt(decodedContract.collateralReturnLovelace) !=
+              collateralReturnLovelace
+            ) {
+              throw new Error(
+                'Collateral return lovelace does not match collateral return lovelace in db.',
+              );
+            }
 
             const remainingAssets: { [key: string]: Asset } = {};
             const feeAssets: { [key: string]: Asset } = {};
@@ -247,6 +312,14 @@ export async function collectOutstandingPaymentsV1() {
                   feeAssets: Object.values(feeAssets),
                   feeAddress:
                     paymentContract.FeeReceiverNetworkWallet.walletAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
+                },
+                {
+                  lovelace: collateralReturnLovelace,
+                  address: buyerAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
                 },
                 invalidBefore,
                 invalidAfter,
@@ -274,6 +347,14 @@ export async function collectOutstandingPaymentsV1() {
                   feeAssets: Object.values(feeAssets),
                   feeAddress:
                     paymentContract.FeeReceiverNetworkWallet.walletAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
+                },
+                {
+                  lovelace: collateralReturnLovelace,
+                  address: buyerAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
                 },
                 invalidBefore,
                 invalidAfter,

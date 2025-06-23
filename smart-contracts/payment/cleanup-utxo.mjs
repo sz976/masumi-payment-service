@@ -16,12 +16,13 @@ const wallet = new MeshWallet({
   submitter: blockchainProvider,
   key: {
     type: 'mnemonic',
-    words: fs.readFileSync('wallet_2.sk').toString().split(' '),
+    words: fs.readFileSync('wallet_1.sk').toString().split(' '),
   },
 });
 console.log('Utxo cleanup starting...');
 
-const address = (await wallet.getUnusedAddresses())[0];
+const address = await wallet.getAddresses();
+console.log(address.baseAddressBech32);
 const utxos = await wallet.getUtxos();
 
 const tx = new Transaction({ initiator: wallet });

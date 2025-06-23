@@ -18,6 +18,7 @@ export async function lockAndQueryRegistryRequests({
           paymentType: PaymentType.Web3CardanoV1,
           syncInProgress: false,
           deletedAt: null,
+          disablePaymentAt: null,
         },
         include: {
           RegistryRequest: {

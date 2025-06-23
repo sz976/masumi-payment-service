@@ -406,6 +406,7 @@ export type GetPaymentResponses = {
                 lastCheckedAt: string | null;
                 submitResultTime: string;
                 unlockTime: string;
+                collateralReturnLovelace: string | null;
                 externalDisputeUnlockTime: string;
                 requestedById: string;
                 resultHash: string;
@@ -469,6 +470,9 @@ export type GetPaymentResponse = GetPaymentResponses[keyof GetPaymentResponses];
 
 export type PostPaymentData = {
     body?: {
+        /**
+         * The hash of the input data of the payment, should be sha256 hash of the input data, therefore needs to be in hex string format
+         */
         inputHash: string;
         /**
          * The network the payment will be received on
@@ -492,6 +496,10 @@ export type PostPaymentData = {
         /**
          * The time after which the payment has to be submitted to the smart contract
          */
+        payByTime?: Date;
+        /**
+         * The time after which the payment has to be submitted to the smart contract
+         */
         submitResultTime?: Date;
         /**
          * The time after which the payment will be unlocked
@@ -506,7 +514,7 @@ export type PostPaymentData = {
          */
         metadata?: string;
         /**
-         * The cuid2 identifier of the purchaser of the payment
+         * The a unique nounce from the purchaser. Required to be in hex format
          */
         identifierFromPurchaser: string;
     };
@@ -541,6 +549,7 @@ export type PostPaymentResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             submitResultTime: string;
+            payByTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
             lastCheckedAt: string | null;
@@ -597,7 +606,7 @@ export type PostPaymentSubmitResultData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
-         * The hash of the AI agent result to be submitted
+         * The hash of the AI agent result to be submitted, should be sha256 hash of the result, therefore needs to be in hex string format
          */
         submitResultHash: string;
         /**
@@ -833,6 +842,7 @@ export type GetPurchaseResponses = {
                 externalDisputeUnlockTime: string;
                 requestedById: string;
                 onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+                collateralReturnLovelace: string | null;
                 cooldownTime: number;
                 cooldownTimeOtherParty: number;
                 inputHash: string;
@@ -903,6 +913,9 @@ export type PostPurchaseData = {
          * The network the transaction will be made on
          */
         network: 'Preprod' | 'Mainnet';
+        /**
+         * The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format
+         */
         inputHash: string;
         /**
          * The verification key of the seller
@@ -936,11 +949,15 @@ export type PostPurchaseData = {
          */
         submitResultTime: string;
         /**
+         * The time after which the purchase has to be submitted to the smart contract
+         */
+        payByTime: string;
+        /**
          * Metadata to be stored with the purchase request
          */
         metadata?: string;
         /**
-         * The cuid2 identifier of the purchaser of the purchase
+         * The nounce of the purchaser of the purchase, needs to be in hex format
          */
         identifierFromPurchaser: string;
     };
