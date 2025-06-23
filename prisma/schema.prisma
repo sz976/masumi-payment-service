@@ -132,19 +132,20 @@ enum WalletType {
 }
 
 model WalletBase {
-  id         String     @id @default(cuid())
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  walletVkey String
-  note       String?
-  type       WalletType
+  id            String     @id @default(cuid())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  walletVkey    String
+  walletAddress String     @default("")
+  note          String?
+  type          WalletType
 
   PaymentRequest  PaymentRequest[]
   PurchaseRequest PurchaseRequest[]
   PaymentSource   PaymentSource     @relation(fields: [paymentSourceId], references: [id])
   paymentSourceId String
 
-  @@unique([paymentSourceId, walletVkey, type])
+  @@unique([paymentSourceId, walletVkey, walletAddress, type])
 }
 
 enum RegistrationState {
@@ -287,7 +288,9 @@ model PaymentRequest {
 
   RequestedFunds UnitValue[]
 
+  collateralReturnLovelace  BigInt?
   blockchainIdentifier      String        @unique
+  payByTime                 BigInt?
   submitResultTime          BigInt
   unlockTime                BigInt
   externalDisputeUnlockTime BigInt
@@ -345,6 +348,8 @@ model PurchaseRequest {
 
   blockchainIdentifier String @unique
 
+  collateralReturnLovelace  BigInt?
+  payByTime                 BigInt?
   submitResultTime          BigInt
   unlockTime                BigInt
   externalDisputeUnlockTime BigInt
@@ -481,6 +486,8 @@ model PaymentSource {
   WalletBases       WalletBase[]
   RegistryRequest   RegistryRequest[]
   deletedAt         DateTime?
+  disablePaymentAt  DateTime?
+  disableSyncAt     DateTime?
   CollateralRequest CollateralRequest[]
 
   @@unique([network, smartContractAddress])

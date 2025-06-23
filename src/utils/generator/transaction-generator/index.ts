@@ -4,6 +4,7 @@ import {
   IFetcher,
   LanguageVersion,
   MeshTxBuilder,
+  mOutputReference,
   Network,
   UTxO,
 } from '@meshsdk/core';
@@ -142,6 +143,14 @@ export async function generateMasumiSmartContractWithdrawTransaction(
   fee: {
     feeAssets: Asset[];
     feeAddress: string;
+    txHash: string;
+    outputIndex: number;
+  } | null,
+  collateralReturn: {
+    lovelace: bigint;
+    address: string;
+    txHash: string;
+    outputIndex: number;
   } | null,
   invalidBefore: number,
   invalidAfter: number,
@@ -186,7 +195,24 @@ export async function generateMasumiSmartContractWithdrawTransaction(
   }
 
   if (fee) {
-    txBuilder.txOut(fee.feeAddress, fee.feeAssets);
+    const outputReference = mOutputReference(fee.txHash, fee.outputIndex);
+    txBuilder
+      .txOut(fee.feeAddress, fee.feeAssets)
+      .txOutInlineDatumValue(outputReference);
+  }
+  if (collateralReturn != null && collateralReturn.lovelace > 0n) {
+    const outputReference = mOutputReference(
+      collateralReturn.txHash,
+      collateralReturn.outputIndex,
+    );
+    txBuilder
+      .txOut(collateralReturn.address, [
+        {
+          unit: 'lovelace',
+          quantity: collateralReturn.lovelace.toString(),
+        },
+      ])
+      .txOutInlineDatumValue(outputReference);
   }
 
   return await txBuilder

@@ -79,6 +79,14 @@ export async function collectRefundV1() {
             }),
           ],
           operations: purchaseRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
             if (request.SmartContractWallet == null)
               throw new Error('Smart contract wallet not found');
             const { wallet, utxos, address } = await generateWalletExtended(
@@ -112,7 +120,10 @@ export async function collectRefundV1() {
               }
 
               const decodedDatum: unknown = deserializeDatum(utxoDatum);
-              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
               if (decodedContract == null) {
                 return false;
               }
@@ -122,9 +133,13 @@ export async function collectRefundV1() {
                   decodedContract.state,
                   request.onChainState,
                 ) &&
-                decodedContract.buyer ==
+                decodedContract.buyerVkey ==
                   request.SmartContractWallet!.walletVkey &&
-                decodedContract.seller == request.SellerWallet.walletVkey &&
+                decodedContract.sellerVkey == request.SellerWallet.walletVkey &&
+                decodedContract.buyerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SellerWallet.walletAddress &&
                 decodedContract.blockchainIdentifier ==
                   request.blockchainIdentifier &&
                 decodedContract.inputHash == request.inputHash &&
@@ -133,7 +148,10 @@ export async function collectRefundV1() {
                 BigInt(decodedContract.unlockTime) ==
                   BigInt(request.unlockTime) &&
                 BigInt(decodedContract.externalDisputeUnlockTime) ==
-                  BigInt(request.externalDisputeUnlockTime)
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
               );
             });
 
@@ -147,7 +165,10 @@ export async function collectRefundV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
@@ -205,6 +226,7 @@ export async function collectRefundV1() {
                   collectionAddress: collectionAddress,
                 },
                 null,
+                null,
                 invalidBefore,
                 invalidAfter,
               );
@@ -227,6 +249,7 @@ export async function collectRefundV1() {
                   collectAssets: utxo.output.amount,
                   collectionAddress: address,
                 },
+                null,
                 null,
                 invalidBefore,
                 invalidAfter,
