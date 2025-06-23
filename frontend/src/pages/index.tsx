@@ -6,7 +6,7 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { cn, shortenAddress } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -14,11 +14,12 @@ import {
   GetPaymentSourceResponses,
   getRegistry,
   getUtxos,
+  GetRegistryResponses,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
-import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
+import { RegisterAIAgentDialog } from '@/components/ai-agents/RegisterAIAgentDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
 import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { useRate } from '@/lib/hooks/useRate';
@@ -31,26 +32,7 @@ import { WalletDetailsDialog } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
 import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
 
-interface AIAgent {
-  id: string;
-  name: string;
-  description: string | null;
-  state: string;
-  createdAt: string;
-  updatedAt: string;
-  agentIdentifier: string | null;
-  Tags: string[];
-  SmartContractWallet: {
-    walletAddress: string;
-    walletVkey: string;
-  };
-  AgentPricing?: {
-    Pricing?: Array<{
-      amount: string;
-      unit: string;
-    }>;
-  };
-}
+type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -82,8 +64,9 @@ export default function Overview() {
   const [isLoadingWallets, setIsLoadingWallets] = useState(true);
   const [totalBalance, setTotalBalance] = useState('0');
   const [totalUsdmBalance, setTotalUsdmBalance] = useState('0');
-  const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
-  const [isAddAgentDialogOpen, setIsAddAgentDialogOpen] = useState(false);
+  const [isAddWalletDialogOpen, setAddWalletDialogOpen] = useState(false);
+  const [isRegisterAgentDialogOpen, setRegisterAgentDialogOpen] =
+    useState(false);
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
     useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
@@ -496,18 +479,12 @@ export default function Overview() {
 
               <div className="flex items-center justify-between">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-sm font-normal"
-                  onClick={() => setIsAddAgentDialogOpen(true)}
+                  className="flex items-center gap-2"
+                  onClick={() => setRegisterAgentDialogOpen(true)}
                 >
-                  + Add AI agent
+                  <Plus className="h-4 w-4" />
+                  Register agent
                 </Button>
-                {/* <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">
-                    Total: {agents.length}
-                  </span>
-                </div> */}
               </div>
             </div>
           </div>
@@ -708,7 +685,7 @@ export default function Overview() {
                           <Button
                             variant="outline"
                             className="border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/10"
-                            onClick={() => setIsAddWalletDialogOpen(true)}
+                            onClick={() => setAddWalletDialogOpen(true)}
                           >
                             Add collection wallet
                           </Button>
@@ -724,7 +701,7 @@ export default function Overview() {
                   variant="outline"
                   size="sm"
                   className="h-8 px-3 text-sm font-normal"
-                  onClick={() => setIsAddWalletDialogOpen(true)}
+                  onClick={() => setAddWalletDialogOpen(true)}
                 >
                   + Add wallet
                 </Button>
@@ -743,14 +720,15 @@ export default function Overview() {
 
       <AddWalletDialog
         open={isAddWalletDialogOpen}
-        onClose={() => setIsAddWalletDialogOpen(false)}
-        onSuccess={fetchWallets}
+        onClose={() => setAddWalletDialogOpen(false)}
       />
 
-      <AddAIAgentDialog
-        open={isAddAgentDialogOpen}
-        onClose={() => setIsAddAgentDialogOpen(false)}
-        onSuccess={fetchAgents}
+      <RegisterAIAgentDialog
+        open={isRegisterAgentDialogOpen}
+        onClose={() => setRegisterAgentDialogOpen(false)}
+        onSuccess={() => {
+          // TODO: we can refresh data here
+        }}
       />
 
       <AIAgentDetailsDialog
