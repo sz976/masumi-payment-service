@@ -399,32 +399,42 @@ export async function batchLatestPaymentEntriesV1() {
             paymentRequestsRemaining.length > 0 &&
             maxBatchSizeReached == false
           ) {
-            logger.warn(
-              'Not enough funds in wallets, going into error state for',
-              {
-                paymentRequestsRemaining: paymentRequestsRemaining.map(
-                  (x) => x.id,
-                ),
+            const allWalletCount = await prisma.hotWallet.count({
+              where: {
+                deletedAt: null,
+                type: HotWalletType.Purchasing,
+                PendingTransaction: null,
               },
-            );
-            await Promise.allSettled(
-              paymentRequestsRemaining.map(async (paymentRequest) => {
-                await prisma.purchaseRequest.update({
-                  where: { id: paymentRequest.id },
-                  data: {
-                    NextAction: {
-                      create: {
-                        inputHash: paymentRequest.inputHash,
-                        requestedAction:
-                          PurchasingAction.WaitingForManualAction,
-                        errorType: PurchaseErrorType.InsufficientFunds,
-                        errorNote: 'Not enough funds in wallets',
+            });
+            //only go into error state if all wallets were unlocked, otherwise we might have enough funds in other wallets
+            if (allWalletCount == potentialWallets.length) {
+              logger.warn(
+                'No wallets with funds found, going into error state for',
+                {
+                  paymentRequestsRemaining: paymentRequestsRemaining.map(
+                    (x) => x.id,
+                  ),
+                },
+              );
+              await Promise.allSettled(
+                paymentRequestsRemaining.map(async (paymentRequest) => {
+                  await prisma.purchaseRequest.update({
+                    where: { id: paymentRequest.id },
+                    data: {
+                      NextAction: {
+                        create: {
+                          inputHash: paymentRequest.inputHash,
+                          requestedAction:
+                            PurchasingAction.WaitingForManualAction,
+                          errorType: PurchaseErrorType.InsufficientFunds,
+                          errorNote: 'Not enough funds in wallets',
+                        },
                       },
                     },
-                  },
-                });
-              }),
-            );
+                  });
+                }),
+              );
+            }
           }
 
           logger.info(
