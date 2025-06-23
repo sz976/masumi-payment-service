@@ -1172,6 +1172,10 @@
                                                             "unlockTime": {
                                                                 "type": "string"
                                                             },
+                                                            "collateralReturnLovelace": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
                                                             "externalDisputeUnlockTime": {
                                                                 "type": "string"
                                                             },
@@ -1437,6 +1441,7 @@
                                                             "lastCheckedAt",
                                                             "submitResultTime",
                                                             "unlockTime",
+                                                            "collateralReturnLovelace",
                                                             "externalDisputeUnlockTime",
                                                             "requestedById",
                                                             "resultHash",
@@ -1482,6 +1487,7 @@
                                                     "lastCheckedAt": null,
                                                     "cooldownTime": 0,
                                                     "cooldownTimeOtherParty": 0,
+                                                    "collateralReturnLovelace": null,
                                                     "requestedById": "requester_id",
                                                     "resultHash": "result_hash",
                                                     "onChainState": null,
@@ -1551,7 +1557,8 @@
                                 "properties": {
                                     "inputHash": {
                                         "type": "string",
-                                        "maxLength": 250
+                                        "maxLength": 250,
+                                        "description": "The hash of the input data of the payment, should be sha256 hash of the input data, therefore needs to be in hex string format"
                                     },
                                     "network": {
                                         "type": "string",
@@ -1595,6 +1602,24 @@
                                             "Web3CardanoV1"
                                         ],
                                         "description": "The type of payment contract used"
+                                    },
+                                    "payByTime": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "format": "date"
+                                            },
+                                            {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            },
+                                            {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        ],
+                                        "default": "1970-01-01T12:00:00.000Z",
+                                        "description": "The time after which the payment has to be submitted to the smart contract"
                                     },
                                     "submitResultTime": {
                                         "anyOf": [
@@ -1656,7 +1681,7 @@
                                         "type": "string",
                                         "minLength": 15,
                                         "maxLength": 25,
-                                        "description": "The cuid2 identifier of the purchaser of the payment"
+                                        "description": "The a unique nounce from the purchaser. Required to be in hex format"
                                     }
                                 },
                                 "required": [
@@ -1669,11 +1694,12 @@
                                 "example": {
                                     "agentIdentifier": "agent_identifier",
                                     "network": "Preprod",
-                                    "inputHash": "input_hash",
+                                    "inputHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+                                    "payByTime": "1970-01-20T20:00:26.260Z",
                                     "metadata": "(private) metadata to be stored with the payment request",
                                     "paymentType": "Web3CardanoV1",
                                     "submitResultTime": "1970-01-20T20:00:36.260Z",
-                                    "identifierFromPurchaser": "unique_key_from_purchaser"
+                                    "identifierFromPurchaser": "aabbaabb11221122aabb"
                                 }
                             }
                         }
@@ -1703,6 +1729,9 @@
                                                     "type": "string"
                                                 },
                                                 "submitResultTime": {
+                                                    "type": "string"
+                                                },
+                                                "payByTime": {
                                                     "type": "string"
                                                 },
                                                 "unlockTime": {
@@ -1916,6 +1945,7 @@
                                                 "updatedAt",
                                                 "blockchainIdentifier",
                                                 "submitResultTime",
+                                                "payByTime",
                                                 "unlockTime",
                                                 "externalDisputeUnlockTime",
                                                 "lastCheckedAt",
@@ -1949,6 +1979,7 @@
                                             "blockchainIdentifier": "blockchain_identifier",
                                             "createdAt": "1970-01-20T20:00:36.260Z",
                                             "updatedAt": "1970-01-20T20:00:36.260Z",
+                                            "payByTime": "0",
                                             "submitResultTime": "0",
                                             "unlockTime": "0",
                                             "externalDisputeUnlockTime": "0",
@@ -2028,7 +2059,7 @@
                                     "submitResultHash": {
                                         "type": "string",
                                         "maxLength": 250,
-                                        "description": "The hash of the AI agent result to be submitted"
+                                        "description": "The hash of the AI agent result to be submitted, should be sha256 hash of the result, therefore needs to be in hex string format"
                                     },
                                     "blockchainIdentifier": {
                                         "type": "string",
@@ -2044,7 +2075,7 @@
                                 "example": {
                                     "network": "Preprod",
                                     "blockchainIdentifier": "identifier",
-                                    "submitResultHash": "hash"
+                                    "submitResultHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
                                 }
                             }
                         }
@@ -2856,6 +2887,10 @@
                                                                     "DisputedWithdrawn"
                                                                 ]
                                                             },
+                                                            "collateralReturnLovelace": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
                                                             "cooldownTime": {
                                                                 "type": "number"
                                                             },
@@ -3121,6 +3156,7 @@
                                                             "externalDisputeUnlockTime",
                                                             "requestedById",
                                                             "onChainState",
+                                                            "collateralReturnLovelace",
                                                             "cooldownTime",
                                                             "cooldownTimeOtherParty",
                                                             "inputHash",
@@ -3162,6 +3198,7 @@
                                                     "resultHash": "",
                                                     "cooldownTime": 0,
                                                     "cooldownTimeOtherParty": 0,
+                                                    "collateralReturnLovelace": null,
                                                     "inputHash": "input_hash",
                                                     "NextAction": {
                                                         "requestedAction": "FundsLockingRequested",
@@ -3240,7 +3277,8 @@
                                     },
                                     "inputHash": {
                                         "type": "string",
-                                        "maxLength": 250
+                                        "maxLength": 250,
+                                        "description": "The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format"
                                     },
                                     "sellerVkey": {
                                         "type": "string",
@@ -3294,6 +3332,10 @@
                                         "type": "string",
                                         "description": "The time by which the result has to be submitted. In unix time (number)"
                                     },
+                                    "payByTime": {
+                                        "type": "string",
+                                        "description": "The time after which the purchase has to be submitted to the smart contract"
+                                    },
                                     "metadata": {
                                         "type": "string",
                                         "description": "Metadata to be stored with the purchase request"
@@ -3302,7 +3344,7 @@
                                         "type": "string",
                                         "minLength": 15,
                                         "maxLength": 25,
-                                        "description": "The cuid2 identifier of the purchaser of the purchase"
+                                        "description": "The nounce of the purchaser of the purchase, needs to be in hex format"
                                     }
                                 },
                                 "required": [
@@ -3315,19 +3357,21 @@
                                     "unlockTime",
                                     "externalDisputeUnlockTime",
                                     "submitResultTime",
+                                    "payByTime",
                                     "identifierFromPurchaser"
                                 ],
                                 "example": {
-                                    "identifierFromPurchaser": "unique_key_from_purchaser",
+                                    "identifierFromPurchaser": "aabbaabb11221122aabb",
                                     "network": "Preprod",
                                     "sellerVkey": "seller_vkey",
                                     "paymentType": "Web3CardanoV1",
                                     "blockchainIdentifier": "blockchain_identifier",
+                                    "payByTime": "1713626260",
                                     "submitResultTime": "1713636260",
                                     "unlockTime": "1713636260",
                                     "externalDisputeUnlockTime": "1713636260",
                                     "agentIdentifier": "agent_identifier",
-                                    "inputHash": "input_hash"
+                                    "inputHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
                                 }
                             }
                         }
