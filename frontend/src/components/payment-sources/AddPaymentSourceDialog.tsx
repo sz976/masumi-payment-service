@@ -296,6 +296,8 @@ export function AddPaymentSourceDialog({
     }
   };
 
+  type AdminWalletPath = `customAdminWallets.${0 | 1 | 2}.walletAddress`;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -389,54 +391,27 @@ export function AddPaymentSourceDialog({
             </div>
             {useCustomAdminWallets ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 1 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.0.walletAddress')}
-                    placeholder="Enter admin wallet address"
-                  />
-                  {errors.customAdminWallets?.[0]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.customAdminWallets[0].walletAddress.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 2 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.1.walletAddress')}
-                    placeholder="Enter admin wallet address"
-                  />
-                  {errors.customAdminWallets?.[1]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.customAdminWallets[1].walletAddress.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 3 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.2.walletAddress')}
-                    placeholder="Enter admin wallet address"
-                  />
-                  {errors.customAdminWallets?.[2]?.walletAddress && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.customAdminWallets[2].walletAddress.message}
-                    </p>
-                  )}
-                </div>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Admin Wallet {i + 1}{' '}
+                      <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 rounded-md bg-background border"
+                      {...register(
+                        `customAdminWallets.${i}.walletAddress` as AdminWalletPath,
+                      )}
+                      placeholder="Enter admin wallet address"
+                    />
+                    {errors.customAdminWallets?.[i]?.walletAddress && (
+                      <p className="text-xs text-destructive mt-1">
+                        {errors.customAdminWallets[i].walletAddress.message}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="space-y-2">
