@@ -7,7 +7,7 @@ import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
   getPaymentSource,
@@ -570,7 +570,7 @@ export default function Overview() {
                         </div>
                         <div className="flex items-center gap-2 truncate">
                           <span className="font-mono text-xs text-muted-foreground">
-                            {wallet.walletAddress.slice(0, 12)}...
+                            {shortenAddress(wallet.walletAddress)}
                           </span>
                           <CopyButton value={wallet.walletAddress} />
                         </div>
@@ -657,7 +657,7 @@ export default function Overview() {
                           </div>
                           <div className="flex items-center gap-2 truncate">
                             <span className="font-mono text-xs text-muted-foreground">
-                              {wallet.collectionAddress.slice(0, 12)}...
+                              {shortenAddress(wallet.collectionAddress!)}
                             </span>
                             <CopyButton value={wallet.collectionAddress!} />
                           </div>

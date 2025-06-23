@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { CopyButton } from '@/components/ui/copy-button';
+import { shortenAddress } from '@/lib/utils';
 type ApiKey = GetApiKeyResponses['200']['data']['ApiKeys'][0];
 
 export default function ApiKeys() {
@@ -362,7 +363,7 @@ export default function ApiKeys() {
                       <td className="p-4 truncate">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm text-muted-foreground">
-                            {key.token.slice(0, 15)}...{key.token.slice(-15)}
+                            {shortenAddress(key.token)}
                           </span>
                           <CopyButton value={key.token} />
                         </div>
