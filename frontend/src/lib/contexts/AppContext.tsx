@@ -5,6 +5,7 @@ import {
   useReducer,
   useState,
   useCallback,
+  useEffect,
 } from 'react';
 import { ErrorDialog } from '@/components/ui/error-dialog';
 import { Client, createClient } from '@hey-api/client-axios';
@@ -132,6 +133,8 @@ export const AppContext = createContext<
       }) => void;
       apiClient: Client;
       setApiClient: React.Dispatch<React.SetStateAction<Client>>;
+      selectedPaymentSourceId: string | null;
+      setSelectedPaymentSourceId: (id: string | null) => void;
     }
   | undefined
 >(undefined);
@@ -155,6 +158,34 @@ export function AppProvider({
     }),
   );
 
+  const [selectedPaymentSourceId, setSelectedPaymentSourceId] = useState<
+    string | null
+  >(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('selectedPaymentSourceId');
+      return stored || null;
+    }
+    return null;
+  });
+
+  // Persist selectedPaymentSourceId to localStorage whenever it changes
+  const setSelectedPaymentSourceIdAndPersist = (id: string | null) => {
+    setSelectedPaymentSourceId(id);
+    if (typeof window !== 'undefined') {
+      if (id) {
+        localStorage.setItem('selectedPaymentSourceId', id);
+      } else {
+        localStorage.removeItem('selectedPaymentSourceId');
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedPaymentSourceId && state.paymentSources.length > 0) {
+      setSelectedPaymentSourceIdAndPersist(state.paymentSources[0].id);
+    }
+  }, [selectedPaymentSourceId, state.paymentSources]);
+
   const showError = useCallback(
     (error: { code?: number; message: string; details?: unknown }) => {
       setError(error);
@@ -164,7 +195,15 @@ export function AppProvider({
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, showError, apiClient, setApiClient }}
+      value={{
+        state,
+        dispatch,
+        showError,
+        apiClient,
+        setApiClient,
+        selectedPaymentSourceId,
+        setSelectedPaymentSourceId: setSelectedPaymentSourceIdAndPersist,
+      }}
     >
       {children}
       <ErrorDialog

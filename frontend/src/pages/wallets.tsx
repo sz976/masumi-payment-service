@@ -5,7 +5,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Copy, Search, RefreshCw, Check } from 'lucide-react';
+import { Plus, Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
@@ -65,7 +65,7 @@ export default function WalletsPage() {
   const [copiedAddresses, setCopiedAddresses] = useState<Set<string>>(
     new Set(),
   );
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const { rate, isLoading: isLoadingRate } = useRate();
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<Wallet | null>(null);
@@ -172,7 +172,7 @@ export default function WalletsPage() {
 
       if (response.data?.data?.PaymentSources) {
         const paymentSource = response.data.data.PaymentSources.find(
-          (source) => source.network === state.network,
+          (source) => source.id === selectedPaymentSourceId,
         );
         if (paymentSource) {
           const allWallets: Wallet[] = [
@@ -233,11 +233,11 @@ export default function WalletsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [apiClient, fetchWalletBalance, state.network]);
+  }, [apiClient, fetchWalletBalance, selectedPaymentSourceId]);
 
   useEffect(() => {
     fetchWallets();
-  }, [fetchWallets, state.network]);
+  }, [fetchWallets, state.network, selectedPaymentSourceId]);
 
   const handleSelectWallet = (id: string) => {
     setSelectedWallets((prev) =>
