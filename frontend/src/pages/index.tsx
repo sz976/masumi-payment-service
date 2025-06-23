@@ -528,17 +528,17 @@ export default function Overview() {
 
               <div className="mb-4">
                 <div className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 text-sm text-muted-foreground mb-2">
-                  <div className="truncate">Type</div>
-                  <div className="truncate">Name</div>
-                  <div className="truncate">Address</div>
+                  <div>Type</div>
+                  <div className="min-w-[50px]">Name</div>
+                  <div className="min-w-[120px]">Address</div>
                   <div className="text-left truncate">Balance</div>
                 </div>
 
                 {isLoadingWallets ? (
                   <Spinner size={20} addContainer />
                 ) : (
-                  <div className="mb-4 max-h-[500px] overflow-y-auto">
-                    {wallets.slice(0, 4).map((wallet) => (
+                  <div className="mb-4 max-h-[500px] overflow-y-auto overflow-x-auto w-full">
+                    {wallets.map((wallet) => (
                       <div
                         key={wallet.id}
                         className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
@@ -558,7 +558,7 @@ export default function Overview() {
                               : 'Selling'}
                           </span>
                         </div>
-                        <div className="truncate">
+                        <div className="truncate min-w-[50px]">
                           <div className="text-sm font-medium truncate">
                             {wallet.type === 'Purchasing'
                               ? 'Buying wallet'
@@ -630,7 +630,7 @@ export default function Overview() {
                       return (
                         <div
                           key={`collection-${wallet.id}`}
-                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10 w-full"
                           onClick={() =>
                             setSelectedWalletForDetails({
                               ...wallet,
@@ -647,7 +647,7 @@ export default function Overview() {
                               Collection
                             </span>
                           </div>
-                          <div className="truncate">
+                          <div className="truncate min-w-[50px]">
                             <div className="text-xs font-medium truncate">
                               Collection wallet
                             </div>
