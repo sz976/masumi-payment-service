@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/lib/contexts/AppContext';
-import { postPaymentSourceExtended } from '@/lib/api/generated';
+import { postPaymentSourceExtended, postWallet } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { X, Copy, Check } from 'lucide-react';
 import { shortenAddress, copyToClipboard } from '@/lib/utils';
@@ -18,6 +19,7 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Spinner } from '../ui/spinner';
 
 interface AddPaymentSourceDialogProps {
   open: boolean;
@@ -35,23 +37,37 @@ const adminWalletSchema = z.object({
   walletAddress: z.string().min(1, 'Admin wallet address is required'),
 });
 
-const formSchema = z.object({
-  network: z.enum(['Mainnet', 'Preprod']),
-  paymentType: z.literal('Web3CardanoV1'),
-  blockfrostApiKey: z.string().min(1, 'Blockfrost API key is required'),
-  feeReceiverWallet: z.object({
-    walletAddress: z.string().min(1, 'Fee receiver wallet is required'),
-  }),
-  feePermille: z.number().min(0).max(1000),
-  purchasingWallets: z.array(walletSchema).min(1),
-  sellingWallets: z.array(walletSchema).min(1),
-  useCustomAdminWallets: z.boolean(),
-  customAdminWallets: z.tuple([
-    adminWalletSchema,
-    adminWalletSchema,
-    adminWalletSchema,
-  ]),
-});
+const formSchema = z
+  .object({
+    network: z.enum(['Mainnet', 'Preprod']),
+    paymentType: z.literal('Web3CardanoV1'),
+    blockfrostApiKey: z.string().min(1, 'Blockfrost API key is required'),
+    feeReceiverWallet: z.object({
+      walletAddress: z.string().min(1, 'Fee receiver wallet is required'),
+    }),
+    feePermille: z.number().min(0).max(1000),
+    purchasingWallets: z.array(walletSchema).min(1),
+    sellingWallets: z.array(walletSchema).min(1),
+    useCustomAdminWallets: z.boolean(),
+    customAdminWallets: z.tuple([
+      adminWalletSchema,
+      adminWalletSchema,
+      adminWalletSchema,
+    ]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.useCustomAdminWallets) {
+      data.customAdminWallets.forEach((wallet, i) => {
+        if (!wallet.walletAddress || wallet.walletAddress.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Admin wallet address is required',
+            path: ['customAdminWallets', i, 'walletAddress'],
+          });
+        }
+      });
+    }
+  });
 
 type FormSchema = z.infer<typeof formSchema>;
 
@@ -66,6 +82,13 @@ export function AddPaymentSourceDialog({
   const [copiedAddresses, setCopiedAddresses] = useState<{
     [key: string]: boolean;
   }>({});
+  const [generatingPurchasing, setGeneratingPurchasing] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [generatingSelling, setGeneratingSelling] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [walletGenError, setWalletGenError] = useState<string>('');
 
   const {
     register,
@@ -74,6 +97,7 @@ export function AddPaymentSourceDialog({
     watch,
     reset,
     formState: { errors },
+    setValue,
   } = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -90,9 +114,15 @@ export function AddPaymentSourceDialog({
       sellingWallets: [{ walletMnemonic: '', note: '', collectionAddress: '' }],
       useCustomAdminWallets: false,
       customAdminWallets: [
-        { walletAddress: '' },
-        { walletAddress: '' },
-        { walletAddress: '' },
+        {
+          walletAddress: DEFAULT_ADMIN_WALLETS[state.network][0].walletAddress,
+        },
+        {
+          walletAddress: DEFAULT_ADMIN_WALLETS[state.network][1].walletAddress,
+        },
+        {
+          walletAddress: DEFAULT_ADMIN_WALLETS[state.network][2].walletAddress,
+        },
       ],
     },
   });
@@ -133,9 +163,18 @@ export function AddPaymentSourceDialog({
         ],
         useCustomAdminWallets: false,
         customAdminWallets: [
-          { walletAddress: '' },
-          { walletAddress: '' },
-          { walletAddress: '' },
+          {
+            walletAddress:
+              DEFAULT_ADMIN_WALLETS[state.network][0].walletAddress,
+          },
+          {
+            walletAddress:
+              DEFAULT_ADMIN_WALLETS[state.network][1].walletAddress,
+          },
+          {
+            walletAddress:
+              DEFAULT_ADMIN_WALLETS[state.network][2].walletAddress,
+          },
         ],
       });
       setError('');
@@ -157,7 +196,7 @@ export function AddPaymentSourceDialog({
       const adminWallets = data.useCustomAdminWallets
         ? data.customAdminWallets
         : DEFAULT_ADMIN_WALLETS[data.network];
-      await postPaymentSourceExtended({
+      const response = await postPaymentSourceExtended({
         client: apiClient,
         body: {
           network: data.network,
@@ -181,6 +220,18 @@ export function AddPaymentSourceDialog({
           })),
         },
       });
+      if (response.error) {
+        const error = response.error as {
+          message: string;
+          error: { message: string };
+        };
+        setError(
+          error.message ||
+            error.error.message ||
+            'Failed to create payment source',
+        );
+        return;
+      }
       toast.success('Payment source created successfully');
       onSuccess();
       onClose();
@@ -199,6 +250,54 @@ export function AddPaymentSourceDialog({
   const useCustomAdminWallets = watch('useCustomAdminWallets');
   const network = watch('network');
 
+  // Handler to generate mnemonic for a purchasing wallet
+  const handleGeneratePurchasingMnemonic = async (index: number) => {
+    setWalletGenError('');
+    setGeneratingPurchasing((prev) => ({ ...prev, [index]: true }));
+    try {
+      const response: any = await postWallet({
+        client: apiClient,
+        body: { network: watch('network') },
+      });
+      if (response.status === 200 && response.data?.data?.walletMnemonic) {
+        // Set the mnemonic in the form
+        const fieldName = `purchasingWallets.${index}.walletMnemonic` as const;
+        setValue(fieldName, response.data.data.walletMnemonic);
+      } else {
+        throw new Error('Failed to generate mnemonic phrase');
+      }
+    } catch (error: any) {
+      setWalletGenError(error?.message || 'Failed to generate mnemonic');
+      toast.error(error?.message || 'Failed to generate mnemonic');
+    } finally {
+      setGeneratingPurchasing((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+  // Handler to generate mnemonic for a selling wallet
+  const handleGenerateSellingMnemonic = async (index: number) => {
+    setWalletGenError('');
+    setGeneratingSelling((prev) => ({ ...prev, [index]: true }));
+    try {
+      const response: any = await postWallet({
+        client: apiClient,
+        body: { network: watch('network') },
+      });
+      if (response.status === 200 && response.data?.data?.walletMnemonic) {
+        const fieldName = `sellingWallets.${index}.walletMnemonic` as const;
+        setValue(fieldName, response.data.data.walletMnemonic);
+      } else {
+        throw new Error('Failed to generate mnemonic phrase');
+      }
+    } catch (error: any) {
+      setWalletGenError(error?.message || 'Failed to generate mnemonic');
+      toast.error(error?.message || 'Failed to generate mnemonic');
+    } finally {
+      setGeneratingSelling((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+
+  type AdminWalletPath = `customAdminWallets.${0 | 1 | 2}.walletAddress`;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -206,8 +305,6 @@ export function AddPaymentSourceDialog({
           <DialogTitle>Add Payment Source</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-          {error && <div className="text-sm text-destructive">{error}</div>}
-
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Configuration</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -236,7 +333,7 @@ export function AddPaymentSourceDialog({
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
                   {...register('blockfrostApiKey')}
-                  placeholder="Using default Blockfrost API key"
+                  placeholder="Enter your Blockfrost API key"
                 />
                 {errors.blockfrostApiKey && (
                   <p className="text-xs text-destructive mt-1">
@@ -294,66 +391,27 @@ export function AddPaymentSourceDialog({
             </div>
             {useCustomAdminWallets ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 1 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.0.walletAddress')}
-                    placeholder="Enter admin wallet 1 address"
-                  />
-                  {errors.customAdminWallets &&
-                    Array.isArray(errors.customAdminWallets) &&
-                    errors.customAdminWallets[0]?.walletAddress && (
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Admin Wallet {i + 1}{' '}
+                      <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 rounded-md bg-background border"
+                      {...register(
+                        `customAdminWallets.${i}.walletAddress` as AdminWalletPath,
+                      )}
+                      placeholder="Enter admin wallet address"
+                    />
+                    {errors.customAdminWallets?.[i]?.walletAddress && (
                       <p className="text-xs text-destructive mt-1">
-                        {errors.customAdminWallets[0]?.walletAddress?.message}
+                        {errors.customAdminWallets[i].walletAddress.message}
                       </p>
                     )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 2 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.1.walletAddress')}
-                    placeholder="Enter admin wallet 2 address"
-                  />
-                  {errors.customAdminWallets &&
-                    Array.isArray(errors.customAdminWallets) &&
-                    errors.customAdminWallets[1]?.walletAddress && (
-                      <p className="text-xs text-destructive mt-1">
-                        {errors.customAdminWallets[1]?.walletAddress?.message}
-                      </p>
-                    )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Admin Wallet 3 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-md bg-background border"
-                    {...register('customAdminWallets.2.walletAddress')}
-                    placeholder="Enter admin wallet 3 address"
-                  />
-                  {errors.customAdminWallets &&
-                    Array.isArray(errors.customAdminWallets) &&
-                    errors.customAdminWallets[2]?.walletAddress && (
-                      <p className="text-xs text-destructive mt-1">
-                        {errors.customAdminWallets[2]?.walletAddress?.message}
-                      </p>
-                    )}
-                </div>
-                {errors.customAdminWallets &&
-                  typeof errors.customAdminWallets.message === 'string' && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.customAdminWallets.message}
-                    </p>
-                  )}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="space-y-2">
@@ -425,7 +483,7 @@ export function AddPaymentSourceDialog({
                     </Button>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative flex items-center gap-2">
                   <input
                     type="text"
                     className="w-full p-2 rounded-md bg-background border"
@@ -434,12 +492,23 @@ export function AddPaymentSourceDialog({
                     )}
                     placeholder="Enter wallet mnemonic"
                   />
-                  {errors.purchasingWallets?.[index]?.walletMnemonic && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.purchasingWallets[index]?.walletMnemonic?.message}
-                    </p>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => handleGeneratePurchasingMnemonic(index)}
+                    disabled={!!generatingPurchasing[index]}
+                    aria-label="Generate mnemonic"
+                  >
+                    {generatingPurchasing[index] ? <Spinner /> : 'Generate'}
+                  </Button>
                 </div>
+                {errors.purchasingWallets?.[index]?.walletMnemonic && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.purchasingWallets[index]?.walletMnemonic?.message}
+                  </p>
+                )}
                 <input
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
@@ -491,7 +560,7 @@ export function AddPaymentSourceDialog({
                     </Button>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative flex items-center gap-2">
                   <input
                     type="text"
                     className="w-full p-2 rounded-md bg-background border"
@@ -500,12 +569,23 @@ export function AddPaymentSourceDialog({
                     )}
                     placeholder="Enter wallet mnemonic"
                   />
-                  {errors.sellingWallets?.[index]?.walletMnemonic && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.sellingWallets[index]?.walletMnemonic?.message}
-                    </p>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => handleGenerateSellingMnemonic(index)}
+                    disabled={!!generatingSelling[index]}
+                    aria-label="Generate mnemonic"
+                  >
+                    {generatingSelling[index] ? <Spinner /> : 'Generate'}
+                  </Button>
                 </div>
+                {errors.sellingWallets?.[index]?.walletMnemonic && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.sellingWallets[index]?.walletMnemonic?.message}
+                  </p>
+                )}
                 <input
                   type="text"
                   className="w-full p-2 rounded-md bg-background border"
@@ -523,6 +603,16 @@ export function AddPaymentSourceDialog({
               </div>
             ))}
           </div>
+
+          {walletGenError && (
+            <div className="text-xs text-destructive mt-1">
+              {walletGenError}
+            </div>
+          )}
+
+          {error && (
+            <div className="text-md text-destructive mt-4">{error}</div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button

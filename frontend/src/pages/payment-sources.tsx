@@ -17,7 +17,7 @@ import {
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn, shortenAddress } from '@/lib/utils';
+import { shortenAddress } from '@/lib/utils';
 import Head from 'next/head';
 import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -157,12 +157,20 @@ export default function PaymentSourcesPage() {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
-  const { apiClient, state } = useAppContext();
+  const {
+    apiClient,
+    state,
+    selectedPaymentSourceId,
+    setSelectedPaymentSourceId,
+  } = useAppContext();
   const [filteredPaymentSources, setFilteredPaymentSources] = useState<
     PaymentSource[]
   >([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [sourceToSelect, setSourceToSelect] = useState<PaymentSource | null>(
+    null,
+  );
 
   const filterPaymentSources = useCallback(() => {
     let filtered = [...paymentSources];
@@ -366,7 +374,6 @@ export default function PaymentSourcesPage() {
                   <th className="p-4 text-left text-sm font-medium">
                     Fee rate
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="p-4 text-left text-sm font-medium">
                     Created at
                   </th>
@@ -417,22 +424,6 @@ export default function PaymentSourcesPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div>
-                          <span
-                            className={cn(
-                              'text-xs font-medium px-2 py-0.5 rounded-full',
-                              source.lastIdentifierChecked
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
-                            )}
-                          >
-                            {source.lastIdentifierChecked
-                              ? 'Active'
-                              : 'Inactive'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
                         <div className="text-xs text-muted-foreground">
                           {new Date(source.createdAt).toLocaleString()}
                         </div>
@@ -461,6 +452,24 @@ export default function PaymentSourcesPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          {selectedPaymentSourceId === source.id ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="text-green-600 border-green-600"
+                            >
+                              Active
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSourceToSelect(source)}
+                            >
+                              Select
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -504,6 +513,18 @@ export default function PaymentSourcesPage() {
           description={`Are you sure you want to delete this payment source? This will also delete all associated wallets and transactions. This action cannot be undone.`}
           onConfirm={handleDeleteSource}
           isLoading={isDeleting}
+        />
+
+        <ConfirmDialog
+          open={!!sourceToSelect}
+          onClose={() => setSourceToSelect(null)}
+          title="Switch Payment Source"
+          description="Switching payment source will update the displayed agents, wallets, and related content. Continue?"
+          onConfirm={() => {
+            if (sourceToSelect) setSelectedPaymentSourceId(sourceToSelect.id);
+            setSourceToSelect(null);
+          }}
+          isLoading={false}
         />
       </div>
     </MainLayout>
