@@ -60,6 +60,7 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       updatedAt: z.date(),
       blockchainIdentifier: z.string(),
       lastCheckedAt: z.date().nullable(),
+      payByTime: z.string().nullable(),
       submitResultTime: z.string(),
       unlockTime: z.string(),
       externalDisputeUnlockTime: z.string(),
@@ -210,6 +211,7 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
         })),
         collateralReturnLovelace:
           purchase.collateralReturnLovelace?.toString() ?? null,
+        payByTime: purchase.payByTime?.toString() ?? null,
         submitResultTime: purchase.submitResultTime.toString(),
         unlockTime: purchase.unlockTime.toString(),
         externalDisputeUnlockTime:
@@ -291,6 +293,7 @@ export const createPurchaseInitSchemaOutput = z.object({
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
   lastCheckedAt: z.date().nullable(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -624,6 +627,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...initialPurchaseRequest,
+      payByTime: initialPurchaseRequest.payByTime?.toString() ?? null,
       PaidFunds: (
         initialPurchaseRequest.PaidFunds as Array<{
           unit: string;
