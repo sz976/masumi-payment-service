@@ -278,8 +278,8 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe('Metadata to be stored with the purchase request'),
   identifierFromPurchaser: z
     .string()
-    .min(15)
-    .max(25)
+    .min(14)
+    .max(26)
     .describe(
       'The nounce of the purchaser of the purchase, needs to be in hex format',
     ),

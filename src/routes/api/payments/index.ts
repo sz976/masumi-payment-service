@@ -276,8 +276,8 @@ export const createPaymentsSchemaInput = z.object({
     .describe('Metadata to be stored with the payment request'),
   identifierFromPurchaser: z
     .string()
-    .min(15)
-    .max(25)
+    .min(14)
+    .max(26)
     .describe(
       'The a unique nounce from the purchaser. Required to be in hex format',
     ),

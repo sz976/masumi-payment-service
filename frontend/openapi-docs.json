@@ -1679,8 +1679,8 @@
                                     },
                                     "identifierFromPurchaser": {
                                         "type": "string",
-                                        "minLength": 15,
-                                        "maxLength": 25,
+                                        "minLength": 14,
+                                        "maxLength": 26,
                                         "description": "The a unique nounce from the purchaser. Required to be in hex format"
                                     }
                                 },
@@ -3342,8 +3342,8 @@
                                     },
                                     "identifierFromPurchaser": {
                                         "type": "string",
-                                        "minLength": 15,
-                                        "maxLength": 25,
+                                        "minLength": 14,
+                                        "maxLength": 26,
                                         "description": "The nounce of the purchaser of the purchase, needs to be in hex format"
                                     }
                                 },
