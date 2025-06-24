@@ -7,7 +7,6 @@ import {
   Prisma,
   PurchaseErrorType,
   PurchasingAction,
-  RegistrationState,
   TransactionStatus,
   WalletType,
 } from '@prisma/client';
@@ -19,11 +18,7 @@ import {
   Transaction,
 } from '@emurgo/cardano-serialization-lib-nodejs';
 import { decodeV1ContractDatum } from '@/utils/converter/string-datum-convert';
-import {
-  advancedRetry,
-  advancedRetryAll,
-  delayErrorResolver,
-} from 'advanced-retry';
+import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import {
   convertNewPaymentActionAndError,
   convertNewPurchasingActionAndError,
@@ -51,55 +46,7 @@ export async function checkLatestTransactions(
 
   try {
     //only support web3 cardano v1 for now
-    const paymentContracts = await prisma.$transaction(
-      async (prisma) => {
-        const paymentContracts = await prisma.paymentSource.findMany({
-          where: {
-            paymentType: PaymentType.Web3CardanoV1,
-            deletedAt: null,
-            disableSyncAt: null,
-            OR: [
-              { syncInProgress: false },
-              {
-                syncInProgress: true,
-                updatedAt: {
-                  lte: new Date(
-                    Date.now() -
-                      //3 minutes
-                      1000 * 60 * 3,
-                  ),
-                },
-              },
-            ],
-          },
-          include: {
-            PaymentSourceConfig: true,
-          },
-        });
-        if (paymentContracts.length == 0) {
-          logger.warn(
-            'No payment contracts found, skipping update. It could be that an other instance is already syncing',
-          );
-          return null;
-        }
-
-        await prisma.paymentSource.updateMany({
-          where: {
-            id: { in: paymentContracts.map((x) => x.id) },
-            deletedAt: null,
-          },
-          data: { syncInProgress: true },
-        });
-        return paymentContracts.map((x) => {
-          return { ...x, syncInProgress: true };
-        });
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        timeout: 10000,
-        maxWait: 10000,
-      },
-    );
+    const paymentContracts = await getAndLockPaymentSourcesForSync();
     if (paymentContracts == null) return;
     try {
       const results = await Promise.allSettled(
@@ -108,176 +55,13 @@ export async function checkLatestTransactions(
             projectId: paymentContract.PaymentSourceConfig.rpcProviderApiKey,
             network: convertNetwork(paymentContract.network),
           });
-
-          const registryRequests = await prisma.registryRequest.findMany({
-            where: {
-              PaymentSource: {
-                id: paymentContract.id,
-              },
-              state: {
-                in: [
-                  RegistrationState.RegistrationInitiated,
-                  RegistrationState.DeregistrationInitiated,
-                ],
-              },
-              CurrentTransaction: {
-                isNot: null,
-              },
-              agentIdentifier: { not: null },
-              updatedAt: {
-                lt: new Date(
-                  Date.now() -
-                    //15 minutes for timeouts, check every tx older than 1 minute
-                    1000 * 60 * 1,
-                ),
-              },
-            },
-            include: {
-              CurrentTransaction: { include: { BlocksWallet: true } },
-            },
-          });
-          const checkedRegistryRequests = await advancedRetryAll({
-            operations: registryRequests.map((registryRequest) => async () => {
-              const owner = await blockfrost.assetsAddresses(
-                registryRequest.agentIdentifier!,
-                { order: 'desc' },
-              );
-
-              if (
-                registryRequest.state == RegistrationState.RegistrationInitiated
-              ) {
-                if (owner.length >= 1 && owner[0].quantity == '1') {
-                  await prisma.registryRequest.update({
-                    where: { id: registryRequest.id },
-                    data: {
-                      state: RegistrationState.RegistrationConfirmed,
-                      CurrentTransaction: {
-                        update: {
-                          status: TransactionStatus.Confirmed,
-                          BlocksWallet:
-                            registryRequest.CurrentTransaction?.BlocksWallet !=
-                            null
-                              ? { disconnect: true }
-                              : undefined,
-                        },
-                      },
-                    },
-                  });
-                  if (
-                    registryRequest.CurrentTransaction?.BlocksWallet != null
-                  ) {
-                    await prisma.hotWallet.update({
-                      where: {
-                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
-                        deletedAt: null,
-                      },
-                      data: {
-                        lockedAt: null,
-                      },
-                    });
-                  }
-                } else {
-                  await prisma.registryRequest.update({
-                    where: { id: registryRequest.id },
-                    data: {
-                      updatedAt: new Date(),
-                    },
-                  });
-                }
-              } else if (
-                registryRequest.state ==
-                RegistrationState.DeregistrationInitiated
-              ) {
-                if (owner.length == 0 || owner[0].quantity == '0') {
-                  await prisma.registryRequest.update({
-                    where: { id: registryRequest.id },
-                    data: {
-                      state: RegistrationState.DeregistrationConfirmed,
-                      CurrentTransaction: {
-                        update: {
-                          status: TransactionStatus.Confirmed,
-                          BlocksWallet:
-                            registryRequest.CurrentTransaction?.BlocksWallet !=
-                            null
-                              ? { disconnect: true }
-                              : undefined,
-                        },
-                      },
-                    },
-                  });
-                  if (
-                    registryRequest.CurrentTransaction?.BlocksWallet != null
-                  ) {
-                    await prisma.hotWallet.update({
-                      where: {
-                        id: registryRequest.CurrentTransaction.BlocksWallet.id,
-                        deletedAt: null,
-                      },
-                      data: {
-                        lockedAt: null,
-                      },
-                    });
-                  }
-                } else {
-                  await prisma.registryRequest.update({
-                    where: { id: registryRequest.id },
-                    data: {
-                      updatedAt: new Date(),
-                    },
-                  });
-                }
-              }
-            }),
-            errorResolvers: [
-              delayErrorResolver({
-                configuration: {
-                  maxRetries: 5,
-                  backoffMultiplier: 2,
-                  initialDelayMs: 500,
-                  maxDelayMs: 1500,
-                },
-              }),
-            ],
-          });
-
-          checkedRegistryRequests.forEach((x) => {
-            if (x.success == false) {
-              logger.warn('Failed to update registry request');
-            }
-          });
-
           const latestIdentifier = paymentContract.lastIdentifierChecked;
 
-          let latestTx: Array<{ tx_hash: string; block_time: number }> = [];
-          let foundTx = -1;
-          let index = 0;
-          do {
-            index++;
-            const txs = await blockfrost.addressesTransactions(
-              paymentContract.smartContractAddress,
-              { page: index, order: 'desc' },
-            );
-            if (txs.length == 0) {
-              if (latestTx.length == 0) {
-                logger.warn('No transactions found for payment contract', {
-                  paymentContractAddress: paymentContract.smartContractAddress,
-                });
-              }
-              break;
-            }
-
-            latestTx.push(...txs);
-            foundTx = txs.findIndex((tx) => tx.tx_hash == latestIdentifier);
-            if (foundTx != -1) {
-              const latestTxIndex = latestTx.findIndex(
-                (tx) => tx.tx_hash == latestIdentifier,
-              );
-              latestTx = latestTx.slice(0, latestTxIndex);
-            }
-          } while (foundTx == -1);
-
-          //invert to get oldest first
-          latestTx = latestTx.reverse();
+          const latestTx = await getTxsFromCardanoAfterSpecificTx(
+            blockfrost,
+            paymentContract,
+            latestIdentifier,
+          );
 
           if (latestTx.length == 0) {
             logger.info('No new transactions found for payment contract', {
@@ -286,99 +70,18 @@ export async function checkLatestTransactions(
             return;
           }
 
-          const batchCount = Math.ceil(
-            latestTx.length / maxParallelTransactions,
+          const txData = await getExtendedTxInformation(
+            latestTx,
+            blockfrost,
+            maxParallelTransactions,
           );
-          const txData: Array<{
-            blockTime: number;
-            tx: { tx_hash: string };
-            utxos: {
-              hash: string;
-              inputs: Array<{
-                address: string;
-                amount: Array<{ unit: string; quantity: string }>;
-                tx_hash: string;
-                output_index: number;
-                data_hash: string | null;
-                inline_datum: string | null;
-                reference_script_hash: string | null;
-                collateral: boolean;
-                reference?: boolean;
-              }>;
-              outputs: Array<{
-                address: string;
-                amount: Array<{ unit: string; quantity: string }>;
-                output_index: number;
-                data_hash: string | null;
-                inline_datum: string | null;
-                collateral: boolean;
-                reference_script_hash: string | null;
-                consumed_by_tx?: string | null;
-              }>;
-            };
-            transaction: Transaction;
-          }> = [];
-
-          for (let i = 0; i < batchCount; i++) {
-            const txBatch = latestTx.slice(
-              i * maxParallelTransactions,
-              Math.min((i + 1) * maxParallelTransactions, latestTx.length),
-            );
-
-            const txDataBatch = await advancedRetryAll({
-              operations: txBatch.map((tx) => async () => {
-                const cbor = await blockfrost.txsCbor(tx.tx_hash);
-                const utxos = await blockfrost.txsUtxos(tx.tx_hash);
-                const transaction = Transaction.from_bytes(
-                  Buffer.from(cbor.cbor, 'hex'),
-                );
-                return {
-                  tx: tx,
-                  utxos: utxos,
-                  transaction: transaction,
-                  blockTime: tx.block_time,
-                };
-              }),
-              errorResolvers: [
-                delayErrorResolver({
-                  configuration: {
-                    maxRetries: 5,
-                    backoffMultiplier: 2,
-                    initialDelayMs: 500,
-                    maxDelayMs: 15000,
-                  },
-                }),
-              ],
-            });
-            //filter out failed operations
-            const filteredTxData = txDataBatch
-              .filter((x) => x.success == true && x.result != undefined)
-              .map((x) => x.result!);
-            //log warning for failed operations
-            const failedTxData = txDataBatch.filter((x) => x.success == false);
-            if (failedTxData.length > 0) {
-              logger.warn('Failed to get data for transactions: ignoring ', {
-                tx: failedTxData,
-              });
-            }
-            filteredTxData.forEach((x) => txData.push(x));
-          }
-
-          //sort by smallest block time first
-          txData.sort((a, b) => {
-            return a.blockTime - b.blockTime;
-          });
 
           for (const tx of txData) {
             try {
-              const utxos = tx.utxos;
-              const inputs = utxos.inputs;
-              const outputs = utxos.outputs;
-
-              const valueInputs = inputs.filter((x) => {
+              const valueInputs = tx.utxos.inputs.filter((x) => {
                 return x.address == paymentContract.smartContractAddress;
               });
-              const valueOutputs = outputs.filter((x) => {
+              const valueOutputs = tx.utxos.outputs.filter((x) => {
                 return x.address == paymentContract.smartContractAddress;
               });
 
@@ -1551,39 +1254,207 @@ export async function checkLatestTransactions(
     } catch (error) {
       logger.error('Error checking latest transactions', { error: error });
     } finally {
-      const result = await advancedRetry({
-        operation: async () => {
-          await prisma.paymentSource.updateMany({
-            where: {
-              id: { in: paymentContracts.map((x) => x.id) },
-              deletedAt: null,
-            },
-            data: { syncInProgress: false },
-          });
-        },
-        errorResolvers: [
-          delayErrorResolver({
-            configuration: {
-              initialDelayMs: 1000,
-              maxDelayMs: 10000,
-              backoffMultiplier: 2,
-              maxRetries: 3,
-            },
-          }),
-        ],
-      });
-      if (result.success == false) {
-        logger.error('Error updating tx data', {
-          error: result.error,
-          paymentContract: paymentContracts,
-        });
-      }
+      await unlockPaymentSources(paymentContracts.map((x) => x.id));
     }
   } catch (error) {
     logger.error('Error checking latest transactions', { error: error });
   } finally {
     release();
   }
+}
+
+async function getExtendedTxInformation(
+  latestTxs: Array<{ tx_hash: string; block_time: number }>,
+  blockfrost: BlockFrostAPI,
+  maxTransactionToProcessInParallel: number,
+) {
+  const batchCount = Math.ceil(
+    latestTxs.length / maxTransactionToProcessInParallel,
+  );
+  const txData: Array<{
+    blockTime: number;
+    tx: { tx_hash: string };
+    utxos: {
+      hash: string;
+      inputs: Array<{
+        address: string;
+        amount: Array<{ unit: string; quantity: string }>;
+        tx_hash: string;
+        output_index: number;
+        data_hash: string | null;
+        inline_datum: string | null;
+        reference_script_hash: string | null;
+        collateral: boolean;
+        reference?: boolean;
+      }>;
+      outputs: Array<{
+        address: string;
+        amount: Array<{ unit: string; quantity: string }>;
+        output_index: number;
+        data_hash: string | null;
+        inline_datum: string | null;
+        collateral: boolean;
+        reference_script_hash: string | null;
+        consumed_by_tx?: string | null;
+      }>;
+    };
+    transaction: Transaction;
+  }> = [];
+  for (let i = 0; i < batchCount; i++) {
+    const txBatch = latestTxs.slice(
+      i * maxTransactionToProcessInParallel,
+      Math.min((i + 1) * maxTransactionToProcessInParallel, latestTxs.length),
+    );
+
+    const txDataBatch = await advancedRetryAll({
+      operations: txBatch.map((tx) => async () => {
+        const cbor = await blockfrost.txsCbor(tx.tx_hash);
+        const utxos = await blockfrost.txsUtxos(tx.tx_hash);
+        const transaction = Transaction.from_bytes(
+          Buffer.from(cbor.cbor, 'hex'),
+        );
+        return {
+          tx: tx,
+          utxos: utxos,
+          transaction: transaction,
+          blockTime: tx.block_time,
+        };
+      }),
+      errorResolvers: [
+        delayErrorResolver({
+          configuration: {
+            maxRetries: 5,
+            backoffMultiplier: 2,
+            initialDelayMs: 500,
+            maxDelayMs: 15000,
+          },
+        }),
+      ],
+    });
+    //filter out failed operations
+    const filteredTxData = txDataBatch
+      .filter((x) => x.success == true && x.result != undefined)
+      .map((x) => x.result!);
+    //log warning for failed operations
+    const failedTxData = txDataBatch.filter((x) => x.success == false);
+    if (failedTxData.length > 0) {
+      logger.warn('Failed to get data for transactions: ignoring ', {
+        tx: failedTxData,
+      });
+    }
+    filteredTxData.forEach((x) => txData.push(x));
+  }
+
+  //sort by smallest block time first
+  txData.sort((a, b) => {
+    return a.blockTime - b.blockTime;
+  });
+  return txData;
+}
+
+async function getTxsFromCardanoAfterSpecificTx(
+  blockfrost: BlockFrostAPI,
+  paymentContract: {
+    smartContractAddress: string;
+  },
+  latestIdentifier: string | null,
+) {
+  let latestTx: Array<{ tx_hash: string; block_time: number }> = [];
+  let foundTx = -1;
+  let index = 0;
+  do {
+    index++;
+    const txs = await blockfrost.addressesTransactions(
+      paymentContract.smartContractAddress,
+      { page: index, order: 'desc' },
+    );
+    if (txs.length == 0) {
+      if (latestTx.length == 0) {
+        logger.warn('No transactions found for payment contract', {
+          paymentContractAddress: paymentContract.smartContractAddress,
+        });
+      }
+      break;
+    }
+
+    latestTx.push(...txs);
+    foundTx = txs.findIndex((tx) => tx.tx_hash == latestIdentifier);
+    if (foundTx != -1) {
+      const latestTxIndex = latestTx.findIndex(
+        (tx) => tx.tx_hash == latestIdentifier,
+      );
+      latestTx = latestTx.slice(0, latestTxIndex);
+    }
+  } while (foundTx == -1);
+
+  //invert to get oldest first
+  latestTx = latestTx.reverse();
+  return latestTx;
+}
+
+async function unlockPaymentSources(paymentContractIds: string[]) {
+  try {
+    await prisma.paymentSource.updateMany({
+      where: {
+        id: { in: paymentContractIds },
+      },
+      data: { syncInProgress: false },
+    });
+  } catch (error) {
+    logger.error('Error unlocking payment sources', { error: error });
+  }
+}
+
+async function getAndLockPaymentSourcesForSync() {
+  return await prisma.$transaction(
+    async (prisma) => {
+      const paymentContracts = await prisma.paymentSource.findMany({
+        where: {
+          paymentType: PaymentType.Web3CardanoV1,
+          deletedAt: null,
+          disableSyncAt: null,
+          OR: [
+            { syncInProgress: false },
+            {
+              syncInProgress: true,
+              updatedAt: {
+                lte: new Date(
+                  Date.now() -
+                    //3 minutes
+                    1000 * 60 * 3,
+                ),
+              },
+            },
+          ],
+        },
+        include: {
+          PaymentSourceConfig: true,
+        },
+      });
+      if (paymentContracts.length == 0) {
+        logger.warn(
+          'No payment contracts found, skipping update. It could be that an other instance is already syncing',
+        );
+        return null;
+      }
+
+      await prisma.paymentSource.updateMany({
+        where: {
+          id: { in: paymentContracts.map((x) => x.id) },
+          deletedAt: null,
+        },
+        data: { syncInProgress: true },
+      });
+      return paymentContracts.map((x) => {
+        return { ...x, syncInProgress: true };
+      });
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      timeout: 10000,
+      maxWait: 10000,
+    },
+  );
 }
 
 async function handlePaymentTransactionCardanoV1(
