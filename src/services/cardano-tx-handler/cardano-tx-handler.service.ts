@@ -269,12 +269,12 @@ export async function checkLatestTransactions(
                       }
 
                       const blockTime = tx.blockTime;
-                      if (blockTime > decodedNewContract.payByTime) {
+                      if (blockTime * 1000 > decodedNewContract.payByTime) {
                         logger.warn(
                           'Block time is after pay by time. This is a timed out purchase.',
                           {
                             purchaseRequest: dbEntry,
-                            blockTime: blockTime,
+                            blockTime: blockTime * 1000,
                             payByTime: decodedNewContract.payByTime,
                           },
                         );
@@ -554,12 +554,12 @@ export async function checkLatestTransactions(
                         errorNote.push(errorMessage);
                       }
                       const blockTime = tx.blockTime;
-                      if (blockTime > decodedNewContract.payByTime) {
+                      if (blockTime * 1000 > decodedNewContract.payByTime) {
                         const errorMessage =
                           'Block time is after pay by time. This is a timed out purchase.';
                         logger.warn(errorMessage, {
                           paymentRequest: dbEntry,
-                          blockTime: blockTime,
+                          blockTime: blockTime * 1000,
                           payByTime: decodedNewContract.payByTime,
                         });
                         newAction = PaymentAction.WaitingForManualAction;
