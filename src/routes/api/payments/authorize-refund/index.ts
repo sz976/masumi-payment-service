@@ -28,6 +28,7 @@ export const authorizePaymentRefundSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -188,6 +189,7 @@ export const authorizePaymentRefundEndpointPost =
       return {
         ...result,
         submitResultTime: result.submitResultTime.toString(),
+        payByTime: result.payByTime?.toString() ?? null,
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
         RequestedFunds: (
