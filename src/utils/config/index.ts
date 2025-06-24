@@ -70,6 +70,14 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS === '' ||
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
 
+const checkRegistryTransactionsInterval = Number(
+  process.env.CHECK_REGISTRY_TRANSACTIONS_INTERVAL ?? '30',
+);
+if (checkRegistryTransactionsInterval < 5)
+  throw new Error(
+    'CHECK_REGISTRY_TRANSACTIONS_INTERVAL must be at least 5 seconds',
+  );
+
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
 if (autoDecisionInterval < 5)
   throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
@@ -77,17 +85,18 @@ if (autoDecisionInterval < 5)
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
   DATABASE_URL: process.env.DATABASE_URL,
-  BATCH_PAYMENT_INTERVAL: batchPaymentInterval, // 3 minutes in seconds
-  CHECK_TX_INTERVAL: checkTxInterval, // 3 minutes in seconds
-  CHECK_COLLECTION_INTERVAL: checkCollectionInterval, // 4 minutes in seconds
-  CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval, // 5 minutes in seconds
-  CHECK_SET_REFUND_INTERVAL: checkSetRefundInterval, // 5 minutes in seconds
-  CHECK_UNSET_REFUND_INTERVAL: checkUnsetRefundInterval, // 5 minutes in seconds
-  CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval, // 1,5 minutes in seconds
-  CHECK_AUTHORIZE_REFUND_INTERVAL: checkAuthorizeRefundInterval, // 5 minutes in seconds
-  CHECK_SUBMIT_RESULT_INTERVAL: checkSubmitResultInterval, // 5 minutes in seconds
-  REGISTER_AGENT_INTERVAL: registerAgentInterval, // 5 minutes in seconds
-  DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval, // 5 minutes in seconds
+  BATCH_PAYMENT_INTERVAL: batchPaymentInterval,
+  CHECK_TX_INTERVAL: checkTxInterval,
+  CHECK_COLLECTION_INTERVAL: checkCollectionInterval,
+  CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval,
+  CHECK_SET_REFUND_INTERVAL: checkSetRefundInterval,
+  CHECK_UNSET_REFUND_INTERVAL: checkUnsetRefundInterval,
+  CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval,
+  CHECK_AUTHORIZE_REFUND_INTERVAL: checkAuthorizeRefundInterval,
+  CHECK_SUBMIT_RESULT_INTERVAL: checkSubmitResultInterval,
+  REGISTER_AGENT_INTERVAL: registerAgentInterval,
+  DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval,
+  CHECK_REGISTRY_TRANSACTIONS_INTERVAL: checkRegistryTransactionsInterval,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
   AUTO_WITHDRAW_PAYMENTS: autoWithdrawPayments,
   AUTO_WITHDRAW_REFUNDS: autoWithdrawRefunds,
