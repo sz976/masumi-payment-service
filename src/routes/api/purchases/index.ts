@@ -22,9 +22,9 @@ import { metadataToString } from '@/utils/converter/metadata-string-convert';
 import { handlePurchaseCreditInit } from '@/services/token-credit';
 import stringify from 'canonical-json';
 import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
-import LZString from 'lz-string';
 import { generateHash } from '@/utils/crypto';
 import { validateHexString } from '@/utils/generator/contract-generator';
+import { decodeBlockchainIdentifier } from '@/utils/generator/blockchain-identifier-generator';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -517,25 +517,19 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Agent identifier amounts must not be provided for fixed pricing',
       );
     }
-
-    const decompressedEncodedBlockchainIdentifier =
-      LZString.decompressFromUint8Array(
-        Buffer.from(input.blockchainIdentifier, 'hex'),
-      );
-    const blockchainIdentifierSplit =
-      decompressedEncodedBlockchainIdentifier.split('.');
-    if (blockchainIdentifierSplit.length != 4) {
+    const decoded = decodeBlockchainIdentifier(input.blockchainIdentifier);
+    if (decoded == null) {
       throw createHttpError(
         400,
         'Invalid blockchain identifier, format invalid',
       );
     }
-    const sellerId = blockchainIdentifierSplit[0];
-    const purchaserId = blockchainIdentifierSplit[1];
-    const purchaserIdDecoded = Buffer.from(purchaserId, 'hex').toString(
-      'utf-8',
-    );
-    if (purchaserIdDecoded != input.identifierFromPurchaser) {
+    const purchaserId = decoded.purchaserId;
+    const sellerId = decoded.sellerId;
+    const signature = decoded.signature;
+    const key = decoded.key;
+
+    if (purchaserId != input.identifierFromPurchaser) {
       throw createHttpError(
         400,
         'Invalid blockchain identifier, purchaser id mismatch',
@@ -550,8 +544,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     if (validateHexString(sellerId) == false) {
       throw createHttpError(400, 'Seller identifier is not a valid hex string');
     }
-    const signature = blockchainIdentifierSplit[2];
-    const key = blockchainIdentifierSplit[3];
+
     const cosePublicKey = getPublicKeyFromCoseKey(key);
     if (cosePublicKey == null) {
       throw createHttpError(
@@ -570,7 +563,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const reconstructedBlockchainIdentifier = {
       inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
-      purchaserIdentifier: purchaserIdDecoded,
+      purchaserIdentifier: purchaserId,
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,
