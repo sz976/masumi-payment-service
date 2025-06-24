@@ -34,6 +34,7 @@ export const submitPaymentResultSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -190,6 +191,7 @@ export const submitPaymentResultEndpointPost =
 
       return {
         ...result,
+        payByTime: result.payByTime?.toString() ?? null,
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),

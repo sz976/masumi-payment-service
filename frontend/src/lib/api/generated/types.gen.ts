@@ -404,6 +404,7 @@ export type GetPaymentResponses = {
                 updatedAt: string;
                 blockchainIdentifier: string;
                 lastCheckedAt: string | null;
+                payByTime: string | null;
                 submitResultTime: string;
                 unlockTime: string;
                 collateralReturnLovelace: string | null;
@@ -548,8 +549,8 @@ export type PostPaymentResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
-            submitResultTime: string;
             payByTime: string;
+            submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
             lastCheckedAt: string | null;
@@ -644,6 +645,7 @@ export type PostPaymentSubmitResultResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -735,6 +737,7 @@ export type PostPaymentAuthorizeRefundResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -837,6 +840,7 @@ export type GetPurchaseResponses = {
                 updatedAt: string;
                 blockchainIdentifier: string;
                 lastCheckedAt: string | null;
+                payByTime: string | null;
                 submitResultTime: string;
                 unlockTime: string;
                 externalDisputeUnlockTime: string;
@@ -992,6 +996,7 @@ export type PostPurchaseResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -1089,6 +1094,7 @@ export type PostPurchaseRequestRefundResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -1185,6 +1191,7 @@ export type PostPurchaseCancelRefundRequestResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
