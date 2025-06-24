@@ -1,4 +1,5 @@
 import LZString from 'lz-string';
+import { validateHexString } from '../contract-generator';
 
 export function generateBlockchainIdentifier(
   referenceKey: string,
@@ -6,12 +7,10 @@ export function generateBlockchainIdentifier(
   sellerNonce: string,
   buyerNonce: string,
 ) {
-  const encodedBuyerNonce = Buffer.from(buyerNonce, 'utf-8').toString('hex');
-
   const signedEncodedBlockchainIdentifier = Buffer.from(
     sellerNonce +
       '.' +
-      encodedBuyerNonce +
+      buyerNonce +
       '.' +
       referenceSignature +
       '.' +
@@ -32,14 +31,18 @@ export function decodeBlockchainIdentifier(blockchainIdentifier: string) {
     return null;
   }
   const sellerId = blockchainIdentifierSplit[0];
+  if (validateHexString(sellerId) == false) {
+    return null;
+  }
   const purchaserId = blockchainIdentifierSplit[1];
-  const purchaserIdDecoded = Buffer.from(purchaserId, 'hex').toString('utf-8');
-
+  if (validateHexString(purchaserId) == false) {
+    return null;
+  }
   const signature = blockchainIdentifierSplit[2];
   const key = blockchainIdentifierSplit[3];
   return {
     sellerId: sellerId,
-    purchaserId: purchaserIdDecoded,
+    purchaserId: purchaserId,
     signature: signature,
     key: key,
   };
