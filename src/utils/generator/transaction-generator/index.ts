@@ -9,6 +9,19 @@ import {
   UTxO,
 } from '@meshsdk/core';
 import { resolvePlutusScriptAddress } from '@meshsdk/core-cst';
+import { convertNetworkToId } from '../../converter/network-convert';
+import { Network as PrismaNetwork } from '@prisma/client';
+
+function convertMeshNetworkToPrismaNetwork(network: Network): PrismaNetwork {
+  switch (network) {
+    case 'mainnet':
+      return 'Mainnet';
+    case 'preprod':
+      return 'Preprod';
+    default:
+      throw new Error(`Unsupported network: ${network}`);
+  }
+}
 
 export async function generateMasumiSmartContractInteractionTransaction(
   type: 'AuthorizeRefund' | 'CancelRefund' | 'RequestRefund' | 'SubmitResult',
@@ -60,7 +73,10 @@ export async function generateMasumiSmartContractInteractionTransaction(
     )
     .setTotalCollateral('5000000')
     .txOut(
-      resolvePlutusScriptAddress(script, 0),
+      resolvePlutusScriptAddress(
+        script,
+        convertNetworkToId(convertMeshNetworkToPrismaNetwork(network)),
+      ),
       smartContractUtxo.output.amount,
     )
     .txOutInlineDatumValue(newInlineDatum);
