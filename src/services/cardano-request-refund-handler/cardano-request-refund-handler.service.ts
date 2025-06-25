@@ -198,11 +198,16 @@ export async function requestRefundsV1() {
                 SLOT_CONFIG_NETWORK[network],
               ) - 1;
 
-            const invalidAfter =
+            const invalidAfter = Math.min(
               unixTimeToEnclosingSlot(
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
-              ) + 1;
+              ) + 5,
+              unixTimeToEnclosingSlot(
+                Number(decodedContract.unlockTime) + 150000,
+                SLOT_CONFIG_NETWORK[network],
+              ) + 3,
+            );
 
             //sort by biggest lovelace first
             const sortedUtxosByLovelaceDesc = utxos.sort((a, b) => {
