@@ -206,7 +206,7 @@ export async function collectOutstandingPaymentsV1() {
               unixTimeToEnclosingSlot(
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
-              ) + 1;
+              ) + 5;
 
             const buyerAddress = request.BuyerWallet?.walletAddress;
             if (buyerAddress == null) {

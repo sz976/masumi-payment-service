@@ -559,7 +559,7 @@ export async function batchLatestPaymentEntriesV1() {
                 unixTimeToEnclosingSlot(
                   Date.now() + 150000,
                   SLOT_CONFIG_NETWORK[convertNetwork(paymentContract.network)],
-                ) + 1;
+                ) + 5;
               unsignedTx.setNetwork(convertNetwork(paymentContract.network));
               unsignedTx.txBuilder.invalidBefore(invalidBefore);
               unsignedTx.txBuilder.invalidHereafter(invalidAfter);

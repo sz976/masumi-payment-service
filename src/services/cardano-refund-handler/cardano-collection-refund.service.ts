@@ -183,7 +183,7 @@ export async function collectRefundV1() {
               unixTimeToEnclosingSlot(
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
-              ) + 1;
+              ) + 5;
 
             const filteredUtxos = utxos.sort((a, b) => {
               const aLovelace = parseInt(
