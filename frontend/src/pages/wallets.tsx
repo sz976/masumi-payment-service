@@ -16,6 +16,7 @@ import {
   GetPaymentSourceResponses,
   getUtxos,
   GetUtxosResponses,
+  getWallet,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -173,16 +174,26 @@ export default function WalletsPage() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources.find(
-          (source) => source.id === selectedPaymentSourceId,
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (source) =>
+            selectedPaymentSourceId
+              ? source.id === selectedPaymentSourceId
+              : true,
         );
-        if (paymentSource) {
+        const purchasingWallets = paymentSources
+          .map((source) => source.PurchasingWallets)
+          .flat();
+        const sellingWallets = paymentSources
+          .map((source) => source.SellingWallets)
+          .flat();
+
+        if (paymentSources.length > 0) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map((wallet) => ({
+            ...purchasingWallets.map((wallet) => ({
               ...wallet,
               type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map((wallet) => ({
+            ...sellingWallets.map((wallet) => ({
               ...wallet,
               type: 'Selling' as const,
             })),

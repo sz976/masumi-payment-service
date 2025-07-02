@@ -24,6 +24,11 @@ export const queryRegistryRequestSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The Cardano network used to register the agent on'),
+  filterSmartContractAddress: z
+    .string()
+    .optional()
+    .nullable()
+    .describe('The smart contract address of the payment source'),
 });
 
 export const queryRegistryRequestSchemaOutput = z.object({
@@ -116,6 +121,7 @@ export const queryRegistryRequestGet = payAuthenticatedEndpointFactory.build({
         PaymentSource: {
           network: input.network,
           deletedAt: null,
+          smartContractAddress: input.filterSmartContractAddress ?? undefined,
         },
         SmartContractWallet: { deletedAt: null },
       },

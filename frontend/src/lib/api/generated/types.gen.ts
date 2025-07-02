@@ -369,6 +369,10 @@ export type GetPaymentData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
+         * The smart contract address of the payment source
+         */
+        filterSmartContractAddress?: string | null;
+        /**
          * Whether to include the full transaction and status history of the payments
          */
         includeHistory?: string;
@@ -804,6 +808,10 @@ export type GetPurchaseData = {
          * The network the purchases were made on
          */
         network: 'Preprod' | 'Mainnet';
+        /**
+         * The smart contract address of the payment source
+         */
+        filterSmartContractAddress?: string | null;
         /**
          * Whether to include the full transaction and status history of the purchases
          */
@@ -1401,6 +1409,10 @@ export type GetRegistryData = {
          * The Cardano network used to register the agent on
          */
         network: 'Preprod' | 'Mainnet';
+        /**
+         * The smart contract address of the payment source
+         */
+        filterSmartContractAddress?: string | null;
     };
     url: '/registry/';
 };

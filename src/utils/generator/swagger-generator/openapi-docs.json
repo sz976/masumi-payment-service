@@ -1122,6 +1122,17 @@
                     {
                         "schema": {
                             "type": "string",
+                            "nullable": true,
+                            "description": "The smart contract address of the payment source"
+                        },
+                        "required": false,
+                        "description": "The smart contract address of the payment source",
+                        "name": "filterSmartContractAddress",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
                             "default": "false",
                             "description": "Whether to include the full transaction and status history of the payments"
                         },
@@ -2830,6 +2841,17 @@
                         "required": true,
                         "description": "The network the purchases were made on",
                         "name": "network",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "The smart contract address of the payment source"
+                        },
+                        "required": false,
+                        "description": "The smart contract address of the payment source",
+                        "name": "filterSmartContractAddress",
                         "in": "query"
                     },
                     {
@@ -4908,6 +4930,17 @@
                         "required": true,
                         "description": "The Cardano network used to register the agent on",
                         "name": "network",
+                        "in": "query"
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "The smart contract address of the payment source"
+                        },
+                        "required": false,
+                        "description": "The smart contract address of the payment source",
+                        "name": "filterSmartContractAddress",
                         "in": "query"
                     }
                 ],

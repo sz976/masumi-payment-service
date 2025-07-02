@@ -60,7 +60,7 @@ const formatTimestamp = (timestamp: string | null | undefined): string => {
 };
 
 export default function Transactions() {
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>(
     [],
@@ -169,7 +169,11 @@ export default function Transactions() {
         } else {
           setIsLoadingMore(true);
         }
-
+        const selectedPaymentSource = state.paymentSources.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
+        const smartContractAddress =
+          selectedPaymentSource?.smartContractAddress;
         // Fetch purchases
         let purchases: Transaction[] = [];
         let newPurchaseCursor: string | null = purchaseCursorId;
@@ -182,6 +186,9 @@ export default function Transactions() {
               cursorId: purchaseCursorId || undefined,
               includeHistory: 'true',
               limit: 10,
+              filterSmartContractAddress: smartContractAddress
+                ? smartContractAddress
+                : undefined,
             },
           });
           if (purchaseRes.data?.data?.Purchases) {
@@ -210,6 +217,9 @@ export default function Transactions() {
               cursorId: paymentCursorId || undefined,
               includeHistory: 'true',
               limit: 10,
+              filterSmartContractAddress: smartContractAddress
+                ? smartContractAddress
+                : undefined,
             },
           });
           if (paymentRes.data?.data?.Payments) {
@@ -259,6 +269,7 @@ export default function Transactions() {
       }
     },
     [
+      selectedPaymentSourceId,
       apiClient,
       state.network,
       purchaseCursorId,
@@ -273,7 +284,7 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions(true);
-  }, [state.network, apiClient]);
+  }, [state.network, apiClient, selectedPaymentSourceId]);
 
   useEffect(() => {
     filterTransactions();

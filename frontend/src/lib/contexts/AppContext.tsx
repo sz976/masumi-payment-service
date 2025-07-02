@@ -181,8 +181,8 @@ export function AppProvider({
   };
 
   useEffect(() => {
-    if (!selectedPaymentSourceId && state.paymentSources.length > 0) {
-      setSelectedPaymentSourceIdAndPersist(state.paymentSources[0].id);
+    if (state.paymentSources.length > 0) {
+      setSelectedPaymentSourceIdAndPersist(selectedPaymentSourceId);
     }
   }, [selectedPaymentSourceId, state.paymentSources]);
 
