@@ -1315,7 +1315,11 @@ async function getExtendedTxInformation(
     const txDataBatch = await advancedRetryAll({
       operations: txBatch.map((tx) => async () => {
         const txDetails = await blockfrost.txs(tx.tx_hash);
-        const block = await blockfrost.blocks(txDetails.block);
+        let block: { confirmations: number } = { confirmations: 0 };
+        if (CONFIG.BLOCK_CONFIRMATIONS_THRESHOLD > 0) {
+          block = await blockfrost.blocks(txDetails.block);
+        }
+
         const cbor = await blockfrost.txsCbor(tx.tx_hash);
         const utxos = await blockfrost.txsUtxos(tx.tx_hash);
 
