@@ -83,10 +83,10 @@ if (autoDecisionInterval < 5)
   throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
 
 const blockConfirmationsThreshold = Number(
-  process.env.BLOCK_CONFIRMATIONS_THRESHOLD ?? '2',
+  process.env.BLOCK_CONFIRMATIONS_THRESHOLD ?? '1',
 );
-if (blockConfirmationsThreshold < 1)
-  throw new Error('BLOCK_CONFIRMATIONS_THRESHOLD must be at least 1');
+if (blockConfirmationsThreshold < 0)
+  throw new Error('BLOCK_CONFIRMATIONS_THRESHOLD must be at least 0');
 
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
