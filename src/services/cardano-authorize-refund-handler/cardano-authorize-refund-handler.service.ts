@@ -13,7 +13,7 @@ import {
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
 import {
-  getDatum,
+  getDatumFromBlockchainIdentifier,
   getPaymentScriptFromPaymentSourceV1,
   SmartContractState,
   smartContractStateEqualsOnChainState,
@@ -75,6 +75,15 @@ export async function authorizeRefundV1() {
             }),
           ],
           operations: paymentRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
+
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentContract.network,
               paymentContract.PaymentSourceConfig.rpcProviderApiKey,
@@ -102,7 +111,10 @@ export async function authorizeRefundV1() {
               }
 
               const decodedDatum: unknown = deserializeDatum(utxoDatum);
-              const decodedContract = decodeV1ContractDatum(decodedDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
               if (decodedContract == null) {
                 return false;
               }
@@ -112,9 +124,13 @@ export async function authorizeRefundV1() {
                   decodedContract.state,
                   request.onChainState,
                 ) &&
-                decodedContract.buyer == request.BuyerWallet!.walletVkey &&
-                decodedContract.seller ==
+                decodedContract.buyerVkey == request.BuyerWallet!.walletVkey &&
+                decodedContract.sellerVkey ==
                   request.SmartContractWallet!.walletVkey &&
+                decodedContract.buyerAddress ==
+                  request.BuyerWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
                 decodedContract.blockchainIdentifier ==
                   request.blockchainIdentifier &&
                 decodedContract.inputHash == request.inputHash &&
@@ -123,7 +139,10 @@ export async function authorizeRefundV1() {
                 BigInt(decodedContract.unlockTime) ==
                   BigInt(request.unlockTime) &&
                 BigInt(decodedContract.externalDisputeUnlockTime) ==
-                  BigInt(request.externalDisputeUnlockTime)
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
               );
             });
 
@@ -131,9 +150,8 @@ export async function authorizeRefundV1() {
               throw new Error('UTXO not found');
             }
 
-            const buyerVerificationKeyHash = request.BuyerWallet!.walletVkey;
-            const sellerVerificationKeyHash =
-              request.SmartContractWallet!.walletVkey;
+            const buyerAddress = request.BuyerWallet!.walletAddress;
+            const sellerAddress = request.SmartContractWallet!.walletAddress;
 
             const utxoDatum = utxo.output.plutusData;
             if (!utxoDatum) {
@@ -141,24 +159,31 @@ export async function authorizeRefundV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
-            const datum = getDatum({
-              buyerVerificationKeyHash,
-              sellerVerificationKeyHash,
+
+            const datum = getDatumFromBlockchainIdentifier({
+              buyerAddress,
+              sellerAddress,
               blockchainIdentifier: request.blockchainIdentifier,
               inputHash: decodedContract.inputHash,
               resultHash: '',
+              payByTime: decodedContract.payByTime,
+              collateralReturnLovelace:
+                decodedContract.collateralReturnLovelace,
               resultTime: decodedContract.resultTime,
               unlockTime: decodedContract.unlockTime,
               externalDisputeUnlockTime:
                 decodedContract.externalDisputeUnlockTime,
               newCooldownTimeSeller: newCooldownTime(
-                paymentContract.cooldownTime,
+                BigInt(paymentContract.cooldownTime),
               ),
-              newCooldownTimeBuyer: 0,
+              newCooldownTimeBuyer: BigInt(0),
               state: SmartContractState.RefundRequested,
             });
 
@@ -172,7 +197,7 @@ export async function authorizeRefundV1() {
               unixTimeToEnclosingSlot(
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
-              ) + 1;
+              ) + 5;
 
             //sort by biggest lovelace first
             const sortedUtxosByLovelaceDesc = utxos.sort((a, b) => {

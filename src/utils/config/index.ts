@@ -70,6 +70,14 @@ const autoWithdrawRefunds =
   process.env.AUTO_WITHDRAW_REFUNDS === '' ||
   process.env.AUTO_WITHDRAW_REFUNDS == undefined;
 
+const checkRegistryTransactionsInterval = Number(
+  process.env.CHECK_REGISTRY_TRANSACTIONS_INTERVAL ?? '30',
+);
+if (checkRegistryTransactionsInterval < 5)
+  throw new Error(
+    'CHECK_REGISTRY_TRANSACTIONS_INTERVAL must be at least 5 seconds',
+  );
+
 const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
 if (autoDecisionInterval < 5)
   throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
@@ -77,17 +85,18 @@ if (autoDecisionInterval < 5)
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
   DATABASE_URL: process.env.DATABASE_URL,
-  BATCH_PAYMENT_INTERVAL: batchPaymentInterval, // 3 minutes in seconds
-  CHECK_TX_INTERVAL: checkTxInterval, // 3 minutes in seconds
-  CHECK_COLLECTION_INTERVAL: checkCollectionInterval, // 4 minutes in seconds
-  CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval, // 5 minutes in seconds
-  CHECK_SET_REFUND_INTERVAL: checkSetRefundInterval, // 5 minutes in seconds
-  CHECK_UNSET_REFUND_INTERVAL: checkUnsetRefundInterval, // 5 minutes in seconds
-  CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval, // 1,5 minutes in seconds
-  CHECK_AUTHORIZE_REFUND_INTERVAL: checkAuthorizeRefundInterval, // 5 minutes in seconds
-  CHECK_SUBMIT_RESULT_INTERVAL: checkSubmitResultInterval, // 5 minutes in seconds
-  REGISTER_AGENT_INTERVAL: registerAgentInterval, // 5 minutes in seconds
-  DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval, // 5 minutes in seconds
+  BATCH_PAYMENT_INTERVAL: batchPaymentInterval,
+  CHECK_TX_INTERVAL: checkTxInterval,
+  CHECK_COLLECTION_INTERVAL: checkCollectionInterval,
+  CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval,
+  CHECK_SET_REFUND_INTERVAL: checkSetRefundInterval,
+  CHECK_UNSET_REFUND_INTERVAL: checkUnsetRefundInterval,
+  CHECK_WALLET_TRANSACTION_HASH_INTERVAL: checkWalletTransactionHashInterval,
+  CHECK_AUTHORIZE_REFUND_INTERVAL: checkAuthorizeRefundInterval,
+  CHECK_SUBMIT_RESULT_INTERVAL: checkSubmitResultInterval,
+  REGISTER_AGENT_INTERVAL: registerAgentInterval,
+  DEREGISTER_AGENT_INTERVAL: deregisterAgentInterval,
+  CHECK_REGISTRY_TRANSACTIONS_INTERVAL: checkRegistryTransactionsInterval,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
   AUTO_WITHDRAW_PAYMENTS: autoWithdrawPayments,
   AUTO_WITHDRAW_REFUNDS: autoWithdrawRefunds,
@@ -95,8 +104,8 @@ export const CONFIG = {
 };
 
 export const DEFAULTS = {
-  TX_TIMEOUT_INTERVAL: 1000 * 60 * 15, // 5 minutes in seconds
-  LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 15 minutes in seconds
+  TX_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 5 minutes in seconds
+  LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 3, // 3 minutes in seconds
   DEFAULT_METADATA_VERSION: 1,
   DEFAULT_IMAGE: 'ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f',
 
@@ -123,12 +132,12 @@ export const DEFAULTS = {
   FEE_PERMILLE_MAINNET: 50, //equals 5% fee for the network
 
   PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD:
-    'addr_test1wp2dvq9e8692rns5s5hfgdl3gw77308dhvjqqjphq9xg92qlw88mr',
+    'addr_test1wz7j4kmg2cs7yf92uat3ed4a3u97kr7axxr4avaz0lhwdsqukgwfm',
   REGISTRY_POLICY_ID_PREPROD:
-    '276ce1ed7c96044591d6b6b9dfc14b69179ffc8849debad659d7802a',
+    '7e8bdaf2b2b919a3a4b94002cafb50086c0c845fe535d07a77ab7f77',
   PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET:
-    'addr1w92dvq9e8692rns5s5hfgdl3gw77308dhvjqqjphq9xg92qyxnm5x',
+    'addr1wx7j4kmg2cs7yf92uat3ed4a3u97kr7axxr4avaz0lhwdsq87ujx7',
   REGISTRY_POLICY_ID_MAINNET:
-    '72ae9f6c97f9b0fdb4abf16374808a448281ca4c57d712b9349739c7',
+    'ad6424e3ce9e47bbd8364984bd731b41de591f1d11f6d7d43d0da9b9',
   COOLDOWN_TIME_MAINNET: 1000 * 60 * 7,
 };

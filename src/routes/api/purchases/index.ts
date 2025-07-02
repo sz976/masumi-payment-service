@@ -22,8 +22,9 @@ import { metadataToString } from '@/utils/converter/metadata-string-convert';
 import { handlePurchaseCreditInit } from '@/services/token-credit';
 import stringify from 'canonical-json';
 import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
-import LZString from 'lz-string';
 import { generateHash } from '@/utils/crypto';
+import { validateHexString } from '@/utils/generator/contract-generator';
+import { decodeBlockchainIdentifier } from '@/utils/generator/blockchain-identifier-generator';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -59,11 +60,13 @@ export const queryPurchaseRequestSchemaOutput = z.object({
       updatedAt: z.date(),
       blockchainIdentifier: z.string(),
       lastCheckedAt: z.date().nullable(),
+      payByTime: z.string().nullable(),
       submitResultTime: z.string(),
       unlockTime: z.string(),
       externalDisputeUnlockTime: z.string(),
       requestedById: z.string(),
       onChainState: z.nativeEnum(OnChainState).nullable(),
+      collateralReturnLovelace: z.string().nullable(),
       cooldownTime: z.number(),
       cooldownTimeOtherParty: z.number(),
       inputHash: z.string(),
@@ -206,6 +209,9 @@ export const queryPurchaseRequestGet = payAuthenticatedEndpointFactory.build({
           unit: amount.unit,
           amount: amount.amount.toString(),
         })),
+        collateralReturnLovelace:
+          purchase.collateralReturnLovelace?.toString() ?? null,
+        payByTime: purchase.payByTime?.toString() ?? null,
         submitResultTime: purchase.submitResultTime.toString(),
         unlockTime: purchase.unlockTime.toString(),
         externalDisputeUnlockTime:
@@ -225,7 +231,12 @@ export const createPurchaseInitSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the transaction will be made on'),
-  inputHash: z.string().max(250),
+  inputHash: z
+    .string()
+    .max(250)
+    .describe(
+      'The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format',
+    ),
   sellerVkey: z
     .string()
     .max(250)
@@ -258,15 +269,22 @@ export const createPurchaseInitSchemaInput = z.object({
     .describe(
       'The time by which the result has to be submitted. In unix time (number)',
     ),
+  payByTime: z
+    .string()
+    .describe(
+      'The time after which the purchase has to be submitted to the smart contract',
+    ),
   metadata: z
     .string()
     .optional()
     .describe('Metadata to be stored with the purchase request'),
   identifierFromPurchaser: z
     .string()
-    .min(15)
-    .max(25)
-    .describe('The cuid2 identifier of the purchaser of the purchase'),
+    .min(14)
+    .max(26)
+    .describe(
+      'The nounce of the purchaser of the purchase, needs to be in hex format',
+    ),
 });
 
 export const createPurchaseInitSchemaOutput = z.object({
@@ -275,6 +293,7 @@ export const createPurchaseInitSchemaOutput = z.object({
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
   lastCheckedAt: z.date().nullable(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -368,6 +387,10 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       },
       include: { PaymentSourceConfig: true },
     });
+    const inputHash = input.inputHash;
+    if (validateHexString(inputHash) == false) {
+      throw createHttpError(400, 'Input hash is not a valid hex string');
+    }
 
     if (paymentSource == null) {
       throw createHttpError(
@@ -390,15 +413,29 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     //require at least 3 hours between unlock time and the submit result time
     const additionalExternalDisputeUnlockTime = BigInt(1000 * 60 * 15);
     const submitResultTime = BigInt(input.submitResultTime);
+    const payByTime = BigInt(input.payByTime);
     const unlockTime = BigInt(input.unlockTime);
     const externalDisputeUnlockTime = BigInt(input.externalDisputeUnlockTime);
+    if (payByTime > submitResultTime - BigInt(1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be before submit result time (min. 5 minutes)',
+      );
+    }
+    if (payByTime < BigInt(Date.now() - 1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be in the future (max. 5 minutes)',
+      );
+    }
+
     if (
       externalDisputeUnlockTime <
       unlockTime + additionalExternalDisputeUnlockTime
     ) {
       throw createHttpError(
         400,
-        'External dispute unlock time must be after unlock time with at least 15 minutes difference',
+        'External dispute unlock time must be after unlock time (min. 15 minutes difference)',
       );
     }
     if (submitResultTime < BigInt(Date.now() + 1000 * 60 * 15)) {
@@ -480,32 +517,34 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
         'Agent identifier amounts must not be provided for fixed pricing',
       );
     }
-
-    const decompressedEncodedBlockchainIdentifier =
-      LZString.decompressFromUint8Array(
-        Buffer.from(input.blockchainIdentifier, 'hex'),
-      );
-    const blockchainIdentifierSplit =
-      decompressedEncodedBlockchainIdentifier.split('.');
-    if (blockchainIdentifierSplit.length != 4) {
+    const decoded = decodeBlockchainIdentifier(input.blockchainIdentifier);
+    if (decoded == null) {
       throw createHttpError(
         400,
         'Invalid blockchain identifier, format invalid',
       );
     }
-    const sellerId = blockchainIdentifierSplit[0];
-    const purchaserId = blockchainIdentifierSplit[1];
-    const purchaserIdDecoded = Buffer.from(purchaserId, 'hex').toString(
-      'utf-8',
-    );
-    if (purchaserIdDecoded != input.identifierFromPurchaser) {
+    const purchaserId = decoded.purchaserId;
+    const sellerId = decoded.sellerId;
+    const signature = decoded.signature;
+    const key = decoded.key;
+
+    if (purchaserId != input.identifierFromPurchaser) {
       throw createHttpError(
         400,
         'Invalid blockchain identifier, purchaser id mismatch',
       );
     }
-    const signature = blockchainIdentifierSplit[2];
-    const key = blockchainIdentifierSplit[3];
+    if (validateHexString(purchaserId) == false) {
+      throw createHttpError(
+        400,
+        'Purchaser identifier is not a valid hex string',
+      );
+    }
+    if (validateHexString(sellerId) == false) {
+      throw createHttpError(400, 'Seller identifier is not a valid hex string');
+    }
+
     const cosePublicKey = getPublicKeyFromCoseKey(key);
     if (cosePublicKey == null) {
       throw createHttpError(
@@ -524,13 +563,15 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     const reconstructedBlockchainIdentifier = {
       inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
-      purchaserIdentifier: purchaserIdDecoded,
+      purchaserIdentifier: purchaserId,
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,
+      payByTime: input.payByTime,
       submitResultTime: input.submitResultTime,
       unlockTime: unlockTime.toString(),
       externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
+      sellerAddress: addressOfAsset,
     };
 
     const hashedBlockchainIdentifier = generateHash(
@@ -569,6 +610,8 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       paymentType: input.paymentType,
       contractAddress: smartContractAddress,
       sellerVkey: input.sellerVkey,
+      sellerAddress: addressOfAsset,
+      payByTime: payByTime,
       submitResultTime: submitResultTime,
       unlockTime: unlockTime,
       externalDisputeUnlockTime: externalDisputeUnlockTime,
@@ -577,6 +620,7 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
 
     return {
       ...initialPurchaseRequest,
+      payByTime: initialPurchaseRequest.payByTime?.toString() ?? null,
       PaidFunds: (
         initialPurchaseRequest.PaidFunds as Array<{
           unit: string;

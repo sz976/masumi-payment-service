@@ -23,7 +23,8 @@ import { metadataSchema } from '../registry/wallet';
 import { metadataToString } from '@/utils/converter/metadata-string-convert';
 import { generateHash } from '@/utils/crypto';
 import stringify from 'canonical-json';
-import LZString from 'lz-string';
+import { generateBlockchainIdentifier } from '@/utils/generator/blockchain-identifier-generator';
+import { validateHexString } from '@/utils/generator/contract-generator';
 
 export const queryPaymentsSchemaInput = z.object({
   limit: z
@@ -59,8 +60,10 @@ export const queryPaymentsSchemaOutput = z.object({
       updatedAt: z.date(),
       blockchainIdentifier: z.string(),
       lastCheckedAt: z.date().nullable(),
+      payByTime: z.string().nullable(),
       submitResultTime: z.string(),
       unlockTime: z.string(),
+      collateralReturnLovelace: z.string().nullable(),
       externalDisputeUnlockTime: z.string(),
       requestedById: z.string(),
       resultHash: z.string(),
@@ -196,8 +199,11 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
         submitResultTime: payment.submitResultTime.toString(),
         cooldownTime: Number(payment.sellerCoolDownTime),
         cooldownTimeOtherParty: Number(payment.buyerCoolDownTime),
+        payByTime: payment.payByTime?.toString() ?? null,
         unlockTime: payment.unlockTime.toString(),
         externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),
+        collateralReturnLovelace:
+          payment.collateralReturnLovelace?.toString() ?? null,
         RequestedFunds: (
           payment.RequestedFunds as Array<{ unit: string; amount: bigint }>
         ).map((amount) => ({
@@ -222,7 +228,12 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
 });
 
 export const createPaymentsSchemaInput = z.object({
-  inputHash: z.string().max(250),
+  inputHash: z
+    .string()
+    .max(250)
+    .describe(
+      'The hash of the input data of the payment, should be sha256 hash of the input data, therefore needs to be in hex string format',
+    ),
   network: z
     .nativeEnum(Network)
     .describe('The network the payment will be received on'),
@@ -239,6 +250,12 @@ export const createPaymentsSchemaInput = z.object({
   paymentType: z
     .nativeEnum(PaymentType)
     .describe('The type of payment contract used'),
+  payByTime: ez
+    .dateIn()
+    .default(new Date(1000 * 60 * 60 * 12).toISOString())
+    .describe(
+      'The time after which the payment has to be submitted to the smart contract',
+    ),
   submitResultTime: ez
     .dateIn()
     .default(new Date(1000 * 60 * 60 * 12).toISOString())
@@ -261,9 +278,11 @@ export const createPaymentsSchemaInput = z.object({
     .describe('Metadata to be stored with the payment request'),
   identifierFromPurchaser: z
     .string()
-    .min(15)
-    .max(25)
-    .describe('The cuid2 identifier of the purchaser of the payment'),
+    .min(14)
+    .max(26)
+    .describe(
+      'The a unique nounce from the purchaser. Required to be in hex format',
+    ),
 });
 
 export const createPaymentSchemaOutput = z.object({
@@ -271,6 +290,7 @@ export const createPaymentSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -371,6 +391,20 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
+    const purchaserId = input.identifierFromPurchaser;
+    if (validateHexString(purchaserId) == false) {
+      throw createHttpError(
+        400,
+        'Purchaser identifier is not a valid hex string',
+      );
+    }
+    const inputHash = input.inputHash;
+    if (validateHexString(inputHash) == false) {
+      throw createHttpError(400, 'Input hash is not a valid hex string');
+    }
+
+    const payByTime = BigInt(input.payByTime.getTime());
+    const submitResultTime = BigInt(input.submitResultTime.getTime());
 
     const unlockTime =
       input.unlockTime != undefined
@@ -385,6 +419,45 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         : new Date(
             input.submitResultTime.getTime() + 1000 * 60 * 60 * 12,
           ).getTime(); // default +12h
+
+    //require at least 3 hours between unlock time and the submit result time
+    const additionalExternalDisputeUnlockTime = BigInt(1000 * 60 * 15);
+
+    if (payByTime > submitResultTime - BigInt(1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be before submit result time (min. 5 minutes)',
+      );
+    }
+    if (payByTime < BigInt(Date.now() - 1000 * 60 * 5)) {
+      throw createHttpError(
+        400,
+        'Pay by time must be in the future (max. 5 minutes)',
+      );
+    }
+
+    if (
+      externalDisputeUnlockTime <
+      BigInt(unlockTime) + additionalExternalDisputeUnlockTime
+    ) {
+      throw createHttpError(
+        400,
+        'External dispute unlock time must be after unlock time (min. 15 minutes difference)',
+      );
+    }
+    if (submitResultTime < BigInt(Date.now() + 1000 * 60 * 15)) {
+      throw createHttpError(
+        400,
+        'Submit result time must be in the future (min. 15 minutes)',
+      );
+    }
+    const offset = BigInt(1000 * 60 * 15);
+    if (submitResultTime > BigInt(unlockTime) - offset) {
+      throw createHttpError(
+        400,
+        'Submit result time must be before unlock time with at least 15 minutes difference',
+      );
+    }
 
     const provider = new BlockFrostAPI({
       projectId: specifiedPaymentContract.PaymentSourceConfig.rpcProviderApiKey,
@@ -465,9 +538,11 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       sellerIdentifier: sellerId,
       //RequestedFunds: is null for fixed pricing
       RequestedFunds: null,
+      payByTime: input.payByTime.getTime().toString(),
       submitResultTime: input.submitResultTime.getTime().toString(),
       unlockTime: unlockTime.toString(),
       externalDisputeUnlockTime: externalDisputeUnlockTime.toString(),
+      sellerAddress: sellingWallet.walletAddress,
     };
     const meshWallet = new MeshWallet({
       networkId: convertNetworkToId(input.network),
@@ -484,24 +559,13 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       hashedBlockchainIdentifier,
       sellingWallet.walletAddress,
     );
-    const encodedPurchaserId = Buffer.from(
+
+    const compressedEncodedBlockchainIdentifier = generateBlockchainIdentifier(
+      signedBlockchainIdentifier.key,
+      signedBlockchainIdentifier.signature,
+      sellerId,
       input.identifierFromPurchaser,
-      'utf-8',
-    ).toString('hex');
-
-    const signedEncodedBlockchainIdentifier = Buffer.from(
-      sellerId +
-        '.' +
-        encodedPurchaserId +
-        '.' +
-        signedBlockchainIdentifier.signature +
-        '.' +
-        signedBlockchainIdentifier.key,
-    ).toString('utf-8');
-
-    const compressedEncodedBlockchainIdentifier = Buffer.from(
-      LZString.compressToUint8Array(signedEncodedBlockchainIdentifier),
-    ).toString('hex');
+    );
 
     const payment = await prisma.paymentRequest.create({
       data: {
@@ -524,6 +588,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
         SmartContractWallet: {
           connect: { id: sellingWallet.id, deletedAt: null },
         },
+        payByTime: input.payByTime.getTime(),
         submitResultTime: input.submitResultTime.getTime(),
         unlockTime: unlockTime,
         externalDisputeUnlockTime: externalDisputeUnlockTime,
@@ -549,6 +614,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
     }
     return {
       ...payment,
+      payByTime: payment.payByTime!.toString(),
       submitResultTime: payment.submitResultTime.toString(),
       unlockTime: payment.unlockTime.toString(),
       externalDisputeUnlockTime: payment.externalDisputeUnlockTime.toString(),

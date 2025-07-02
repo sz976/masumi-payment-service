@@ -2,22 +2,12 @@ use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
 use aiken/interval.{Finite, Interval, IntervalBound, PositiveInfinity}
 use aiken/primitive/bytearray
-use cardano/address.{Address}
-use cardano/assets.{Value}
+use cardano/address.{Address, VerificationKey}
+use cardano/assets.{Value, lovelace_of}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction, ValidityRange,
   find_input,
 }
-
-//MAS-201 is currently not necessary, as validation happens offchain. This would add more cost to every payment.
-//MAS-202 is wanted behaviour, to possibly add payment amounts
-//MAS-304 is needed to identify the payment offchain
-//Fixes 
-//MAS-203 reference script not allowed via validate_no_reference_script_attacked_to_script
-//MAS-301 is removed
-//MAS-302 now named AuthorizeRefund
-//MAS-303 is added, with checks of the status (duplicated checks of status and fields). Feels a bit redundant, as the state can be infered.
-//Furthermore renamed some of the fields to be more descriptive. Added cooldown periods to prevent DDOS, if other solutions exist recommendations are welcome.
 
 type POSIXTime =
   Int
@@ -29,13 +19,17 @@ pub type State {
   Disputed
 }
 
-//this will be provided by the buyer and accepted by the seller off-chain
 pub type Datum {
-  buyer: VerificationKeyHash,
-  seller: VerificationKeyHash,
-  reference_id: ByteArray,
+  buyer: Address,
+  seller: Address,
+  reference_key: ByteArray,
+  reference_signature: ByteArray,
+  seller_nonce: ByteArray,
+  buyer_nonce: ByteArray,
+  collateral_return_lovelace: Int,
   input_hash: ByteArray,
   result_hash: ByteArray,
+  pay_by_time: POSIXTime,
   submit_result_time: POSIXTime,
   unlock_time: POSIXTime,
   external_dispute_unlock_time: POSIXTime,
@@ -77,9 +71,14 @@ validator vested_pay(
     expect Some(Datum {
       buyer,
       seller,
-      reference_id,
+      reference_key,
+      reference_signature,
+      seller_nonce,
+      buyer_nonce,
+      collateral_return_lovelace,
       input_hash,
       result_hash,
+      pay_by_time,
       submit_result_time,
       unlock_time,
       external_dispute_unlock_time,
@@ -115,7 +114,7 @@ validator vested_pay(
       self.outputs
         |> list.all(
             fn(output) {
-              validate_no_reference_script_attacked_to_script(
+              validate_no_reference_script_attached_to_script(
                 output,
                 count_script_address,
               )
@@ -125,34 +124,84 @@ validator vested_pay(
     when redeemer is {
       // Seller can withdraw after unlock_time if no refund was requested
       Withdraw -> {
-        expect must_be_signed_by(self, seller)
+        expect Some(seller_vk) = address_to_verification_key(seller)
+        expect must_be_signed_by(self, seller_vk)
 
         expect must_start_after(validity_range, unlock_time)
         expect state == ResultSubmitted
 
-        expect Some(fee_output) =
-          self.outputs
-            |> list.filter(fn(output) { output.address == fee_address })
-            |> list.head()
-
-        expect
-          fee_value_is_preserved(
-            input.output.value,
-            fee_output.value,
-            fee_permille,
+        let fee_outputs =
+          list.filter(
+            self.outputs,
+            fn(output) {
+              when output.datum is {
+                InlineDatum(output_datum) ->
+                  if output_datum is OutputReference {
+                    and {
+                      output.address == fee_address,
+                      own_ref == output_datum,
+                    }
+                  } else {
+                    False
+                  }
+                _ -> False
+              }
+            },
           )
+
+        let fee_value =
+          list.foldl(
+            fee_outputs,
+            assets.zero,
+            fn(n, acc) { assets.merge(n.value, acc) },
+          )
+        expect
+          fee_value_is_preserved(input.output.value, fee_value, fee_permille)
+
+        let collateral_return_outputs =
+          list.filter(
+            self.outputs,
+            fn(output) {
+              when output.datum is {
+                InlineDatum(output_datum) ->
+                  // Note that we use a soft-cast here and not an expect, because the transaction
+                  // might still contain other kind of outputs that we simply chose to ignore.
+                  // Using expect here would cause the entire transaction to be rejected for any
+                  // output that doesn't have a datum of that particular shape.
+                  if output_datum is OutputReference {
+                    and {
+                      output.address == buyer,
+                      own_ref == output_datum,
+                    }
+                  } else {
+                    False
+                  }
+                _ -> False
+              }
+            },
+          )
+
+        let value_returned =
+          list.foldl(
+            collateral_return_outputs,
+            assets.zero,
+            fn(n, acc) { assets.merge(n.value, acc) },
+          )
+        expect lovelace_of(value_returned) >= collateral_return_lovelace
 
         bytearray.is_empty(result_hash) == False
       }
 
       SetRefundRequested -> {
+        expect Some(buyer_vk) = address_to_verification_key(buyer)
+        expect must_be_signed_by(self, buyer_vk)
+
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
             |> list.head()
         expect InlineDatum(maybe_new_datum) = output.datum
         expect new_datum: Datum = maybe_new_datum
-        expect must_be_signed_by(self, buyer)
         expect output_value_is_preserved(input.output.value, output.value)
 
         expect must_end_before(validity_range, unlock_time)
@@ -175,9 +224,14 @@ validator vested_pay(
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
-          new_datum.reference_id == reference_id,
+          new_datum.reference_key == reference_key,
+          new_datum.reference_signature == reference_signature,
+          new_datum.seller_nonce == seller_nonce,
+          new_datum.buyer_nonce == buyer_nonce,
+          new_datum.collateral_return_lovelace == collateral_return_lovelace,
           new_datum.input_hash == input_hash,
           new_datum.result_hash == result_hash,
+          new_datum.pay_by_time == pay_by_time,
           new_datum.unlock_time == unlock_time,
           new_datum.submit_result_time == submit_result_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
@@ -188,7 +242,8 @@ validator vested_pay(
       }
       // Seller can approve the refund request by letting it run into the refund time
       WithdrawRefund -> {
-        expect must_be_signed_by(self, buyer)
+        expect Some(buyer_vk) = address_to_verification_key(buyer)
+        expect must_be_signed_by(self, buyer_vk)
         expect or {
             state == FundsLocked,
             state == RefundRequested,
@@ -201,13 +256,14 @@ validator vested_pay(
       }
       //The buyer can cancel the refund request, if the vesting period is over, this will immediately give the seller the option to withdraw any funds
       UnSetRefundRequested -> {
+        expect Some(buyer_vk) = address_to_verification_key(buyer)
+        expect must_be_signed_by(self, buyer_vk)
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
             |> list.head()
         expect InlineDatum(maybe_new_datum) = output.datum
         expect new_datum: Datum = maybe_new_datum
-        expect must_be_signed_by(self, buyer)
 
         //expect the locked value to be preserved
         expect output_value_is_preserved(input.output.value, output.value)
@@ -229,9 +285,14 @@ validator vested_pay(
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
-          new_datum.reference_id == reference_id,
+          new_datum.reference_key == reference_key,
+          new_datum.reference_signature == reference_signature,
+          new_datum.seller_nonce == seller_nonce,
+          new_datum.buyer_nonce == buyer_nonce,
+          new_datum.collateral_return_lovelace == collateral_return_lovelace,
           new_datum.input_hash == input_hash,
           new_datum.result_hash == result_hash,
+          new_datum.pay_by_time == pay_by_time,
           new_datum.submit_result_time == submit_result_time,
           new_datum.unlock_time == unlock_time,
           new_datum.external_dispute_unlock_time == external_dispute_unlock_time,
@@ -261,14 +322,15 @@ validator vested_pay(
         list.length(signedBy) >= required_admins_multi_sig
       }
       SubmitResult -> {
+        expect Some(seller_vk) = address_to_verification_key(seller)
+        expect must_be_signed_by(self, seller_vk)
+
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
             |> list.head()
         expect InlineDatum(maybe_new_datum) = output.datum
         expect new_datum: Datum = maybe_new_datum
-
-        expect must_be_signed_by(self, seller)
 
         expect or {
             must_end_before(validity_range, submit_result_time),
@@ -293,7 +355,12 @@ validator vested_pay(
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
-          new_datum.reference_id == reference_id,
+          new_datum.reference_key == reference_key,
+          new_datum.reference_signature == reference_signature,
+          new_datum.seller_nonce == seller_nonce,
+          new_datum.buyer_nonce == buyer_nonce,
+          new_datum.collateral_return_lovelace == collateral_return_lovelace,
+          new_datum.pay_by_time == pay_by_time,
           new_datum.unlock_time == unlock_time,
           new_datum.input_hash == input_hash,
           new_datum.submit_result_time == submit_result_time,
@@ -305,13 +372,15 @@ validator vested_pay(
       }
 
       AuthorizeRefund -> {
+        expect Some(seller_vk) = address_to_verification_key(seller)
+        expect must_be_signed_by(self, seller_vk)
+
         expect Some(output) =
           self.outputs
             |> list.filter(fn(output) { output.address == count_script_address })
             |> list.head()
         expect InlineDatum(maybe_new_datum) = output.datum
         expect new_datum: Datum = maybe_new_datum
-        expect must_be_signed_by(self, seller)
 
         //expect the locked value to be preserved
         expect output_value_is_preserved(input.output.value, output.value)
@@ -323,7 +392,12 @@ validator vested_pay(
         and {
           new_datum.buyer == buyer,
           new_datum.seller == seller,
-          new_datum.reference_id == reference_id,
+          new_datum.reference_key == reference_key,
+          new_datum.reference_signature == reference_signature,
+          new_datum.seller_nonce == seller_nonce,
+          new_datum.buyer_nonce == buyer_nonce,
+          new_datum.collateral_return_lovelace == collateral_return_lovelace,
+          new_datum.pay_by_time == pay_by_time,
           new_datum.submit_result_time == submit_result_time,
           new_datum.input_hash == input_hash,
           new_datum.unlock_time == unlock_time,
@@ -341,7 +415,7 @@ validator vested_pay(
   }
 }
 
-fn validate_no_reference_script_attacked_to_script(
+fn validate_no_reference_script_attached_to_script(
   output: Output,
   script_address: Address,
 ) -> Bool {
@@ -623,4 +697,11 @@ test must_end_before_fail_if_infinite() {
     },
     3,
   ) == False
+}
+
+fn address_to_verification_key(address: Address) -> Option<VerificationKeyHash> {
+  when address.payment_credential is {
+    VerificationKey(vkey) -> Some(vkey)
+    _ -> None
+  }
 }

@@ -28,6 +28,7 @@ export const authorizePaymentRefundSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -115,7 +116,7 @@ export const authorizePaymentRefundEndpointPost =
             },
           },
           onChainState: {
-            in: [OnChainState.RefundRequested, OnChainState.Disputed],
+            in: [OnChainState.Disputed],
           },
         },
         include: {
@@ -136,7 +137,7 @@ export const authorizePaymentRefundEndpointPost =
       });
 
       if (payment == null) {
-        throw createHttpError(404, 'Payment not found');
+        throw createHttpError(404, 'Payment not found or in invalid state');
       }
       if (payment.PaymentSource == null) {
         throw createHttpError(404, 'Payment has no payment source');
@@ -188,6 +189,7 @@ export const authorizePaymentRefundEndpointPost =
       return {
         ...result,
         submitResultTime: result.submitResultTime.toString(),
+        payByTime: result.payByTime?.toString() ?? null,
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
         RequestedFunds: (

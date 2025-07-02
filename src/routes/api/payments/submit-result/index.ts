@@ -20,7 +20,9 @@ export const submitPaymentResultSchemaInput = z.object({
   submitResultHash: z
     .string()
     .max(250)
-    .describe('The hash of the AI agent result to be submitted'),
+    .describe(
+      'The hash of the AI agent result to be submitted, should be sha256 hash of the result, therefore needs to be in hex string format',
+    ),
   blockchainIdentifier: z
     .string()
     .max(8000)
@@ -32,6 +34,7 @@ export const submitPaymentResultSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -138,7 +141,7 @@ export const submitPaymentResultEndpointPost =
         },
       });
       if (payment == null) {
-        throw createHttpError(404, 'Payment not found');
+        throw createHttpError(404, 'Payment not found or in invalid state');
       }
       if (payment.PaymentSource == null) {
         throw createHttpError(404, 'Payment has no payment source');
@@ -188,6 +191,7 @@ export const submitPaymentResultEndpointPost =
 
       return {
         ...result,
+        payByTime: result.payByTime?.toString() ?? null,
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),

@@ -4,10 +4,24 @@ import {
   IFetcher,
   LanguageVersion,
   MeshTxBuilder,
+  mOutputReference,
   Network,
   UTxO,
 } from '@meshsdk/core';
 import { resolvePlutusScriptAddress } from '@meshsdk/core-cst';
+import { convertNetworkToId } from '../../converter/network-convert';
+import { Network as PrismaNetwork } from '@prisma/client';
+
+function convertMeshNetworkToPrismaNetwork(network: Network): PrismaNetwork {
+  switch (network) {
+    case 'mainnet':
+      return 'Mainnet';
+    case 'preprod':
+      return 'Preprod';
+    default:
+      throw new Error(`Unsupported network: ${network}`);
+  }
+}
 
 export async function generateMasumiSmartContractInteractionTransaction(
   type: 'AuthorizeRefund' | 'CancelRefund' | 'RequestRefund' | 'SubmitResult',
@@ -59,7 +73,10 @@ export async function generateMasumiSmartContractInteractionTransaction(
     )
     .setTotalCollateral('5000000')
     .txOut(
-      resolvePlutusScriptAddress(script, 0),
+      resolvePlutusScriptAddress(
+        script,
+        convertNetworkToId(convertMeshNetworkToPrismaNetwork(network)),
+      ),
       smartContractUtxo.output.amount,
     )
     .txOutInlineDatumValue(newInlineDatum);
@@ -142,6 +159,14 @@ export async function generateMasumiSmartContractWithdrawTransaction(
   fee: {
     feeAssets: Asset[];
     feeAddress: string;
+    txHash: string;
+    outputIndex: number;
+  } | null,
+  collateralReturn: {
+    lovelace: bigint;
+    address: string;
+    txHash: string;
+    outputIndex: number;
   } | null,
   invalidBefore: number,
   invalidAfter: number,
@@ -186,7 +211,24 @@ export async function generateMasumiSmartContractWithdrawTransaction(
   }
 
   if (fee) {
-    txBuilder.txOut(fee.feeAddress, fee.feeAssets);
+    const outputReference = mOutputReference(fee.txHash, fee.outputIndex);
+    txBuilder
+      .txOut(fee.feeAddress, fee.feeAssets)
+      .txOutInlineDatumValue(outputReference);
+  }
+  if (collateralReturn != null && collateralReturn.lovelace > 0n) {
+    const outputReference = mOutputReference(
+      collateralReturn.txHash,
+      collateralReturn.outputIndex,
+    );
+    txBuilder
+      .txOut(collateralReturn.address, [
+        {
+          unit: 'lovelace',
+          quantity: collateralReturn.lovelace.toString(),
+        },
+      ])
+      .txOutInlineDatumValue(outputReference);
   }
 
   return await txBuilder

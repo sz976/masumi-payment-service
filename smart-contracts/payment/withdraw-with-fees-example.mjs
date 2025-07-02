@@ -11,6 +11,7 @@ import {
   applyParamsToScript,
   resolveStakeKeyHash,
   conStr,
+  mOutputReference,
 } from '@meshsdk/core';
 import fs from 'node:fs';
 import 'dotenv/config';
@@ -36,7 +37,6 @@ const blueprint = JSON.parse(fs.readFileSync('./plutus.json'));
 const admin1 = fs.readFileSync('wallet_3.addr').toString();
 const admin2 = fs.readFileSync('wallet_4.addr').toString();
 const admin3 = fs.readFileSync('wallet_5.addr').toString();
-
 
 const script = {
   code: applyParamsToScript(blueprint.validators[0].compiledCode, [
@@ -91,7 +91,7 @@ async function fetchUtxo(txHash) {
 }
 
 const utxo = await fetchUtxo(
-  'de443e766353e401ffa32248719a460a985a4a2c6a366b6e0a725c65938da30d',
+  '56e32326caa6ff4fac96a33c576120a061bfac94c7d47cba90100992618946ca',
 );
 
 if (!utxo) {
@@ -109,14 +109,6 @@ if (!utxoDatum) {
   throw new Error('No datum found in UTXO');
 }
 
-const decodedDatum = cbor.decode(Buffer.from(utxoDatum, 'hex'));
-if (typeof decodedDatum.value[5] !== 'number') {
-  throw new Error('Invalid datum at position 4');
-}
-if (typeof decodedDatum.value[6] !== 'number') {
-  throw new Error('Invalid datum at position 5');
-}
-
 const redeemer = {
   data: {
     alternative: 0,
@@ -129,6 +121,11 @@ const invalidBefore =
 const invalidAfter =
   unixTimeToEnclosingSlot(Date.now() + 150000, SLOT_CONFIG_NETWORK.preprod) + 1;
 
+const outputReference1 = mOutputReference(
+  '56e32326caa6ff4fac96a33c576120a061bfac94c7d47cba90100992618946ca',
+  0,
+);
+
 const unsignedTx = new Transaction({ initiator: wallet, fetcher: koios })
   .redeemValue({
     value: utxo,
@@ -138,9 +135,23 @@ const unsignedTx = new Transaction({ initiator: wallet, fetcher: koios })
   .sendLovelace(
     {
       address: admin1,
+      datum: {
+        value: outputReference1,
+        inline: true,
+      },
     },
     //set to 5% of lovelace
     '2500000',
+  )
+  .sendLovelace(
+    {
+      address: buyerAddress,
+      datum: {
+        value: outputReference1,
+        inline: true,
+      },
+    },
+    '4000000',
   )
   .setChangeAddress(address)
   .setRequiredSigners([address]);

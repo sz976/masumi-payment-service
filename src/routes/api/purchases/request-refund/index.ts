@@ -30,6 +30,7 @@ export const requestPurchaseRefundSchemaOutput = z.object({
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
   lastCheckedAt: z.date().nullable(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -203,6 +204,7 @@ export const requestPurchaseRefundPost = payAuthenticatedEndpointFactory.build({
     return {
       ...result,
       submitResultTime: result.submitResultTime.toString(),
+      payByTime: result.payByTime?.toString() ?? null,
       unlockTime: result.unlockTime.toString(),
       externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
       PaidFunds: (
