@@ -7,7 +7,7 @@ import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Plus } from 'lucide-react';
-import { cn, shortenAddress } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
   getPaymentSource,
@@ -36,11 +36,11 @@ type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
-      type: 'Purchasing';
-    })
+    type: 'Purchasing';
+  })
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
-      type: 'Selling';
-    });
+    type: 'Selling';
+  });
 type WalletWithBalance = Wallet & {
   balance: string;
   usdmBalance: string;
