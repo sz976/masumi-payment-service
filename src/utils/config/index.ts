@@ -82,10 +82,17 @@ const autoDecisionInterval = Number(process.env.AUTO_DECISION_INTERVAL ?? '30');
 if (autoDecisionInterval < 5)
   throw new Error('AUTO_DECISION_INTERVAL must be at least 5 seconds');
 
+const blockConfirmationsThreshold = Number(
+  process.env.BLOCK_CONFIRMATIONS_THRESHOLD ?? '2',
+);
+if (blockConfirmationsThreshold < 1)
+  throw new Error('BLOCK_CONFIRMATIONS_THRESHOLD must be at least 1');
+
 export const CONFIG = {
   PORT: process.env.PORT ?? '3001',
   DATABASE_URL: process.env.DATABASE_URL,
   BATCH_PAYMENT_INTERVAL: batchPaymentInterval,
+  BLOCK_CONFIRMATIONS_THRESHOLD: blockConfirmationsThreshold,
   CHECK_TX_INTERVAL: checkTxInterval,
   CHECK_COLLECTION_INTERVAL: checkCollectionInterval,
   CHECK_COLLECT_REFUND_INTERVAL: checkCollectRefundInterval,
@@ -104,7 +111,7 @@ export const CONFIG = {
 };
 
 export const DEFAULTS = {
-  TX_TIMEOUT_INTERVAL: 1000 * 60 * 5, // 5 minutes in seconds
+  TX_TIMEOUT_INTERVAL: 1000 * 60 * 7, // 7 minutes in seconds
   LOCK_TIMEOUT_INTERVAL: 1000 * 60 * 3, // 3 minutes in seconds
   DEFAULT_METADATA_VERSION: 1,
   DEFAULT_IMAGE: 'ipfs://QmXXW7tmBgpQpXoJMAMEXXFe9dyQcrLFKGuzxnHDnbKC7f',
