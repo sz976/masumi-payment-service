@@ -49,9 +49,9 @@ const priceSchema = z.object({
 });
 
 const exampleOutputSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().max(60, 'Name must be less than 60 characters').min(1, 'Name is required'),
   url: z.string().url('URL must be a valid URL').min(1, 'URL is required'),
-  mimeType: z.string().min(1, 'MIME type is required'),
+  mimeType: z.string().max(60, 'MIME type must be less than 60 characters').min(1, 'MIME type is required'),
 });
 
 const agentSchema = z.object({
@@ -69,37 +69,40 @@ const agentSchema = z.object({
   tags: z.array(z.string().min(1)).min(1, 'At least one tag is required'),
 
   // Additional Fields
-  authorName: z.string().optional().or(z.literal('')),
+  authorName: z.string().max(250, 'Author name must be less than 250 characters').optional().or(z.literal('')),
   authorEmail: z
     .string()
     .email('Author email must be a valid email')
+    .max(250, 'Author email must be less than 250 characters')
     .optional()
     .or(z.literal('')),
-  organization: z.string().optional().or(z.literal('')),
-  websiteUrl: z
-    .string()
-    .url('Website URL must be a valid URL')
+  organization: z.string().max(250, 'Organization must be less than 250 characters').optional().or(z.literal('')),
+  contactOther: z
+    .string().max(250, 'Contact other must be less than 250 characters')
     .optional()
     .or(z.literal('')),
 
   termsOfUseUrl: z
     .string()
     .url('Terms of use URL must be a valid URL')
+    .max(250, 'Terms of use URL must be less than 250 characters')
     .optional()
     .or(z.literal('')),
   privacyPolicyUrl: z
     .string()
     .url('Privacy policy URL must be a valid URL')
+    .max(250, 'Privacy policy URL must be less than 250 characters')
     .optional()
     .or(z.literal('')),
-  supportUrl: z
+  otherUrl: z
     .string()
-    .url('Support URL must be a valid URL')
+    .url('Other URL must be a valid URL')
+    .max(250, 'Other URL must be less than 250 characters')
     .optional()
     .or(z.literal('')),
 
-  capabilityName: z.string().optional().or(z.literal('')),
-  capabilityVersion: z.string().optional().or(z.literal('')),
+  capabilityName: z.string().max(250, 'Capability name must be less than 250 characters').optional().or(z.literal('')),
+  capabilityVersion: z.string().max(250, 'Capability version must be less than 250 characters').optional().or(z.literal('')),
 
   exampleOutputs: z.array(exampleOutputSchema).optional(),
 });
@@ -135,10 +138,10 @@ export function RegisterAIAgentDialog({
       authorName: '',
       authorEmail: '',
       organization: '',
-      websiteUrl: '',
+      contactOther: '',
       termsOfUseUrl: '',
       privacyPolicyUrl: '',
-      supportUrl: '',
+      otherUrl: '',
       capabilityName: '',
       capabilityVersion: '',
       exampleOutputs: [],
@@ -218,7 +221,7 @@ export function RegisterAIAgentDialog({
         } = {};
         if (data.privacyPolicyUrl) legal.privacyPolicy = data.privacyPolicyUrl;
         if (data.termsOfUseUrl) legal.terms = data.termsOfUseUrl;
-        if (data.supportUrl) legal.other = data.supportUrl;
+        if (data.otherUrl) legal.other = data.otherUrl;
 
         const author: {
           name: string;
@@ -229,15 +232,15 @@ export function RegisterAIAgentDialog({
           name: data.authorName || 'Default Author', // Default in case it's empty
         };
         if (data.authorEmail) author.contactEmail = data.authorEmail;
-        if (data.websiteUrl) author.contactOther = data.websiteUrl;
+        if (data.contactOther) author.contactOther = data.contactOther;
         if (data.organization) author.organization = data.organization;
 
         const capability =
           data.capabilityName && data.capabilityVersion
             ? {
-                name: data.capabilityName,
-                version: data.capabilityVersion,
-              }
+              name: data.capabilityName,
+              version: data.capabilityVersion,
+            }
             : { name: 'Custom Agent', version: '1.0.0' };
 
         const response = await postRegistry({
@@ -560,15 +563,15 @@ export function RegisterAIAgentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Website URL</label>
+            <label className="text-sm font-medium">Contact Other (Website, Phone...)</label>
             <Input
-              {...register('websiteUrl')}
-              placeholder="Enter the website URL"
-              className={errors.websiteUrl ? 'border-red-500' : ''}
+              {...register('contactOther')}
+              placeholder="Enter other contact"
+              className={errors.contactOther ? 'border-red-500' : ''}
             />
-            {errors.websiteUrl && (
+            {errors.contactOther && (
               <p className="text-sm text-red-500">
-                {errors.websiteUrl.message}
+                {errors.contactOther.message}
               </p>
             )}
           </div>
@@ -602,15 +605,15 @@ export function RegisterAIAgentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Support URL</label>
+            <label className="text-sm font-medium">Other URL (Support...)</label>
             <Input
-              {...register('supportUrl')}
-              placeholder="Enter the support URL"
-              className={errors.supportUrl ? 'border-red-500' : ''}
+              {...register('otherUrl')}
+              placeholder="Enter the other URL"
+              className={errors.otherUrl ? 'border-red-500' : ''}
             />
-            {errors.supportUrl && (
+            {errors.otherUrl && (
               <p className="text-sm text-red-500">
-                {errors.supportUrl.message}
+                {errors.otherUrl.message}
               </p>
             )}
           </div>
