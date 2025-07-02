@@ -6,19 +6,20 @@ import { useAppContext } from '@/lib/contexts/AppContext';
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ChevronRight, Plus } from 'lucide-react';
+import { cn, shortenAddress } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
   getPaymentSource,
   GetPaymentSourceResponses,
   getRegistry,
   getUtxos,
+  GetRegistryResponses,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
-import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
+import { RegisterAIAgentDialog } from '@/components/ai-agents/RegisterAIAgentDialog';
 import { SwapDialog } from '@/components/wallets/SwapDialog';
 import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { useRate } from '@/lib/hooks/useRate';
@@ -31,26 +32,7 @@ import { WalletDetailsDialog } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
 import { USDM_CONFIG, TESTUSDM_CONFIG } from '@/lib/constants/defaultWallets';
 
-interface AIAgent {
-  id: string;
-  name: string;
-  description: string | null;
-  state: string;
-  createdAt: string;
-  updatedAt: string;
-  agentIdentifier: string | null;
-  Tags: string[];
-  SmartContractWallet: {
-    walletAddress: string;
-    walletVkey: string;
-  };
-  AgentPricing?: {
-    Pricing?: Array<{
-      amount: string;
-      unit: string;
-    }>;
-  };
-}
+type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -82,8 +64,9 @@ export default function Overview() {
   const [isLoadingWallets, setIsLoadingWallets] = useState(true);
   const [totalBalance, setTotalBalance] = useState('0');
   const [totalUsdmBalance, setTotalUsdmBalance] = useState('0');
-  const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
-  const [isAddAgentDialogOpen, setIsAddAgentDialogOpen] = useState(false);
+  const [isAddWalletDialogOpen, setAddWalletDialogOpen] = useState(false);
+  const [isRegisterAgentDialogOpen, setRegisterAgentDialogOpen] =
+    useState(false);
   const [selectedWalletForSwap, setSelectedWalletForSwap] =
     useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
@@ -108,25 +91,20 @@ export default function Overview() {
           setIsLoadingMore(true);
         }
 
-        const selectedPaymentSource =
-          state.paymentSources?.find(
-            (ps) => ps.id === selectedPaymentSourceId,
-          ) || state.paymentSources?.[0];
+        const selectedPaymentSource = state.paymentSources?.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
         const smartContractAddress =
-          selectedPaymentSource?.smartContractAddress || '';
-
-        if (!smartContractAddress) {
-          toast.error('No smart contract address found');
-          setIsLoadingAgents(false);
-          setIsLoadingMore(false);
-          return;
-        }
+          selectedPaymentSource?.smartContractAddress ?? null;
 
         const response = await getRegistry({
           client: apiClient,
           query: {
             network: state.network,
             cursorId: cursor || undefined,
+            filterSmartContractAddress: smartContractAddress
+              ? smartContractAddress
+              : undefined,
           },
         });
 
@@ -208,17 +186,25 @@ export default function Overview() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource =
-          response.data.data.PaymentSources.find(
-            (source) => source.id === selectedPaymentSourceId,
-          ) || response.data.data.PaymentSources[0];
-        if (paymentSource) {
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (source) =>
+            selectedPaymentSourceId
+              ? source.id === selectedPaymentSourceId
+              : true,
+        );
+        const purchasingWallets = paymentSources
+          .map((source) => source.PurchasingWallets)
+          .flat();
+        const sellingWallets = paymentSources
+          .map((source) => source.SellingWallets)
+          .flat();
+        if (paymentSources.length > 0) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map((wallet) => ({
+            ...purchasingWallets.map((wallet) => ({
               ...wallet,
               type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map((wallet) => ({
+            ...sellingWallets.map((wallet) => ({
               ...wallet,
               type: 'Selling' as const,
             })),
@@ -324,6 +310,24 @@ export default function Overview() {
           </div>
           <p className="text-sm text-muted-foreground">
             Overview of your AI agents, wallets, and transactions.
+          </p>
+          <p className="text-xs text-muted-foreground mt-5">
+            Showing data for{' '}
+            {selectedPaymentSourceId
+              ? shortenAddress(
+                  state.paymentSources.find(
+                    (source) => source.id === selectedPaymentSourceId,
+                  )?.smartContractAddress ?? 'invalid',
+                )
+              : 'all payment sources'}
+            . This can be changed in the{' '}
+            <Link
+              href="/payment-sources"
+              className="text-primary hover:underline"
+            >
+              payment sources
+            </Link>{' '}
+            page.
           </p>
         </div>
 
@@ -496,18 +500,12 @@ export default function Overview() {
 
               <div className="flex items-center justify-between">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-sm font-normal"
-                  onClick={() => setIsAddAgentDialogOpen(true)}
+                  className="flex items-center gap-2"
+                  onClick={() => setRegisterAgentDialogOpen(true)}
                 >
-                  + Add AI agent
+                  <Plus className="h-4 w-4" />
+                  Register agent
                 </Button>
-                {/* <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">
-                    Total: {agents.length}
-                  </span>
-                </div> */}
               </div>
             </div>
           </div>
@@ -527,178 +525,195 @@ export default function Overview() {
               </p>
 
               <div className="mb-4">
-                <div className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 text-sm text-muted-foreground mb-2">
-                  <div className="truncate">Type</div>
-                  <div className="truncate">Name</div>
-                  <div className="truncate">Address</div>
-                  <div className="text-left truncate">Balance</div>
-                </div>
-
                 {isLoadingWallets ? (
                   <Spinner size={20} addContainer />
                 ) : (
-                  <div className="mb-4 max-h-[500px] overflow-y-auto">
-                    {wallets.slice(0, 4).map((wallet) => (
-                      <div
-                        key={wallet.id}
-                        className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
-                        onClick={() => setSelectedWalletForDetails(wallet)}
-                      >
-                        <div className="truncate">
-                          <span
-                            className={cn(
-                              'text-xs font-medium px-2 py-0.5 rounded-full',
-                              wallet.type === 'Purchasing'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
-                            )}
+                  <div className="mb-4 max-h-[500px] overflow-y-auto overflow-x-auto w-full">
+                    <table className="w-full">
+                      <thead className="sticky top-0 bg-background z-10">
+                        <tr className="text-sm text-muted-foreground border-b">
+                          <th className="text-left py-2 px-2 w-20">Type</th>
+                          <th className="text-left py-2 px-2">Name</th>
+                          <th className="text-left py-2 px-2">Address</th>
+                          <th className="text-left py-2 px-2">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {wallets.map((wallet) => (
+                          <tr
+                            key={wallet.id}
+                            className="border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                            onClick={() => setSelectedWalletForDetails(wallet)}
                           >
-                            {wallet.type === 'Purchasing'
-                              ? 'Buying'
-                              : 'Selling'}
-                          </span>
-                        </div>
-                        <div className="truncate">
-                          <div className="text-sm font-medium truncate">
-                            {wallet.type === 'Purchasing'
-                              ? 'Buying wallet'
-                              : 'Selling wallet'}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {wallet.note || 'Created by seeding'}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {wallet.walletAddress.slice(0, 12)}...
-                          </span>
-                          <CopyButton value={wallet.walletAddress} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col items-start">
-                            <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance(
-                                (parseInt(wallet.balance || '0') / 1000000)
-                                  .toFixed(2)
-                                  ?.toString(),
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                ADA
+                            <td className="py-3 px-2">
+                              <span
+                                className={cn(
+                                  'text-xs font-medium px-2 py-0.5 rounded-full',
+                                  wallet.type === 'Purchasing'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-orange-50 dark:bg-[#f002] text-orange-600 dark:text-orange-400',
+                                )}
+                              >
+                                {wallet.type === 'Purchasing'
+                                  ? 'Buying'
+                                  : 'Selling'}
                               </span>
-                            </span>
-                            <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance(
-                                (parseInt(wallet.usdmBalance || '0') / 1000000)
-                                  .toFixed(2)
-                                  ?.toString(),
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                USDM
-                              </span>
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedWalletForSwap(wallet);
-                              }}
-                            >
-                              <FaExchangeAlt className="h-2 w-2" />
-                            </Button>
-                            <Button
-                              variant="muted"
-                              className="h-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedWalletForTopup(wallet);
-                              }}
-                            >
-                              Top Up
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                            </td>
+                            <td className="py-3 px-2 max-w-[100px]">
+                              <div className="text-sm font-medium truncate">
+                                {wallet.type === 'Purchasing'
+                                  ? 'Buying wallet'
+                                  : 'Selling wallet'}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {wallet.note || 'Created by seeding'}
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 max-w-[100px]">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs text-muted-foreground truncate">
+                                  {wallet.walletAddress}
+                                </span>
+                                <CopyButton value={wallet.walletAddress} />
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 w-32">
+                              <div className="text-xs flex items-center gap-1">
+                                {useFormatBalance(
+                                  (parseInt(wallet.balance || '0') / 1000000)
+                                    .toFixed(2)
+                                    ?.toString(),
+                                )}{' '}
+                                <span className="text-xs text-muted-foreground">
+                                  ADA
+                                </span>
+                              </div>
+                              <div className="text-xs flex items-center gap-1">
+                                {useFormatBalance(
+                                  (
+                                    parseInt(wallet.usdmBalance || '0') /
+                                    1000000
+                                  )
+                                    .toFixed(2)
+                                    ?.toString(),
+                                )}{' '}
+                                <span className="text-xs text-muted-foreground">
+                                  USDM
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 w-32">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedWalletForSwap(wallet);
+                                  }}
+                                >
+                                  <FaExchangeAlt className="h-2 w-2" />
+                                </Button>
+                                <Button
+                                  variant="muted"
+                                  className="h-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedWalletForTopup(wallet);
+                                  }}
+                                >
+                                  Top Up
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
 
-                    {/* Collection Wallet Section */}
-                    {wallets.map((wallet) => {
-                      if (!wallet.collectionAddress) return null;
-                      return (
-                        <div
-                          key={`collection-${wallet.id}`}
-                          className="grid grid-cols-[80px_1fr_1.5fr_230px] gap-4 items-center py-3 border-b last:border-0 cursor-pointer hover:bg-muted/10"
-                          onClick={() =>
-                            setSelectedWalletForDetails({
-                              ...wallet,
-                              walletAddress: wallet.collectionAddress!,
-                              type: 'Collection' as any,
-                              balance: wallet.collectionBalance?.ada || '0',
-                              usdmBalance:
-                                wallet.collectionBalance?.usdm || '0',
-                            })
-                          }
-                        >
-                          <div className="truncate">
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                              Collection
-                            </span>
-                          </div>
-                          <div className="truncate">
-                            <div className="text-xs font-medium truncate">
-                              Collection wallet
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {wallet.note && `${wallet.note}`}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {wallet.collectionAddress.slice(0, 12)}...
-                            </span>
-                            <CopyButton value={wallet.collectionAddress!} />
-                          </div>
-                          <div className="flex flex-col items-start truncate">
-                            <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance(
-                                (
-                                  parseInt(
-                                    wallet.collectionBalance?.ada || '0',
-                                  ) / 1000000
-                                )
-                                  .toFixed(2)
-                                  ?.toString(),
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                ADA
-                              </span>
-                            </span>
-                            <span className="text-sm flex items-center gap-1">
-                              {useFormatBalance(
-                                (
-                                  parseInt(
+                        {/* Collection Wallet Rows */}
+                        {wallets.map((wallet) => {
+                          if (!wallet.collectionAddress) return null;
+                          return (
+                            <tr
+                              key={`collection-${wallet.id}`}
+                              className="border-b last:border-0 cursor-pointer hover:bg-muted/10"
+                              onClick={() =>
+                                setSelectedWalletForDetails({
+                                  ...wallet,
+                                  walletAddress: wallet.collectionAddress!,
+                                  type: 'Collection' as any,
+                                  balance: wallet.collectionBalance?.ada || '0',
+                                  usdmBalance:
                                     wallet.collectionBalance?.usdm || '0',
-                                  ) / 1000000
-                                )
-                                  .toFixed(2)
-                                  ?.toString(),
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                USDM
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                                })
+                              }
+                            >
+                              <td className="py-3 px-2">
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                  Collection
+                                </span>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="text-sm font-medium truncate max-w-[100px]">
+                                  Collection wallet
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {wallet.note && `${wallet.note}`}
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="flex items-center gap-2 max-w-[100px]">
+                                  <span className="font-mono text-xs text-muted-foreground truncate">
+                                    {wallet.collectionAddress!}
+                                  </span>
+                                  <CopyButton
+                                    value={wallet.collectionAddress!}
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="text-xs flex items-center gap-1">
+                                  {useFormatBalance(
+                                    (
+                                      parseInt(
+                                        wallet.collectionBalance?.ada || '0',
+                                      ) / 1000000
+                                    )
+                                      .toFixed(2)
+                                      ?.toString(),
+                                  )}
+                                  <span className="text-xs text-muted-foreground">
+                                    ADA
+                                  </span>
+                                </div>
+                                <div className="text-xs flex items-center gap-1">
+                                  {useFormatBalance(
+                                    (
+                                      parseInt(
+                                        wallet.collectionBalance?.usdm || '0',
+                                      ) / 1000000
+                                    )
+                                      .toFixed(2)
+                                      ?.toString(),
+                                  )}
+                                  <span className="text-xs text-muted-foreground">
+                                    USDM
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-2 w-32">
+                                {/* No actions for collection wallets */}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
 
                     {/* Show add collection wallet message if no collection addresses exist */}
                     {!wallets.some((w) => w.collectionAddress) && (
                       <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-[#0002] dark:border-blue-500/20 p-4 my-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
                           <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                             <div className="text-sm">
                               Add a collection wallet to manage your funds more
@@ -708,7 +723,7 @@ export default function Overview() {
                           <Button
                             variant="outline"
                             className="border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/10"
-                            onClick={() => setIsAddWalletDialogOpen(true)}
+                            onClick={() => setAddWalletDialogOpen(true)}
                           >
                             Add collection wallet
                           </Button>
@@ -724,7 +739,7 @@ export default function Overview() {
                   variant="outline"
                   size="sm"
                   className="h-8 px-3 text-sm font-normal"
-                  onClick={() => setIsAddWalletDialogOpen(true)}
+                  onClick={() => setAddWalletDialogOpen(true)}
                 >
                   + Add wallet
                 </Button>
@@ -743,14 +758,15 @@ export default function Overview() {
 
       <AddWalletDialog
         open={isAddWalletDialogOpen}
-        onClose={() => setIsAddWalletDialogOpen(false)}
-        onSuccess={fetchWallets}
+        onClose={() => setAddWalletDialogOpen(false)}
       />
 
-      <AddAIAgentDialog
-        open={isAddAgentDialogOpen}
-        onClose={() => setIsAddAgentDialogOpen(false)}
-        onSuccess={fetchAgents}
+      <RegisterAIAgentDialog
+        open={isRegisterAgentDialogOpen}
+        onClose={() => setRegisterAgentDialogOpen(false)}
+        onSuccess={() => {
+          // TODO: we can refresh data here
+        }}
       />
 
       <AIAgentDetailsDialog

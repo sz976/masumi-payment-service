@@ -28,6 +28,7 @@ import { deserializeDatum } from '@meshsdk/core';
 import { SmartContractState } from '@/utils/generator/contract-generator';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
 import { resolvePaymentKeyHash } from '@meshsdk/core';
+import { CONFIG } from '@/utils/config';
 
 const mutex = new Mutex();
 
@@ -77,6 +78,10 @@ export async function checkLatestTransactions(
           );
 
           for (const tx of txData) {
+            if (tx.block.confirmations < CONFIG.BLOCK_CONFIRMATIONS_THRESHOLD) {
+              break;
+            }
+
             try {
               const valueInputs = tx.utxos.inputs.filter((x) => {
                 return x.address == paymentContract.smartContractAddress;
@@ -1274,6 +1279,7 @@ async function getExtendedTxInformation(
   const txData: Array<{
     blockTime: number;
     tx: { tx_hash: string };
+    block: { confirmations: number };
     utxos: {
       hash: string;
       inputs: Array<{
@@ -1308,13 +1314,21 @@ async function getExtendedTxInformation(
 
     const txDataBatch = await advancedRetryAll({
       operations: txBatch.map((tx) => async () => {
+        const txDetails = await blockfrost.txs(tx.tx_hash);
+        let block: { confirmations: number } = { confirmations: 0 };
+        if (CONFIG.BLOCK_CONFIRMATIONS_THRESHOLD > 0) {
+          block = await blockfrost.blocks(txDetails.block);
+        }
+
         const cbor = await blockfrost.txsCbor(tx.tx_hash);
         const utxos = await blockfrost.txsUtxos(tx.tx_hash);
+
         const transaction = Transaction.from_bytes(
           Buffer.from(cbor.cbor, 'hex'),
         );
         return {
           tx: tx,
+          block: block,
           utxos: utxos,
           transaction: transaction,
           blockTime: tx.block_time,

@@ -16,6 +16,7 @@ import {
   GetPaymentSourceResponses,
   getUtxos,
   GetUtxosResponses,
+  getWallet,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +33,8 @@ import {
   WalletWithBalance as BaseWalletWithBalance,
 } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { BadgeWithTooltip } from '@/components/ui/badge-with-tooltip';
+import { TOOLTIP_TEXTS } from '@/lib/constants/tooltips';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -171,16 +174,26 @@ export default function WalletsPage() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources.find(
-          (source) => source.id === selectedPaymentSourceId,
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (source) =>
+            selectedPaymentSourceId
+              ? source.id === selectedPaymentSourceId
+              : true,
         );
-        if (paymentSource) {
+        const purchasingWallets = paymentSources
+          .map((source) => source.PurchasingWallets)
+          .flat();
+        const sellingWallets = paymentSources
+          .map((source) => source.SellingWallets)
+          .flat();
+
+        if (paymentSources.length > 0) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map((wallet) => ({
+            ...purchasingWallets.map((wallet) => ({
               ...wallet,
               type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map((wallet) => ({
+            ...sellingWallets.map((wallet) => ({
               ...wallet,
               type: 'Selling' as const,
             })),
@@ -344,7 +357,15 @@ export default function WalletsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Wallets</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">Wallets</h1>
+              <BadgeWithTooltip
+                text="?"
+                tooltipText={TOOLTIP_TEXTS.WALLETS}
+                variant="outline"
+                className="text-xs w-5 h-5 rounded-full p-0 flex items-center justify-center cursor-help"
+              />
+            </div>
             <p className="text-sm text-muted-foreground">
               Manage your buying and selling wallets.{' '}
               <Link
@@ -380,7 +401,7 @@ export default function WalletsPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b">

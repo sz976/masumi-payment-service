@@ -30,6 +30,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { BadgeWithTooltip } from '@/components/ui/badge-with-tooltip';
+import { TOOLTIP_TEXTS } from '@/lib/constants/tooltips';
 
 interface UpdatePaymentSourceDialogProps {
   open: boolean;
@@ -168,9 +170,9 @@ export default function PaymentSourcesPage() {
   >([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [sourceToSelect, setSourceToSelect] = useState<PaymentSource | null>(
-    null,
-  );
+  const [sourceToSelect, setSourceToSelect] = useState<
+    PaymentSource | null | undefined
+  >(undefined);
 
   const filterPaymentSources = useCallback(() => {
     let filtered = [...paymentSources];
@@ -315,7 +317,15 @@ export default function PaymentSourcesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Payment Sources</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">Payment Sources</h1>
+              <BadgeWithTooltip
+                text="?"
+                tooltipText={TOOLTIP_TEXTS.PAYMENT_SOURCES}
+                variant="outline"
+                className="text-xs w-5 h-5 rounded-full p-0 flex items-center justify-center cursor-help"
+              />
+            </div>
             <p className="text-sm text-muted-foreground">
               Manage your payment sources.{' '}
               <Link
@@ -350,7 +360,7 @@ export default function PaymentSourcesPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border">
+          <div className="rounded-lg border overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
@@ -363,7 +373,7 @@ export default function PaymentSourcesPage() {
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">
+                  <th className="p-4 text-left text-sm font-medium truncate">
                     Contract address
                   </th>
                   <th className="p-4 text-left text-sm font-medium">ID</th>
@@ -371,14 +381,34 @@ export default function PaymentSourcesPage() {
                   <th className="p-4 text-left text-sm font-medium">
                     Payment type
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">
+                  <th className="p-4 text-left text-sm font-medium truncate">
                     Fee rate
                   </th>
-                  <th className="p-4 text-left text-sm font-medium">
+                  <th className="p-4 text-left text-sm font-medium truncate">
                     Created at
                   </th>
                   <th className="p-4 text-left text-sm font-medium">Wallets</th>
-                  <th className="w-20 p-4"></th>
+                  <th className="w-20 p-4">
+                    {' '}
+                    {selectedPaymentSourceId === null ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="text-green-600 border-green-600"
+                      >
+                        All Shown
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSourceToSelect(null)}
+                      >
+                        Show all
+                      </Button>
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -410,7 +440,10 @@ export default function PaymentSourcesPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm">{source.id}</div>
+                        <div className="text-sm flex items-center gap-2">
+                          {shortenAddress(source.id)}
+                          <CopyButton value={source.id} />
+                        </div>
                       </td>
                       <td className="p-4">
                         <div className="text-sm">{source.network}</div>
@@ -430,8 +463,12 @@ export default function PaymentSourcesPage() {
                       </td>
                       <td className="p-4">
                         <div className="text-xs text-muted-foreground">
-                          {source.PurchasingWallets.length} Buying,
-                          <br /> {source.SellingWallets.length} Selling
+                          <span className="block truncate">
+                            {source.PurchasingWallets.length} Buying,
+                          </span>
+                          <span className="block truncate">
+                            {source.SellingWallets.length} Selling
+                          </span>
                         </div>
                       </td>
                       <td className="p-4">
@@ -516,13 +553,14 @@ export default function PaymentSourcesPage() {
         />
 
         <ConfirmDialog
-          open={!!sourceToSelect}
-          onClose={() => setSourceToSelect(null)}
+          open={sourceToSelect !== undefined}
+          onClose={() => setSourceToSelect(undefined)}
           title="Switch Payment Source"
           description="Switching payment source will update the displayed agents, wallets, and related content. Continue?"
           onConfirm={() => {
-            if (sourceToSelect) setSelectedPaymentSourceId(sourceToSelect.id);
-            setSourceToSelect(null);
+            setSelectedPaymentSourceId(sourceToSelect?.id ?? null);
+            console.log('sourceToSelect', sourceToSelect);
+            setSourceToSelect(undefined);
           }}
           isLoading={false}
         />

@@ -23,7 +23,7 @@
         "prisma:seed": "npx prisma db seed",
         "dev": "tsx watch ./src/index.ts",
         "build": "npx prisma generate && pkgroll",
-        "start": "NODE_ENV=production && node ./dist/index.js",
+        "start": "NODE_ENV=production node ./dist/index.js",
         "swagger-json": "export DATABASE_URL=set-mock-db-for-generation && export ENCRYPTION_KEY=set-mock-enc-key-for-generation && tsx ./src/utils/generator/swagger-generator/cli.ts",
         "knip": "knip"
     },

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
+import { RegisterAIAgentDialog } from '@/components/ai-agents/RegisterAIAgentDialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, shortenAddress } from '@/lib/utils';
@@ -59,7 +59,7 @@ const parseAgentStatus = (status: AIAgent['state']): string => {
 
 export default function AIAgentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [allAgents, setAllAgents] = useState<AIAgent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<AIAgent[]>([]);
@@ -139,57 +139,58 @@ export default function AIAgentsPage() {
     setFilteredAgents(filtered);
   }, [allAgents, searchQuery, activeTab]);
 
-  const fetchAgents = async (cursor?: string | null) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllAgents([]);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const selectedPaymentSource = state.paymentSources.find(
-        (ps) => ps.id === selectedPaymentSourceId,
-      );
-      const smartContractAddress =
-        selectedPaymentSource?.smartContractAddress || '';
-
-      if (!smartContractAddress) {
-        toast.error('No smart contract address found');
-        return;
-      }
-
-      const response = await getRegistry({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor || undefined,
-        },
-      });
-
-      if (response.data?.data?.Assets) {
-        const newAgents = response.data.data.Assets;
-        if (cursor) {
-          setAllAgents((prev) => [...prev, ...newAgents]);
-        } else {
-          setAllAgents(newAgents);
-        }
-
-        setHasMore(newAgents.length === 10);
-      } else {
+  const fetchAgents = useCallback(
+    async (cursor?: string | null) => {
+      try {
         if (!cursor) {
+          setIsLoading(true);
           setAllAgents([]);
+        } else {
+          setIsLoadingMore(true);
         }
-        setHasMore(false);
+
+        const selectedPaymentSource = state.paymentSources.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
+        const smartContractAddress =
+          selectedPaymentSource?.smartContractAddress;
+
+        const response = await getRegistry({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: cursor || undefined,
+            filterSmartContractAddress: smartContractAddress
+              ? smartContractAddress
+              : undefined,
+          },
+        });
+
+        if (response.data?.data?.Assets) {
+          const newAgents = response.data.data.Assets;
+          if (cursor) {
+            setAllAgents((prev) => [...prev, ...newAgents]);
+          } else {
+            setAllAgents(newAgents);
+          }
+
+          setHasMore(newAgents.length === 10);
+        } else {
+          if (!cursor) {
+            setAllAgents([]);
+          }
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+        toast.error('Failed to load AI agents');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-      toast.error('Failed to load AI agents');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [apiClient, state.network, selectedPaymentSourceId],
+  );
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && allAgents.length > 0) {
@@ -359,10 +360,10 @@ export default function AIAgentsPage() {
           </div>
           <Button
             className="flex items-center gap-2"
-            onClick={() => setIsAddDialogOpen(true)}
+            onClick={() => setIsRegisterDialogOpen(true)}
           >
             <Plus className="h-4 w-4" />
-            Add AI agent
+            Register AI Agent
           </Button>
         </div>
 
@@ -451,9 +452,9 @@ export default function AIAgentsPage() {
                           onCheckedChange={() => handleSelectAgent(agent.id)}
                         />
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 max-w-[200px] truncate">
                         <div className="text-sm font-medium">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground truncate">
                           {agent.description}
                         </div>
                       </td>
@@ -508,7 +509,7 @@ export default function AIAgentsPage() {
                       </td>
                       <td className="p-4">
                         {agent.Tags.length > 0 && (
-                          <Badge variant="secondary">
+                          <Badge variant="secondary" className="truncate">
                             {agent.Tags.length} tags
                           </Badge>
                         )}
@@ -573,9 +574,9 @@ export default function AIAgentsPage() {
           </div>
         </div>
 
-        <AddAIAgentDialog
-          open={isAddDialogOpen}
-          onClose={() => setIsAddDialogOpen(false)}
+        <RegisterAIAgentDialog
+          open={isRegisterDialogOpen}
+          onClose={() => setIsRegisterDialogOpen(false)}
           onSuccess={fetchAgents}
         />
 
