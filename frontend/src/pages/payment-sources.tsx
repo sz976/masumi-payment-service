@@ -170,9 +170,9 @@ export default function PaymentSourcesPage() {
   >([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [sourceToSelect, setSourceToSelect] = useState<PaymentSource | null>(
-    null,
-  );
+  const [sourceToSelect, setSourceToSelect] = useState<
+    PaymentSource | null | undefined
+  >(undefined);
 
   const filterPaymentSources = useCallback(() => {
     let filtered = [...paymentSources];
@@ -388,7 +388,27 @@ export default function PaymentSourcesPage() {
                     Created at
                   </th>
                   <th className="p-4 text-left text-sm font-medium">Wallets</th>
-                  <th className="w-20 p-4"></th>
+                  <th className="w-20 p-4">
+                    {' '}
+                    {selectedPaymentSourceId === null ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="text-green-600 border-green-600"
+                      >
+                        All Shown
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSourceToSelect(null)}
+                      >
+                        Show all
+                      </Button>
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -533,13 +553,14 @@ export default function PaymentSourcesPage() {
         />
 
         <ConfirmDialog
-          open={!!sourceToSelect}
-          onClose={() => setSourceToSelect(null)}
+          open={sourceToSelect !== undefined}
+          onClose={() => setSourceToSelect(undefined)}
           title="Switch Payment Source"
           description="Switching payment source will update the displayed agents, wallets, and related content. Continue?"
           onConfirm={() => {
-            if (sourceToSelect) setSelectedPaymentSourceId(sourceToSelect.id);
-            setSourceToSelect(null);
+            setSelectedPaymentSourceId(sourceToSelect?.id ?? null);
+            console.log('sourceToSelect', sourceToSelect);
+            setSourceToSelect(undefined);
           }}
           isLoading={false}
         />

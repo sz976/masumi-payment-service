@@ -7,7 +7,7 @@ import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import {
   getPaymentSource,
@@ -91,25 +91,20 @@ export default function Overview() {
           setIsLoadingMore(true);
         }
 
-        const selectedPaymentSource =
-          state.paymentSources?.find(
-            (ps) => ps.id === selectedPaymentSourceId,
-          ) || state.paymentSources?.[0];
+        const selectedPaymentSource = state.paymentSources?.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
         const smartContractAddress =
-          selectedPaymentSource?.smartContractAddress || '';
-
-        if (!smartContractAddress) {
-          toast.error('No smart contract address found');
-          setIsLoadingAgents(false);
-          setIsLoadingMore(false);
-          return;
-        }
+          selectedPaymentSource?.smartContractAddress ?? null;
 
         const response = await getRegistry({
           client: apiClient,
           query: {
             network: state.network,
             cursorId: cursor || undefined,
+            filterSmartContractAddress: smartContractAddress
+              ? smartContractAddress
+              : undefined,
           },
         });
 
@@ -191,17 +186,25 @@ export default function Overview() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource =
-          response.data.data.PaymentSources.find(
-            (source) => source.id === selectedPaymentSourceId,
-          ) || response.data.data.PaymentSources[0];
-        if (paymentSource) {
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (source) =>
+            selectedPaymentSourceId
+              ? source.id === selectedPaymentSourceId
+              : true,
+        );
+        const purchasingWallets = paymentSources
+          .map((source) => source.PurchasingWallets)
+          .flat();
+        const sellingWallets = paymentSources
+          .map((source) => source.SellingWallets)
+          .flat();
+        if (paymentSources.length > 0) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map((wallet) => ({
+            ...purchasingWallets.map((wallet) => ({
               ...wallet,
               type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map((wallet) => ({
+            ...sellingWallets.map((wallet) => ({
               ...wallet,
               type: 'Selling' as const,
             })),
@@ -307,6 +310,24 @@ export default function Overview() {
           </div>
           <p className="text-sm text-muted-foreground">
             Overview of your AI agents, wallets, and transactions.
+          </p>
+          <p className="text-xs text-muted-foreground mt-5">
+            Showing data for{' '}
+            {selectedPaymentSourceId
+              ? shortenAddress(
+                  state.paymentSources.find(
+                    (source) => source.id === selectedPaymentSourceId,
+                  )?.smartContractAddress ?? 'invalid',
+                )
+              : 'all payment sources'}
+            . This can be changed in the{' '}
+            <Link
+              href="/payment-sources"
+              className="text-primary hover:underline"
+            >
+              payment sources
+            </Link>{' '}
+            page.
           </p>
         </div>
 

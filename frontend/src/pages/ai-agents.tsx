@@ -139,57 +139,58 @@ export default function AIAgentsPage() {
     setFilteredAgents(filtered);
   }, [allAgents, searchQuery, activeTab]);
 
-  const fetchAgents = async (cursor?: string | null) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllAgents([]);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const selectedPaymentSource = state.paymentSources.find(
-        (ps) => ps.id === selectedPaymentSourceId,
-      );
-      const smartContractAddress =
-        selectedPaymentSource?.smartContractAddress || '';
-
-      if (!smartContractAddress) {
-        toast.error('No smart contract address found');
-        return;
-      }
-
-      const response = await getRegistry({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor || undefined,
-        },
-      });
-
-      if (response.data?.data?.Assets) {
-        const newAgents = response.data.data.Assets;
-        if (cursor) {
-          setAllAgents((prev) => [...prev, ...newAgents]);
-        } else {
-          setAllAgents(newAgents);
-        }
-
-        setHasMore(newAgents.length === 10);
-      } else {
+  const fetchAgents = useCallback(
+    async (cursor?: string | null) => {
+      try {
         if (!cursor) {
+          setIsLoading(true);
           setAllAgents([]);
+        } else {
+          setIsLoadingMore(true);
         }
-        setHasMore(false);
+
+        const selectedPaymentSource = state.paymentSources.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
+        const smartContractAddress =
+          selectedPaymentSource?.smartContractAddress;
+
+        const response = await getRegistry({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: cursor || undefined,
+            filterSmartContractAddress: smartContractAddress
+              ? smartContractAddress
+              : undefined,
+          },
+        });
+
+        if (response.data?.data?.Assets) {
+          const newAgents = response.data.data.Assets;
+          if (cursor) {
+            setAllAgents((prev) => [...prev, ...newAgents]);
+          } else {
+            setAllAgents(newAgents);
+          }
+
+          setHasMore(newAgents.length === 10);
+        } else {
+          if (!cursor) {
+            setAllAgents([]);
+          }
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+        toast.error('Failed to load AI agents');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-      toast.error('Failed to load AI agents');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [apiClient, state.network, selectedPaymentSourceId],
+  );
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && allAgents.length > 0) {

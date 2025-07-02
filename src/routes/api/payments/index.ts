@@ -42,6 +42,12 @@ export const queryPaymentsSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the payments were made on'),
+  filterSmartContractAddress: z
+    .string()
+    .optional()
+    .nullable()
+    .describe('The smart contract address of the payment source'),
+
   includeHistory: z
     .string()
     .optional()
@@ -164,6 +170,7 @@ export const queryPaymentEntryGet = readAuthenticatedEndpointFactory.build({
       where: {
         PaymentSource: {
           network: input.network,
+          smartContractAddress: input.filterSmartContractAddress ?? undefined,
           deletedAt: null,
         },
       },
