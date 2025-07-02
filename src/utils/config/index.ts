@@ -10,7 +10,7 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length <= 20)
 const batchPaymentInterval = Number(process.env.BATCH_PAYMENT_INTERVAL ?? '80');
 if (batchPaymentInterval < 5)
   throw new Error('BATCH_PAYMENT_INTERVAL must be at least 5 seconds');
-const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '40');
+const checkTxInterval = Number(process.env.CHECK_TX_INTERVAL ?? '20');
 if (checkTxInterval < 20)
   throw new Error('CHECK_TX_INTERVAL must be at least 20 seconds');
 const checkCollectionInterval = Number(
