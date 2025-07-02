@@ -49,9 +49,15 @@ const priceSchema = z.object({
 });
 
 const exampleOutputSchema = z.object({
-  name: z.string().max(60, 'Name must be less than 60 characters').min(1, 'Name is required'),
+  name: z
+    .string()
+    .max(60, 'Name must be less than 60 characters')
+    .min(1, 'Name is required'),
   url: z.string().url('URL must be a valid URL').min(1, 'URL is required'),
-  mimeType: z.string().max(60, 'MIME type must be less than 60 characters').min(1, 'MIME type is required'),
+  mimeType: z
+    .string()
+    .max(60, 'MIME type must be less than 60 characters')
+    .min(1, 'MIME type is required'),
 });
 
 const agentSchema = z.object({
@@ -69,16 +75,25 @@ const agentSchema = z.object({
   tags: z.array(z.string().min(1)).min(1, 'At least one tag is required'),
 
   // Additional Fields
-  authorName: z.string().max(250, 'Author name must be less than 250 characters').optional().or(z.literal('')),
+  authorName: z
+    .string()
+    .max(250, 'Author name must be less than 250 characters')
+    .optional()
+    .or(z.literal('')),
   authorEmail: z
     .string()
     .email('Author email must be a valid email')
     .max(250, 'Author email must be less than 250 characters')
     .optional()
     .or(z.literal('')),
-  organization: z.string().max(250, 'Organization must be less than 250 characters').optional().or(z.literal('')),
+  organization: z
+    .string()
+    .max(250, 'Organization must be less than 250 characters')
+    .optional()
+    .or(z.literal('')),
   contactOther: z
-    .string().max(250, 'Contact other must be less than 250 characters')
+    .string()
+    .max(250, 'Contact other must be less than 250 characters')
     .optional()
     .or(z.literal('')),
 
@@ -101,8 +116,16 @@ const agentSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  capabilityName: z.string().max(250, 'Capability name must be less than 250 characters').optional().or(z.literal('')),
-  capabilityVersion: z.string().max(250, 'Capability version must be less than 250 characters').optional().or(z.literal('')),
+  capabilityName: z
+    .string()
+    .max(250, 'Capability name must be less than 250 characters')
+    .optional()
+    .or(z.literal('')),
+  capabilityVersion: z
+    .string()
+    .max(250, 'Capability version must be less than 250 characters')
+    .optional()
+    .or(z.literal('')),
 
   exampleOutputs: z.array(exampleOutputSchema).optional(),
 });
@@ -563,7 +586,9 @@ export function RegisterAIAgentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Contact Other (Website, Phone...)</label>
+            <label className="text-sm font-medium">
+              Contact Other (Website, Phone...)
+            </label>
             <Input
               {...register('contactOther')}
               placeholder="Enter other contact"
@@ -605,16 +630,16 @@ export function RegisterAIAgentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Other URL (Support...)</label>
+            <label className="text-sm font-medium">
+              Other URL (Support...)
+            </label>
             <Input
               {...register('otherUrl')}
               placeholder="Enter the other URL"
               className={errors.otherUrl ? 'border-red-500' : ''}
             />
             {errors.otherUrl && (
-              <p className="text-sm text-red-500">
-                {errors.otherUrl.message}
-              </p>
+              <p className="text-sm text-red-500">{errors.otherUrl.message}</p>
             )}
           </div>
 
