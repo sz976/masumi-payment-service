@@ -420,7 +420,10 @@ export default function PaymentSourcesPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm">{source.id}</div>
+                        <div className="text-sm flex items-center gap-2">
+                          {shortenAddress(source.id)}
+                          <CopyButton value={source.id} />
+                        </div>
                       </td>
                       <td className="p-4">
                         <div className="text-sm">{source.network}</div>

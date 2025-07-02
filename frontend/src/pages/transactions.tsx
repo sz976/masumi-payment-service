@@ -729,6 +729,15 @@ export default function Transactions() {
                           return 'Disputed';
                         case 'disputedwithdrawn':
                           return 'Disputed Withdrawn';
+                        case 'withdrawn':
+                          return 'Withdrawn';
+                        case 'fundsordatuminvalid':
+                          return 'Funds or Datum Invalid';
+                        case 'resultsubmitted':
+                          return 'Result Submitted';
+                        case 'refundrequested':
+                          return 'Refund Requested (waiting for approval)';
+                        case 'refundwithdrawn':
                         default:
                           return state
                             ? state.charAt(0).toUpperCase() + state.slice(1)
