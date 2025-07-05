@@ -56,7 +56,7 @@ export async function checkLatestTransactions(
             projectId: paymentContract.PaymentSourceConfig.rpcProviderApiKey,
             network: convertNetwork(paymentContract.network),
           });
-          const latestIdentifier = paymentContract.lastIdentifierChecked;
+          let latestIdentifier = paymentContract.lastIdentifierChecked;
 
           const { latestTx, rolledBackTx } =
             await getTxsFromCardanoAfterSpecificTx(
@@ -1254,22 +1254,23 @@ export async function checkLatestTransactions(
                   lastIdentifierChecked: tx.tx.tx_hash,
                   PaymentSourceIdentifiers: {
                     upsert:
-                      paymentContract.lastIdentifierChecked != null
+                      latestIdentifier != null
                         ? {
                             where: {
-                              txHash: paymentContract.lastIdentifierChecked,
+                              txHash: latestIdentifier,
                             },
                             update: {
-                              txHash: paymentContract.lastIdentifierChecked,
+                              txHash: latestIdentifier,
                             },
                             create: {
-                              txHash: paymentContract.lastIdentifierChecked,
+                              txHash: latestIdentifier,
                             },
                           }
                         : undefined,
                   },
                 },
               });
+              latestIdentifier = tx.tx.tx_hash;
             }
           }
         }),
