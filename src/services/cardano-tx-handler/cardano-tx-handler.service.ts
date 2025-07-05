@@ -1533,8 +1533,11 @@ async function getTxsFromCardanoAfterSpecificTx(
           },
         });
         if (exists != null) {
-          foundTx = i;
-          latestTx = latestTx.slice(0, i);
+          const indexInLatestTx = latestTx.findIndex(
+            (tx) => tx.tx_hash == txs[i].tx_hash,
+          );
+          foundTx = indexInLatestTx;
+          latestTx = latestTx.slice(0, indexInLatestTx);
           rolledBackTx.push(...latestTx);
           rolledBackTx = rolledBackTx.reverse();
           break;
