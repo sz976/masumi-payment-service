@@ -1316,10 +1316,12 @@ async function updateRolledBackTransaction(
         where: { id: transaction.id },
         data: {
           status: TransactionStatus.RolledBack,
-          BlocksWallet: { disconnect: true },
+          BlocksWallet: transaction.BlocksWallet
+            ? { disconnect: true }
+            : undefined,
         },
       });
-      if (transaction.BlocksWallet) {
+      if (transaction.BlocksWallet != null) {
         await prisma.hotWallet.update({
           where: { id: transaction.BlocksWallet.id },
           data: {
