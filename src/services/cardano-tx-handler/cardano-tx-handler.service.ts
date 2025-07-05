@@ -58,17 +58,25 @@ export async function checkLatestTransactions(
           });
           const latestIdentifier = paymentContract.lastIdentifierChecked;
 
-          const latestTx = await getTxsFromCardanoAfterSpecificTx(
-            blockfrost,
-            paymentContract,
-            latestIdentifier,
-          );
+          const { latestTx, rolledBackTx } =
+            await getTxsFromCardanoAfterSpecificTx(
+              blockfrost,
+              paymentContract,
+              latestIdentifier,
+            );
 
           if (latestTx.length == 0) {
             logger.info('No new transactions found for payment contract', {
               paymentContractAddress: paymentContract.smartContractAddress,
             });
             return;
+          }
+
+          if (rolledBackTx.length > 0) {
+            logger.info('Rolled back transactions found for payment contract', {
+              paymentContractAddress: paymentContract.smartContractAddress,
+            });
+            await updateRolledBackTransaction(rolledBackTx);
           }
 
           const txData = await getExtendedTxInformation(
@@ -1242,7 +1250,25 @@ export async function checkLatestTransactions(
             } finally {
               await prisma.paymentSource.update({
                 where: { id: paymentContract.id, deletedAt: null },
-                data: { lastIdentifierChecked: tx.tx.tx_hash },
+                data: {
+                  lastIdentifierChecked: tx.tx.tx_hash,
+                  PaymentSourceIdentifiers: {
+                    upsert:
+                      paymentContract.lastIdentifierChecked != null
+                        ? {
+                            where: {
+                              txHash: paymentContract.lastIdentifierChecked,
+                            },
+                            update: {
+                              txHash: paymentContract.lastIdentifierChecked,
+                            },
+                            create: {
+                              txHash: paymentContract.lastIdentifierChecked,
+                            },
+                          }
+                        : undefined,
+                  },
+                },
               });
             }
           }
@@ -1265,6 +1291,105 @@ export async function checkLatestTransactions(
     logger.error('Error checking latest transactions', { error: error });
   } finally {
     release();
+  }
+}
+
+async function updateRolledBackTransaction(
+  rolledBackTx: Array<{ tx_hash: string; block_time: number }>,
+) {
+  for (const tx of rolledBackTx) {
+    const foundTransaction = await prisma.transaction.findMany({
+      where: {
+        txHash: tx.tx_hash,
+      },
+      include: {
+        PaymentRequestCurrent: true,
+        PaymentRequestHistory: true,
+        PurchaseRequestCurrent: true,
+        PurchaseRequestHistory: true,
+        BlocksWallet: true,
+      },
+    });
+    for (const transaction of foundTransaction) {
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: TransactionStatus.RolledBack,
+          BlocksWallet: { disconnect: true },
+        },
+      });
+      if (transaction.BlocksWallet) {
+        await prisma.hotWallet.update({
+          where: { id: transaction.BlocksWallet.id },
+          data: {
+            lockedAt: null,
+          },
+        });
+      }
+      if (
+        transaction.PaymentRequestCurrent ||
+        transaction.PaymentRequestHistory
+      ) {
+        await prisma.paymentRequest.update({
+          where: {
+            id:
+              transaction.PaymentRequestCurrent?.id ??
+              transaction.PaymentRequestHistory!.id,
+          },
+          data: {
+            NextAction: {
+              upsert: {
+                update: {
+                  requestedAction: PaymentAction.WaitingForManualAction,
+                  errorNote:
+                    'Rolled back transaction detected. Please check the transaction and manually resolve the issue.',
+                  errorType: PaymentErrorType.Unknown,
+                },
+                create: {
+                  requestedAction: PaymentAction.WaitingForManualAction,
+                  errorNote:
+                    'Rolled back transaction detected. Please check the transaction and manually resolve the issue.',
+                  errorType: PaymentErrorType.Unknown,
+                },
+              },
+            },
+          },
+        });
+      }
+      if (
+        transaction.PurchaseRequestCurrent ||
+        transaction.PurchaseRequestHistory
+      ) {
+        await prisma.purchaseRequest.update({
+          where: {
+            id:
+              transaction.PurchaseRequestCurrent?.id ??
+              transaction.PurchaseRequestHistory!.id,
+          },
+          data: {
+            NextAction: {
+              upsert: {
+                update: {
+                  requestedAction: PurchasingAction.WaitingForManualAction,
+                  errorNote:
+                    'Rolled back transaction detected. Please check the transaction and manually resolve the issue.',
+                  errorType: PurchaseErrorType.Unknown,
+                },
+                create: {
+                  requestedAction: PurchasingAction.WaitingForManualAction,
+                  errorNote:
+                    'Rolled back transaction detected. Please check the transaction and manually resolve the issue.',
+                  errorType: PurchaseErrorType.Unknown,
+                  inputHash:
+                    transaction.PurchaseRequestCurrent?.inputHash ??
+                    transaction.PurchaseRequestHistory!.inputHash,
+                },
+              },
+            },
+          },
+        });
+      }
+    }
   }
 }
 
@@ -1376,6 +1501,7 @@ async function getTxsFromCardanoAfterSpecificTx(
   let latestTx: Array<{ tx_hash: string; block_time: number }> = [];
   let foundTx = -1;
   let index = 0;
+  let rolledBackTx: Array<{ tx_hash: string; block_time: number }> = [];
   do {
     index++;
     const txs = await blockfrost.addressesTransactions(
@@ -1398,12 +1524,28 @@ async function getTxsFromCardanoAfterSpecificTx(
         (tx) => tx.tx_hash == latestIdentifier,
       );
       latestTx = latestTx.slice(0, latestTxIndex);
+    } else {
+      //if not found we assume a rollback happened and need to check all previous txs
+      for (let i = 0; i < txs.length; i++) {
+        const exists = await prisma.paymentSourceIdentifiers.findUnique({
+          where: {
+            txHash: txs[i].tx_hash,
+          },
+        });
+        if (exists != null) {
+          foundTx = i;
+          latestTx = latestTx.slice(0, i);
+          rolledBackTx.push(...latestTx);
+          rolledBackTx = rolledBackTx.reverse();
+          break;
+        }
+      }
     }
   } while (foundTx == -1);
 
   //invert to get oldest first
   latestTx = latestTx.reverse();
-  return latestTx;
+  return { latestTx, rolledBackTx };
 }
 
 async function unlockPaymentSources(paymentContractIds: string[]) {
