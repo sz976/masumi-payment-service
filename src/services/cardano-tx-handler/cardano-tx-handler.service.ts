@@ -1295,7 +1295,7 @@ export async function checkLatestTransactions(
 }
 
 async function updateRolledBackTransaction(
-  rolledBackTx: Array<{ tx_hash: string; block_time: number }>,
+  rolledBackTx: Array<{ tx_hash: string }>,
 ) {
   for (const tx of rolledBackTx) {
     const foundTransaction = await prisma.transaction.findMany({
@@ -1501,7 +1501,7 @@ async function getTxsFromCardanoAfterSpecificTx(
   let latestTx: Array<{ tx_hash: string; block_time: number }> = [];
   let foundTx = -1;
   let index = 0;
-  let rolledBackTx: Array<{ tx_hash: string; block_time: number }> = [];
+  let rolledBackTx: Array<{ tx_hash: string }> = [];
   do {
     index++;
     const txs = await blockfrost.addressesTransactions(
@@ -1524,22 +1524,50 @@ async function getTxsFromCardanoAfterSpecificTx(
         (tx) => tx.tx_hash == latestIdentifier,
       );
       latestTx = latestTx.slice(0, latestTxIndex);
-    } else {
+    } else if (latestIdentifier != null) {
       //if not found we assume a rollback happened and need to check all previous txs
       for (let i = 0; i < txs.length; i++) {
         const exists = await prisma.paymentSourceIdentifiers.findUnique({
           where: {
             txHash: txs[i].tx_hash,
+            PaymentSource: {
+              smartContractAddress: paymentContract.smartContractAddress,
+            },
           },
         });
         if (exists != null) {
-          const indexInLatestTx = latestTx.findIndex(
-            (tx) => tx.tx_hash == txs[i].tx_hash,
+          //get newer txs from db
+          const newerThanRollbackTxs =
+            await prisma.paymentSourceIdentifiers.findMany({
+              where: {
+                createdAt: {
+                  gte: exists.createdAt,
+                },
+                PaymentSource: {
+                  smartContractAddress: paymentContract.smartContractAddress,
+                },
+              },
+              select: {
+                txHash: true,
+              },
+            });
+          rolledBackTx = [
+            ...newerThanRollbackTxs.map((x) => {
+              return {
+                tx_hash: x.txHash,
+              };
+            }),
+            { tx_hash: latestIdentifier },
+          ].filter(
+            (x) => latestTx.findIndex((y) => y.tx_hash == x.tx_hash) == -1,
           );
-          foundTx = indexInLatestTx;
-          latestTx = latestTx.slice(0, indexInLatestTx);
-          rolledBackTx.push(...latestTx);
           rolledBackTx = rolledBackTx.reverse();
+
+          const foundTxIndex = latestTx.findIndex(
+            (x) => x.tx_hash == txs[i].tx_hash,
+          );
+          foundTx = foundTxIndex;
+          latestTx = latestTx.slice(0, foundTxIndex);
           break;
         }
       }
