@@ -290,7 +290,7 @@ export const createPurchaseInitSchemaInput = z.object({
     .min(14)
     .max(26)
     .describe(
-      'The nounce of the purchaser of the purchase, needs to be in hex format',
+      'The nonce of the purchaser of the purchase, needs to be in hex format',
     ),
 });
 
