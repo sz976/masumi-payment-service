@@ -11,6 +11,7 @@ import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 
 export const postPaymentRequestSchemaInput = z.object({
   blockchainIdentifier: z
@@ -117,83 +118,85 @@ export const postPaymentRequestSchemaOutput = z.object({
   metadata: z.string().nullable(),
 });
 
-export const resolvePaymentRequestPost = payAuthenticatedEndpointFactory.build({
-  method: 'post',
-  input: postPaymentRequestSchemaInput,
-  output: postPaymentRequestSchemaOutput,
-  handler: async ({
-    input,
-    options,
-  }: {
-    input: z.infer<typeof postPaymentRequestSchemaInput>;
-    options: {
-      id: string;
-      permission: $Enums.Permission;
-      networkLimit: $Enums.Network[];
-      usageLimited: boolean;
-    };
-  }) => {
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      input.network,
-      options.permission,
-    );
+export const resolvePaymentRequestPost = readAuthenticatedEndpointFactory.build(
+  {
+    method: 'post',
+    input: postPaymentRequestSchemaInput,
+    output: postPaymentRequestSchemaOutput,
+    handler: async ({
+      input,
+      options,
+    }: {
+      input: z.infer<typeof postPaymentRequestSchemaInput>;
+      options: {
+        id: string;
+        permission: $Enums.Permission;
+        networkLimit: $Enums.Network[];
+        usageLimited: boolean;
+      };
+    }) => {
+      await checkIsAllowedNetworkOrThrowUnauthorized(
+        options.networkLimit,
+        input.network,
+        options.permission,
+      );
 
-    const result = await prisma.paymentRequest.findUnique({
-      where: {
-        PaymentSource: {
-          deletedAt: null,
-          network: input.network,
-          smartContractAddress: input.filterSmartContractAddress ?? undefined,
+      const result = await prisma.paymentRequest.findUnique({
+        where: {
+          PaymentSource: {
+            deletedAt: null,
+            network: input.network,
+            smartContractAddress: input.filterSmartContractAddress ?? undefined,
+          },
+          blockchainIdentifier: input.blockchainIdentifier,
         },
-        blockchainIdentifier: input.blockchainIdentifier,
-      },
-      include: {
-        BuyerWallet: true,
-        SmartContractWallet: { where: { deletedAt: null } },
-        RequestedFunds: true,
-        NextAction: true,
-        PaymentSource: true,
-        CurrentTransaction: true,
-        WithdrawnForSeller: true,
-        WithdrawnForBuyer: true,
-        TransactionHistory: {
-          orderBy: { createdAt: 'desc' },
-          take: input.includeHistory == true ? undefined : 0,
+        include: {
+          BuyerWallet: true,
+          SmartContractWallet: { where: { deletedAt: null } },
+          RequestedFunds: true,
+          NextAction: true,
+          PaymentSource: true,
+          CurrentTransaction: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
+          TransactionHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: input.includeHistory == true ? undefined : 0,
+          },
         },
-      },
-    });
-    if (result == null) {
-      throw createHttpError(404, 'Payment not found');
-    }
-    return {
-      ...result,
-      RequestedFunds: (
-        result.RequestedFunds as Array<{ unit: string; amount: bigint }>
-      ).map((amount) => ({
-        ...amount,
-        amount: amount.amount.toString(),
-      })),
-      WithdrawnForSeller: (
-        result.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
-      ).map((amount) => ({
-        unit: amount.unit,
-        amount: amount.amount.toString(),
-      })),
-      WithdrawnForBuyer: (
-        result.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
-      ).map((amount) => ({
-        unit: amount.unit,
-        amount: amount.amount.toString(),
-      })),
-      collateralReturnLovelace:
-        result.collateralReturnLovelace?.toString() ?? null,
-      payByTime: result.payByTime?.toString() ?? null,
-      submitResultTime: result.submitResultTime.toString(),
-      unlockTime: result.unlockTime.toString(),
-      externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-      cooldownTime: Number(result.buyerCoolDownTime),
-      cooldownTimeOtherParty: Number(result.sellerCoolDownTime),
-    };
+      });
+      if (result == null) {
+        throw createHttpError(404, 'Payment not found');
+      }
+      return {
+        ...result,
+        RequestedFunds: (
+          result.RequestedFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          result.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          result.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        collateralReturnLovelace:
+          result.collateralReturnLovelace?.toString() ?? null,
+        payByTime: result.payByTime?.toString() ?? null,
+        submitResultTime: result.submitResultTime.toString(),
+        unlockTime: result.unlockTime.toString(),
+        externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
+        cooldownTime: Number(result.sellerCoolDownTime),
+        cooldownTimeOtherParty: Number(result.buyerCoolDownTime),
+      };
+    },
   },
-});
+);

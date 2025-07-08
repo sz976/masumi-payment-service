@@ -12,6 +12,7 @@ import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
 import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 
 export const postPurchaseRequestSchemaInput = z.object({
   blockchainIdentifier: z
@@ -118,8 +119,8 @@ export const postPurchaseRequestSchemaOutput = z.object({
   metadata: z.string().nullable(),
 });
 
-export const resolvePurchaseRequestPost = payAuthenticatedEndpointFactory.build(
-  {
+export const resolvePurchaseRequestPost =
+  readAuthenticatedEndpointFactory.build({
     method: 'post',
     input: postPurchaseRequestSchemaInput,
     output: postPurchaseRequestSchemaOutput,
@@ -198,5 +199,4 @@ export const resolvePurchaseRequestPost = payAuthenticatedEndpointFactory.build(
         cooldownTimeOtherParty: Number(result.sellerCoolDownTime),
       };
     },
-  },
-);
+  });
