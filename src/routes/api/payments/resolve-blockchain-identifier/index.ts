@@ -139,7 +139,7 @@ export const resolvePaymentRequestPost = payAuthenticatedEndpointFactory.build({
       options.permission,
     );
 
-    const result = await prisma.paymentRequest.findFirst({
+    const result = await prisma.paymentRequest.findUnique({
       where: {
         PaymentSource: {
           deletedAt: null,
@@ -148,7 +148,6 @@ export const resolvePaymentRequestPost = payAuthenticatedEndpointFactory.build({
         },
         blockchainIdentifier: input.blockchainIdentifier,
       },
-      orderBy: { createdAt: 'desc' },
       include: {
         BuyerWallet: true,
         SmartContractWallet: { where: { deletedAt: null } },
