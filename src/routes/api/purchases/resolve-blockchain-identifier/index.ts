@@ -10,7 +10,6 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { payAuthenticatedEndpointFactory } from '@/utils/security/auth/pay-authenticated';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 import { readAuthenticatedEndpointFactory } from '@/utils/security/auth/read-authenticated';
 
