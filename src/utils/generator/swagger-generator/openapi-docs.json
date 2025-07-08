@@ -4628,7 +4628,6 @@
                                 "example": {
                                     "blockchainIdentifier": "blockchain_identifier",
                                     "network": "Preprod",
-                                    "filterSmartContractAddress": "optional_smart_contract_address",
                                     "includeHistory": "false"
                                 }
                             }
@@ -5085,7 +5084,6 @@
                                 "example": {
                                     "blockchainIdentifier": "blockchain_identifier",
                                     "network": "Preprod",
-                                    "filterSmartContractAddress": "optional_smart_contract_address",
                                     "includeHistory": "false"
                                 }
                             }
