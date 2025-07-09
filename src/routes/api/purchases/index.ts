@@ -25,6 +25,7 @@ import { getPublicKeyFromCoseKey } from '@/utils/converter/public-key-convert';
 import { generateHash } from '@/utils/crypto';
 import { validateHexString } from '@/utils/generator/contract-generator';
 import { decodeBlockchainIdentifier } from '@/utils/generator/blockchain-identifier-generator';
+import { HttpExistsError } from '@/utils/errors/http-exists-error';
 
 export const queryPurchaseRequestSchemaInput = z.object({
   limit: z
@@ -384,6 +385,72 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
       input.network,
       options.permission,
     );
+    const existingPurchaseRequest = await prisma.purchaseRequest.findUnique({
+      where: {
+        blockchainIdentifier: input.blockchainIdentifier,
+        PaymentSource: {
+          deletedAt: null,
+          network: input.network,
+        },
+      },
+      include: {
+        SellerWallet: true,
+        SmartContractWallet: { where: { deletedAt: null } },
+        PaymentSource: true,
+        WithdrawnForBuyer: true,
+        WithdrawnForSeller: true,
+        PaidFunds: true,
+        NextAction: true,
+        CurrentTransaction: true,
+      },
+    });
+    if (existingPurchaseRequest != null) {
+      throw new HttpExistsError('Purchase exists', existingPurchaseRequest.id, {
+        ...existingPurchaseRequest,
+        payByTime: existingPurchaseRequest.payByTime?.toString() ?? null,
+        PaidFunds: (
+          existingPurchaseRequest.PaidFunds as Array<{
+            unit: string;
+            amount: bigint;
+          }>
+        ).map((amount) => ({
+          ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          existingPurchaseRequest.WithdrawnForSeller as Array<{
+            unit: string;
+            amount: bigint;
+          }>
+        ).map((amount) => ({
+          ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          existingPurchaseRequest.WithdrawnForBuyer as Array<{
+            unit: string;
+            amount: bigint;
+          }>
+        ).map((amount) => ({
+          ...amount,
+          amount: amount.amount.toString(),
+        })),
+        submitResultTime: existingPurchaseRequest.submitResultTime.toString(),
+        unlockTime: existingPurchaseRequest.unlockTime.toString(),
+        externalDisputeUnlockTime:
+          existingPurchaseRequest.externalDisputeUnlockTime.toString(),
+        cooldownTime: Number(existingPurchaseRequest.buyerCoolDownTime),
+        cooldownTimeOtherParty: Number(
+          existingPurchaseRequest.sellerCoolDownTime,
+        ),
+        collateralReturnLovelace:
+          existingPurchaseRequest.collateralReturnLovelace?.toString() ?? null,
+        metadata: existingPurchaseRequest.metadata,
+        buyerCoolDownTime: existingPurchaseRequest.buyerCoolDownTime.toString(),
+        sellerCoolDownTime:
+          existingPurchaseRequest.sellerCoolDownTime.toString(),
+      });
+    }
     const policyId = input.agentIdentifier.substring(0, 56);
 
     const paymentSource = await prisma.paymentSource.findFirst({
