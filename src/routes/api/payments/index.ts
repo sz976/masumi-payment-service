@@ -288,7 +288,7 @@ export const createPaymentsSchemaInput = z.object({
     .min(14)
     .max(26)
     .describe(
-      'The a unique nounce from the purchaser. Required to be in hex format',
+      'The a unique nonce from the purchaser. Required to be in hex format',
     ),
 });
 
