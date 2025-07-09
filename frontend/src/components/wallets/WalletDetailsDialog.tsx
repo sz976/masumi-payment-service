@@ -236,28 +236,35 @@ export function WalletDetailsDialog({
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Wallet Details</DialogTitle>
-            <DialogDescription>
-              {wallet.type} Wallet
-              {wallet.note && ` - ${wallet.note}`}
-            </DialogDescription>
+            <DialogDescription>{wallet.type} Wallet</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
+            {/* Wallet Address Section */}
             <div className="bg-muted rounded-lg p-4">
               <div className="text-sm font-medium">Wallet Address</div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="font-mono text-sm">
-                  {shortenAddress(wallet.walletAddress)}
+                <span className="font-mono text-sm break-all">
+                  {wallet.walletAddress}
                 </span>
                 <CopyButton value={wallet.walletAddress} />
               </div>
             </div>
 
+            {/* Wallet Note Section */}
+            {wallet.note && (
+              <div className="bg-muted rounded-lg p-4">
+                <div className="text-sm font-medium">Note</div>
+                <div className="text-sm mt-1 break-words">{wallet.note}</div>
+              </div>
+            )}
+
+            {/* vKey Section */}
             <div className="bg-muted rounded-lg p-4">
               <div className="text-sm font-medium">vKey</div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="font-mono text-sm break-all">
-                  {shortenAddress(wallet.walletVkey)}
+                <span className="font-mono text-xs break-all">
+                  {wallet.walletVkey}
                 </span>
                 <CopyButton value={wallet.walletVkey} />
               </div>
@@ -352,14 +359,20 @@ export function WalletDetailsDialog({
                   )}
                   {tokenBalances.map((token) => {
                     const { amount, usdValue } = formatTokenBalance(token);
+                    // Show USDM (policyId) for USDM tokens
+                    const isUSDM = token.displayName === 'USDM';
+                    const displayName =
+                      isUSDM && token.policyId
+                        ? `USDM (${shortenAddress(token.policyId)})`
+                        : token.displayName;
                     return (
                       <div
                         key={token.unit}
                         className="flex items-center justify-between rounded-md border p-3"
                       >
                         <div>
-                          <div className="font-medium">{token.displayName}</div>
-                          {token.policyId && (
+                          <div className="font-medium">{displayName}</div>
+                          {!isUSDM && token.policyId && (
                             <div className="text-xs text-muted-foreground">
                               Policy ID: {shortenAddress(token.policyId)}
                             </div>
