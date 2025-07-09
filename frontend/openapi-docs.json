@@ -6746,7 +6746,7 @@
         "/payment-source-extended/": {
             "get": {
                 "description": "Gets the payment contracts including the status.",
-                "summary": "List payment sources with their public details augmented with internal configuration and sync status infromation. (admin access required)",
+                "summary": "List payment sources with their public details augmented with internal configuration and sync status information. (admin access required)",
                 "tags": [
                     "payment-source"
                 ],
