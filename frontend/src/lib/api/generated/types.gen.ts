@@ -519,7 +519,7 @@ export type PostPaymentData = {
          */
         metadata?: string;
         /**
-         * A unique nonce from the purchaser, needs to be in hex format.
+         * The a unique nonce from the purchaser. Required to be in hex format
          */
         identifierFromPurchaser: string;
     };
