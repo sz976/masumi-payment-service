@@ -681,7 +681,7 @@ export async function batchLatestPaymentEntriesV1() {
                       requestedAction: PurchasingAction.WaitingForManualAction,
                       errorType: PurchaseErrorType.Unknown,
                       errorNote:
-                        'Batching payments failed: ' +
+                        'Outer error: Batching payments failed: ' +
                         convertErrorString(error),
                     },
                   },
