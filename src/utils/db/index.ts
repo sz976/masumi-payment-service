@@ -3,7 +3,7 @@ import { logger } from '../logger';
 
 // Add timeout parameters to DATABASE_URL if not already present
 const getDatabaseUrlWithTimeouts = () => {
-  const baseUrl = process.env.DATABASE_URL || '';
+  const baseUrl = process.env.DATABASE_URL!;
   const url = new URL(baseUrl);
   //override the db timeout parameters if they are not already set
   if (!url.searchParams.has('statement_timeout')) {
