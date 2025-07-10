@@ -387,13 +387,19 @@ export async function batchLatestPaymentEntriesV1() {
                 index++;
               }
             }
-
-            walletPairings.push({
-              wallet: wallet,
-              scriptAddress: walletData.scriptAddress,
-              walletId: walletData.walletId,
-              batchedRequests: batchedPaymentRequests,
-            });
+            if (batchedPaymentRequests.length > 0) {
+              logger.info('Batching payments, adding wallet pairing', {
+                walletId: walletData.walletId,
+                scriptAddress: walletData.scriptAddress,
+                batchedRequests: batchedPaymentRequests,
+              });
+              walletPairings.push({
+                wallet: wallet,
+                scriptAddress: walletData.scriptAddress,
+                walletId: walletData.walletId,
+                batchedRequests: batchedPaymentRequests,
+              });
+            }
           }
           //only go into error state if we did not reach max batch size, as otherwise we might have enough funds in other wallets
           if (
@@ -405,6 +411,9 @@ export async function batchLatestPaymentEntriesV1() {
                 deletedAt: null,
                 type: HotWalletType.Purchasing,
                 PendingTransaction: null,
+                PaymentSource: {
+                  id: paymentContract.id,
+                },
               },
             });
             //only go into error state if all wallets were unlocked, otherwise we might have enough funds in other wallets
@@ -417,25 +426,28 @@ export async function batchLatestPaymentEntriesV1() {
                   ),
                 },
               );
-              await Promise.allSettled(
-                paymentRequestsRemaining.map(async (paymentRequest) => {
-                  await prisma.purchaseRequest.update({
-                    where: { id: paymentRequest.id },
-                    data: {
-                      NextAction: {
-                        create: {
-                          inputHash: paymentRequest.inputHash,
-                          requestedAction:
-                            PurchasingAction.WaitingForManualAction,
-                          errorType: PurchaseErrorType.InsufficientFunds,
-                          errorNote: 'Not enough funds in wallets',
-                        },
+              for (const paymentRequest of paymentRequestsRemaining) {
+                await prisma.purchaseRequest.update({
+                  where: { id: paymentRequest.id },
+                  data: {
+                    NextAction: {
+                      create: {
+                        inputHash: paymentRequest.inputHash,
+                        requestedAction:
+                          PurchasingAction.WaitingForManualAction,
+                        errorType: PurchaseErrorType.InsufficientFunds,
+                        errorNote: 'Not enough funds in wallets',
                       },
                     },
-                  });
-                }),
-              );
+                  },
+                });
+              }
             }
+          }
+
+          if (walletPairings.length == 0) {
+            logger.info('No purchase requests with funds found, skipping');
+            return;
           }
 
           logger.info(
