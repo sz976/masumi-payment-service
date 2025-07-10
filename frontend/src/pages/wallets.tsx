@@ -35,6 +35,7 @@ import {
 import { CopyButton } from '@/components/ui/copy-button';
 import { BadgeWithTooltip } from '@/components/ui/badge-with-tooltip';
 import { TOOLTIP_TEXTS } from '@/lib/constants/tooltips';
+import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -146,7 +147,7 @@ export default function WalletsPage() {
             utxo.Amounts.forEach((amount) => {
               if (amount.unit === 'lovelace' || amount.unit == '') {
                 adaBalance += amount.quantity || 0;
-              } else if (amount.unit === 'USDM') {
+              } else if (amount.unit === USDM_CONFIG.fullAssetId) {
                 usdmBalance += amount.quantity || 0;
               }
             });
@@ -525,7 +526,11 @@ export default function WalletsPage() {
                           ) : (
                             <span>
                               {wallet.usdmBalance
-                                ? useFormatBalance(wallet.usdmBalance)
+                                ? useFormatBalance(
+                                    (
+                                      parseInt(wallet.usdmBalance) / 1000000
+                                    ).toFixed(2),
+                                  )
                                 : '0'}
                             </span>
                           )}
@@ -670,7 +675,11 @@ export default function WalletsPage() {
                               <span>
                                 {wallet.collectionBalance?.usdm
                                   ? useFormatBalance(
-                                      wallet.collectionBalance.usdm,
+                                      (
+                                        parseInt(
+                                          wallet.collectionBalance.usdm,
+                                        ) / 1000000
+                                      ).toFixed(2),
                                     )
                                   : '0'}
                               </span>
