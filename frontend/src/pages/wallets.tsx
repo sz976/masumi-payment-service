@@ -526,12 +526,8 @@ export default function WalletsPage() {
                           ) : (
                             <span>
                               {wallet.usdmBalance
-                                ? useFormatBalance(
-                                    (
-                                      parseInt(wallet.usdmBalance) / 1000000
-                                    ).toFixed(2),
-                                  )
-                                : '0'}
+                                ? `$${useFormatBalance((parseInt(wallet.usdmBalance) / 1000000).toFixed(2))}`
+                                : '$0'}
                             </span>
                           )}
                         </div>
