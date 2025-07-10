@@ -1050,6 +1050,63 @@ export function generateOpenAPI() {
       401: {
         description: 'Unauthorized',
       },
+      409: {
+        description: 'Conflict (purchase request already exists)',
+        content: {
+          'application/json': {
+            schema: z.object({
+              status: z.string(),
+              error: z.object({ message: z.string() }),
+              id: z.string(),
+              object: createPurchaseInitSchemaOutput,
+            }),
+            example: {
+              status: 'error',
+              error: { message: 'Purchase request already exists' },
+              id: 'cuid_v2_auto_generated',
+              object: {
+                id: 'cuid_v2_auto_generated',
+                createdAt: new Date(1713636260),
+                updatedAt: new Date(1713636260),
+                blockchainIdentifier: 'blockchain_identifier',
+                lastCheckedAt: null,
+                submitResultTime: '0',
+                unlockTime: '0',
+                externalDisputeUnlockTime: '0',
+                payByTime: null,
+                requestedById: 'requester_id',
+                resultHash: '',
+                onChainState: null,
+                inputHash: 'input_hash',
+                NextAction: {
+                  requestedAction: PurchasingAction.FundsLockingRequested,
+                  errorType: null,
+                  errorNote: null,
+                },
+                CurrentTransaction: null,
+                PaidFunds: [
+                  {
+                    amount: '10000000',
+                    unit: '',
+                  },
+                ],
+                PaymentSource: {
+                  id: 'payment_source_id',
+                  policyId: 'policy_id',
+                  network: Network.Preprod,
+                  smartContractAddress: 'address',
+                  paymentType: PaymentType.Web3CardanoV1,
+                },
+                SellerWallet: null,
+                SmartContractWallet: null,
+                metadata: null,
+                WithdrawnForSeller: [],
+                WithdrawnForBuyer: [],
+              },
+            },
+          },
+        },
+      },
       500: {
         description: 'Internal Server Error',
       },
@@ -1898,7 +1955,7 @@ export function generateOpenAPI() {
     path: '/payment-source-extended/',
     description: 'Gets the payment contracts including the status.',
     summary:
-      'List payment sources with their public details augmented with internal configuration and sync status infromation. (admin access required)',
+      'List payment sources with their public details augmented with internal configuration and sync status information. (admin access required)',
     tags: ['payment-source'],
     security: [{ [apiKeyAuth.name]: [] }],
     request: {

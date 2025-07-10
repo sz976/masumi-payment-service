@@ -988,10 +988,78 @@ export type PostPurchaseErrors = {
      */
     401: unknown;
     /**
+     * Conflict (purchase request already exists)
+     */
+    409: {
+        status: string;
+        error: {
+            message: string;
+        };
+        id: string;
+        object: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            payByTime: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            externalDisputeUnlockTime: string;
+            requestedById: string;
+            resultHash: string;
+            inputHash: string;
+            onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+            NextAction: {
+                requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'FundsLockingRequested' | 'FundsLockingInitiated' | 'SetRefundRequestedRequested' | 'SetRefundRequestedInitiated' | 'UnSetRefundRequestedRequested' | 'UnSetRefundRequestedInitiated' | 'WithdrawRefundRequested' | 'WithdrawRefundInitiated';
+                errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown';
+                errorNote: string | null;
+            };
+            CurrentTransaction: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
+            } | null;
+            PaidFunds: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            PaymentSource: {
+                id: string;
+                network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
+                smartContractAddress: string;
+                paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+                id: string;
+                walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+            } | null;
+            metadata: string | null;
+        };
+    };
+    /**
      * Internal Server Error
      */
     500: unknown;
 };
+
+export type PostPurchaseError = PostPurchaseErrors[keyof PostPurchaseErrors];
 
 export type PostPurchaseResponses = {
     /**
