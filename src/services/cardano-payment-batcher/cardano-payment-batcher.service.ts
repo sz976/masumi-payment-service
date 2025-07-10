@@ -555,7 +555,9 @@ export async function batchLatestPaymentEntriesV1() {
                     });
                   }
 
-                  logger.info('Batching payments, purchase request updated');
+                  logger.info(
+                    'Batching payments, purchase request initialized',
+                  );
 
                   const invalidBefore =
                     unixTimeToEnclosingSlot(
@@ -656,7 +658,7 @@ export async function batchLatestPaymentEntriesV1() {
             }),
           );
         } catch (error) {
-          logger.error('Error batching payments', { error: error });
+          logger.error('Error batching payments outer', { error: error });
 
           const potentiallyFailedPurchaseRequests =
             paymentContract.PurchaseRequests;
