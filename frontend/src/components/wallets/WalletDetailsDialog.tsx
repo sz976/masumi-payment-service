@@ -236,7 +236,16 @@ export function WalletDetailsDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog
+        open={isOpen && !selectedWalletForSwap && !selectedWalletForTopup}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedWalletForSwap(null);
+            setSelectedWalletForTopup(null);
+            onClose();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Wallet Details</DialogTitle>
@@ -275,15 +284,29 @@ export function WalletDetailsDialog({
             </div>
 
             {wallet.type !== 'Collection' && (
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   onClick={handleExport}
                   disabled={isExporting}
                   title="Export Wallet"
                 >
-                  <span className="">Export Wallet</span>
+                  <span>Export Wallet</span>
                   <Share className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedWalletForTopup(wallet)}
+                  title="Top Up"
+                >
+                  <span>Top Up</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedWalletForSwap(wallet)}
+                  title="Swap Assets"
+                >
+                  <span>Swap Assets</span>
                 </Button>
               </div>
             )}
@@ -397,7 +420,7 @@ export function WalletDetailsDialog({
                       return (
                         <div
                           key={token.unit}
-                          className="flex items-center justify-between rounded-md border p-3"
+                          className="flex items-center justify-between rounded-md border dark:border-muted-foreground/20 p-3"
                         >
                           <div>
                             <div className="font-medium">{displayName}</div>
@@ -409,7 +432,8 @@ export function WalletDetailsDialog({
                           </div>
                           <div className="text-right">
                             <div>{amount}</div>
-                            {usdValue && (
+                            {/* Only show USD value for non-USDM tokens */}
+                            {usdValue && !isUSDM && (
                               <div className="text-xs text-muted-foreground">
                                 {usdValue}
                               </div>

@@ -27,6 +27,7 @@ import { Spinner } from '../ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import Image from 'next/image';
 import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
+import { NMKR_CONFIG } from '@/lib/constants/defaultWallets';
 
 interface SwapDialogProps {
   isOpen: boolean;
@@ -167,15 +168,12 @@ export function SwapDialog({
             }, 0)
           );
         }, 0) ?? 0;
-      const nmkrPolicyId =
-        '5dac8536653edc12f6f5e1045d8164b9f59998d3bdc300fc92843489';
-      const nmkrHex = '4e4d4b52';
       const nmkr =
         result?.data?.data?.Utxos?.reduce((acc, utxo) => {
           return (
             acc +
             utxo.Amounts.reduce((acc, asset) => {
-              if (asset.unit === nmkrPolicyId + nmkrHex) {
+              if (asset.unit === NMKR_CONFIG?.fullAssetId) {
                 return acc + (asset.quantity ?? 0);
               }
               return acc;
@@ -416,7 +414,7 @@ export function SwapDialog({
           }
         }}
       >
-        <DialogContent className="overflow-y-hidden max-w-[600px]">
+        <DialogContent className="overflow-y-hidden">
           <DialogHeader>
             <DialogTitle>Swap Tokens</DialogTitle>
             <DialogDescription>

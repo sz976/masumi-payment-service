@@ -632,13 +632,7 @@ export default function WalletsPage() {
                               ) : (
                                 <span>
                                   {wallet.collectionBalance?.ada
-                                    ? useFormatBalance(
-                                        (
-                                          parseInt(
-                                            wallet.collectionBalance.ada,
-                                          ) / 1000000
-                                        ).toFixed(2),
-                                      )
+                                    ? `${useFormatBalance((parseInt(wallet.collectionBalance.ada) / 1000000).toFixed(2))}`
                                     : '0'}
                                 </span>
                               )}
@@ -656,7 +650,7 @@ export default function WalletsPage() {
                                         1000000) *
                                       rate
                                     ).toFixed(2),
-                                  ) || ''}
+                                  )}
                                 </span>
                               )}
                           </div>
@@ -670,14 +664,8 @@ export default function WalletsPage() {
                             ) : (
                               <span>
                                 {wallet.collectionBalance?.usdm
-                                  ? useFormatBalance(
-                                      (
-                                        parseInt(
-                                          wallet.collectionBalance.usdm,
-                                        ) / 1000000
-                                      ).toFixed(2),
-                                    )
-                                  : '0'}
+                                  ? `$${useFormatBalance((parseInt(wallet.collectionBalance.usdm) / 1000000).toFixed(2))}`
+                                  : '$0'}
                               </span>
                             )}
                           </div>
