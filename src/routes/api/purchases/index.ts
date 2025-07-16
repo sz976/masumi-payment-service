@@ -618,6 +618,12 @@ export const createPurchaseInitPost = payAuthenticatedEndpointFactory.build({
     if (validateHexString(sellerId) == false) {
       throw createHttpError(400, 'Seller identifier is not a valid hex string');
     }
+    if (decoded.agentIdentifier != input.agentIdentifier) {
+      throw createHttpError(
+        400,
+        'Invalid blockchain identifier, agent identifier mismatch',
+      );
+    }
 
     const cosePublicKey = getPublicKeyFromCoseKey(key);
     if (cosePublicKey == null) {
