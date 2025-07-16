@@ -537,7 +537,7 @@ export const paymentInitPost = readAuthenticatedEndpointFactory.build({
       );
     }
     const sellerCUID = cuid2.createId();
-    const sellerId = generateHash(sellerCUID);
+    const sellerId = generateHash(sellerCUID) + input.agentIdentifier;
     const blockchainIdentifier = {
       inputHash: input.inputHash,
       agentIdentifier: input.agentIdentifier,
