@@ -27,7 +27,7 @@ import { Trash2 } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { USDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
+import { getUsdmConfig } from '@/lib/constants/defaultWallets';
 import { Separator } from '@/components/ui/separator';
 
 interface RegisterAIAgentDialogProps {

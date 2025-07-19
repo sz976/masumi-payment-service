@@ -9,11 +9,7 @@ import {
 import { cn, shortenAddress } from '@/lib/utils';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { CopyButton } from '@/components/ui/copy-button';
-import {
-  USDM_CONFIG,
-  TESTUSDM_CONFIG,
-  getUsdmConfig,
-} from '@/lib/constants/defaultWallets';
+import { TESTUSDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
 import { GetRegistryResponses, deleteRegistry } from '@/lib/api/generated';
 import { Separator } from '@/components/ui/separator';
 import { Link2, Trash2 } from 'lucide-react';

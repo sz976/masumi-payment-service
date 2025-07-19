@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { USDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
+import { getUsdmConfig } from '@/lib/constants/defaultWallets';
 
 interface TokenBalance {
   unit: string;

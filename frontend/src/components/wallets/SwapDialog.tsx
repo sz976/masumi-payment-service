@@ -26,7 +26,7 @@ import { Token } from '@/types/token';
 import { Spinner } from '../ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import Image from 'next/image';
-import { USDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
+import { getUsdmConfig } from '@/lib/constants/defaultWallets';
 import { NMKR_CONFIG } from '@/lib/constants/defaultWallets';
 import adaIcon from '@/assets/ada.png';
 import usdmIcon from '@/assets/usdm.png';

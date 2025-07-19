@@ -31,11 +31,7 @@ import {
   WalletWithBalance,
 } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
-import {
-  USDM_CONFIG,
-  TESTUSDM_CONFIG,
-  getUsdmConfig,
-} from '@/lib/constants/defaultWallets';
+import { TESTUSDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
 type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
