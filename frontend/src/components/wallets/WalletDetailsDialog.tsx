@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
+import { USDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
 
 interface TokenBalance {
   unit: string;
@@ -162,10 +162,11 @@ export function WalletDetailsDialog({
       };
     }
 
-    // For USDM, match by policyId and assetName (hex)
+    // For USDM, match by policyId and assetName (hex) - network aware
+    const usdmConfig = getUsdmConfig(state.network);
     const isUSDM =
-      token.policyId === USDM_CONFIG.policyId &&
-      token.assetName === hexToAscii(USDM_CONFIG.assetName);
+      token.policyId === usdmConfig.policyId &&
+      token.assetName === hexToAscii(usdmConfig.assetName);
     if (isUSDM) {
       const usdm = token.quantity / 1000000;
       const formattedAmount =
@@ -389,17 +390,18 @@ export function WalletDetailsDialog({
                     const adaToken = tokenBalances.find(
                       (t) => t.unit === 'lovelace',
                     );
+                    const usdmConfig = getUsdmConfig(state.network);
                     const usdmToken = tokenBalances.find(
                       (t) =>
-                        t.policyId === USDM_CONFIG.policyId &&
-                        t.assetName === hexToAscii(USDM_CONFIG.assetName),
+                        t.policyId === usdmConfig.policyId &&
+                        t.assetName === hexToAscii(usdmConfig.assetName),
                     );
                     const otherTokens = tokenBalances.filter(
                       (t) =>
                         t.unit !== 'lovelace' &&
                         !(
-                          t.policyId === USDM_CONFIG.policyId &&
-                          t.assetName === hexToAscii(USDM_CONFIG.assetName)
+                          t.policyId === usdmConfig.policyId &&
+                          t.assetName === hexToAscii(usdmConfig.assetName)
                         ),
                     );
                     // Filter out undefined tokens before mapping
@@ -411,8 +413,8 @@ export function WalletDetailsDialog({
                     return sortedTokens.map((token) => {
                       const { amount, usdValue } = formatTokenBalance(token);
                       const isUSDM =
-                        token.policyId === USDM_CONFIG.policyId &&
-                        token.assetName === hexToAscii(USDM_CONFIG.assetName);
+                        token.policyId === usdmConfig.policyId &&
+                        token.assetName === hexToAscii(usdmConfig.assetName);
                       const displayName =
                         isUSDM && token.policyId
                           ? `USDM (${shortenAddress(token.policyId)})`

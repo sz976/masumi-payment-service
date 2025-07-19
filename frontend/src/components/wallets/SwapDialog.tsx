@@ -26,7 +26,7 @@ import { Token } from '@/types/token';
 import { Spinner } from '../ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import Image from 'next/image';
-import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
+import { USDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
 import { NMKR_CONFIG } from '@/lib/constants/defaultWallets';
 import adaIcon from '@/assets/ada.png';
 import usdmIcon from '@/assets/usdm.png';
@@ -159,12 +159,13 @@ export function SwapDialog({
             }, 0)
           );
         }, 0) ?? 0;
+      const usdmConfig = getUsdmConfig(state.network);
       const usdm =
         result?.data?.data?.Utxos?.reduce((acc, utxo) => {
           return (
             acc +
             utxo.Amounts.reduce((acc, asset) => {
-              if (asset.unit === USDM_CONFIG.fullAssetId) {
+              if (asset.unit === usdmConfig.fullAssetId) {
                 return acc + (asset.quantity ?? 0);
               }
               return acc;
