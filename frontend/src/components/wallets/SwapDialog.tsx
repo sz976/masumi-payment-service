@@ -28,6 +28,9 @@ import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import Image from 'next/image';
 import { USDM_CONFIG } from '@/lib/constants/defaultWallets';
 import { NMKR_CONFIG } from '@/lib/constants/defaultWallets';
+import adaIcon from '@/assets/ada.png';
+import usdmIcon from '@/assets/usdm.png';
+import nmkrIcon from '@/assets/nmkr.png';
 
 interface SwapDialogProps {
   isOpen: boolean;
@@ -403,6 +406,19 @@ export function SwapDialog({
     }
   };
 
+  const getTokenIcon = (symbol: string) => {
+    switch (symbol) {
+      case 'ADA':
+        return adaIcon;
+      case 'USDM':
+        return usdmIcon;
+      case 'NMKR':
+        return nmkrIcon;
+      default:
+        return adaIcon;
+    }
+  };
+
   return (
     <>
       <Dialog
@@ -481,7 +497,7 @@ export function SwapDialog({
                           ))}
                         </select>
                         <Image
-                          src={selectedFromToken.icon}
+                          src={getTokenIcon(selectedFromToken.symbol)}
                           alt="Token"
                           className="w-6 h-6 rounded-full"
                           width={24}
@@ -554,7 +570,7 @@ export function SwapDialog({
                           ))}
                         </select>
                         <Image
-                          src={selectedToToken.icon}
+                          src={getTokenIcon(selectedToToken.symbol)}
                           alt="Token"
                           className="w-6 h-6 rounded-full"
                           width={24}
