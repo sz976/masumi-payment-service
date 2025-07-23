@@ -27,6 +27,9 @@ dotenv.config();
 const prisma = new PrismaClient();
 export const seed = async (prisma: PrismaClient) => {
   const seedOnlyIfEmpty = process.env.SEED_ONLY_IF_EMPTY;
+  console.warn(
+    'WARNING: If no ADMIN_KEY is set, a default insecure key will be used.',
+  );
   if (seedOnlyIfEmpty?.toLowerCase() === 'true') {
     const adminKey = await prisma.apiKey.findFirst({});
     if (adminKey) {
@@ -38,7 +41,7 @@ export const seed = async (prisma: PrismaClient) => {
   let usedDefaultAdminKey = false;
 
   if (!adminKey) {
-    adminKey = process.env.DEFAULT_ADMIN_KEY;
+    adminKey = 'DefaultUnsecureAdminKey';
     usedDefaultAdminKey = true;
 
     console.warn('****************************************************');
