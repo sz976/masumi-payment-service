@@ -15,6 +15,30 @@ import fs from 'fs';
 const __dirname = path.resolve();
 
 async function initialize() {
+  //Checking for default AdminKey if not than log warning
+  let adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) {
+    adminKey = 'DefaultUnsecureAdminKey';
+    logger.warn(
+      '*****************************************************************',
+    );
+    logger.warn(
+      '*                                                               *',
+    );
+    logger.warn('*  WARNING:  Missing, or DEFAULT ADMIN_KEY detected.   *');
+    logger.warn(
+      '*  For production, generate a secure, random key and set it     *',
+    );
+    logger.warn(
+      '*  as the ADMIN_KEY in your .env file.                          *',
+    );
+    logger.warn(
+      '*                                                               *',
+    );
+    logger.warn(
+      '*****************************************************************',
+    );
+  }
   await initDB();
   await initJobs();
   logger.info('Initialized all services');
