@@ -9,6 +9,7 @@ import ui, { JsonObject } from 'swagger-ui-express';
 import { generateOpenAPI } from '@/utils/generator/swagger-generator';
 import { cleanupDB, initDB, prisma } from '@/utils/db';
 import path from 'path';
+import { DEFAULTS } from './../src/utils/config';
 import { requestLogger } from '@/utils/middleware/request-logger';
 import fs from 'fs';
 
@@ -16,13 +17,12 @@ const __dirname = path.resolve();
 
 async function initialize() {
   await initDB();
-  const DEFAULT_ADMIN_KEY = 'DefaultUnsecureAdminKey';
-  const defaultkey = await prisma.apiKey.findFirst({
+  const defaultKey = await prisma.apiKey.findFirst({
     where: {
-      token: DEFAULT_ADMIN_KEY,
+      token: DEFAULTS.DEFAULT_ADMIN_KEY,
     },
   });
-  if (defaultkey) {
+  if (defaultKey) {
     logger.warn(
       '*****************************************************************',
     );
@@ -33,7 +33,7 @@ async function initialize() {
       '*  This is a security risk. For production environments, please *',
     );
     logger.warn(
-      '*  set a secure ADMIN_KEY in .env and re-seed the database.     *',
+      '*  set a secure ADMIN_KEY in .env and Please change it in the admin tool   *',
     );
     logger.warn(
       '*****************************************************************',

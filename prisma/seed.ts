@@ -41,7 +41,7 @@ export const seed = async (prisma: PrismaClient) => {
   let usedDefaultAdminKey = false;
 
   if (!adminKey) {
-    adminKey = 'DefaultUnsecureAdminKey';
+    adminKey = DEFAULTS.DEFAULT_ADMIN_KEY;
     usedDefaultAdminKey = true;
 
     console.warn('****************************************************');
