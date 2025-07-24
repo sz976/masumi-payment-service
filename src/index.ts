@@ -7,7 +7,7 @@ import { createConfig, createServer } from 'express-zod-api';
 import { router } from '@/routes/index';
 import ui, { JsonObject } from 'swagger-ui-express';
 import { generateOpenAPI } from '@/utils/generator/swagger-generator';
-import { cleanupDB, initDB } from '@/utils/db';
+import { cleanupDB, initDB, prisma } from '@/utils/db';
 import path from 'path';
 import { requestLogger } from '@/utils/middleware/request-logger';
 import fs from 'fs';
@@ -15,31 +15,30 @@ import fs from 'fs';
 const __dirname = path.resolve();
 
 async function initialize() {
-  //Checking for default AdminKey if not than log warning
-  let adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
-    adminKey = 'DefaultUnsecureAdminKey';
+  await initDB();
+  const DEFAULT_ADMIN_KEY = 'DefaultUnsecureAdminKey';
+  const defaultkey = await prisma.apiKey.findFirst({
+    where: {
+      token: DEFAULT_ADMIN_KEY,
+    },
+  });
+  if (defaultkey) {
     logger.warn(
       '*****************************************************************',
     );
     logger.warn(
-      '*                                                               *',
-    );
-    logger.warn('*  WARNING:  Missing, or DEFAULT ADMIN_KEY detected.   *');
-    logger.warn(
-      '*  For production, generate a secure, random key and set it     *',
+      '*  WARNING: The default insecure ADMIN_KEY is in use.           *',
     );
     logger.warn(
-      '*  as the ADMIN_KEY in your .env file.                          *',
+      '*  This is a security risk. For production environments, please *',
     );
     logger.warn(
-      '*                                                               *',
+      '*  set a secure ADMIN_KEY in .env and re-seed the database.     *',
     );
     logger.warn(
       '*****************************************************************',
     );
   }
-  await initDB();
   await initJobs();
   logger.info('Initialized all services');
 }
