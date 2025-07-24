@@ -17,7 +17,7 @@ const __dirname = path.resolve();
 
 async function initialize() {
   await initDB();
-  const defaultKey = await prisma.apiKey.findFirst({
+  const defaultKey = await prisma.apiKey.findUnique({
     where: {
       token: DEFAULTS.DEFAULT_ADMIN_KEY,
     },
