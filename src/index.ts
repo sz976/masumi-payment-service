@@ -27,13 +27,15 @@ async function initialize() {
       '*****************************************************************',
     );
     logger.warn(
-      '*  WARNING: The default insecure ADMIN_KEY is in use.           *',
+      '*  WARNING: The default insecure ADMIN_KEY "' +
+        DEFAULTS.DEFAULT_ADMIN_KEY +
+        '" is in use.           *',
     );
     logger.warn(
       '*  This is a security risk. For production environments, please *',
     );
     logger.warn(
-      '*  set a secure ADMIN_KEY in .env and Please change it in the admin tool   *',
+      '*  set a secure ADMIN_KEY in .env before seeding or change it in the admin tool now   *',
     );
     logger.warn(
       '*****************************************************************',
