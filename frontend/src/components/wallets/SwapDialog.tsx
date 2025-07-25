@@ -45,6 +45,7 @@ export function SwapDialog({
   walletType,
   walletId,
 }: SwapDialogProps) {
+  return <div></div>;
   const { state, apiClient } = useAppContext();
   const [adaBalance, setAdaBalance] = useState<number>(0);
   const [usdmBalance, setUsdmBalance] = useState<number>(0);
