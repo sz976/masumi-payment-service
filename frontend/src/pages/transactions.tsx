@@ -84,7 +84,18 @@ export default function Transactions() {
     { name: 'All', count: null },
     { name: 'Payments', count: null },
     { name: 'Purchases', count: null },
-    { name: 'Refund Requests', count: null },
+    {
+      name: 'Refund Requests',
+      count:
+        allTransactions.filter((t) => t.onChainState === 'RefundRequested')
+          .length || null,
+    },
+    {
+      name: 'Disputes',
+      count:
+        allTransactions.filter((t) => t.onChainState === 'Disputed').length ||
+        null,
+    },
   ];
 
   const filterTransactions = useCallback(() => {
@@ -103,6 +114,8 @@ export default function Transactions() {
       filtered = filtered.filter((t) => t.type === 'purchase');
     } else if (activeTab === 'Refund Requests') {
       filtered = filtered.filter((t) => t.onChainState === 'RefundRequested');
+    } else if (activeTab === 'Disputes') {
+      filtered = filtered.filter((t) => t.onChainState === 'Disputed');
     }
 
     if (searchQuery) {
@@ -632,7 +645,14 @@ export default function Transactions() {
                             !!transaction.NextAction?.errorType,
                           )}
                         >
-                          {formatStatus(transaction.onChainState)}
+                          {transaction.onChainState === 'Disputed' ? (
+                            <span className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              {formatStatus(transaction.onChainState)}
+                            </span>
+                          ) : (
+                            formatStatus(transaction.onChainState)
+                          )}
                         </span>
                       </td>
                       <td className="p-4">
@@ -654,7 +674,9 @@ export default function Transactions() {
             {!isLoading && (
               <Pagination
                 hasMore={
-                  activeTab === 'All' || activeTab === 'Refund Requests'
+                  activeTab === 'All' ||
+                  activeTab === 'Refund Requests' ||
+                  activeTab === 'Disputes'
                     ? hasMorePurchases || hasMorePayments
                     : activeTab === 'Payments'
                       ? hasMorePayments
@@ -719,6 +741,21 @@ export default function Transactions() {
                   </p>
                 </div>
               </div>
+
+              {selectedTransaction.onChainState === 'Disputed' && (
+                <div className="rounded-md border p-4 bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <h4 className="font-semibold text-orange-800 dark:text-orange-200">
+                      Dispute Active
+                    </h4>
+                  </div>
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    This payment is in dispute. As the seller, you can authorize
+                    a refund to resolve the dispute.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <h4 className="font-semibold">Onchain state</h4>
@@ -993,10 +1030,21 @@ export default function Transactions() {
                 {canAllowRefund(selectedTransaction) &&
                   selectedTransaction.type === 'payment' && (
                     <Button
-                      variant="secondary"
+                      variant={
+                        selectedTransaction.onChainState === 'Disputed'
+                          ? 'default'
+                          : 'secondary'
+                      }
                       onClick={() => handleAllowRefund(selectedTransaction)}
+                      className={
+                        selectedTransaction.onChainState === 'Disputed'
+                          ? 'bg-orange-600 hover:bg-orange-700'
+                          : ''
+                      }
                     >
-                      Allow Refund
+                      {selectedTransaction.onChainState === 'Disputed'
+                        ? 'Authorize Dispute Refund'
+                        : 'Allow Refund'}
                     </Button>
                   )}
                 {canCancelRefund(selectedTransaction) &&
