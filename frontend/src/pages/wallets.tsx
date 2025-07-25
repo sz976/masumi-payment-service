@@ -8,7 +8,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Plus, Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
-import { SwapDialog } from '@/components/wallets/SwapDialog';
+//import { SwapDialog } from '@/components/wallets/SwapDialog';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import {
@@ -709,7 +709,7 @@ export default function WalletsPage() {
         onSuccess={fetchWallets}
       />
 
-      <SwapDialog
+      {/*<SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
         walletAddress={selectedWalletForSwap?.walletAddress || ''}
@@ -717,7 +717,7 @@ export default function WalletsPage() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
-      />
+      />*/}
 
       <TransakWidget
         isOpen={!!selectedWalletForTopup}
