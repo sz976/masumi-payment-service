@@ -66,7 +66,7 @@ export const apiRouter: Routing = {
     registry: new DependsOnMethod({
       get: queryRegistryRequestGet,
       post: registerAgentPost,
-      delete: unregisterAgentDelete,
+      patch: unregisterAgentDelete,
     }).nest({
       wallet: new DependsOnMethod({
         get: queryAgentFromWalletGet,

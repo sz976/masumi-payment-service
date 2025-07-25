@@ -508,7 +508,7 @@ export const unregisterAgentSchemaOutput = z.object({
 });
 
 export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
-  method: 'delete',
+  method: 'patch',
   input: unregisterAgentSchemaInput,
   output: unregisterAgentSchemaOutput,
   handler: async ({
