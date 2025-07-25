@@ -84,11 +84,7 @@ export function TransakWidget({
     );
   }
 
-  const transakUrl = new URL(
-    isProduction
-      ? 'https://global.transak.com'
-      : 'https://global-stg.transak.com',
-  );
+  const transakUrl = new URL('https://global.transak.com');
   transakUrl.searchParams.set(
     'apiKey',
     process.env.NEXT_PUBLIC_TRANSAK_API_KEY ||
