@@ -11,6 +11,7 @@ import {
 import { CopyButton } from '@/components/ui/copy-button';
 import { toast } from 'react-toastify';
 import { parseError } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   GetPaymentResponses,
   GetPurchaseResponses,
@@ -102,6 +103,11 @@ export default function TransactionDetailsDialog({
   apiClient,
   state,
 }: TransactionDetailsDialogProps) {
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+  const [confirmAction, setConfirmAction] = React.useState<
+    'refund' | 'cancel' | null
+  >(null);
+  const [isLoading, setIsLoading] = React.useState(false);
   const clearTransactionError = async (transaction: Transaction) => {
     try {
       await apiClient.request({
@@ -238,7 +244,7 @@ export default function TransactionDetailsDialog({
   if (!transaction) return null;
 
   return (
-    <Dialog open={!!transaction} onOpenChange={onClose}>
+    <Dialog open={!!transaction && !showConfirmDialog} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Transaction Details</DialogTitle>
@@ -548,28 +554,24 @@ export default function TransactionDetailsDialog({
               )}
             {canAllowRefund(transaction) && (
               <Button
-                variant={
-                  transaction.onChainState === 'Disputed'
-                    ? 'default'
-                    : 'secondary'
-                }
-                onClick={() => handleAllowRefund(transaction)}
-                className={
-                  transaction.onChainState === 'Disputed'
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : ''
-                }
+                variant="default"
+                onClick={() => {
+                  setConfirmAction('refund');
+                  setShowConfirmDialog(true);
+                }}
+                className="bg-orange-600 hover:bg-orange-700"
               >
-                {transaction.onChainState === 'Disputed'
-                  ? 'Authorize Dispute Refund'
-                  : 'Allow Refund'}
+                Authorize Refund
               </Button>
             )}
             {canCancelRefund(transaction) &&
               transaction.type === 'purchase' && (
                 <Button
                   variant="destructive"
-                  onClick={() => handleCancelRefund(transaction)}
+                  onClick={() => {
+                    setConfirmAction('cancel');
+                    setShowConfirmDialog(true);
+                  }}
                 >
                   Cancel Refund Request
                 </Button>
@@ -577,6 +579,41 @@ export default function TransactionDetailsDialog({
           </div>
         </div>
       </DialogContent>
+
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onClose={() => {
+          setShowConfirmDialog(false);
+          setConfirmAction(null);
+        }}
+        title={
+          confirmAction === 'refund'
+            ? 'Authorize Refund'
+            : 'Cancel Refund Request'
+        }
+        description={
+          confirmAction === 'refund'
+            ? 'Are you sure you want to authorize this refund?'
+            : 'Are you sure you want to cancel this refund request?'
+        }
+        onConfirm={async () => {
+          if (!transaction) return;
+
+          setIsLoading(true);
+          try {
+            if (confirmAction === 'refund') {
+              await handleAllowRefund(transaction);
+            } else if (confirmAction === 'cancel') {
+              await handleCancelRefund(transaction);
+            }
+          } finally {
+            setIsLoading(false);
+            setShowConfirmDialog(false);
+            setConfirmAction(null);
+          }
+        }}
+        isLoading={isLoading}
+      />
     </Dialog>
   );
 }
