@@ -8,7 +8,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Plus, Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
-import { SwapDialog } from '@/components/wallets/SwapDialog';
+//import { SwapDialog } from '@/components/wallets/SwapDialog';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import {
@@ -38,11 +38,11 @@ import { TOOLTIP_TEXTS } from '@/lib/constants/tooltips';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
-      type: 'Purchasing';
-    })
+    type: 'Purchasing';
+  })
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
-      type: 'Selling';
-    });
+    type: 'Selling';
+  });
 
 type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
 
@@ -225,9 +225,9 @@ export default function WalletsPage() {
                 ...baseWallet,
                 collectionBalance: collectionBalance
                   ? {
-                      ada: collectionBalance.ada,
-                      usdm: collectionBalance.usdm,
-                    }
+                    ada: collectionBalance.ada,
+                    usdm: collectionBalance.usdm,
+                  }
                   : null,
               } as WalletWithBalance;
             }),
@@ -495,10 +495,10 @@ export default function WalletsPage() {
                               <span>
                                 {wallet.balance
                                   ? useFormatBalance(
-                                      (
-                                        parseInt(wallet.balance) / 1000000
-                                      ).toFixed(2),
-                                    )
+                                    (
+                                      parseInt(wallet.balance) / 1000000
+                                    ).toFixed(2),
+                                  )
                                   : '0'}
                               </span>
                             )}
@@ -632,12 +632,12 @@ export default function WalletsPage() {
                                 <span>
                                   {wallet.collectionBalance?.ada
                                     ? useFormatBalance(
-                                        (
-                                          parseInt(
-                                            wallet.collectionBalance.ada,
-                                          ) / 1000000
-                                        ).toFixed(2),
-                                      )
+                                      (
+                                        parseInt(
+                                          wallet.collectionBalance.ada,
+                                        ) / 1000000
+                                      ).toFixed(2),
+                                    )
                                     : '0'}
                                 </span>
                               )}
@@ -670,8 +670,8 @@ export default function WalletsPage() {
                               <span>
                                 {wallet.collectionBalance?.usdm
                                   ? useFormatBalance(
-                                      wallet.collectionBalance.usdm,
-                                    )
+                                    wallet.collectionBalance.usdm,
+                                  )
                                   : '0'}
                               </span>
                             )}
@@ -709,7 +709,7 @@ export default function WalletsPage() {
         onSuccess={fetchWallets}
       />
 
-      <SwapDialog
+      {/*<SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
         walletAddress={selectedWalletForSwap?.walletAddress || ''}
@@ -717,7 +717,7 @@ export default function WalletsPage() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
-      />
+      />*/}
 
       <TransakWidget
         isOpen={!!selectedWalletForTopup}

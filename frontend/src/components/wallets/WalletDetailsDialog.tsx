@@ -10,7 +10,7 @@ import { shortenAddress } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { useRate } from '@/lib/hooks/useRate';
-import { SwapDialog } from '@/components/wallets/SwapDialog';
+//import { SwapDialog } from '@/components/wallets/SwapDialog';
 import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { CopyButton } from '@/components/ui/copy-button';
 import {
@@ -56,8 +56,8 @@ export function WalletDetailsDialog({
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { rate } = useRate();
-  const [selectedWalletForSwap, setSelectedWalletForSwap] =
-    useState<WalletWithBalance | null>(null);
+  //const [selectedWalletForSwap, setSelectedWalletForSwap] =
+  //  useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<WalletWithBalance | null>(null);
   const [exportedMnemonic, setExportedMnemonic] = useState<string | null>(null);
@@ -383,7 +383,7 @@ export function WalletDetailsDialog({
         </DialogContent>
       </Dialog>
 
-      <SwapDialog
+      {/*<SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
         walletAddress={selectedWalletForSwap?.walletAddress || ''}
@@ -392,6 +392,7 @@ export function WalletDetailsDialog({
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
       />
+      */}
 
       <TransakWidget
         isOpen={!!selectedWalletForTopup}

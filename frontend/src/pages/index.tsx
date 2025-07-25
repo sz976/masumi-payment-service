@@ -20,11 +20,11 @@ import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
 import { RegisterAIAgentDialog } from '@/components/ai-agents/RegisterAIAgentDialog';
-import { SwapDialog } from '@/components/wallets/SwapDialog';
+//import { SwapDialog } from '@/components/wallets/SwapDialog';
 import { TransakWidget } from '@/components/wallets/TransakWidget';
 import { useRate } from '@/lib/hooks/useRate';
 import { Spinner } from '@/components/ui/spinner';
-import { FaExchangeAlt } from 'react-icons/fa';
+//import { FaExchangeAlt } from 'react-icons/fa';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
 import { useTransactions } from '@/lib/hooks/useTransactions';
 import { AIAgentDetailsDialog } from '@/components/ai-agents/AIAgentDetailsDialog';
@@ -36,11 +36,11 @@ type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
-      type: 'Purchasing';
-    })
+    type: 'Purchasing';
+  })
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
-      type: 'Selling';
-    });
+    type: 'Selling';
+  });
 type WalletWithBalance = Wallet & {
   balance: string;
   usdmBalance: string;
@@ -67,8 +67,8 @@ export default function Overview() {
   const [isAddWalletDialogOpen, setAddWalletDialogOpen] = useState(false);
   const [isRegisterAgentDialogOpen, setRegisterAgentDialogOpen] =
     useState(false);
-  const [selectedWalletForSwap, setSelectedWalletForSwap] =
-    useState<WalletWithBalance | null>(null);
+  //const [selectedWalletForSwap, setSelectedWalletForSwap] =
+  //  useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<WalletWithBalance | null>(null);
   const { rate, isLoading: isLoadingRate } = useRate();
@@ -315,10 +315,10 @@ export default function Overview() {
             Showing data for{' '}
             {selectedPaymentSourceId
               ? shortenAddress(
-                  state.paymentSources.find(
-                    (source) => source.id === selectedPaymentSourceId,
-                  )?.smartContractAddress ?? 'invalid',
-                )
+                state.paymentSources.find(
+                  (source) => source.id === selectedPaymentSourceId,
+                )?.smartContractAddress ?? 'invalid',
+              )
               : 'all payment sources'}
             . This can be changed in the{' '}
             <Link
@@ -604,7 +604,7 @@ export default function Overview() {
                             </td>
                             <td className="py-3 px-2 w-32">
                               <div className="flex items-center gap-2">
-                                <Button
+                                {/*<Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
@@ -614,7 +614,7 @@ export default function Overview() {
                                   }}
                                 >
                                   <FaExchangeAlt className="h-2 w-2" />
-                                </Button>
+                                </Button>*/}
                                 <Button
                                   variant="muted"
                                   className="h-8"
@@ -774,7 +774,7 @@ export default function Overview() {
         onClose={() => setSelectedAgentForDetails(null)}
       />
 
-      <SwapDialog
+      {/*<SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
         walletAddress={selectedWalletForSwap?.walletAddress || ''}
@@ -782,7 +782,7 @@ export default function Overview() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
-      />
+      />*/}
 
       <TransakWidget
         isOpen={!!selectedWalletForTopup}
