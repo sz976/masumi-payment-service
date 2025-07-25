@@ -5,6 +5,8 @@ import Head from 'next/head';
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/lib/contexts/ThemeContext';
+import { jobInputSchema, JobInputSchemaType } from '@/lib/job-input-schema';
+import JobInputsFormRenderer from '@/components/job-input-renderer/JobInputsFormRenderer';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -24,11 +26,6 @@ const DEFAULT_SCHEMA = `{
     { "validation": "format", "value": "email" }
   ]
 }`;
-
-const SUPPORTED_TYPES = ['string', 'number', 'boolean', 'option', 'none'];
-const VALIDATION_TYPES = ['min', 'max', 'format', 'optional'];
-const STRING_FORMATS = ['email', 'url', 'nonempty'];
-const NUMBER_FORMATS = ['integer'];
 
 const EXAMPLES = [
   {
@@ -80,12 +77,87 @@ const EXAMPLES = [
   ]
 }`,
   },
+  {
+    label: 'Boolean Input',
+    value: `{
+  "id": "terms-accepted",
+  "type": "boolean",
+  "name": "Accept Terms",
+  "data": {
+    "description": "I agree to the terms and conditions"
+  }
+}`,
+  },
+  {
+    label: 'Multiple Fields',
+    value: `[
+  {
+    "id": "name",
+    "type": "string",
+    "name": "Full Name",
+    "data": {
+      "placeholder": "Enter your full name",
+      "description": "Your complete name as it appears on official documents"
+    },
+    "validations": [
+      { "validation": "min", "value": "2" },
+      { "validation": "max", "value": "100" }
+    ]
+  },
+  {
+    "id": "email",
+    "type": "string",
+    "name": "Email Address",
+    "data": {
+      "placeholder": "your.email@example.com",
+      "description": "Your primary email address"
+    },
+    "validations": [
+      { "validation": "format", "value": "email" }
+    ]
+  },
+  {
+    "id": "age",
+    "type": "number",
+    "name": "Age",
+    "data": {
+      "description": "Your current age"
+    },
+    "validations": [
+      { "validation": "min", "value": "18" },
+      { "validation": "max", "value": "120" },
+      { "validation": "format", "value": "integer" }
+    ]
+  },
+  {
+    "id": "interests",
+    "type": "option",
+    "name": "Interests",
+    "data": {
+      "description": "Select your areas of interest",
+      "values": ["Technology", "Sports", "Music", "Art", "Science", "Travel"]
+    },
+    "validations": [
+      { "validation": "min", "value": "1" },
+      { "validation": "max", "value": "3" }
+    ]
+  },
+  {
+    "id": "newsletter",
+    "type": "boolean",
+    "name": "Newsletter Subscription",
+    "data": {
+      "description": "Subscribe to our newsletter for updates"
+    }
+  }
+]`,
+  },
 ];
 
-function validateMIP003Schema(input: string): {
+function validateSchemaWithZod(input: string): {
   valid: boolean;
   errors: { message: string; line?: number }[];
-  formatted?: string;
+  parsedSchemas?: JobInputSchemaType[];
 } {
   let parsed: any;
   try {
@@ -105,6 +177,7 @@ function validateMIP003Schema(input: string): {
   }
 
   const errors: { message: string; line?: number }[] = [];
+  const schemas: JobInputSchemaType[] = [];
 
   // Helper to get line number for a key
   const getLine = (key: string) => {
@@ -113,101 +186,38 @@ function validateMIP003Schema(input: string): {
     return input.slice(0, idx).split('\n').length;
   };
 
-  // Required fields
-  ['id', 'type', 'name'].forEach((field) => {
-    if (!(field in parsed)) {
-      errors.push({
-        message: `Missing required field: ${field}`,
-        line: getLine(field),
-      });
+  // Handle both single schema and array of schemas
+  const schemasToValidate = Array.isArray(parsed) ? parsed : [parsed];
+
+  schemasToValidate.forEach((schema: any, index: number) => {
+    try {
+      const validatedSchema = jobInputSchema.parse(schema);
+      schemas.push(validatedSchema);
+    } catch (zodError: any) {
+      if (zodError.errors) {
+        zodError.errors.forEach((error: any) => {
+          errors.push({
+            message: `Schema ${index + 1}: ${error.message}`,
+            line: getLine(error.path?.[0] || ''),
+          });
+        });
+      } else {
+        errors.push({
+          message: `Schema ${index + 1}: ${zodError.message}`,
+          line: getLine('type'),
+        });
+      }
     }
   });
 
-  // Type check
-  if (parsed.type && !SUPPORTED_TYPES.includes(parsed.type)) {
-    errors.push({
-      message: `Invalid type: ${parsed.type}. Must be one of ${SUPPORTED_TYPES.join(', ')}`,
-      line: getLine('type'),
-    });
-  }
-
-  // Option type: data.values must exist and be array
-  if (parsed.type === 'option') {
-    if (!parsed.data || !Array.isArray(parsed.data.values)) {
-      errors.push({
-        message: 'For type "option", data.values (array) is required',
-        line: getLine('data'),
-      });
-    }
-  }
-
-  // Validations
-  if (parsed.validations) {
-    if (!Array.isArray(parsed.validations)) {
-      errors.push({
-        message: 'validations must be an array',
-        line: getLine('validations'),
-      });
-    } else {
-      parsed.validations.forEach((v: any, i: number) => {
-        if (!v.validation || !VALIDATION_TYPES.includes(v.validation)) {
-          errors.push({
-            message: `Validation #${i + 1}: invalid validation type: ${v.validation}`,
-            line: getLine('validations'),
-          });
-        }
-        if (v.validation === 'format') {
-          if (parsed.type === 'string' && !STRING_FORMATS.includes(v.value)) {
-            errors.push({
-              message: `Validation #${i + 1}: invalid string format: ${v.value}`,
-              line: getLine('validations'),
-            });
-          }
-          if (parsed.type === 'number' && !NUMBER_FORMATS.includes(v.value)) {
-            errors.push({
-              message: `Validation #${i + 1}: invalid number format: ${v.value}`,
-              line: getLine('validations'),
-            });
-          }
-        }
-        // min/max should be numbers for string/number/option
-        if (v.validation === 'min' || v.validation === 'max') {
-          if (['string', 'number', 'option'].includes(parsed.type)) {
-            if (isNaN(Number(v.value))) {
-              errors.push({
-                message: `Validation #${i + 1}: min/max value should be a number`,
-                line: getLine('validations'),
-              });
-            }
-          }
-        }
-      });
-    }
-  }
-
-  // Data field checks
-  if (parsed.data) {
-    if (typeof parsed.data !== 'object') {
-      errors.push({ message: 'data must be an object', line: getLine('data') });
-    }
-    if (parsed.data.values && !Array.isArray(parsed.data.values)) {
-      errors.push({
-        message: 'data.values must be an array',
-        line: getLine('data'),
-      });
-    }
-  }
-
-  // If any errors, return them
   if (errors.length > 0) {
     return { valid: false, errors };
   }
 
-  // If valid, return formatted JSON
   return {
     valid: true,
     errors: [],
-    formatted: JSON.stringify(parsed, null, 2),
+    parsedSchemas: schemas,
   };
 }
 
@@ -218,7 +228,7 @@ export default function InputSchemaValidatorPage() {
 
   // Memoize validation for performance
   const validation = useMemo(
-    () => validateMIP003Schema(jsonInput),
+    () => validateSchemaWithZod(jsonInput),
     [jsonInput],
   );
 
@@ -227,6 +237,11 @@ export default function InputSchemaValidatorPage() {
     setSelectedExample(val);
     const found = EXAMPLES.find((ex) => ex.label === val);
     if (found) setJsonInput(found.value);
+  };
+
+  const handleFormDataChange = (formData: Record<string, any>) => {
+    // Optional: Handle form data changes
+    console.log('Form data changed:', formData);
   };
 
   return (
@@ -246,7 +261,7 @@ export default function InputSchemaValidatorPage() {
             >
               MIP-003
             </a>{' '}
-            specification in real time.
+            specification and see how they will render in Sokosumi.
           </p>
         </div>
         <div className="flex flex-col md:flex-row gap-6 min-h-[700px]">
@@ -291,25 +306,12 @@ export default function InputSchemaValidatorPage() {
             {validation.valid ? (
               <div className="flex-1 flex flex-col gap-2 h-full">
                 <div className="text-green-600 font-semibold mb-2 h-[30px] flex items-center">
-                  Schema is valid!
+                  Schema is valid! ✓
                 </div>
-                <div className="bg-muted rounded border text-xs overflow-x-auto h-[600px] flex-1">
-                  <MonacoEditor
-                    height="600px"
-                    defaultLanguage="json"
-                    value={validation.formatted}
-                    onChange={() => {}}
-                    theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      scrollBeyondLastLine: false,
-                      wordWrap: 'on',
-                      formatOnPaste: true,
-                      formatOnType: true,
-                      automaticLayout: true,
-                      readOnly: true,
-                    }}
+                <div className="flex-1 overflow-auto">
+                  <JobInputsFormRenderer
+                    jobInputSchemas={validation.parsedSchemas || []}
+                    onFormDataChange={handleFormDataChange}
                   />
                 </div>
               </div>
@@ -318,18 +320,22 @@ export default function InputSchemaValidatorPage() {
                 <div className="text-destructive font-semibold mb-2 h-[30px] flex items-center">
                   Schema is invalid:
                 </div>
-                <ul className="list-disc pl-5 space-y-1">
-                  {validation.errors.map((err, i) => (
-                    <li key={i} className="text-sm">
-                      {err.line ? (
-                        <span className="text-xs text-muted-foreground">
-                          (line {err.line}){' '}
-                        </span>
-                      ) : null}
-                      {err.message}
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex-1 overflow-auto">
+                  <div className="bg-muted rounded border p-4">
+                    <ul className="list-disc pl-5 space-y-1">
+                      {validation.errors.map((err, i) => (
+                        <li key={i} className="text-sm">
+                          {err.line ? (
+                            <span className="text-xs text-muted-foreground">
+                              (line {err.line}){' '}
+                            </span>
+                          ) : null}
+                          {err.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
           </div>
