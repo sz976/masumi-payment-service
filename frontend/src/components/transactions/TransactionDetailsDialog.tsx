@@ -88,17 +88,11 @@ const canRequestRefund = (transaction: Transaction) => {
 };
 
 const canAllowRefund = (transaction: Transaction) => {
-  return (
-    transaction.onChainState === 'RefundRequested' ||
-    transaction.onChainState === 'Disputed'
-  );
+  return transaction.onChainState === 'Disputed';
 };
 
 const canCancelRefund = (transaction: Transaction) => {
-  return (
-    transaction.onChainState === 'RefundRequested' ||
-    transaction.onChainState === 'Disputed'
-  );
+  return transaction.onChainState === 'RefundRequested';
 };
 
 export default function TransactionDetailsDialog({
@@ -145,7 +139,6 @@ export default function TransactionDetailsDialog({
       const body = {
         blockchainIdentifier: transaction.blockchainIdentifier,
         network: state.network,
-        smartContractAddress: transaction.PaymentSource.smartContractAddress,
       };
       const response = await postPurchaseRequestRefund({
         client: apiClient,
@@ -174,7 +167,6 @@ export default function TransactionDetailsDialog({
       const body = {
         blockchainIdentifier: transaction.blockchainIdentifier,
         network: state.network,
-        paymentContractAddress: transaction.PaymentSource.smartContractAddress,
       };
       console.log('Allow refund body:', body);
       const response = await postPaymentAuthorizeRefund({
@@ -218,7 +210,6 @@ export default function TransactionDetailsDialog({
       const body = {
         blockchainIdentifier: transaction.blockchainIdentifier,
         network: state.network,
-        smartContractAddress: transaction.PaymentSource.smartContractAddress,
       };
       console.log('Cancel refund body:', body);
       const response = await postPurchaseCancelRefundRequest({
@@ -555,7 +546,7 @@ export default function TransactionDetailsDialog({
                   Request Refund
                 </Button>
               )}
-            {canAllowRefund(transaction) && transaction.type === 'payment' && (
+            {canAllowRefund(transaction) && (
               <Button
                 variant={
                   transaction.onChainState === 'Disputed'
