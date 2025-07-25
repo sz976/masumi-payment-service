@@ -48,7 +48,6 @@ export function TransakWidget({
 
   if (!isOpen) return null;
 
-  const isProduction = process.env.NEXT_PUBLIC_ENVIRONMENT === 'production';
   const isPreprod = state.network === 'Preprod';
 
   if (isPreprod) {
@@ -88,11 +87,11 @@ export function TransakWidget({
   transakUrl.searchParams.set(
     'apiKey',
     process.env.NEXT_PUBLIC_TRANSAK_API_KEY ||
-      '558f0caf-41d4-40fb-a2a9-808283540e40',
+    '558f0caf-41d4-40fb-a2a9-808283540e40',
   );
   transakUrl.searchParams.set(
     'environment',
-    isProduction ? 'PRODUCTION' : 'STAGING',
+    'PRODUCTION'
   );
   transakUrl.searchParams.set('cryptoCurrencyList', 'ADA');
   transakUrl.searchParams.set('defaultCryptoCurrency', 'ADA');
