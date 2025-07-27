@@ -634,3 +634,85 @@ export const unregisterAgentDelete = payAuthenticatedEndpointFactory.build({
     };
   },
 });
+
+export const deleteAgentRegistrationSchemaInput = z.object({
+  id: z
+    .string()
+    .cuid()
+    .describe(
+      'The database ID of the agent registration record to be deleted.',
+    ),
+});
+
+export const deleteAgentRegistrationSchemaOutput = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export const deleteAgentRegistration = payAuthenticatedEndpointFactory.build({
+  method: 'delete',
+  input: deleteAgentRegistrationSchemaInput,
+  output: deleteAgentRegistrationSchemaOutput,
+  handler: async ({
+    input,
+    options,
+  }: {
+    input: z.infer<typeof deleteAgentRegistrationSchemaInput>;
+    options: {
+      id: string;
+      permission: $Enums.Permission;
+      networkLimit: $Enums.Network[];
+      usageLimited: boolean;
+    };
+  }) => {
+    const registryRequest = await prisma.registryRequest.findUnique({
+      where: {
+        id: input.id,
+      },
+      include: {
+        PaymentSource: true,
+      },
+    });
+
+    if (!registryRequest) {
+      throw createHttpError(404, 'Agent Registration not found');
+    }
+
+    if (options.permission !== 'Admin') {
+      throw createHttpError(
+        403,
+        'You do not have permission to delete this agent registration.',
+      );
+    }
+
+    await checkIsAllowedNetworkOrThrowUnauthorized(
+      options.networkLimit,
+      registryRequest.PaymentSource.network,
+      options.permission,
+    );
+
+    const validStatesForDeletion: RegistrationState[] = [
+      RegistrationState.RegistrationFailed,
+      RegistrationState.DeregistrationFailed,
+      RegistrationState.DeregistrationConfirmed,
+    ];
+
+    if (!validStatesForDeletion.includes(registryRequest.state)) {
+      throw createHttpError(
+        400,
+        `Agent registration cannot be deleted in its current state: ${registryRequest.state}`,
+      );
+    }
+
+    await prisma.registryRequest.delete({
+      where: {
+        id: registryRequest.id,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Agent registration ${input.id} has been successfully deleted.`,
+    };
+  },
+});

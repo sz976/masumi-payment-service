@@ -9,6 +9,7 @@ import {
 import { createPurchaseInitPost, queryPurchaseRequestGet } from './purchases';
 import { paymentInitPost, queryPaymentEntryGet } from './payments';
 import {
+  deleteAgentRegistration,
   queryRegistryRequestGet,
   registerAgentPost,
   unregisterAgentDelete,
@@ -70,6 +71,9 @@ export const apiRouter: Routing = {
     }).nest({
       wallet: new DependsOnMethod({
         get: queryAgentFromWalletGet,
+      }),
+      delete: new DependsOnMethod({
+        delete: deleteAgentRegistration,
       }),
     }),
     'api-key-status': new DependsOnMethod({
