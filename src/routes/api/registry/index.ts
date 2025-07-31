@@ -15,6 +15,7 @@ import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 import { getRegistryScriptFromNetworkHandlerV1 } from '@/utils/generator/contract-generator';
 import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
 
 export const queryRegistryRequestSchemaInput = z.object({
   cursorId: z
@@ -649,22 +650,11 @@ export const deleteAgentRegistrationSchemaOutput = z.object({
   message: z.string(),
 });
 
-export const deleteAgentRegistration = payAuthenticatedEndpointFactory.build({
+export const deleteAgentRegistration = adminAuthenticatedEndpointFactory.build({
   method: 'delete',
   input: deleteAgentRegistrationSchemaInput,
   output: deleteAgentRegistrationSchemaOutput,
-  handler: async ({
-    input,
-    options,
-  }: {
-    input: z.infer<typeof deleteAgentRegistrationSchemaInput>;
-    options: {
-      id: string;
-      permission: $Enums.Permission;
-      networkLimit: $Enums.Network[];
-      usageLimited: boolean;
-    };
-  }) => {
+  handler: async ({ input }) => {
     const registryRequest = await prisma.registryRequest.findUnique({
       where: {
         id: input.id,
@@ -677,19 +667,6 @@ export const deleteAgentRegistration = payAuthenticatedEndpointFactory.build({
     if (!registryRequest) {
       throw createHttpError(404, 'Agent Registration not found');
     }
-
-    if (options.permission !== 'Admin') {
-      throw createHttpError(
-        403,
-        'You do not have permission to delete this agent registration.',
-      );
-    }
-
-    await checkIsAllowedNetworkOrThrowUnauthorized(
-      options.networkLimit,
-      registryRequest.PaymentSource.network,
-      options.permission,
-    );
 
     const validStatesForDeletion: RegistrationState[] = [
       RegistrationState.RegistrationFailed,
