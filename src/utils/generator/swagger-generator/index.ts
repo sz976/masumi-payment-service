@@ -34,6 +34,8 @@ import {
   registerAgentSchemaOutput,
   unregisterAgentSchemaInput,
   unregisterAgentSchemaOutput,
+  deleteAgentRegistrationSchemaInput,
+  deleteAgentRegistrationSchemaOutput,
 } from '@/routes/api/registry';
 import { getAPIKeyStatusSchemaOutput } from '@/routes/api/api-key-status';
 import {
@@ -1773,7 +1775,7 @@ export function generateOpenAPI() {
   });
 
   registry.registerPath({
-    method: 'delete',
+    method: 'patch',
     path: '/registry/',
     description:
       'Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
@@ -1853,6 +1855,93 @@ export function generateOpenAPI() {
               }),
           },
         },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: 'delete',
+    path: '/registry/delete',
+    description:
+      'Permanently deletes an agent registration record from the database. This action is irreversible and should only be used for registrations in specific failed or completed states.',
+    summary: 'Delete an agent registration record. (admin access required)',
+    tags: ['registry'],
+    security: [{ [apiKeyAuth.name]: [] }],
+    request: {
+      body: {
+        description: '',
+        content: {
+          'application/json': {
+            schema: deleteAgentRegistrationSchemaInput.openapi({
+              example: {
+                id: 'clx7y8*****23456789',
+              },
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Agent registration deleted successfully',
+        content: {
+          'application/json': {
+            schema: z
+              .object({
+                status: z.string(),
+                data: deleteAgentRegistrationSchemaOutput,
+              })
+              .openapi({
+                example: {
+                  status: 'success',
+                  data: {
+                    success: true,
+                    message:
+                      'Agent registration clx7y8z9a0123456789 has been successfully deleted.',
+                  },
+                },
+              }),
+          },
+        },
+      },
+      400: {
+        description: 'Bad Request - Invalid state for deletion',
+        content: {
+          'application/json': {
+            schema: z.object({
+              status: z.string(),
+              error: z.object({ message: z.string() }),
+            }),
+            example: {
+              status: 'error',
+              error: {
+                message:
+                  'Agent registration cannot be deleted in its current state: RegistrationRequested',
+              },
+            },
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+      },
+      404: {
+        description: 'Agent Registration not found',
+        content: {
+          'application/json': {
+            schema: z.object({
+              status: z.string(),
+              error: z.object({ message: z.string() }),
+            }),
+            example: {
+              status: 'error',
+              error: { message: 'Agent Registration not found' },
+            },
+          },
+        },
+      },
+      500: {
+        description: 'Internal Server Error',
       },
     },
   });
