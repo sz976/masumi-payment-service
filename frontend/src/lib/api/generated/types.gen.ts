@@ -1858,6 +1858,65 @@ export type GetRegistryWalletResponses = {
 export type GetRegistryWalletResponse =
   GetRegistryWalletResponses[keyof GetRegistryWalletResponses];
 
+export type DeleteRegistryData = {
+  body?: {
+    /**
+     * The database ID of the agent registration record to be deleted.
+     */
+    id: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/registry/';
+};
+
+export type DeleteRegistryErrors = {
+  /**
+   * Bad Request - Invalid state for deletion
+   */
+  400: {
+    status: string;
+    error: {
+      message: string;
+    };
+  };
+  /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Agent Registration not found
+   */
+  404: {
+    status: string;
+    error: {
+      message: string;
+    };
+  };
+  /**
+   * Internal Server Error
+   */
+  500: unknown;
+};
+
+export type DeleteRegistryError =
+  DeleteRegistryErrors[keyof DeleteRegistryErrors];
+
+export type DeleteRegistryResponses = {
+  /**
+   * Agent registration deleted successfully
+   */
+  200: {
+    status: string;
+    data: {
+      id: string;
+    };
+  };
+};
+
+export type DeleteRegistryResponse =
+  DeleteRegistryResponses[keyof DeleteRegistryResponses];
+
 export type GetRegistryData = {
   body?: never;
   path?: never;
@@ -1947,85 +2006,6 @@ export type GetRegistryResponses = {
 
 export type GetRegistryResponse =
   GetRegistryResponses[keyof GetRegistryResponses];
-
-export type PatchRegistryData = {
-  body?: {
-    /**
-     * The identifier of the registration (asset) to be deregistered
-     */
-    agentIdentifier: string;
-    /**
-     * The network the registration was made on
-     */
-    network: 'Preprod' | 'Mainnet';
-    /**
-     * The smart contract address of the payment contract to which the registration belongs
-     */
-    smartContractAddress?: string;
-  };
-  path?: never;
-  query?: never;
-  url: '/registry/';
-};
-
-export type PatchRegistryResponses = {
-  /**
-   * Payment source deleted
-   */
-  200: {
-    status: string;
-    data: {
-      id: string;
-      name: string;
-      apiBaseUrl: string;
-      Capability: {
-        name: string | null;
-        version: string | null;
-      };
-      Author: {
-        name: string;
-        contactEmail: string | null;
-        contactOther: string | null;
-        organization: string | null;
-      };
-      Legal: {
-        privacyPolicy: string | null;
-        terms: string | null;
-        other: string | null;
-      };
-      description: string | null;
-      Tags: Array<string>;
-      SmartContractWallet: {
-        walletVkey: string;
-        walletAddress: string;
-      };
-      state:
-        | 'RegistrationRequested'
-        | 'RegistrationInitiated'
-        | 'RegistrationConfirmed'
-        | 'RegistrationFailed'
-        | 'DeregistrationRequested'
-        | 'DeregistrationInitiated'
-        | 'DeregistrationConfirmed'
-        | 'DeregistrationFailed';
-      ExampleOutputs: Array<{
-        name: string;
-        url: string;
-        mimeType: string;
-      }>;
-      AgentPricing: {
-        pricingType: 'Fixed';
-        Pricing: Array<{
-          unit: string;
-          amount: string;
-        }>;
-      };
-    };
-  };
-};
-
-export type PatchRegistryResponse =
-  PatchRegistryResponses[keyof PatchRegistryResponses];
 
 export type PostRegistryData = {
   body?: {
@@ -2157,65 +2137,84 @@ export type PostRegistryResponses = {
 export type PostRegistryResponse =
   PostRegistryResponses[keyof PostRegistryResponses];
 
-export type DeleteRegistryDeleteData = {
+export type PostRegistryDeregisterData = {
   body?: {
     /**
-     * The database ID of the agent registration record to be deleted.
+     * The identifier of the registration (asset) to be deregistered
      */
-    id: string;
+    agentIdentifier: string;
+    /**
+     * The network the registration was made on
+     */
+    network: 'Preprod' | 'Mainnet';
+    /**
+     * The smart contract address of the payment contract to which the registration belongs
+     */
+    smartContractAddress?: string;
   };
   path?: never;
   query?: never;
-  url: '/registry/delete';
+  url: '/registry/deregister';
 };
 
-export type DeleteRegistryDeleteErrors = {
+export type PostRegistryDeregisterResponses = {
   /**
-   * Bad Request - Invalid state for deletion
-   */
-  400: {
-    status: string;
-    error: {
-      message: string;
-    };
-  };
-  /**
-   * Unauthorized
-   */
-  401: unknown;
-  /**
-   * Agent Registration not found
-   */
-  404: {
-    status: string;
-    error: {
-      message: string;
-    };
-  };
-  /**
-   * Internal Server Error
-   */
-  500: unknown;
-};
-
-export type DeleteRegistryDeleteError =
-  DeleteRegistryDeleteErrors[keyof DeleteRegistryDeleteErrors];
-
-export type DeleteRegistryDeleteResponses = {
-  /**
-   * Agent registration deleted successfully
+   * Payment source deleted
    */
   200: {
     status: string;
     data: {
-      success: boolean;
-      message: string;
+      id: string;
+      name: string;
+      apiBaseUrl: string;
+      Capability: {
+        name: string | null;
+        version: string | null;
+      };
+      Author: {
+        name: string;
+        contactEmail: string | null;
+        contactOther: string | null;
+        organization: string | null;
+      };
+      Legal: {
+        privacyPolicy: string | null;
+        terms: string | null;
+        other: string | null;
+      };
+      description: string | null;
+      Tags: Array<string>;
+      SmartContractWallet: {
+        walletVkey: string;
+        walletAddress: string;
+      };
+      state:
+        | 'RegistrationRequested'
+        | 'RegistrationInitiated'
+        | 'RegistrationConfirmed'
+        | 'RegistrationFailed'
+        | 'DeregistrationRequested'
+        | 'DeregistrationInitiated'
+        | 'DeregistrationConfirmed'
+        | 'DeregistrationFailed';
+      ExampleOutputs: Array<{
+        name: string;
+        url: string;
+        mimeType: string;
+      }>;
+      AgentPricing: {
+        pricingType: 'Fixed';
+        Pricing: Array<{
+          unit: string;
+          amount: string;
+        }>;
+      };
     };
   };
 };
 
-export type DeleteRegistryDeleteResponse =
-  DeleteRegistryDeleteResponses[keyof DeleteRegistryDeleteResponses];
+export type PostRegistryDeregisterResponse =
+  PostRegistryDeregisterResponses[keyof PostRegistryDeregisterResponses];
 
 export type GetPaymentSourceData = {
   body?: never;

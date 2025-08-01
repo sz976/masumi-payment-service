@@ -32,11 +32,13 @@ import {
   queryRegistryRequestSchemaOutput,
   registerAgentSchemaInput,
   registerAgentSchemaOutput,
-  unregisterAgentSchemaInput,
-  unregisterAgentSchemaOutput,
   deleteAgentRegistrationSchemaInput,
   deleteAgentRegistrationSchemaOutput,
 } from '@/routes/api/registry';
+import {
+  unregisterAgentSchemaInput,
+  unregisterAgentSchemaOutput,
+} from '@/routes/api/registry/deregister';
 import { getAPIKeyStatusSchemaOutput } from '@/routes/api/api-key-status';
 import {
   getWalletSchemaInput,
@@ -1775,8 +1777,8 @@ export function generateOpenAPI() {
   });
 
   registry.registerPath({
-    method: 'patch',
-    path: '/registry/',
+    method: 'post',
+    path: '/registry/deregister',
     description:
       'Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)',
     summary:
@@ -1861,7 +1863,7 @@ export function generateOpenAPI() {
 
   registry.registerPath({
     method: 'delete',
-    path: '/registry/delete',
+    path: '/registry/',
     description:
       'Permanently deletes an agent registration record from the database. This action is irreversible and should only be used for registrations in specific failed or completed states.',
     summary: 'Delete an agent registration record. (admin access required)',
@@ -1874,7 +1876,7 @@ export function generateOpenAPI() {
           'application/json': {
             schema: deleteAgentRegistrationSchemaInput.openapi({
               example: {
-                id: 'clx7y8*****23456789',
+                id: 'example_id',
               },
             }),
           },
@@ -1895,9 +1897,7 @@ export function generateOpenAPI() {
                 example: {
                   status: 'success',
                   data: {
-                    success: true,
-                    message:
-                      'Agent registration clx7y8z9a0123456789 has been successfully deleted.',
+                    id: 'example_id',
                   },
                 },
               }),

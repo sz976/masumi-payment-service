@@ -45,15 +45,15 @@ import type {
   PostPurchaseResolveBlockchainIdentifierResponse,
   GetRegistryWalletData,
   GetRegistryWalletResponse,
+  DeleteRegistryData,
+  DeleteRegistryResponse,
+  DeleteRegistryError,
   GetRegistryData,
   GetRegistryResponse,
-  PatchRegistryData,
-  PatchRegistryResponse,
   PostRegistryData,
   PostRegistryResponse,
-  DeleteRegistryDeleteData,
-  DeleteRegistryDeleteResponse,
-  DeleteRegistryDeleteError,
+  PostRegistryDeregisterData,
+  PostRegistryDeregisterResponse,
   GetPaymentSourceData,
   GetPaymentSourceResponse,
   DeletePaymentSourceExtendedData,
@@ -575,6 +575,33 @@ export const getRegistryWallet = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Delete an agent registration record. (admin access required)
+ * Permanently deletes an agent registration record from the database. This action is irreversible and should only be used for registrations in specific failed or completed states.
+ */
+export const deleteRegistry = <ThrowOnError extends boolean = false>(
+  options?: Options<DeleteRegistryData, ThrowOnError>,
+) => {
+  return (options?.client ?? _heyApiClient).delete<
+    DeleteRegistryResponse,
+    DeleteRegistryError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        name: 'token',
+        type: 'apiKey',
+      },
+    ],
+    url: '/registry/',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+};
+
+/**
  * List every agent that is recorded in the Masumi Registry. (READ access required)
  * Gets the agent metadata.
  */
@@ -594,33 +621,6 @@ export const getRegistry = <ThrowOnError extends boolean = false>(
     ],
     url: '/registry/',
     ...options,
-  });
-};
-
-/**
- * Deregisters an agent from the specified registry. (admin access required +PAY)
- * Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)
- */
-export const patchRegistry = <ThrowOnError extends boolean = false>(
-  options?: Options<PatchRegistryData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).patch<
-    PatchRegistryResponse,
-    unknown,
-    ThrowOnError
-  >({
-    security: [
-      {
-        name: 'token',
-        type: 'apiKey',
-      },
-    ],
-    url: '/registry/',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
   });
 };
 
@@ -652,15 +652,15 @@ export const postRegistry = <ThrowOnError extends boolean = false>(
 };
 
 /**
- * Delete an agent registration record. (admin access required)
- * Permanently deletes an agent registration record from the database. This action is irreversible and should only be used for registrations in specific failed or completed states.
+ * Deregisters an agent from the specified registry. (admin access required +PAY)
+ * Deregisters a agent from the specified registry (Please note that while the command is put on-chain, the transaction is not yet finalized by the blockchain, as designed finality is only eventually reached. If you need certainty, please check status via the registry(GET) or if you require custom logic, the transaction directly using the txHash)
  */
-export const deleteRegistryDelete = <ThrowOnError extends boolean = false>(
-  options?: Options<DeleteRegistryDeleteData, ThrowOnError>,
+export const postRegistryDeregister = <ThrowOnError extends boolean = false>(
+  options?: Options<PostRegistryDeregisterData, ThrowOnError>,
 ) => {
-  return (options?.client ?? _heyApiClient).delete<
-    DeleteRegistryDeleteResponse,
-    DeleteRegistryDeleteError,
+  return (options?.client ?? _heyApiClient).post<
+    PostRegistryDeregisterResponse,
+    unknown,
     ThrowOnError
   >({
     security: [
@@ -669,7 +669,7 @@ export const deleteRegistryDelete = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/registry/delete',
+    url: '/registry/deregister',
     ...options,
     headers: {
       'Content-Type': 'application/json',
