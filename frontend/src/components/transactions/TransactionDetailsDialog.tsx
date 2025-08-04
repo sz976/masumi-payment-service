@@ -83,17 +83,24 @@ const formatStatus = (status: string) => {
 
 const canRequestRefund = (transaction: Transaction) => {
   return (
-    transaction.onChainState === 'ResultSubmitted' ||
-    transaction.onChainState === 'FundsLocked'
+    (transaction.onChainState === 'ResultSubmitted' ||
+      transaction.onChainState === 'FundsLocked') &&
+    transaction.NextAction?.requestedAction === 'WaitingForExternalAction'
   );
 };
 
 const canAllowRefund = (transaction: Transaction) => {
-  return transaction.onChainState === 'Disputed';
+  return (
+    transaction.onChainState === 'Disputed' &&
+    transaction.NextAction?.requestedAction === 'WaitingForExternalAction'
+  );
 };
 
 const canCancelRefund = (transaction: Transaction) => {
-  return transaction.onChainState === 'RefundRequested';
+  return (
+    transaction.onChainState === 'RefundRequested' &&
+    transaction.NextAction?.requestedAction === 'WaitingForExternalAction'
+  );
 };
 
 export default function TransactionDetailsDialog({
@@ -148,7 +155,7 @@ export default function TransactionDetailsDialog({
       };
       const response = await postPurchaseRequestRefund({
         client: apiClient,
-        data: { body },
+        body,
       });
       if (
         response?.status &&
@@ -177,7 +184,7 @@ export default function TransactionDetailsDialog({
       console.log('Allow refund body:', body);
       const response = await postPaymentAuthorizeRefund({
         client: apiClient,
-        data: { body },
+        body,
       });
       if (
         response?.data &&
@@ -220,7 +227,7 @@ export default function TransactionDetailsDialog({
       console.log('Cancel refund body:', body);
       const response = await postPurchaseCancelRefundRequest({
         client: apiClient,
-        data: { body },
+        body,
       });
       console.log('Cancel refund response:', response);
       if (
@@ -306,6 +313,10 @@ export default function TransactionDetailsDialog({
             <div className="rounded-md border p-4 bg-muted/10">
               <p className="text-sm font-medium">
                 {(() => {
+                  if (!transaction.onChainState) {
+                    console.log('No onChainState');
+                    console.log(transaction);
+                  }
                   const state = transaction.onChainState?.toLowerCase();
                   switch (state) {
                     case 'fundslocked':

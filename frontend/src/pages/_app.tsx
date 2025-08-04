@@ -54,7 +54,6 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
   }, []);
 
   const fetchPaymentSources = useCallback(async () => {
-    console.log('fetching payment sources');
     try {
       const sourceResponse = await getPaymentSource({
         client: apiClient,

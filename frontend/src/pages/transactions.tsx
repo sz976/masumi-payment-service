@@ -76,10 +76,10 @@ export default function Transactions() {
     // Apply the same deduplication logic as filterTransactions
     const seenHashes = new Set();
     const dedupedTransactions = [...allTransactions].filter((tx) => {
-      const hash = tx.CurrentTransaction?.txHash;
-      if (!hash) return true;
-      if (seenHashes.has(hash)) return false;
-      seenHashes.add(hash);
+      const id = tx.id;
+      if (!id) return true;
+      if (seenHashes.has(id)) return false;
+      seenHashes.add(id);
       return true;
     });
 
@@ -89,13 +89,6 @@ export default function Transactions() {
     const disputeCount = dedupedTransactions.filter(
       (t) => t.onChainState === 'Disputed',
     ).length;
-
-    console.log('Debug counts:', {
-      totalTransactions: allTransactions.length,
-      dedupedTransactions: dedupedTransactions.length,
-      refundRequested: refundCount,
-      disputed: disputeCount,
-    });
 
     return [
       { name: 'All', count: null },
@@ -115,10 +108,10 @@ export default function Transactions() {
   const filterTransactions = useCallback(() => {
     const seenHashes = new Set();
     let filtered = [...allTransactions].filter((tx) => {
-      const hash = tx.CurrentTransaction?.txHash;
-      if (!hash) return true;
-      if (seenHashes.has(hash)) return false;
-      seenHashes.add(hash);
+      const id = tx.id;
+      if (!id) return true;
+      if (seenHashes.has(id)) return false;
+      seenHashes.add(id);
       return true;
     });
 
@@ -265,13 +258,14 @@ export default function Transactions() {
 
         // Combine and dedupe by type+hash
         const combined = [
-          ...(reset ? [] : allTransactions),
           ...purchases,
           ...payments,
+          //fixes ordering for updates
+          ...(reset ? [] : allTransactions),
         ];
         const seen = new Set();
         const deduped = combined.filter((tx) => {
-          const key = `${tx.type}:${tx.CurrentTransaction?.txHash || tx.id}`;
+          const key = tx.id;
           if (!key) return true;
           if (seen.has(key)) return false;
           seen.add(key);
