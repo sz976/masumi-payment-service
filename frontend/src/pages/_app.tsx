@@ -79,9 +79,7 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
 
       dispatch({ type: 'SET_PAYMENT_SOURCES', payload: reversedBack });
 
-      if (
-        reversedBack.length === 1
-      ) {
+      if (reversedBack.length === 1) {
         setSelectedPaymentSourceId(reversedBack[0].id);
       }
 
