@@ -21,7 +21,6 @@ import { toast } from 'react-toastify';
 import BlinkingUnderscore from '../BlinkingUnderscore';
 import { MaestroProvider } from '@meshsdk/core';
 import { shortenAddress } from '@/lib/utils';
-import { executeSwap } from '@/lib/api/swap';
 import { Token } from '@/types/token';
 import { Spinner } from '../ui/spinner';
 import useFormatBalance from '@/lib/hooks/useFormatBalance';
@@ -241,9 +240,9 @@ export function SwapDialog({
   const canSwap = isDev
     ? true
     : adaBalance > 0 &&
-      selectedFromToken.symbol !== selectedToToken.symbol &&
-      network?.toLowerCase() !== 'preprod' &&
-      mnemonic !== null;
+    selectedFromToken.symbol !== selectedToToken.symbol &&
+    network?.toLowerCase() !== 'preprod' &&
+    mnemonic !== null;
 
   const handleSwitch = () => {
     if (
@@ -361,21 +360,14 @@ export function SwapDialog({
       setTimeout(() => {
         setSwapStatus('processing');
       }, 500);
+      throw new Error('Swap is currently disabled');
 
-      const result = await executeSwap({
-        mnemonic,
-        amount: fromAmount,
-        isFromAda: selectedFromToken.symbol === 'ADA',
-        fromToken: selectedFromToken as Token,
-        toToken: selectedToToken as Token,
-        poolId: selectedFromToken.poolId || selectedToToken.poolId || '',
-      });
 
       setSwapStatus('submitted');
       toast.info('Swap submitted!', { theme: 'dark' });
       await fetchBalance();
 
-      maestroProvider.onTxConfirmed(result.txHash, async () => {
+      maestroProvider.onTxConfirmed("txHash", async () => {
         setSwapStatus('confirmed');
         toast.success('Swap transaction confirmed!', { theme: 'dark' });
         await fetchBalance();
@@ -518,11 +510,10 @@ export function SwapDialog({
                       <div className="relative w-full">
                         <input
                           type="number"
-                          className={`w-24 text-right bg-transparent border-b border-muted-foreground/50 focus:outline-none appearance-none text-[24px] font-bold mb-2 text-foreground ${
-                            fromAmount > getMaxAmount(selectedFromToken.symbol)
-                              ? 'text-red-500'
-                              : ''
-                          }`}
+                          className={`w-24 text-right bg-transparent border-b border-muted-foreground/50 focus:outline-none appearance-none text-[24px] font-bold mb-2 text-foreground ${fromAmount > getMaxAmount(selectedFromToken.symbol)
+                            ? 'text-red-500'
+                            : ''
+                            }`}
                           placeholder="0"
                           value={fromAmount || ''}
                           onChange={handleFromAmountChange}
