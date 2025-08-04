@@ -96,7 +96,15 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
       console.error('Failed to fetch payment sources:', error);
       toast.error('Error fetching payment sources. Please try again later.');
     }
-  }, [apiClient, dispatch, setSelectedPaymentSourceId, isHealthy, state.apiKey, state.network, router]);
+  }, [
+    apiClient,
+    dispatch,
+    setSelectedPaymentSourceId,
+    isHealthy,
+    state.apiKey,
+    state.network,
+    router,
+  ]);
 
   const fetchRpcApiKeys = useCallback(async () => {
     try {

@@ -39,11 +39,11 @@ import { getUsdmConfig } from '@/lib/constants/defaultWallets';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
-    type: 'Purchasing';
-  })
+      type: 'Purchasing';
+    })
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
-    type: 'Selling';
-  });
+      type: 'Selling';
+    });
 
 type UTXO = GetUtxosResponses['200']['data']['Utxos'][0];
 
@@ -228,9 +228,9 @@ export default function WalletsPage() {
                 ...baseWallet,
                 collectionBalance: collectionBalance
                   ? {
-                    ada: collectionBalance.ada,
-                    usdm: collectionBalance.usdm,
-                  }
+                      ada: collectionBalance.ada,
+                      usdm: collectionBalance.usdm,
+                    }
                   : null,
               } as WalletWithBalance;
             }),
@@ -498,10 +498,10 @@ export default function WalletsPage() {
                               <span>
                                 {wallet.balance
                                   ? useFormatBalance(
-                                    (
-                                      parseInt(wallet.balance) / 1000000
-                                    ).toFixed(2),
-                                  )
+                                      (
+                                        parseInt(wallet.balance) / 1000000
+                                      ).toFixed(2),
+                                    )
                                   : '0'}
                               </span>
                             )}

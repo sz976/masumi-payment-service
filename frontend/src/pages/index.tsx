@@ -36,11 +36,11 @@ type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
-    type: 'Purchasing';
-  })
+      type: 'Purchasing';
+    })
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['SellingWallets'][0] & {
-    type: 'Selling';
-  });
+      type: 'Selling';
+    });
 type WalletWithBalance = Wallet & {
   balance: string;
   usdmBalance: string;
@@ -67,8 +67,7 @@ export default function Overview() {
   const [isAddWalletDialogOpen, setAddWalletDialogOpen] = useState(false);
   const [isRegisterAgentDialogOpen, setRegisterAgentDialogOpen] =
     useState(false);
-  const [, setSelectedWalletForSwap] =
-    useState<WalletWithBalance | null>(null);
+  const [, setSelectedWalletForSwap] = useState<WalletWithBalance | null>(null);
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<WalletWithBalance | null>(null);
   const { rate, isLoading: isLoadingRate } = useRate();
@@ -315,10 +314,10 @@ export default function Overview() {
             Showing data for{' '}
             {selectedPaymentSourceId
               ? shortenAddress(
-                state.paymentSources.find(
-                  (source) => source.id === selectedPaymentSourceId,
-                )?.smartContractAddress ?? 'invalid',
-              )
+                  state.paymentSources.find(
+                    (source) => source.id === selectedPaymentSourceId,
+                  )?.smartContractAddress ?? 'invalid',
+                )
               : 'all payment sources'}
             . This can be changed in the{' '}
             <Link
