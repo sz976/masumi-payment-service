@@ -226,6 +226,11 @@ export default function InputSchemaValidatorPage() {
   const { theme } = useTheme();
   const [selectedExample, setSelectedExample] = useState<string>('');
 
+  const handleJsonInputChange = (value: string) => {
+    setJsonInput(value);
+    setSelectedExample('');
+  };
+
   // Memoize validation for performance
   const validation = useMemo(
     () => validateSchemaWithZod(jsonInput),
@@ -237,11 +242,6 @@ export default function InputSchemaValidatorPage() {
     setSelectedExample(val);
     const found = EXAMPLES.find((ex) => ex.label === val);
     if (found) setJsonInput(found.value);
-  };
-
-  const handleFormDataChange = (formData: Record<string, any>) => {
-    // Optional: Handle form data changes
-    console.log('Form data changed:', formData);
   };
 
   return (
@@ -288,7 +288,7 @@ export default function InputSchemaValidatorPage() {
                 height="600px"
                 defaultLanguage="json"
                 value={jsonInput}
-                onChange={(value) => setJsonInput(value ?? '')}
+                onChange={(value) => handleJsonInputChange(value ?? '')}
                 theme={theme === 'dark' ? 'vs-dark' : 'vs'}
                 options={{
                   minimap: { enabled: false },
@@ -311,7 +311,6 @@ export default function InputSchemaValidatorPage() {
                 <div className="flex-1 overflow-auto">
                   <JobInputsFormRenderer
                     jobInputSchemas={validation.parsedSchemas || []}
-                    onFormDataChange={handleFormDataChange}
                   />
                 </div>
               </div>
