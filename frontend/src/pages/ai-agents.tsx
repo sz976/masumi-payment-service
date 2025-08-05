@@ -16,6 +16,7 @@ import {
   deleteRegistry,
   GetRegistryResponses,
   getUtxos,
+  postRegistryDeregister,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
@@ -258,25 +259,45 @@ export default function AIAgentsPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedAgentToDelete?.agentIdentifier) {
-      toast.error('Cannot delete agent: Missing identifier');
-      return;
-    }
-
     try {
-      setIsDeleting(true);
-      await deleteRegistry({
-        client: apiClient,
-        body: {
-          agentIdentifier: selectedAgentToDelete.agentIdentifier,
-          network: state.network,
-        },
-      });
+      if (
+        selectedAgentToDelete?.state === 'RegistrationFailed' ||
+        selectedAgentToDelete?.state === 'DeregistrationConfirmed'
+      ) {
+        setIsDeleting(true);
+        await deleteRegistry({
+          client: apiClient,
+          body: {
+            id: selectedAgentToDelete.id,
+          },
+        });
+        toast.success('AI agent deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSelectedAgentToDelete(null);
+        fetchAgents();
+      } else if (selectedAgentToDelete?.state === 'RegistrationConfirmed') {
+        if (!selectedAgentToDelete?.agentIdentifier) {
+          toast.error('Cannot delete agent: Missing identifier');
+          return;
+        }
+        setIsDeleting(true);
+        await postRegistryDeregister({
+          client: apiClient,
+          body: {
+            agentIdentifier: selectedAgentToDelete.agentIdentifier,
+            network: state.network,
+          },
+        });
 
-      toast.success('AI agent deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setSelectedAgentToDelete(null);
-      fetchAgents();
+        toast.success('AI agent deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSelectedAgentToDelete(null);
+        fetchAgents();
+      } else {
+        toast.error(
+          'Cannot delete agent: Agent is not in a state to be deleted. Please wait for transactions to settle.',
+        );
+      }
     } catch (error) {
       console.error('Error deleting agent:', error);
       toast.error('Failed to delete AI agent');
@@ -592,7 +613,12 @@ export default function AIAgentsPage() {
             setSelectedAgentToDelete(null);
           }}
           title="Delete AI Agent"
-          description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
+          description={
+            selectedAgentToDelete?.state === 'RegistrationFailed' ||
+            selectedAgentToDelete?.state === 'DeregistrationConfirmed'
+              ? `Are you sure you want to delete "${selectedAgentToDelete?.name}"? This action cannot be undone.`
+              : `Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`
+          }
           onConfirm={async () => {
             await handleDeleteConfirm();
             setSelectedAgentForDetails(null);
