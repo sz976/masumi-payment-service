@@ -121,7 +121,7 @@ const EXAMPLES = [
     "type": "number",
     "name": "Age",
     "data": {
-      "description": "Your current age"
+      "description": "Your current age (optional)"
     },
     "validations": [
       { "validation": "min", "value": "18" },
@@ -147,10 +147,55 @@ const EXAMPLES = [
     "type": "boolean",
     "name": "Newsletter Subscription",
     "data": {
-      "description": "Subscribe to our newsletter for updates"
+      "description": "Subscribe to our newsletter for updates (optional)"
     }
   }
 ]`,
+  },
+  {
+    label: 'With Optional Wrapper',
+    value: `{
+  "input_data": [
+    {
+      "id": "project-name",
+      "type": "string",
+      "name": "Project Name",
+      "data": {
+        "placeholder": "Enter project name",
+        "description": "The name of your project"
+      },
+      "validations": [
+        { "validation": "min", "value": "3" },
+        { "validation": "max", "value": "50" }
+      ]
+    },
+    {
+      "id": "description",
+      "type": "string", 
+      "name": "Description",
+      "data": {
+        "placeholder": "Describe your project",
+        "description": "Brief description of the project (optional)"
+      },
+      "validations": [
+        { "validation": "max", "value": "500" }
+      ]
+    },
+    {
+      "id": "priority",
+      "type": "option",
+      "name": "Priority Level",
+      "data": {
+        "description": "Select the priority level",
+        "values": ["Low", "Medium", "High", "Critical"]
+      },
+      "validations": [
+        { "validation": "min", "value": "1" },
+        { "validation": "max", "value": "1" }
+      ]
+    }
+  ]
+}`,
   },
 ];
 
@@ -186,8 +231,18 @@ function validateSchemaWithZod(input: string): {
     return input.slice(0, idx).split('\n').length;
   };
 
-  // Handle both single schema and array of schemas
-  const schemasToValidate = Array.isArray(parsed) ? parsed : [parsed];
+  // Handle wrapped format, single schema, and array of schemas
+  let schemasToValidate: any[];
+  if (parsed.input_data && Array.isArray(parsed.input_data)) {
+    // Handle wrapped format: { "input_data": [...] }
+    schemasToValidate = parsed.input_data;
+  } else if (Array.isArray(parsed)) {
+    // Handle array format: [...]
+    schemasToValidate = parsed;
+  } else {
+    // Handle single schema format: { ... }
+    schemasToValidate = [parsed];
+  }
 
   schemasToValidate.forEach((schema: any, index: number) => {
     try {
