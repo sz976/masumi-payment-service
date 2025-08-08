@@ -12,6 +12,8 @@ export async function handlePurchaseCreditInit({
   paymentType,
   contractAddress,
   sellerVkey,
+  sellerAddress,
+  payByTime,
   submitResultTime,
   externalDisputeUnlockTime,
   unlockTime,
@@ -25,6 +27,8 @@ export async function handlePurchaseCreditInit({
   paymentType: PaymentType;
   contractAddress: string;
   sellerVkey: string;
+  sellerAddress: string;
+  payByTime: bigint;
   submitResultTime: bigint;
   externalDisputeUnlockTime: bigint;
   unlockTime: bigint;
@@ -40,6 +44,8 @@ export async function handlePurchaseCreditInit({
       paymentType,
       contractAddress,
       sellerVkey,
+      sellerAddress,
+      payByTime,
       submitResultTime,
       externalDisputeUnlockTime,
       unlockTime,

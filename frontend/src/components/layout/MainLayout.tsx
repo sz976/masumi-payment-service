@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   Bell,
   Search,
+  NotebookPen,
 } from 'lucide-react';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -128,6 +129,12 @@ export function MainLayout({ children }: MainLayoutProps) {
       href: '/payment-sources',
       name: 'Payment sources',
       icon: FileInput,
+      badge: null,
+    },
+    {
+      href: '/input-schema-validator',
+      name: 'Input Schema Validator',
+      icon: NotebookPen,
       badge: null,
     },
     { href: '/api-keys', name: 'API keys', icon: Key, badge: null },
@@ -343,9 +350,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       </aside>
 
       <div
-        className="flex flex-col min-h-screen w-full transition-all duration-300"
+        className="flex flex-col min-h-screen w-[100vw] transition-all duration-300"
         style={{
-          marginLeft: collapsed
+          paddingLeft: collapsed
             ? `${sideBarWidthCollapsed}px`
             : `${sideBarWidth}px`,
         }}
@@ -402,9 +409,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
 
-        <main className="flex-1 relative z-10">
-          <div className="max-w-[1400px] mx-auto w-full">
-            <div className="p-8 px-4">{children}</div>
+        <main className="flex-1 relative z-10 w-full">
+          <div className="max-w-[1400px] mx-auto w-full p-8 px-4">
+            {children}
           </div>
         </main>
       </div>

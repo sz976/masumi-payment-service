@@ -1,4 +1,4 @@
-import { Data, PlutusScript } from '@meshsdk/core';
+import { Data, mPubKeyAddress, PlutusScript } from '@meshsdk/core';
 import {
   deserializePlutusScript,
   resolvePlutusScriptAddress,
@@ -7,9 +7,10 @@ import {
 import { resolvePaymentKeyHash } from '@meshsdk/core-cst';
 import paymentPlutus from '@smart-contracts/payment/plutus.json';
 import registryPlutus from '@smart-contracts/registry/plutus.json';
-import { Network, PaymentSource } from '@prisma/client';
+import { Network, OnChainState, PaymentSource } from '@prisma/client';
 import { applyParamsToScript } from '@meshsdk/core';
 import { convertNetworkToId } from '../../converter/network-convert';
+import { decodeBlockchainIdentifier } from '../blockchain-identifier-generator';
 
 export async function getPaymentScriptFromPaymentSourceV1(
   paymentSourceSupported: PaymentSource & {
@@ -130,6 +131,27 @@ export enum SmartContractState {
   Disputed = 3,
 }
 
+export function smartContractStateEqualsOnChainState(
+  state: SmartContractState,
+  onChainState: OnChainState | null,
+) {
+  if (onChainState == null) {
+    return false;
+  }
+  switch (onChainState) {
+    case OnChainState.FundsLocked:
+      return state == SmartContractState.FundsLocked;
+    case OnChainState.ResultSubmitted:
+      return state == SmartContractState.ResultSubmitted;
+    case OnChainState.RefundRequested:
+      return state == SmartContractState.RefundRequested;
+    case OnChainState.Disputed:
+      return state == SmartContractState.Disputed;
+    default:
+      return false;
+  }
+}
+
 function getSmartContractStateDatum(state: SmartContractState) {
   switch (state) {
     case SmartContractState.FundsLocked:
@@ -155,12 +177,21 @@ function getSmartContractStateDatum(state: SmartContractState) {
   }
 }
 
-export function getDatum({
-  buyerVerificationKeyHash,
-  sellerVerificationKeyHash,
+export function validateHexString(hexString: string) {
+  if (hexString.length % 2 !== 0) {
+    return false;
+  }
+  return /^[0-9a-fA-F]+$/.test(hexString);
+}
+
+export function getDatumFromBlockchainIdentifier({
+  buyerAddress,
+  sellerAddress,
   blockchainIdentifier,
+  collateralReturnLovelace,
   inputHash,
   resultHash,
+  payByTime,
   resultTime,
   unlockTime,
   externalDisputeUnlockTime,
@@ -168,28 +199,122 @@ export function getDatum({
   newCooldownTimeBuyer,
   state,
 }: {
-  buyerVerificationKeyHash: string;
-  sellerVerificationKeyHash: string;
+  buyerAddress: string;
+  sellerAddress: string;
   blockchainIdentifier: string;
+  collateralReturnLovelace: bigint;
   inputHash: string;
   resultHash: string;
-  resultTime: number;
-  unlockTime: number;
-  externalDisputeUnlockTime: number;
-  newCooldownTimeSeller: number;
-  newCooldownTimeBuyer: number;
+  payByTime: bigint;
+  resultTime: bigint;
+  unlockTime: bigint;
+  externalDisputeUnlockTime: bigint;
+  newCooldownTimeSeller: bigint;
+  newCooldownTimeBuyer: bigint;
   state: SmartContractState;
 }) {
+  const decoded = decodeBlockchainIdentifier(blockchainIdentifier);
+  if (decoded == null) {
+    throw new Error('Invalid blockchain identifier');
+  }
+
+  return getDatum({
+    buyerAddress,
+    sellerAddress,
+    referenceKey: decoded.key,
+    referenceSignature: decoded.signature,
+    sellerNonce: decoded.sellerId,
+    buyerNonce: decoded.purchaserId,
+    collateralReturnLovelace,
+    inputHash,
+    resultHash,
+    payByTime,
+    resultTime,
+    unlockTime,
+    externalDisputeUnlockTime,
+    newCooldownTimeSeller,
+    newCooldownTimeBuyer,
+    state,
+  });
+}
+
+export function getDatum({
+  buyerAddress,
+  sellerAddress,
+  referenceKey,
+  referenceSignature,
+  sellerNonce,
+  buyerNonce,
+  collateralReturnLovelace,
+  inputHash,
+  resultHash,
+  payByTime,
+  resultTime,
+  unlockTime,
+  externalDisputeUnlockTime,
+  newCooldownTimeSeller,
+  newCooldownTimeBuyer,
+  state,
+}: {
+  buyerAddress: string;
+  sellerAddress: string;
+  referenceKey: string;
+  referenceSignature: string;
+  sellerNonce: string;
+  buyerNonce: string;
+  collateralReturnLovelace: bigint;
+  inputHash: string;
+  resultHash: string;
+  payByTime: bigint;
+  resultTime: bigint;
+  unlockTime: bigint;
+  externalDisputeUnlockTime: bigint;
+  newCooldownTimeSeller: bigint;
+  newCooldownTimeBuyer: bigint;
+  state: SmartContractState;
+}) {
+  const buyerPubKeyAddress = mPubKeyAddress(
+    resolvePaymentKeyHash(buyerAddress),
+    resolveStakeKeyHash(buyerAddress),
+  );
+  const sellerPubKeyAddress = mPubKeyAddress(
+    resolvePaymentKeyHash(sellerAddress),
+    resolveStakeKeyHash(sellerAddress),
+  );
+  //verify that reference_key, reference_signature, seller_nonce, buyer_nonce, input_hash and result hash are valid hex strings
+  if (!validateHexString(referenceKey)) {
+    throw new Error('Reference key is not a valid hex string');
+  }
+  if (!validateHexString(referenceSignature)) {
+    throw new Error('Reference signature is not a valid hex string');
+  }
+  if (!validateHexString(sellerNonce)) {
+    throw new Error('Seller nonce is not a valid hex string');
+  }
+  if (!validateHexString(buyerNonce)) {
+    throw new Error('Buyer nonce is not a valid hex string');
+  }
+  if (!validateHexString(inputHash)) {
+    throw new Error('Input hash is not a valid hex string');
+  }
+  if (resultHash.length > 0 && !validateHexString(resultHash)) {
+    throw new Error('Result hash is not a valid hex string');
+  }
+
   return {
     value: {
       alternative: 0,
       fields: [
-        buyerVerificationKeyHash,
-        sellerVerificationKeyHash,
-        blockchainIdentifier, //already is in base64
-        //encode as base64
-        Buffer.from(inputHash, 'utf-8').toString('base64'),
-        Buffer.from(resultHash, 'utf-8').toString('base64'),
+        buyerPubKeyAddress,
+        sellerPubKeyAddress,
+        referenceKey,
+        referenceSignature,
+        sellerNonce,
+        buyerNonce,
+        collateralReturnLovelace,
+        inputHash,
+        resultHash,
+        payByTime,
         resultTime,
         unlockTime,
         externalDisputeUnlockTime,

@@ -1,10 +1,10 @@
 ::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
+    width: 6px;
+    height: 6px;
     border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb {
-    background-color: #fff3;
+    background-color: #fff0;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -20,11 +20,19 @@
     background-color: #ccc4;
 }
 
+div{
+    &:hover{
+        &::-webkit-scrollbar-thumb{
+            background-color: #fff3;
+        }
+    }
+}
+
 #__next, body {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 800;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -35,19 +43,15 @@
 }
 
 body {
-    overflow-y: scroll;
-
-    ::-webkit-scrollbar {
-        width: 0px;
-        height: 0px;
-        border-radius: 5px;
-    }
-    
-    
+    overflow-y: auto;
 }
 
 
 table {
+    th, td {
+        @apply truncate;
+    }
+
     tr:last-child:not(:first-child) {
       border-bottom: none !important;
     }

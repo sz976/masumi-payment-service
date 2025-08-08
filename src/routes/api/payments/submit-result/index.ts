@@ -11,24 +11,18 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
 import createHttpError from 'http-errors';
-import { DEFAULTS } from '@/utils/config';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
 
 export const submitPaymentResultSchemaInput = z.object({
   network: z
     .nativeEnum(Network)
     .describe('The network the payment was received on'),
-  smartContractAddress: z
-    .string()
-    .max(250)
-    .optional()
-    .describe(
-      'The address of the smart contract where the payment was made to',
-    ),
   submitResultHash: z
     .string()
     .max(250)
-    .describe('The hash of the AI agent result to be submitted'),
+    .describe(
+      'The hash of the AI agent result to be submitted, should be sha256 hash of the result, therefore needs to be in hex string format',
+    ),
   blockchainIdentifier: z
     .string()
     .max(8000)
@@ -40,6 +34,7 @@ export const submitPaymentResultSchemaOutput = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   blockchainIdentifier: z.string(),
+  payByTime: z.string().nullable(),
   submitResultTime: z.string(),
   unlockTime: z.string(),
   externalDisputeUnlockTime: z.string(),
@@ -56,9 +51,18 @@ export const submitPaymentResultSchemaOutput = z.object({
   }),
   RequestedFunds: z.array(
     z.object({
-      id: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForSeller: z.array(
+    z.object({
+      amount: z.string(),
+      unit: z.string(),
+    }),
+  ),
+  WithdrawnForBuyer: z.array(
+    z.object({
       amount: z.string(),
       unit: z.string(),
     }),
@@ -66,6 +70,7 @@ export const submitPaymentResultSchemaOutput = z.object({
   PaymentSource: z.object({
     id: z.string(),
     network: z.nativeEnum(Network),
+    policyId: z.string().nullable(),
     smartContractAddress: z.string(),
     paymentType: z.nativeEnum(PaymentType),
   }),
@@ -107,55 +112,49 @@ export const submitPaymentResultEndpointPost =
         input.network,
         options.permission,
       );
-      const smartContractAddress =
-        input.smartContractAddress ??
-        (input.network == Network.Mainnet
-          ? DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_MAINNET
-          : DEFAULTS.PAYMENT_SMART_CONTRACT_ADDRESS_PREPROD);
-      const specifiedPaymentContract = await prisma.paymentSource.findUnique({
+
+      const payment = await prisma.paymentRequest.findUnique({
         where: {
-          network_smartContractAddress: {
-            network: input.network,
-            smartContractAddress: smartContractAddress,
+          onChainState: {
+            in: [
+              OnChainState.RefundRequested,
+              OnChainState.Disputed,
+              OnChainState.FundsLocked,
+            ],
           },
-          deletedAt: null,
+          blockchainIdentifier: input.blockchainIdentifier,
+          NextAction: {
+            requestedAction: {
+              in: [PaymentAction.WaitingForExternalAction],
+            },
+          },
         },
         include: {
-          HotWallets: { where: { deletedAt: null } },
-          PaymentSourceConfig: true,
-          PaymentRequests: {
-            where: {
-              onChainState: {
-                in: [
-                  OnChainState.RefundRequested,
-                  OnChainState.Disputed,
-                  OnChainState.FundsLocked,
-                ],
-              },
-              blockchainIdentifier: input.blockchainIdentifier,
-              NextAction: {
-                requestedAction: {
-                  in: [PaymentAction.WaitingForExternalAction],
-                },
-              },
-            },
+          PaymentSource: {
             include: {
-              NextAction: true,
-              SmartContractWallet: { where: { deletedAt: null } },
+              HotWallets: { where: { deletedAt: null } },
+              PaymentSourceConfig: true,
             },
           },
+          NextAction: true,
+          SmartContractWallet: { where: { deletedAt: null } },
         },
       });
-      if (specifiedPaymentContract == null) {
-        throw createHttpError(
-          404,
-          'Network and Address combination not supported',
-        );
-      }
-      if (specifiedPaymentContract.PaymentRequests.length == 0) {
+      if (payment == null) {
         throw createHttpError(404, 'Payment not found or in invalid state');
       }
-      const payment = specifiedPaymentContract.PaymentRequests[0];
+      if (payment.PaymentSource == null) {
+        throw createHttpError(404, 'Payment has no payment source');
+      }
+      if (payment.PaymentSource.deletedAt != null) {
+        throw createHttpError(404, 'Payment source is deleted');
+      }
+      if (payment.PaymentSource.network != input.network) {
+        throw createHttpError(
+          400,
+          'Payment was not made on the requested network',
+        );
+      }
       if (
         payment.requestedById != options.id &&
         options.permission != Permission.Admin
@@ -170,7 +169,7 @@ export const submitPaymentResultEndpointPost =
       }
 
       const result = await prisma.paymentRequest.update({
-        where: { id: specifiedPaymentContract.PaymentRequests[0].id },
+        where: { id: payment.id },
         data: {
           NextAction: {
             update: {
@@ -185,16 +184,33 @@ export const submitPaymentResultEndpointPost =
           SmartContractWallet: { where: { deletedAt: null } },
           PaymentSource: true,
           RequestedFunds: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 
       return {
         ...result,
+        payByTime: result.payByTime?.toString() ?? null,
         submitResultTime: result.submitResultTime.toString(),
         unlockTime: result.unlockTime.toString(),
         externalDisputeUnlockTime: result.externalDisputeUnlockTime.toString(),
-        RequestedFunds: result.RequestedFunds.map((amount) => ({
+        RequestedFunds: (
+          result.RequestedFunds as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
           ...amount,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForSeller: (
+          result.WithdrawnForSeller as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
+          amount: amount.amount.toString(),
+        })),
+        WithdrawnForBuyer: (
+          result.WithdrawnForBuyer as Array<{ unit: string; amount: bigint }>
+        ).map((amount) => ({
+          unit: amount.unit,
           amount: amount.amount.toString(),
         })),
       };

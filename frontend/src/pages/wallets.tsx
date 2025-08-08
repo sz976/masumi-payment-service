@@ -5,10 +5,10 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Plus, Copy, Search, RefreshCw, Check } from 'lucide-react';
+import { Plus, Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { AddWalletDialog } from '@/components/wallets/AddWalletDialog';
-import { SwapDialog } from '@/components/wallets/SwapDialog';
+//import { SwapDialog } from '@/components/wallets/SwapDialog';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/contexts/AppContext';
 import {
@@ -16,6 +16,7 @@ import {
   GetPaymentSourceResponses,
   getUtxos,
   GetUtxosResponses,
+  //getWallet,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +33,9 @@ import {
   WalletWithBalance as BaseWalletWithBalance,
 } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { BadgeWithTooltip } from '@/components/ui/badge-with-tooltip';
+import { TOOLTIP_TEXTS } from '@/lib/constants/tooltips';
+import { getUsdmConfig } from '@/lib/constants/defaultWallets';
 
 type Wallet =
   | (GetPaymentSourceResponses['200']['data']['PaymentSources'][0]['PurchasingWallets'][0] & {
@@ -65,7 +69,7 @@ export default function WalletsPage() {
   const [copiedAddresses, setCopiedAddresses] = useState<Set<string>>(
     new Set(),
   );
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const { rate, isLoading: isLoadingRate } = useRate();
   const [selectedWalletForTopup, setSelectedWalletForTopup] =
     useState<Wallet | null>(null);
@@ -143,7 +147,9 @@ export default function WalletsPage() {
             utxo.Amounts.forEach((amount) => {
               if (amount.unit === 'lovelace' || amount.unit == '') {
                 adaBalance += amount.quantity || 0;
-              } else if (amount.unit === 'USDM') {
+              } else if (
+                amount.unit === getUsdmConfig(state.network).fullAssetId
+              ) {
                 usdmBalance += amount.quantity || 0;
               }
             });
@@ -171,16 +177,26 @@ export default function WalletsPage() {
       });
 
       if (response.data?.data?.PaymentSources) {
-        const paymentSource = response.data.data.PaymentSources.find(
-          (source) => source.network === state.network,
+        const paymentSources = response.data.data.PaymentSources.filter(
+          (source) =>
+            selectedPaymentSourceId
+              ? source.id === selectedPaymentSourceId
+              : true,
         );
-        if (paymentSource) {
+        const purchasingWallets = paymentSources
+          .map((source) => source.PurchasingWallets)
+          .flat();
+        const sellingWallets = paymentSources
+          .map((source) => source.SellingWallets)
+          .flat();
+
+        if (paymentSources.length > 0) {
           const allWallets: Wallet[] = [
-            ...paymentSource.PurchasingWallets.map((wallet) => ({
+            ...purchasingWallets.map((wallet) => ({
               ...wallet,
               type: 'Purchasing' as const,
             })),
-            ...paymentSource.SellingWallets.map((wallet) => ({
+            ...sellingWallets.map((wallet) => ({
               ...wallet,
               type: 'Selling' as const,
             })),
@@ -233,11 +249,11 @@ export default function WalletsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [apiClient, fetchWalletBalance, state.network]);
+  }, [apiClient, fetchWalletBalance, selectedPaymentSourceId]);
 
   useEffect(() => {
     fetchWallets();
-  }, [fetchWallets, state.network]);
+  }, [fetchWallets, state.network, selectedPaymentSourceId]);
 
   const handleSelectWallet = (id: string) => {
     setSelectedWallets((prev) =>
@@ -344,7 +360,15 @@ export default function WalletsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Wallets</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">Wallets</h1>
+              <BadgeWithTooltip
+                text="?"
+                tooltipText={TOOLTIP_TEXTS.WALLETS}
+                variant="outline"
+                className="text-xs w-5 h-5 rounded-full p-0 flex items-center justify-center cursor-help"
+              />
+            </div>
             <p className="text-sm text-muted-foreground">
               Manage your buying and selling wallets.{' '}
               <Link
@@ -380,7 +404,7 @@ export default function WalletsPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b">
@@ -504,8 +528,8 @@ export default function WalletsPage() {
                           ) : (
                             <span>
                               {wallet.usdmBalance
-                                ? useFormatBalance(wallet.usdmBalance)
-                                : '0'}
+                                ? `$${useFormatBalance((parseInt(wallet.usdmBalance) / 1000000).toFixed(2))}`
+                                : '$0'}
                             </span>
                           )}
                         </div>
@@ -529,7 +553,7 @@ export default function WalletsPage() {
                             className="h-8 w-8"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedWalletForSwap(wallet);
+                              setSelectedWalletForSwap(wallet as Wallet);
                             }}
                           >
                             <FaExchangeAlt className="h-4 w-4" />
@@ -539,7 +563,7 @@ export default function WalletsPage() {
                             className="h-8"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedWalletForTopup(wallet);
+                              setSelectedWalletForTopup(wallet as Wallet);
                             }}
                           >
                             Top Up
@@ -610,13 +634,7 @@ export default function WalletsPage() {
                               ) : (
                                 <span>
                                   {wallet.collectionBalance?.ada
-                                    ? useFormatBalance(
-                                        (
-                                          parseInt(
-                                            wallet.collectionBalance.ada,
-                                          ) / 1000000
-                                        ).toFixed(2),
-                                      )
+                                    ? `${useFormatBalance((parseInt(wallet.collectionBalance.ada) / 1000000).toFixed(2))}`
                                     : '0'}
                                 </span>
                               )}
@@ -634,7 +652,7 @@ export default function WalletsPage() {
                                         1000000) *
                                       rate
                                     ).toFixed(2),
-                                  ) || ''}
+                                  )}
                                 </span>
                               )}
                           </div>
@@ -648,10 +666,8 @@ export default function WalletsPage() {
                             ) : (
                               <span>
                                 {wallet.collectionBalance?.usdm
-                                  ? useFormatBalance(
-                                      wallet.collectionBalance.usdm,
-                                    )
-                                  : '0'}
+                                  ? `$${useFormatBalance((parseInt(wallet.collectionBalance.usdm) / 1000000).toFixed(2))}`
+                                  : '$0'}
                               </span>
                             )}
                           </div>
@@ -688,7 +704,7 @@ export default function WalletsPage() {
         onSuccess={fetchWallets}
       />
 
-      <SwapDialog
+      {/*<SwapDialog
         isOpen={!!selectedWalletForSwap}
         onClose={() => setSelectedWalletForSwap(null)}
         walletAddress={selectedWalletForSwap?.walletAddress || ''}
@@ -696,7 +712,7 @@ export default function WalletsPage() {
         blockfrostApiKey={process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || ''}
         walletType={selectedWalletForSwap?.type || ''}
         walletId={selectedWalletForSwap?.id || ''}
-      />
+      />*/}
 
       <TransakWidget
         isOpen={!!selectedWalletForTopup}

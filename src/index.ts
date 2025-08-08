@@ -7,14 +7,40 @@ import { createConfig, createServer } from 'express-zod-api';
 import { router } from '@/routes/index';
 import ui, { JsonObject } from 'swagger-ui-express';
 import { generateOpenAPI } from '@/utils/generator/swagger-generator';
-import { cleanupDB, initDB } from '@/utils/db';
+import { cleanupDB, initDB, prisma } from '@/utils/db';
 import path from 'path';
+import { DEFAULTS } from './../src/utils/config';
 import { requestLogger } from '@/utils/middleware/request-logger';
+import fs from 'fs';
 
 const __dirname = path.resolve();
 
 async function initialize() {
   await initDB();
+  const defaultKey = await prisma.apiKey.findUnique({
+    where: {
+      token: DEFAULTS.DEFAULT_ADMIN_KEY,
+    },
+  });
+  if (defaultKey) {
+    logger.warn(
+      '*****************************************************************',
+    );
+    logger.warn(
+      '*  WARNING: The default insecure ADMIN_KEY "' +
+        DEFAULTS.DEFAULT_ADMIN_KEY +
+        '" is in use.           *',
+    );
+    logger.warn(
+      '*  This is a security risk. For production environments, please *',
+    );
+    logger.warn(
+      '*  set a secure ADMIN_KEY in .env before seeding or change it in the admin tool now   *',
+    );
+    logger.warn(
+      '*****************************************************************',
+    );
+  }
   await initJobs();
   logger.info('Initialized all services');
 }
@@ -47,16 +73,38 @@ initialize()
         };
         const docs = generateOpenAPI();
         const docsString = JSON.stringify(docs, replacer, 4);
+
+        // Read custom CSS
+        let customCss = '';
+        try {
+          customCss = fs.readFileSync(
+            path.join(__dirname, 'public/assets/swagger-custom.css'),
+            'utf8',
+          );
+        } catch {
+          logger.warn('Custom CSS file not found, using default styling');
+        }
+
         logger.info(
           '************** Now serving the API documentation at localhost:' +
             PORT +
             '/docs **************',
         );
+
+        // Serve static assets
+        app.use(
+          '/assets',
+          express.static(path.join(__dirname, 'public/assets')),
+        );
+
         app.use(
           '/docs',
           ui.serve,
           ui.setup(JSON.parse(docsString) as JsonObject, {
             explorer: false,
+            customSiteTitle: 'Payment Service API Documentation',
+            customfavIcon: '/assets/favicon.png',
+            customCss: customCss,
             swaggerOptions: {
               persistAuthorization: true,
               tryItOutEnabled: true,

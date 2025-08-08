@@ -5,6 +5,7 @@ import {
   Transaction,
   KoiosProvider,
   applyParamsToScript,
+  MeshTxBuilder,
 } from '@meshsdk/core';
 import fs from 'node:fs';
 import { deserializePlutusScript } from '@meshsdk/core-cst';
@@ -70,47 +71,63 @@ const tx = new Transaction({ initiator: wallet }).setTxInputs([
 ]);
 
 tx.isCollateralNeeded = true;
-
+const ctxbuilder = new MeshTxBuilder({
+  fetcher: blockchainProvider,
+});
+const deserializedAddress =
+  ctxbuilder.serializer.deserializer.key.deserializeAddress(address);
 //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
-tx.txBuilder
+const mintingData = await ctxbuilder
+  .txIn(firstUtxo.input.txHash, firstUtxo.input.outputIndex)
   .mintPlutusScript(script.version)
   .mint('1', policyId, assetName)
   .mintingScript(script.code)
-  .mintRedeemerValue(redeemer.data, 'Mesh');
-
-//setup the metadata
-tx.setMetadata(721, {
-  [policyId]: {
-    [assetName]: {
-      tags: [['test', '.de']],
-      image: 'abc.de',
-      //name can be freely chosen
-      name: 'Registry Example NAME',
-      api_url: 'http://localhost:3002',
-      description: 'This is a valid second example NFT for the registry',
-      company_name: 'Example Inc.',
-      capability: { name: 'HelloAI', version: '1.3.2.1' },
-      agentPricing: {
-        pricingType: 'Fixed',
-        fixedPricing: [
-          {
-            amount: 250000,
-            unit: '',
-          },
-        ],
+  .mintRedeemerValue(redeemer.data, 'Mesh')
+  .metadataValue(721, {
+    [policyId]: {
+      [assetName]: {
+        tags: [['test', '.de']],
+        image: 'abc.de',
+        //name can be freely chosen
+        name: 'Registry Example NAME',
+        api_url: 'http://localhost:3002',
+        description: 'This is a valid second example NFT for the registry',
+        company_name: 'Example Inc.',
+        capability: { name: 'HelloAI', version: '1.3.2.1' },
+        agentPricing: {
+          pricingType: 'Fixed',
+          fixedPricing: [
+            {
+              amount: 250000,
+              unit: '',
+            },
+          ],
+        },
       },
     },
-  },
-});
+  })
+  .txIn(utxos[1].input.txHash, utxos[1].input.outputIndex)
+  .txInCollateral(utxos[1].input.txHash, utxos[1].input.outputIndex)
+  .setTotalCollateral('5000000')
+  .txOut(address, [
+    { unit: policyId + assetName, quantity: '1' },
+    { unit: 'lovelace', quantity: '5000000' },
+  ])
+  .requiredSignerHash(deserializedAddress.pubKeyHash)
+  .setNetwork(network)
+  .metadataValue(674, { msg: ['Masumi', 'MintRegistry'] })
+  .changeAddress(address)
+  .complete();
+
 //send the minted asset to the address where we want to receive payments
-tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
-  //used to defrag for further transactions
-  .sendLovelace(address, '120000000');
+// tx.sendAssets(address, [{ unit: policyId + assetName, quantity: '1' }])
+//   //used to defrag for further transactions
+//   .sendLovelace(address, '120000000');
 //sign the transaction with our address
 tx.setRequiredSigners([address]).setChangeAddress(address).setNetwork(network);
 //build the transaction
 const unsignedTx = await tx.build();
-const signedTx = await wallet.signTx(unsignedTx, true);
+const signedTx = await wallet.signTx(mintingData);
 //submit the transaction to the blockchain, it can take a bit until the transaction is confirmed and found on the explorer
 const txHash = await wallet.submitTx(signedTx);
 

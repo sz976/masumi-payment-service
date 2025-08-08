@@ -4,7 +4,14 @@ import {
   PricingType,
 } from '@prisma/client';
 import { prisma } from '@/utils/db';
-import { BlockfrostProvider, Transaction } from '@meshsdk/core';
+import {
+  BlockfrostProvider,
+  IFetcher,
+  LanguageVersion,
+  MeshTxBuilder,
+  Network,
+  UTxO,
+} from '@meshsdk/core';
 import { logger } from '@/utils/logger';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
@@ -15,6 +22,7 @@ import { blake2b } from 'ethereum-cryptography/blake2b';
 import { stringToMetadata } from '@/utils/converter/metadata-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { convertErrorString } from '@/utils/converter/error-string-convert';
 
 const mutex = new Mutex();
 
@@ -84,56 +92,28 @@ export async function registerAgentV1() {
             const { script, policyId } =
               await getRegistryScriptFromNetworkHandlerV1(paymentSource);
 
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+            const utxosSortedByLovelaceDesc = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
               );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              //sort by biggest lovelace
+              return bLovelace - aLovelace;
+            });
 
-            const filteredUtxos = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                //sort by biggest lovelace
-                return bLovelace - aLovelace;
-              })
-              .filter(
-                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
-              );
-            const limitedFilteredUtxos = filteredUtxos.slice(
+            const limitedFilteredUtxos = utxosSortedByLovelaceDesc.slice(
               0,
-              Math.min(4, filteredUtxos.length),
+              Math.min(4, utxosSortedByLovelaceDesc.length),
             );
 
             const firstUtxo = limitedFilteredUtxos[0];
+            const collateralUtxo = limitedFilteredUtxos[0];
 
             const txId = firstUtxo.input.txHash;
             const txIndex = firstUtxo.input.outputIndex;
@@ -146,99 +126,92 @@ export async function registerAgentV1() {
             // Hash the serialized output using blake2b_256
             const blake2b256 = blake2b(serializedOutputUint8Array, 32);
             const assetName = Buffer.from(blake2b256).toString('hex');
-
-            const redeemer = {
-              data: { alternative: 0, fields: [] },
-              tag: 'MINT',
-            };
-
-            const tx = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'RegisterAgent'],
-              })
-              .setTxInputs([
-                //ensure our first utxo hash (serializedOutput) is used as first input
-                firstUtxo,
-                ...limitedFilteredUtxos.slice(1),
-              ]);
-
-            tx.isCollateralNeeded = true;
-
-            //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
-            tx.txBuilder
-              .mintPlutusScript(script.version)
-              .mint('1', policyId, assetName)
-              .mintingScript(script.code)
-              .mintRedeemerValue(redeemer.data, 'Mesh');
-
-            //setup the metadata
-            tx.setMetadata(721, {
-              [policyId]: {
-                [assetName]: {
-                  name: stringToMetadata(request.name),
-                  description: stringToMetadata(request.description),
-                  api_base_url: stringToMetadata(request.apiBaseUrl),
-                  example_output: request.ExampleOutputs.map(
-                    (exampleOutput) => ({
-                      name: stringToMetadata(exampleOutput.name),
-                      mime_type: stringToMetadata(exampleOutput.mimeType),
-                      url: stringToMetadata(exampleOutput.url),
-                    }),
-                  ),
-                  capability:
-                    request.capabilityName && request.capabilityVersion
-                      ? {
-                          name: stringToMetadata(request.capabilityName),
-                          version: stringToMetadata(request.capabilityVersion),
-                        }
-                      : undefined,
-                  author: {
-                    name: stringToMetadata(request.authorName),
-                    contact_email: stringToMetadata(request.authorContactEmail),
-                    contact_other: stringToMetadata(request.authorContactOther),
-                    organization: stringToMetadata(request.authorOrganization),
-                  },
-                  legal: {
-                    privacy_policy: stringToMetadata(request.privacyPolicy),
-                    terms: stringToMetadata(request.terms),
-                    other: stringToMetadata(request.other),
-                  },
-                  tags: request.tags,
-                  agentPricing: {
-                    pricingType: request.Pricing.pricingType,
-                    fixedPricing:
-                      request.Pricing.FixedPricing?.Amounts.map((pricing) => ({
-                        unit: stringToMetadata(pricing.unit),
-                        amount: pricing.amount.toString(),
-                      })) ?? [],
-                  },
-                  image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
-                  metadata_version: request.metadataVersion.toString(),
-                },
+            const metadata: AgentMetadata = {
+              name: stringToMetadata(request.name),
+              description: stringToMetadata(request.description),
+              api_base_url: stringToMetadata(request.apiBaseUrl),
+              example_output: request.ExampleOutputs.map((exampleOutput) => ({
+                name: stringToMetadata(exampleOutput.name),
+                mime_type: stringToMetadata(exampleOutput.mimeType),
+                url: stringToMetadata(exampleOutput.url),
+              })),
+              capability:
+                request.capabilityName && request.capabilityVersion
+                  ? {
+                      name: stringToMetadata(request.capabilityName),
+                      version: stringToMetadata(request.capabilityVersion),
+                    }
+                  : undefined,
+              author: {
+                name: stringToMetadata(request.authorName),
+                contact_email: stringToMetadata(request.authorContactEmail),
+                contact_other: stringToMetadata(request.authorContactOther),
+                organization: stringToMetadata(request.authorOrganization),
               },
-              version: '1',
-            });
-            //send the minted asset to the address where we want to receive payments
-            tx.sendAssets(address, [
-              { unit: policyId + assetName, quantity: '1' },
-            ]);
-            tx.sendLovelace(address, '5000000');
-            //sign the transaction with our address
-            tx.setChangeAddress(address).setRequiredSigners([address]);
-            tx.setNetwork(network);
-            tx.setCollateral([collateralUtxo]);
+              legal: {
+                privacy_policy: stringToMetadata(request.privacyPolicy),
+                terms: stringToMetadata(request.terms),
+                other: stringToMetadata(request.other),
+              },
+              tags: request.tags,
+              agentPricing: {
+                pricingType: request.Pricing.pricingType,
+                fixedPricing:
+                  request.Pricing.FixedPricing?.Amounts.map((pricing) => ({
+                    unit: stringToMetadata(pricing.unit),
+                    amount: pricing.amount.toString(),
+                  })) ?? [],
+              },
+              image: stringToMetadata(DEFAULTS.DEFAULT_IMAGE),
+              metadata_version: request.metadataVersion.toString(),
+            };
+            const evaluationTx = await generateRegisterAgentTransaction(
+              blockchainProvider,
+              network,
+              script,
+              address,
+              policyId,
+              assetName,
+              firstUtxo,
+              collateralUtxo,
+              limitedFilteredUtxos,
+              metadata,
+            );
+            const estimatedFee = (await blockchainProvider.evaluateTx(
+              evaluationTx,
+            )) as Array<{ budget: { mem: number; steps: number } }>;
 
-            //build the transaction
-            const unsignedTx = await tx.build();
+            const unsignedTx = await generateRegisterAgentTransaction(
+              blockchainProvider,
+              network,
+              script,
+              address,
+              policyId,
+              assetName,
+              firstUtxo,
+              collateralUtxo,
+              limitedFilteredUtxos,
+              metadata,
+              estimatedFee[0].budget,
+            );
+
             const signedTx = await wallet.signTx(unsignedTx, true);
 
             await prisma.registryRequest.update({
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationInitiated,
+                CurrentTransaction: {
+                  create: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet.id,
+                      },
+                    },
+                  },
+                },
               },
             });
             //submit the transaction to the blockchain
@@ -248,14 +221,8 @@ export async function registerAgentV1() {
               data: {
                 agentIdentifier: policyId + assetName,
                 CurrentTransaction: {
-                  create: {
+                  update: {
                     txHash: newTxHash,
-                    status: TransactionStatus.Pending,
-                    BlocksWallet: {
-                      connect: {
-                        id: request.SmartContractWallet.id,
-                      },
-                    },
                   },
                 },
               },
@@ -282,6 +249,7 @@ export async function registerAgentV1() {
               where: { id: request.id },
               data: {
                 state: RegistrationState.RegistrationFailed,
+                error: convertErrorString(error),
                 SmartContractWallet: {
                   update: {
                     lockedAt: null,
@@ -299,4 +267,74 @@ export async function registerAgentV1() {
   } finally {
     release();
   }
+}
+
+type AgentMetadata = {
+  [key: string]:
+    | string
+    | string[]
+    | AgentMetadata
+    | AgentMetadata[]
+    | undefined;
+};
+
+async function generateRegisterAgentTransaction(
+  blockchainProvider: IFetcher,
+  network: Network,
+  script: {
+    version: LanguageVersion;
+    code: string;
+  },
+  walletAddress: string,
+  policyId: string,
+  assetName: string,
+  firstUtxo: UTxO,
+  collateralUtxo: UTxO,
+  utxos: UTxO[],
+  metadata: AgentMetadata,
+  exUnits: {
+    mem: number;
+    steps: number;
+  } = {
+    mem: 7e6,
+    steps: 3e9,
+  },
+) {
+  const txBuilder = new MeshTxBuilder({
+    fetcher: blockchainProvider,
+  });
+  const deserializedAddress =
+    txBuilder.serializer.deserializer.key.deserializeAddress(walletAddress);
+  //setup minting data separately as the minting function does not work well with hex encoded strings without some magic
+  txBuilder
+    .txIn(firstUtxo.input.txHash, firstUtxo.input.outputIndex)
+    .mintPlutusScript(script.version)
+    .mint('1', policyId, assetName)
+    .mintingScript(script.code)
+    .mintRedeemerValue({ alternative: 0, fields: [] }, 'Mesh', exUnits)
+    .metadataValue(721, {
+      [policyId]: {
+        [assetName]: metadata,
+      },
+      version: '1',
+    })
+    .txIn(collateralUtxo.input.txHash, collateralUtxo.input.outputIndex)
+    .txInCollateral(
+      collateralUtxo.input.txHash,
+      collateralUtxo.input.outputIndex,
+    )
+    .setTotalCollateral('5000000')
+    .txOut(walletAddress, [
+      { unit: policyId + assetName, quantity: '1' },
+      { unit: 'lovelace', quantity: '5000000' },
+    ]);
+  for (const utxo of utxos) {
+    txBuilder.txIn(utxo.input.txHash, utxo.input.outputIndex);
+  }
+  return await txBuilder
+    .requiredSignerHash(deserializedAddress.pubKeyHash)
+    .setNetwork(network)
+    .metadataValue(674, { msg: ['Masumi', 'RegisterAgent'] })
+    .changeAddress(walletAddress)
+    .complete();
 }

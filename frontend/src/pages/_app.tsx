@@ -39,8 +39,8 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   const [isUnauthorized, setIsUnauthorized] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { state, dispatch } = useAppContext();
-  const { apiClient } = useAppContext();
+  const { state, dispatch, setSelectedPaymentSourceId, apiClient } =
+    useAppContext();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -61,7 +61,11 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
       const { data } = sourceResponse;
 
       const sources = data?.data?.PaymentSources ?? [];
-      const sortedByCreatedAt = sources.sort(
+      // Filter by network
+      const filteredSources = sources.filter(
+        (source: any) => source.network === state.network,
+      );
+      const sortedByCreatedAt = filteredSources.sort(
         (a: any, b: any) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
@@ -73,11 +77,23 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
       const reversedBack = [...sourcesMapped]?.reverse();
 
       dispatch({ type: 'SET_PAYMENT_SOURCES', payload: reversedBack });
+
+      if (reversedBack.length === 1) {
+        setSelectedPaymentSourceId(reversedBack[0].id);
+      }
+
+      // If no payment sources, redirect to setup
+      if (reversedBack.length === 0 && isHealthy && state.apiKey) {
+        if (router.pathname !== '/setup') {
+          router.push(`/setup?network=${encodeURIComponent(state.network)}`);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch payment sources:', error);
       toast.error('Error fetching payment sources. Please try again later.');
     }
-  }, [apiClient, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiClient, dispatch, isHealthy, state.apiKey, state.network, router]); // setSelectedPaymentSourceId is stable, excluding to prevent infinite loop
 
   const fetchRpcApiKeys = useCallback(async () => {
     try {
@@ -143,23 +159,10 @@ function ThemedApp({ Component, pageProps, router }: AppProps) {
   }, [apiClient, dispatch]);
 
   useEffect(() => {
-    if (isHealthy && router.pathname === '/' && state.apiKey) {
-      fetchPaymentSources();
-    } else if (
-      isHealthy &&
-      state.apiKey &&
-      router.pathname?.includes('/contract/') &&
-      !state.paymentSources?.length
-    ) {
+    if (isHealthy && state.apiKey) {
       fetchPaymentSources();
     }
-  }, [
-    router.pathname,
-    isHealthy,
-    fetchPaymentSources,
-    state.apiKey,
-    state.paymentSources?.length,
-  ]);
+  }, [isHealthy, state.apiKey, fetchPaymentSources, state.network]);
 
   useEffect(() => {
     if (isHealthy && state.apiKey) {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { AddAIAgentDialog } from '@/components/ai-agents/AddAIAgentDialog';
+import { RegisterAIAgentDialog } from '@/components/ai-agents/RegisterAIAgentDialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, shortenAddress } from '@/lib/utils';
@@ -16,6 +16,7 @@ import {
   deleteRegistry,
   GetRegistryResponses,
   getUtxos,
+  postRegistryDeregister,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
 import Head from 'next/head';
@@ -31,6 +32,7 @@ import {
   WalletWithBalance,
 } from '@/components/wallets/WalletDetailsDialog';
 import { CopyButton } from '@/components/ui/copy-button';
+import { TESTUSDM_CONFIG, getUsdmConfig } from '@/lib/constants/defaultWallets';
 type AIAgent = GetRegistryResponses['200']['data']['Assets'][0];
 
 const parseAgentStatus = (status: AIAgent['state']): string => {
@@ -58,7 +60,7 @@ const parseAgentStatus = (status: AIAgent['state']): string => {
 
 export default function AIAgentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [allAgents, setAllAgents] = useState<AIAgent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<AIAgent[]>([]);
@@ -67,7 +69,7 @@ export default function AIAgentsPage() {
   const [selectedAgentToDelete, setSelectedAgentToDelete] =
     useState<AIAgent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -81,6 +83,7 @@ export default function AIAgentsPage() {
     { name: 'Registered', count: null },
     { name: 'Deregistered', count: null },
     { name: 'Pending', count: null },
+    { name: 'Failed', count: null },
   ];
 
   const filterAgents = useCallback(() => {
@@ -97,6 +100,10 @@ export default function AIAgentsPage() {
     } else if (activeTab === 'Pending') {
       filtered = filtered.filter(
         (agent) => parseAgentStatus(agent.state) === 'Pending',
+      );
+    } else if (activeTab === 'Failed') {
+      filtered = filtered.filter(
+        (agent) => agent.state && agent.state.includes('Failed'),
       );
     }
 
@@ -133,46 +140,58 @@ export default function AIAgentsPage() {
     setFilteredAgents(filtered);
   }, [allAgents, searchQuery, activeTab]);
 
-  const fetchAgents = async (cursor?: string | null) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllAgents([]);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const response = await getRegistry({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor || undefined,
-        },
-      });
-
-      if (response.data?.data?.Assets) {
-        const newAgents = response.data.data.Assets;
-        if (cursor) {
-          setAllAgents((prev) => [...prev, ...newAgents]);
-        } else {
-          setAllAgents(newAgents);
-        }
-
-        setHasMore(newAgents.length === 10);
-      } else {
+  const fetchAgents = useCallback(
+    async (cursor?: string | null) => {
+      try {
         if (!cursor) {
+          setIsLoading(true);
           setAllAgents([]);
+        } else {
+          setIsLoadingMore(true);
         }
-        setHasMore(false);
+
+        const selectedPaymentSource = state.paymentSources.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
+        const smartContractAddress =
+          selectedPaymentSource?.smartContractAddress;
+
+        const response = await getRegistry({
+          client: apiClient,
+          query: {
+            network: state.network,
+            cursorId: cursor || undefined,
+            filterSmartContractAddress: smartContractAddress
+              ? smartContractAddress
+              : undefined,
+          },
+        });
+
+        if (response.data?.data?.Assets) {
+          const newAgents = response.data.data.Assets;
+          if (cursor) {
+            setAllAgents((prev) => [...prev, ...newAgents]);
+          } else {
+            setAllAgents(newAgents);
+          }
+
+          setHasMore(newAgents.length === 10);
+        } else {
+          if (!cursor) {
+            setAllAgents([]);
+          }
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+        toast.error('Failed to load AI agents');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-      toast.error('Failed to load AI agents');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [apiClient, state.network, selectedPaymentSourceId],
+  );
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && allAgents.length > 0) {
@@ -182,8 +201,14 @@ export default function AIAgentsPage() {
   };
 
   useEffect(() => {
-    fetchAgents();
-  }, []);
+    if (
+      state.paymentSources &&
+      state.paymentSources.length > 0 &&
+      selectedPaymentSourceId
+    ) {
+      fetchAgents();
+    }
+  }, [state.network, state.paymentSources, selectedPaymentSourceId]);
 
   useEffect(() => {
     filterAgents();
@@ -234,25 +259,45 @@ export default function AIAgentsPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedAgentToDelete?.agentIdentifier) {
-      toast.error('Cannot delete agent: Missing identifier');
-      return;
-    }
-
     try {
-      setIsDeleting(true);
-      await deleteRegistry({
-        client: apiClient,
-        query: {
-          agentIdentifier: selectedAgentToDelete.agentIdentifier,
-          network: state.network,
-        },
-      });
+      if (
+        selectedAgentToDelete?.state === 'RegistrationFailed' ||
+        selectedAgentToDelete?.state === 'DeregistrationConfirmed'
+      ) {
+        setIsDeleting(true);
+        await deleteRegistry({
+          client: apiClient,
+          body: {
+            id: selectedAgentToDelete.id,
+          },
+        });
+        toast.success('AI agent deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSelectedAgentToDelete(null);
+        fetchAgents();
+      } else if (selectedAgentToDelete?.state === 'RegistrationConfirmed') {
+        if (!selectedAgentToDelete?.agentIdentifier) {
+          toast.error('Cannot delete agent: Missing identifier');
+          return;
+        }
+        setIsDeleting(true);
+        await postRegistryDeregister({
+          client: apiClient,
+          body: {
+            agentIdentifier: selectedAgentToDelete.agentIdentifier,
+            network: state.network,
+          },
+        });
 
-      toast.success('AI agent deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setSelectedAgentToDelete(null);
-      fetchAgents();
+        toast.success('AI agent deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSelectedAgentToDelete(null);
+        fetchAgents();
+      } else {
+        toast.error(
+          'Cannot delete agent: Agent is not in a state to be deleted. Please wait for transactions to settle.',
+        );
+      }
     } catch (error) {
       console.error('Error deleting agent:', error);
       toast.error('Failed to delete AI agent');
@@ -336,10 +381,10 @@ export default function AIAgentsPage() {
           </div>
           <Button
             className="flex items-center gap-2"
-            onClick={() => setIsAddDialogOpen(true)}
+            onClick={() => setIsRegisterDialogOpen(true)}
           >
             <Plus className="h-4 w-4" />
-            Add AI agent
+            Register AI Agent
           </Button>
         </div>
 
@@ -367,7 +412,7 @@ export default function AIAgentsPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border">
+          <div className="rounded-lg border overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
@@ -428,9 +473,9 @@ export default function AIAgentsPage() {
                           onCheckedChange={() => handleSelectAgent(agent.id)}
                         />
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 max-w-[200px] truncate">
                         <div className="text-sm font-medium">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground truncate">
                           {agent.description}
                         </div>
                       </td>
@@ -474,18 +519,18 @@ export default function AIAgentsPage() {
                           />
                         </div>
                       </td>
-                      <td className="p-4 text-sm">
+                      <td className="p-4 text-sm truncate max-w-[100px]">
                         {agent.AgentPricing?.Pricing?.map((price, index) => (
                           <div key={index} className="whitespace-nowrap">
-                            {price.unit === 'lovelace'
+                            {price.unit === 'lovelace' || !price.unit
                               ? `${useFormatPrice(price.amount)} ADA`
-                              : `${useFormatPrice(price.amount)} ${price.unit}`}
+                              : `${useFormatPrice(price.amount)} ${price.unit === getUsdmConfig(state.network).fullAssetId ? 'USDM' : price.unit === TESTUSDM_CONFIG.unit ? 'tUSDM' : price.unit}`}
                           </div>
                         ))}
                       </td>
                       <td className="p-4">
                         {agent.Tags.length > 0 && (
-                          <Badge variant="secondary">
+                          <Badge variant="secondary" className="truncate">
                             {agent.Tags.length} tags
                           </Badge>
                         )}
@@ -502,22 +547,11 @@ export default function AIAgentsPage() {
                         </Badge>
                       </td>
                       <td className="p-4">
-                        {agent.state !== 'RegistrationConfirmed' ? (
-                          <>
-                            {(agent.state === 'RegistrationInitiated' ||
-                              agent.state === 'DeregistrationInitiated') && (
-                              <div className="flex items-center justify-center w-8 h-8">
-                                <Spinner size={16} />
-                              </div>
-                            )}
-                            {(agent.state === 'RegistrationRequested' ||
-                              agent.state === 'DeregistrationRequested') && (
-                              <div className="flex items-center justify-center w-8 h-8">
-                                <FaRegClock size={12} />
-                              </div>
-                            )}
-                          </>
-                        ) : (
+                        {[
+                          'RegistrationConfirmed',
+                          'RegistrationFailed',
+                          'DeregistrationFailed',
+                        ].includes(agent.state) ? (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -529,6 +563,18 @@ export default function AIAgentsPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        ) : agent.state === 'RegistrationInitiated' ||
+                          agent.state === 'DeregistrationInitiated' ? (
+                          <div className="flex items-center justify-center w-8 h-8">
+                            <Spinner size={16} />
+                          </div>
+                        ) : (
+                          (agent.state === 'RegistrationRequested' ||
+                            agent.state === 'DeregistrationRequested') && (
+                            <div className="flex items-center justify-center w-8 h-8">
+                              <FaRegClock size={12} />
+                            </div>
+                          )
                         )}
                       </td>
                     </tr>
@@ -549,9 +595,9 @@ export default function AIAgentsPage() {
           </div>
         </div>
 
-        <AddAIAgentDialog
-          open={isAddDialogOpen}
-          onClose={() => setIsAddDialogOpen(false)}
+        <RegisterAIAgentDialog
+          open={isRegisterDialogOpen}
+          onClose={() => setIsRegisterDialogOpen(false)}
           onSuccess={fetchAgents}
         />
 
@@ -567,7 +613,12 @@ export default function AIAgentsPage() {
             setSelectedAgentToDelete(null);
           }}
           title="Delete AI Agent"
-          description={`Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`}
+          description={
+            selectedAgentToDelete?.state === 'RegistrationFailed' ||
+            selectedAgentToDelete?.state === 'DeregistrationConfirmed'
+              ? `Are you sure you want to delete "${selectedAgentToDelete?.name}"? This action cannot be undone.`
+              : `Are you sure you want to deregister "${selectedAgentToDelete?.name}"? This action cannot be undone.`
+          }
           onConfirm={async () => {
             await handleDeleteConfirm();
             setSelectedAgentForDetails(null);

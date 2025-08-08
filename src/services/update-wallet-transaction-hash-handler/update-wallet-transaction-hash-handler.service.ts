@@ -61,6 +61,7 @@ export async function updateWalletTransactionHash() {
             },
             {
               CurrentTransaction: {
+                status: TransactionStatus.Pending,
                 updatedAt: {
                   lt: new Date(
                     Date.now() -
@@ -433,6 +434,7 @@ export async function updateWalletTransactionHash() {
                 registryRequest.state == RegistrationState.RegistrationInitiated
                   ? RegistrationState.RegistrationFailed
                   : RegistrationState.DeregistrationFailed,
+              error: 'Timeout, force unlocked',
             },
           });
         } else {

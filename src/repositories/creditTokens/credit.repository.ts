@@ -17,6 +17,8 @@ async function handlePurchaseCreditInit({
   paymentType,
   contractAddress,
   sellerVkey,
+  sellerAddress,
+  payByTime,
   submitResultTime,
   unlockTime,
   externalDisputeUnlockTime,
@@ -30,6 +32,8 @@ async function handlePurchaseCreditInit({
   paymentType: PaymentType;
   contractAddress: string;
   sellerVkey: string;
+  sellerAddress: string;
+  payByTime: bigint;
   submitResultTime: bigint;
   unlockTime: bigint;
   externalDisputeUnlockTime: bigint;
@@ -136,9 +140,10 @@ async function handlePurchaseCreditInit({
 
       const sellerWallet = await transaction.walletBase.findUnique({
         where: {
-          paymentSourceId_walletVkey_type: {
+          paymentSourceId_walletVkey_walletAddress_type: {
             paymentSourceId: paymentSource.id,
             walletVkey: sellerVkey,
+            walletAddress: sellerAddress,
             type: WalletType.Seller,
           },
         },
@@ -153,6 +158,7 @@ async function handlePurchaseCreditInit({
               unit: unit,
             })),
           },
+          payByTime: payByTime,
           submitResultTime: submitResultTime,
           PaymentSource: { connect: { id: paymentSource.id } },
           resultHash: '',
@@ -165,6 +171,7 @@ async function handlePurchaseCreditInit({
               },
               create: {
                 walletVkey: sellerVkey,
+                walletAddress: sellerAddress,
                 paymentSourceId: paymentSource.id,
                 type: WalletType.Seller,
               },
@@ -189,6 +196,8 @@ async function handlePurchaseCreditInit({
           PaidFunds: true,
           NextAction: true,
           CurrentTransaction: true,
+          WithdrawnForSeller: true,
+          WithdrawnForBuyer: true,
         },
       });
 

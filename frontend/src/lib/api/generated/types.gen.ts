@@ -369,9 +369,9 @@ export type GetPaymentData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
-         * The address of the smart contract where the payments were made to
+         * The smart contract address of the payment source
          */
-        smartContractAddress?: string;
+        filterSmartContractAddress?: string | null;
         /**
          * Whether to include the full transaction and status history of the payments
          */
@@ -408,8 +408,10 @@ export type GetPaymentResponses = {
                 updatedAt: string;
                 blockchainIdentifier: string;
                 lastCheckedAt: string | null;
+                payByTime: string | null;
                 submitResultTime: string;
                 unlockTime: string;
+                collateralReturnLovelace: string | null;
                 externalDisputeUnlockTime: string;
                 requestedById: string;
                 resultHash: string;
@@ -436,9 +438,14 @@ export type GetPaymentResponses = {
                     txHash: string | null;
                 }> | null;
                 RequestedFunds: Array<{
-                    id: string;
-                    createdAt: string;
-                    updatedAt: string;
+                    amount: string;
+                    unit: string;
+                }>;
+                WithdrawnForSeller: Array<{
+                    amount: string;
+                    unit: string;
+                }>;
+                WithdrawnForBuyer: Array<{
                     amount: string;
                     unit: string;
                 }>;
@@ -446,6 +453,7 @@ export type GetPaymentResponses = {
                     id: string;
                     network: 'Preprod' | 'Mainnet';
                     smartContractAddress: string;
+                    policyId: string | null;
                     paymentType: 'Web3CardanoV1';
                 };
                 BuyerWallet: {
@@ -467,6 +475,9 @@ export type GetPaymentResponse = GetPaymentResponses[keyof GetPaymentResponses];
 
 export type PostPaymentData = {
     body?: {
+        /**
+         * The hash of the input data of the payment, should be sha256 hash of the input data, therefore needs to be in hex string format
+         */
         inputHash: string;
         /**
          * The network the payment will be received on
@@ -488,9 +499,9 @@ export type PostPaymentData = {
          */
         paymentType: 'Web3CardanoV1';
         /**
-         * The address of the smart contract where the payment will be made to
+         * The time after which the payment has to be submitted to the smart contract
          */
-        smartContractAddress?: string;
+        payByTime?: Date;
         /**
          * The time after which the payment has to be submitted to the smart contract
          */
@@ -508,7 +519,7 @@ export type PostPaymentData = {
          */
         metadata?: string;
         /**
-         * The cuid2 identifier of the purchaser of the payment
+         * The a unique nonce from the purchaser. Required to be in hex format
          */
         identifierFromPurchaser: string;
     };
@@ -542,6 +553,7 @@ export type PostPaymentResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
+            payByTime: string;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -557,9 +569,14 @@ export type PostPaymentResponses = {
                 errorNote: string | null;
             };
             RequestedFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
@@ -567,6 +584,7 @@ export type PostPaymentResponses = {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
                 smartContractAddress: string;
+                policyId: string | null;
                 paymentType: 'Web3CardanoV1';
             };
             BuyerWallet: {
@@ -593,11 +611,7 @@ export type PostPaymentSubmitResultData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
-         * The address of the smart contract where the payment was made to
-         */
-        smartContractAddress?: string;
-        /**
-         * The hash of the AI agent result to be submitted
+         * The hash of the AI agent result to be submitted, should be sha256 hash of the result, therefore needs to be in hex string format
          */
         submitResultHash: string;
         /**
@@ -635,6 +649,7 @@ export type PostPaymentSubmitResultResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -650,15 +665,21 @@ export type PostPaymentSubmitResultResponses = {
                 resultHash: string | null;
             };
             RequestedFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
             PaymentSource: {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
             };
@@ -689,10 +710,6 @@ export type PostPaymentAuthorizeRefundData = {
          * The network the Cardano wallet will be used on
          */
         network: 'Preprod' | 'Mainnet';
-        /**
-         * The address of the smart contract holding the purchase
-         */
-        paymentContractAddress?: string;
     };
     path?: never;
     query?: never;
@@ -724,6 +741,7 @@ export type PostPaymentAuthorizeRefundResponses = {
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -739,9 +757,14 @@ export type PostPaymentAuthorizeRefundResponses = {
                 resultHash: string | null;
             };
             RequestedFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
@@ -749,6 +772,7 @@ export type PostPaymentAuthorizeRefundResponses = {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
                 smartContractAddress: string;
+                policyId: string | null;
                 paymentType: 'Web3CardanoV1';
             };
             BuyerWallet: {
@@ -785,9 +809,9 @@ export type GetPurchaseData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
-         * The address of the smart contract where the purchases were made to
+         * The smart contract address of the payment source
          */
-        smartContractAddress?: string;
+        filterSmartContractAddress?: string | null;
         /**
          * Whether to include the full transaction and status history of the purchases
          */
@@ -824,11 +848,13 @@ export type GetPurchaseResponses = {
                 updatedAt: string;
                 blockchainIdentifier: string;
                 lastCheckedAt: string | null;
+                payByTime: string | null;
                 submitResultTime: string;
                 unlockTime: string;
                 externalDisputeUnlockTime: string;
                 requestedById: string;
                 onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+                collateralReturnLovelace: string | null;
                 cooldownTime: number;
                 cooldownTimeOtherParty: number;
                 inputHash: string;
@@ -844,19 +870,24 @@ export type GetPurchaseResponses = {
                     createdAt: string;
                     updatedAt: string;
                     txHash: string;
-                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
                 } | null;
                 TransactionHistory: Array<{
                     id: string;
                     createdAt: string;
                     updatedAt: string;
                     txHash: string;
-                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
                 }>;
                 PaidFunds: Array<{
-                    id: string;
-                    createdAt: string;
-                    updatedAt: string;
+                    amount: string;
+                    unit: string;
+                }>;
+                WithdrawnForSeller: Array<{
+                    amount: string;
+                    unit: string;
+                }>;
+                WithdrawnForBuyer: Array<{
                     amount: string;
                     unit: string;
                 }>;
@@ -864,6 +895,7 @@ export type GetPurchaseResponses = {
                     id: string;
                     network: 'Preprod' | 'Mainnet';
                     smartContractAddress: string;
+                    policyId: string | null;
                     paymentType: 'Web3CardanoV1';
                 };
                 SellerWallet: {
@@ -893,6 +925,9 @@ export type PostPurchaseData = {
          * The network the transaction will be made on
          */
         network: 'Preprod' | 'Mainnet';
+        /**
+         * The hash of the input data of the purchase, should be sha256 hash of the input data, therefore needs to be in hex string format
+         */
         inputHash: string;
         /**
          * The verification key of the seller
@@ -902,10 +937,6 @@ export type PostPurchaseData = {
          * The identifier of the agent that is being purchased
          */
         agentIdentifier: string;
-        /**
-         * The address of the smart contract where the purchase will be made to
-         */
-        smartContractAddress?: string;
         /**
          * The amounts to be paid for the purchase
          */
@@ -930,11 +961,15 @@ export type PostPurchaseData = {
          */
         submitResultTime: string;
         /**
+         * The time after which the purchase has to be submitted to the smart contract
+         */
+        payByTime: string;
+        /**
          * Metadata to be stored with the purchase request
          */
         metadata?: string;
         /**
-         * The cuid2 identifier of the purchaser of the purchase
+         * The nonce of the purchaser of the purchase, needs to be in hex format
          */
         identifierFromPurchaser: string;
     };
@@ -953,22 +988,21 @@ export type PostPurchaseErrors = {
      */
     401: unknown;
     /**
-     * Internal Server Error
+     * Conflict (purchase request already exists)
      */
-    500: unknown;
-};
-
-export type PostPurchaseResponses = {
-    /**
-     * Purchase request created
-     */
-    200: {
-        data: {
+    409: {
+        status: string;
+        error: {
+            message: string;
+        };
+        id: string;
+        object: {
             id: string;
             createdAt: string;
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -986,18 +1020,94 @@ export type PostPurchaseResponses = {
                 createdAt: string;
                 updatedAt: string;
                 txHash: string;
-                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
             } | null;
             PaidFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
             PaymentSource: {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
+                smartContractAddress: string;
+                paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+                id: string;
+                walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+            } | null;
+            metadata: string | null;
+        };
+    };
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type PostPurchaseError = PostPurchaseErrors[keyof PostPurchaseErrors];
+
+export type PostPurchaseResponses = {
+    /**
+     * Purchase request created
+     */
+    200: {
+        data: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            payByTime: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            externalDisputeUnlockTime: string;
+            requestedById: string;
+            resultHash: string;
+            inputHash: string;
+            onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+            NextAction: {
+                requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'FundsLockingRequested' | 'FundsLockingInitiated' | 'SetRefundRequestedRequested' | 'SetRefundRequestedInitiated' | 'UnSetRefundRequestedRequested' | 'UnSetRefundRequestedInitiated' | 'WithdrawRefundRequested' | 'WithdrawRefundInitiated';
+                errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown';
+                errorNote: string | null;
+            };
+            CurrentTransaction: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
+            } | null;
+            PaidFunds: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            PaymentSource: {
+                id: string;
+                network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
             };
@@ -1028,10 +1138,6 @@ export type PostPurchaseRequestRefundData = {
          * The network the Cardano wallet will be used on
          */
         network: 'Preprod' | 'Mainnet';
-        /**
-         * The address of the smart contract holding the purchase
-         */
-        smartContractAddress?: string;
     };
     path?: never;
     query?: never;
@@ -1064,6 +1170,7 @@ export type PostPurchaseRequestRefundResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -1080,18 +1187,24 @@ export type PostPurchaseRequestRefundResponses = {
                 createdAt: string;
                 updatedAt: string;
                 txHash: string;
-                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
             } | null;
             PaidFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
             PaymentSource: {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
             };
@@ -1122,10 +1235,6 @@ export type PostPurchaseCancelRefundRequestData = {
          * The network the Cardano wallet will be used on
          */
         network: 'Preprod' | 'Mainnet';
-        /**
-         * The address of the smart contract holding the purchase
-         */
-        smartContractAddress?: string;
     };
     path?: never;
     query?: never;
@@ -1158,6 +1267,7 @@ export type PostPurchaseCancelRefundRequestResponses = {
             updatedAt: string;
             blockchainIdentifier: string;
             lastCheckedAt: string | null;
+            payByTime: string | null;
             submitResultTime: string;
             unlockTime: string;
             externalDisputeUnlockTime: string;
@@ -1174,18 +1284,24 @@ export type PostPurchaseCancelRefundRequestResponses = {
                 createdAt: string;
                 updatedAt: string;
                 txHash: string;
-                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
             } | null;
             PaidFunds: Array<{
-                id: string;
-                createdAt: string;
-                updatedAt: string;
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
                 amount: string;
                 unit: string;
             }>;
             PaymentSource: {
                 id: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
             };
@@ -1205,6 +1321,246 @@ export type PostPurchaseCancelRefundRequestResponses = {
 };
 
 export type PostPurchaseCancelRefundRequestResponse = PostPurchaseCancelRefundRequestResponses[keyof PostPurchaseCancelRefundRequestResponses];
+
+export type PostPaymentResolveBlockchainIdentifierData = {
+    body?: {
+        /**
+         * The blockchain identifier to resolve
+         */
+        blockchainIdentifier: string;
+        /**
+         * The network the purchases were made on
+         */
+        network: 'Preprod' | 'Mainnet';
+        /**
+         * The smart contract address of the payment source
+         */
+        filterSmartContractAddress?: string | null;
+        /**
+         * Whether to include the full transaction and status history of the purchases
+         */
+        includeHistory?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/payment/resolve-blockchain-identifier';
+};
+
+export type PostPaymentResolveBlockchainIdentifierErrors = {
+    /**
+     * Bad Request (possible parameters missing or invalid)
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Payment request not found
+     */
+    404: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type PostPaymentResolveBlockchainIdentifierResponses = {
+    /**
+     * Payment request resolved
+     */
+    200: {
+        status: string;
+        data: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            payByTime: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            collateralReturnLovelace: string | null;
+            externalDisputeUnlockTime: string;
+            requestedById: string;
+            resultHash: string;
+            inputHash: string;
+            cooldownTime: number;
+            cooldownTimeOtherParty: number;
+            onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+            NextAction: {
+                requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'SubmitResultRequested' | 'SubmitResultInitiated' | 'WithdrawRequested' | 'WithdrawInitiated' | 'AuthorizeRefundRequested' | 'AuthorizeRefundInitiated';
+                errorType: 'NetworkError' | 'Unknown';
+                errorNote: string | null;
+                resultHash: string | null;
+            };
+            CurrentTransaction: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string | null;
+            } | null;
+            TransactionHistory: Array<{
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string | null;
+            }> | null;
+            RequestedFunds: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            PaymentSource: {
+                id: string;
+                network: 'Preprod' | 'Mainnet';
+                smartContractAddress: string;
+                policyId: string | null;
+                paymentType: 'Web3CardanoV1';
+            };
+            BuyerWallet: {
+                id: string;
+                walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+            } | null;
+            metadata: string | null;
+        };
+    };
+};
+
+export type PostPaymentResolveBlockchainIdentifierResponse = PostPaymentResolveBlockchainIdentifierResponses[keyof PostPaymentResolveBlockchainIdentifierResponses];
+
+export type PostPurchaseResolveBlockchainIdentifierData = {
+    body?: {
+        /**
+         * The blockchain identifier to resolve
+         */
+        blockchainIdentifier: string;
+        /**
+         * The network the purchases were made on
+         */
+        network: 'Preprod' | 'Mainnet';
+        /**
+         * The smart contract address of the payment source
+         */
+        filterSmartContractAddress?: string | null;
+        /**
+         * Whether to include the full transaction and status history of the purchases
+         */
+        includeHistory?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/purchase/resolve-blockchain-identifier';
+};
+
+export type PostPurchaseResolveBlockchainIdentifierErrors = {
+    /**
+     * Bad Request (possible parameters missing or invalid)
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Purchase request not found
+     */
+    404: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type PostPurchaseResolveBlockchainIdentifierResponses = {
+    /**
+     * Purchase request resolved
+     */
+    200: {
+        status: string;
+        data: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            blockchainIdentifier: string;
+            lastCheckedAt: string | null;
+            payByTime: string | null;
+            submitResultTime: string;
+            unlockTime: string;
+            externalDisputeUnlockTime: string;
+            requestedById: string;
+            onChainState: 'FundsLocked' | 'FundsOrDatumInvalid' | 'ResultSubmitted' | 'RefundRequested' | 'Disputed' | 'Withdrawn' | 'RefundWithdrawn' | 'DisputedWithdrawn';
+            collateralReturnLovelace: string | null;
+            cooldownTime: number;
+            cooldownTimeOtherParty: number;
+            inputHash: string;
+            resultHash: string;
+            NextAction: {
+                inputHash: string;
+                requestedAction: 'None' | 'Ignore' | 'WaitingForManualAction' | 'WaitingForExternalAction' | 'FundsLockingRequested' | 'FundsLockingInitiated' | 'SetRefundRequestedRequested' | 'SetRefundRequestedInitiated' | 'UnSetRefundRequestedRequested' | 'UnSetRefundRequestedInitiated' | 'WithdrawRefundRequested' | 'WithdrawRefundInitiated';
+                errorType: 'NetworkError' | 'InsufficientFunds' | 'Unknown';
+                errorNote: string | null;
+            };
+            CurrentTransaction: {
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
+            } | null;
+            TransactionHistory: Array<{
+                id: string;
+                createdAt: string;
+                updatedAt: string;
+                txHash: string;
+                status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
+            }>;
+            PaidFunds: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForSeller: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            WithdrawnForBuyer: Array<{
+                amount: string;
+                unit: string;
+            }>;
+            PaymentSource: {
+                id: string;
+                network: 'Preprod' | 'Mainnet';
+                smartContractAddress: string;
+                policyId: string | null;
+                paymentType: 'Web3CardanoV1';
+            };
+            SellerWallet: {
+                id: string;
+                walletVkey: string;
+            } | null;
+            SmartContractWallet: {
+                id: string;
+                walletVkey: string;
+                walletAddress: string;
+            } | null;
+            metadata: string | null;
+        };
+    };
+};
+
+export type PostPurchaseResolveBlockchainIdentifierResponse = PostPurchaseResolveBlockchainIdentifierResponses[keyof PostPurchaseResolveBlockchainIdentifierResponses];
 
 export type GetRegistryWalletData = {
     body?: never;
@@ -1280,69 +1636,56 @@ export type GetRegistryWalletResponses = {
 export type GetRegistryWalletResponse = GetRegistryWalletResponses[keyof GetRegistryWalletResponses];
 
 export type DeleteRegistryData = {
-    body?: never;
-    path?: never;
-    query: {
+    body?: {
         /**
-         * The identifier of the registration (asset) to be deregistered
+         * The database ID of the agent registration record to be deleted.
          */
-        agentIdentifier: string;
-        /**
-         * The network the registration was made on
-         */
-        network: 'Preprod' | 'Mainnet';
-        /**
-         * The smart contract address of the payment contract to which the registration belongs
-         */
-        smartContractAddress?: string;
+        id: string;
     };
+    path?: never;
+    query?: never;
     url: '/registry/';
 };
 
+export type DeleteRegistryErrors = {
+    /**
+     * Bad Request - Invalid state for deletion
+     */
+    400: {
+        status: string;
+        error: {
+            message: string;
+        };
+    };
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Agent Registration not found
+     */
+    404: {
+        status: string;
+        error: {
+            message: string;
+        };
+    };
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type DeleteRegistryError = DeleteRegistryErrors[keyof DeleteRegistryErrors];
+
 export type DeleteRegistryResponses = {
     /**
-     * Payment source deleted
+     * Agent registration deleted successfully
      */
     200: {
         status: string;
         data: {
             id: string;
-            name: string;
-            apiBaseUrl: string;
-            Capability: {
-                name: string | null;
-                version: string | null;
-            };
-            Author: {
-                name: string;
-                contactEmail: string | null;
-                contactOther: string | null;
-                organization: string | null;
-            };
-            Legal: {
-                privacyPolicy: string | null;
-                terms: string | null;
-                other: string | null;
-            };
-            description: string | null;
-            Tags: Array<string>;
-            SmartContractWallet: {
-                walletVkey: string;
-                walletAddress: string;
-            };
-            state: 'RegistrationRequested' | 'RegistrationInitiated' | 'RegistrationConfirmed' | 'RegistrationFailed' | 'DeregistrationRequested' | 'DeregistrationInitiated' | 'DeregistrationConfirmed' | 'DeregistrationFailed';
-            ExampleOutputs: Array<{
-                name: string;
-                url: string;
-                mimeType: string;
-            }>;
-            AgentPricing: {
-                pricingType: 'Fixed';
-                Pricing: Array<{
-                    unit: string;
-                    amount: string;
-                }>;
-            };
         };
     };
 };
@@ -1362,9 +1705,9 @@ export type GetRegistryData = {
          */
         network: 'Preprod' | 'Mainnet';
         /**
-         * The smart contract address of the payment source to which the registration belongs
+         * The smart contract address of the payment source
          */
-        smartContractAddress?: string;
+        filterSmartContractAddress?: string | null;
     };
     url: '/registry/';
 };
@@ -1377,6 +1720,7 @@ export type GetRegistryResponses = {
         status: string;
         data: {
             Assets: Array<{
+                error: string | null;
                 id: string;
                 name: string;
                 description: string | null;
@@ -1420,7 +1764,7 @@ export type GetRegistryResponses = {
                 };
                 CurrentTransaction: {
                     txHash: string;
-                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout';
+                    status: 'Pending' | 'Confirmed' | 'FailedViaTimeout' | 'RolledBack';
                 } | null;
             }>;
         };
@@ -1435,10 +1779,6 @@ export type PostRegistryData = {
          * The Cardano network used to register the agent on
          */
         network: 'Preprod' | 'Mainnet';
-        /**
-         * The smart contract address of the payment contract to be registered for
-         */
-        smartContractAddress?: string;
         /**
          * The payment key of a specific wallet used for the registration
          */
@@ -1554,6 +1894,76 @@ export type PostRegistryResponses = {
 
 export type PostRegistryResponse = PostRegistryResponses[keyof PostRegistryResponses];
 
+export type PostRegistryDeregisterData = {
+    body?: {
+        /**
+         * The identifier of the registration (asset) to be deregistered
+         */
+        agentIdentifier: string;
+        /**
+         * The network the registration was made on
+         */
+        network: 'Preprod' | 'Mainnet';
+        /**
+         * The smart contract address of the payment contract to which the registration belongs
+         */
+        smartContractAddress?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/registry/deregister';
+};
+
+export type PostRegistryDeregisterResponses = {
+    /**
+     * Payment source deleted
+     */
+    200: {
+        status: string;
+        data: {
+            id: string;
+            name: string;
+            apiBaseUrl: string;
+            Capability: {
+                name: string | null;
+                version: string | null;
+            };
+            Author: {
+                name: string;
+                contactEmail: string | null;
+                contactOther: string | null;
+                organization: string | null;
+            };
+            Legal: {
+                privacyPolicy: string | null;
+                terms: string | null;
+                other: string | null;
+            };
+            description: string | null;
+            Tags: Array<string>;
+            SmartContractWallet: {
+                walletVkey: string;
+                walletAddress: string;
+            };
+            state: 'RegistrationRequested' | 'RegistrationInitiated' | 'RegistrationConfirmed' | 'RegistrationFailed' | 'DeregistrationRequested' | 'DeregistrationInitiated' | 'DeregistrationConfirmed' | 'DeregistrationFailed';
+            ExampleOutputs: Array<{
+                name: string;
+                url: string;
+                mimeType: string;
+            }>;
+            AgentPricing: {
+                pricingType: 'Fixed';
+                Pricing: Array<{
+                    unit: string;
+                    amount: string;
+                }>;
+            };
+        };
+    };
+};
+
+export type PostRegistryDeregisterResponse = PostRegistryDeregisterResponses[keyof PostRegistryDeregisterResponses];
+
 export type GetPaymentSourceData = {
     body?: never;
     path?: never;
@@ -1582,6 +1992,7 @@ export type GetPaymentSourceResponses = {
                 createdAt: string;
                 updatedAt: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
                 lastIdentifierChecked: string | null;
@@ -1616,14 +2027,14 @@ export type GetPaymentSourceResponses = {
 export type GetPaymentSourceResponse = GetPaymentSourceResponses[keyof GetPaymentSourceResponses];
 
 export type DeletePaymentSourceExtendedData = {
-    body?: never;
-    path?: never;
-    query: {
+    body?: {
         /**
          * The id of the payment source to be deleted
          */
         id: string;
     };
+    path?: never;
+    query?: never;
     url: '/payment-source-extended/';
 };
 
@@ -1669,6 +2080,7 @@ export type GetPaymentSourceExtendedResponses = {
                 createdAt: string;
                 updatedAt: string;
                 network: 'Preprod' | 'Mainnet';
+                policyId: string | null;
                 smartContractAddress: string;
                 paymentType: 'Web3CardanoV1';
                 PaymentSourceConfig: {
@@ -1839,6 +2251,10 @@ export type PostPaymentSourceExtendedData = {
          * The fee in permille to be used for the payment source. The default contract uses 50 (5%)
          */
         feeRatePermille: number | null;
+        /**
+         * The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)
+         */
+        cooldownTime?: number | null;
         /**
          * The wallet addresses of the admin wallets (exactly 3)
          */

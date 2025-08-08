@@ -11,14 +11,14 @@ export async function lockAndQueryPurchases({
   purchasingAction,
   unlockTime,
   onChainState = undefined,
-  requestedResultHash = undefined,
   submitResultTime = undefined,
+  resultHash = undefined,
 }: {
   purchasingAction: PurchasingAction;
   unlockTime?: { lte: number } | undefined | { gte: number };
   onChainState?: OnChainState | { in: OnChainState[] } | undefined;
-  requestedResultHash?: string | undefined;
   submitResultTime?: { lte: number } | undefined | { gte: number };
+  resultHash?: string | undefined;
 }) {
   return await prisma.$transaction(
     async (prisma) => {
@@ -29,6 +29,7 @@ export async function lockAndQueryPurchases({
             paymentType: PaymentType.Web3CardanoV1,
             syncInProgress: false,
             deletedAt: null,
+            disablePaymentAt: null,
           },
           include: {
             PurchaseRequests: {
@@ -39,7 +40,7 @@ export async function lockAndQueryPurchases({
                   requestedAction: purchasingAction,
                   errorType: null,
                 },
-                resultHash: requestedResultHash,
+                resultHash: resultHash,
                 onChainState: onChainState,
                 SmartContractWallet: {
                   PendingTransaction: { is: null },
@@ -48,6 +49,9 @@ export async function lockAndQueryPurchases({
                 },
                 //we only want to lock the purchase if the cooldown time has passed
                 buyerCoolDownTime: { lte: minCooldownTime },
+              },
+              orderBy: {
+                createdAt: 'asc',
               },
               include: {
                 NextAction: true,

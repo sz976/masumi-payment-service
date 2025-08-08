@@ -10,11 +10,13 @@ import {
   BlockfrostProvider,
   deserializeDatum,
   SLOT_CONFIG_NETWORK,
-  Transaction,
   unixTimeToEnclosingSlot,
 } from '@meshsdk/core';
 import { logger } from '@/utils/logger';
-import { getPaymentScriptFromPaymentSourceV1 } from '@/utils/generator/contract-generator';
+import {
+  getPaymentScriptFromPaymentSourceV1,
+  smartContractStateEqualsOnChainState,
+} from '@/utils/generator/contract-generator';
 import { convertNetwork } from '@/utils/converter/network-convert';
 import { generateWalletExtended } from '@/utils/generator/wallet-generator';
 import { decodeV1ContractDatum } from '@/utils/converter/string-datum-convert';
@@ -22,6 +24,7 @@ import { lockAndQueryPayments } from '@/utils/db/lock-and-query-payments';
 import { convertErrorString } from '@/utils/converter/error-string-convert';
 import { advancedRetryAll, delayErrorResolver } from 'advanced-retry';
 import { Mutex, MutexInterface, tryAcquire } from 'async-mutex';
+import { generateMasumiSmartContractWithdrawTransaction } from '@/utils/generator/transaction-generator';
 
 const mutex = new Mutex();
 
@@ -40,7 +43,7 @@ export async function collectOutstandingPaymentsV1() {
     const paymentContractsWithWalletLocked = await lockAndQueryPayments({
       paymentStatus: PaymentAction.WithdrawRequested,
       resultHash: { not: '' },
-      unlockTime: { lte: Date.now() - 1000 * 60 * 1 },
+      unlockTime: { lte: Date.now() - 1000 * 60 * 10 },
       onChainState: { in: [OnChainState.ResultSubmitted] },
     });
 
@@ -75,8 +78,22 @@ export async function collectOutstandingPaymentsV1() {
             }),
           ],
           operations: paymentRequests.map((request) => async () => {
+            if (request.payByTime == null) {
+              throw new Error('Pay by time is null, this is deprecated');
+            }
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
             if (request.SmartContractWallet == null)
               throw new Error('Smart contract wallet not found');
+
+            if (request.collateralReturnLovelace == null) {
+              throw new Error(
+                'Collateral return lovelace is null, this is deprecated',
+              );
+            }
 
             const { wallet, utxos, address } = await generateWalletExtended(
               paymentContract.network,
@@ -99,7 +116,50 @@ export async function collectOutstandingPaymentsV1() {
 
             const utxoByHash = await blockchainProvider.fetchUTxOs(txHash);
 
-            const utxo = utxoByHash.find((utxo) => utxo.input.txHash == txHash);
+            const utxo = utxoByHash.find((utxo) => {
+              if (utxo.input.txHash != txHash) {
+                return false;
+              }
+              const utxoDatum = utxo.output.plutusData;
+              if (!utxoDatum) {
+                return false;
+              }
+
+              const decodedDatum: unknown = deserializeDatum(utxoDatum);
+              const decodedContract = decodeV1ContractDatum(
+                decodedDatum,
+                network,
+              );
+              if (decodedContract == null) {
+                return false;
+              }
+
+              return (
+                smartContractStateEqualsOnChainState(
+                  decodedContract.state,
+                  request.onChainState,
+                ) &&
+                decodedContract.buyerAddress ==
+                  request.BuyerWallet!.walletAddress &&
+                decodedContract.sellerAddress ==
+                  request.SmartContractWallet!.walletAddress &&
+                decodedContract.buyerVkey == request.BuyerWallet!.walletVkey &&
+                decodedContract.sellerVkey ==
+                  request.SmartContractWallet!.walletVkey &&
+                decodedContract.blockchainIdentifier ==
+                  request.blockchainIdentifier &&
+                decodedContract.inputHash == request.inputHash &&
+                BigInt(decodedContract.resultTime) ==
+                  BigInt(request.submitResultTime) &&
+                BigInt(decodedContract.unlockTime) ==
+                  BigInt(request.unlockTime) &&
+                BigInt(decodedContract.externalDisputeUnlockTime) ==
+                  BigInt(request.externalDisputeUnlockTime) &&
+                BigInt(decodedContract.collateralReturnLovelace) ==
+                  BigInt(request.collateralReturnLovelace!) &&
+                BigInt(decodedContract.payByTime) == BigInt(request.payByTime!)
+              );
+            });
 
             if (!utxo) {
               throw new Error('UTXO not found');
@@ -111,17 +171,31 @@ export async function collectOutstandingPaymentsV1() {
             }
 
             const decodedDatum: unknown = deserializeDatum(utxoDatum);
-            const decodedContract = decodeV1ContractDatum(decodedDatum);
+            const decodedContract = decodeV1ContractDatum(
+              decodedDatum,
+              network,
+            );
             if (decodedContract == null) {
               throw new Error('Invalid datum');
             }
 
-            const redeemer = {
-              data: {
-                alternative: 0,
-                fields: [],
-              },
-            };
+            if (
+              BigInt(decodedContract.collateralReturnLovelace) !=
+              request.collateralReturnLovelace
+            ) {
+              logger.error(
+                'Collateral return lovelace does not match collateral return lovelace in db. This likely is a spoofing attempt.',
+                {
+                  purchaseRequest: request,
+                  collateralReturnLovelace:
+                    decodedContract.collateralReturnLovelace,
+                },
+              );
+              throw new Error(
+                'Collateral return lovelace does not match collateral return lovelace in db. This likely is a spoofing attempt.',
+              );
+            }
+
             const invalidBefore =
               unixTimeToEnclosingSlot(
                 Date.now() - 150000,
@@ -132,7 +206,28 @@ export async function collectOutstandingPaymentsV1() {
               unixTimeToEnclosingSlot(
                 Date.now() + 150000,
                 SLOT_CONFIG_NETWORK[network],
-              ) + 1;
+              ) + 5;
+
+            const buyerAddress = request.BuyerWallet?.walletAddress;
+            if (buyerAddress == null) {
+              throw new Error('Buyer wallet not found');
+            }
+            if (buyerAddress != decodedContract.buyerAddress) {
+              throw new Error('Buyer wallet does not match buyer in contract');
+            }
+
+            const collateralReturnLovelace = request.collateralReturnLovelace;
+            if (collateralReturnLovelace == null) {
+              throw new Error('Collateral return lovelace not found');
+            }
+            if (
+              BigInt(decodedContract.collateralReturnLovelace) !=
+              collateralReturnLovelace
+            ) {
+              throw new Error(
+                'Collateral return lovelace does not match collateral return lovelace in db.',
+              );
+            }
 
             const remainingAssets: { [key: string]: Asset } = {};
             const feeAssets: { [key: string]: Asset } = {};
@@ -178,97 +273,117 @@ export async function collectOutstandingPaymentsV1() {
             if (collectionAddress == null || collectionAddress == '') {
               collectionAddress = request.SmartContractWallet.walletAddress;
             }
-            const collateralUtxo = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                return aLovelace - bLovelace;
-              })
-              .find(
-                (utxo) =>
-                  utxo.output.amount.length == 1 &&
-                  (utxo.output.amount[0].unit == 'lovelace' ||
-                    utxo.output.amount[0].unit == '') &&
-                  parseInt(utxo.output.amount[0].quantity) >= 3000000 &&
-                  parseInt(utxo.output.amount[0].quantity) <= 20000000,
+            const utxosSortedByLovelaceDesc = utxos.sort((a, b) => {
+              const aLovelace = parseInt(
+                a.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
               );
-            if (!collateralUtxo) {
-              throw new Error('No collateral UTXO found');
-            }
+              const bLovelace = parseInt(
+                b.output.amount.find(
+                  (asset) => asset.unit == 'lovelace' || asset.unit == '',
+                )?.quantity ?? '0',
+              );
+              return bLovelace - aLovelace;
+            });
 
-            const filteredUtxos = utxos
-              .sort((a, b) => {
-                const aLovelace = parseInt(
-                  a.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                const bLovelace = parseInt(
-                  b.output.amount.find(
-                    (asset) => asset.unit == 'lovelace' || asset.unit == '',
-                  )?.quantity ?? '0',
-                );
-                //sort by biggest lovelace
-                return bLovelace - aLovelace;
-              })
-              .filter(
-                (utxo) => utxo.input.txHash != collateralUtxo.input.txHash,
-              );
-            const limitedFilteredUtxos = filteredUtxos.slice(
+            const limitedFilteredUtxos = utxosSortedByLovelaceDesc.slice(
               0,
-              Math.min(4, filteredUtxos.length),
+              Math.min(4, utxosSortedByLovelaceDesc.length),
             );
 
-            const unsignedTx = new Transaction({
-              initiator: wallet,
-              fetcher: blockchainProvider,
-            })
-              .setMetadata(674, {
-                msg: ['Masumi', 'Completed'],
-              })
-              .setTxInputs(limitedFilteredUtxos)
-              .redeemValue({
-                value: utxo,
-                script: script,
-                redeemer: redeemer,
-              })
-              .sendAssets(
+            const collateralUtxo = limitedFilteredUtxos[0];
+
+            const evaluationTx =
+              await generateMasumiSmartContractWithdrawTransaction(
+                'CollectCompleted',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                collateralUtxo,
+                limitedFilteredUtxos,
                 {
-                  address: collectionAddress,
+                  collectAssets: Object.values(remainingAssets),
+                  collectionAddress: collectionAddress,
                 },
-                Object.values(remainingAssets),
-              )
-              .sendAssets(
                 {
-                  address:
+                  feeAssets: Object.values(feeAssets),
+                  feeAddress:
                     paymentContract.FeeReceiverNetworkWallet.walletAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
                 },
-                Object.values(feeAssets),
-              )
-              .setCollateral([collateralUtxo])
-              .setChangeAddress(address)
-              .setRequiredSigners([address]);
+                {
+                  lovelace: collateralReturnLovelace,
+                  address: buyerAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
+                },
+                invalidBefore,
+                invalidAfter,
+              );
 
-            unsignedTx.txBuilder.invalidBefore(invalidBefore);
-            unsignedTx.txBuilder.invalidHereafter(invalidAfter);
-            unsignedTx.setNetwork(network);
+            const estimatedFee = (await blockchainProvider.evaluateTx(
+              evaluationTx,
+            )) as Array<{ budget: { mem: number; steps: number } }>;
 
-            const buildTransaction = await unsignedTx.build();
-            const signedTx = await wallet.signTx(buildTransaction);
+            const unsignedTx =
+              await generateMasumiSmartContractWithdrawTransaction(
+                'CollectCompleted',
+                blockchainProvider,
+                network,
+                script,
+                address,
+                utxo,
+                collateralUtxo,
+                limitedFilteredUtxos,
+                {
+                  collectAssets: Object.values(remainingAssets),
+                  collectionAddress: collectionAddress,
+                },
+                {
+                  feeAssets: Object.values(feeAssets),
+                  feeAddress:
+                    paymentContract.FeeReceiverNetworkWallet.walletAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
+                },
+                {
+                  lovelace: collateralReturnLovelace,
+                  address: buyerAddress,
+                  txHash: utxo.input.txHash,
+                  outputIndex: utxo.input.outputIndex,
+                },
+                invalidBefore,
+                invalidAfter,
+                estimatedFee[0].budget,
+              );
+
+            const signedTx = await wallet.signTx(unsignedTx);
             await prisma.paymentRequest.update({
               where: { id: request.id },
               data: {
                 NextAction: {
                   update: {
                     requestedAction: PaymentAction.WithdrawInitiated,
+                  },
+                },
+                CurrentTransaction: {
+                  update: {
+                    txHash: '',
+                    status: TransactionStatus.Pending,
+                    BlocksWallet: {
+                      connect: {
+                        id: request.SmartContractWallet.id,
+                      },
+                    },
+                  },
+                },
+                TransactionHistory: {
+                  connect: {
+                    id: request.CurrentTransaction!.id,
                   },
                 },
               },
@@ -282,17 +397,6 @@ export async function collectOutstandingPaymentsV1() {
                 CurrentTransaction: {
                   update: {
                     txHash: newTxHash,
-                    status: TransactionStatus.Pending,
-                    BlocksWallet: {
-                      connect: {
-                        id: request.SmartContractWallet.id,
-                      },
-                    },
-                  },
-                },
-                TransactionHistory: {
-                  connect: {
-                    id: request.CurrentTransaction!.id,
                   },
                 },
               },

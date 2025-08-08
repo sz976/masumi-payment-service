@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, shortenAddress } from '@/lib/utils';
 import { MainLayout } from '@/components/layout/MainLayout';
 import Head from 'next/head';
 import { useAppContext } from '@/lib/contexts/AppContext';
@@ -12,22 +12,15 @@ import {
   GetPaymentResponses,
   getPurchase,
   GetPurchaseResponses,
-  postPurchaseRequestRefund,
-  postPurchaseCancelRefundRequest,
-  postPaymentAuthorizeRefund,
 } from '@/lib/api/generated';
 import { toast } from 'react-toastify';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Search } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 import { CopyButton } from '@/components/ui/copy-button';
+import { parseError } from '@/lib/utils';
+import TransactionDetailsDialog from '@/components/transactions/TransactionDetailsDialog';
 
 type Transaction =
   | (GetPaymentResponses['200']['data']['Payments'][0] & { type: 'payment' })
@@ -59,7 +52,7 @@ const formatTimestamp = (timestamp: string | null | undefined): string => {
 };
 
 export default function Transactions() {
-  const { apiClient, state } = useAppContext();
+  const { apiClient, state, selectedPaymentSourceId } = useAppContext();
   const [activeTab, setActiveTab] = useState('All');
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>(
     [],
@@ -72,20 +65,55 @@ export default function Transactions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursorId, setCursorId] = useState<string | null>(null);
+  const [purchaseCursorId, setPurchaseCursorId] = useState<string | null>(null);
+  const [paymentCursorId, setPaymentCursorId] = useState<string | null>(null);
+  const [hasMorePurchases, setHasMorePurchases] = useState(true);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const tabs = [
-    { name: 'All', count: null },
-    { name: 'Payments', count: null },
-    { name: 'Purchases', count: null },
-    { name: 'Refund Requests', count: null },
-  ];
+  const tabs = useMemo(() => {
+    // Apply the same deduplication logic as filterTransactions
+    const seenHashes = new Set();
+    const dedupedTransactions = [...allTransactions].filter((tx) => {
+      const id = tx.id;
+      if (!id) return true;
+      if (seenHashes.has(id)) return false;
+      seenHashes.add(id);
+      return true;
+    });
+
+    const refundCount = dedupedTransactions.filter(
+      (t) => t.onChainState === 'RefundRequested',
+    ).length;
+    const disputeCount = dedupedTransactions.filter(
+      (t) => t.onChainState === 'Disputed',
+    ).length;
+
+    return [
+      { name: 'All', count: null },
+      { name: 'Payments', count: null },
+      { name: 'Purchases', count: null },
+      {
+        name: 'Refund Requests',
+        count: refundCount || null,
+      },
+      {
+        name: 'Disputes',
+        count: disputeCount || null,
+      },
+    ];
+  }, [allTransactions]);
 
   const filterTransactions = useCallback(() => {
-    let filtered = [...allTransactions];
+    const seenHashes = new Set();
+    let filtered = [...allTransactions].filter((tx) => {
+      const id = tx.id;
+      if (!id) return true;
+      if (seenHashes.has(id)) return false;
+      seenHashes.add(id);
+      return true;
+    });
 
     if (activeTab === 'Payments') {
       filtered = filtered.filter((t) => t.type === 'payment');
@@ -93,6 +121,8 @@ export default function Transactions() {
       filtered = filtered.filter((t) => t.type === 'purchase');
     } else if (activeTab === 'Refund Requests') {
       filtered = filtered.filter((t) => t.onChainState === 'RefundRequested');
+    } else if (activeTab === 'Disputes') {
+      filtered = filtered.filter((t) => t.onChainState === 'Disputed');
     }
 
     if (searchQuery) {
@@ -146,88 +176,144 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [allTransactions, searchQuery, activeTab]);
 
-  const fetchTransactions = async (cursor?: string) => {
-    try {
-      if (!cursor) {
-        setIsLoading(true);
-        setAllTransactions([]);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const combined: Transaction[] = [];
-
-      const purchases = await getPurchase({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (purchases.data?.data?.Purchases) {
-        purchases.data.data.Purchases.forEach((purchase) => {
-          combined.push({
-            ...purchase,
-            type: 'purchase',
+  const fetchTransactions = useCallback(
+    async (reset = false) => {
+      try {
+        if (reset) {
+          setIsLoading(true);
+          setAllTransactions([]);
+          setPurchaseCursorId(null);
+          setPaymentCursorId(null);
+          setHasMorePurchases(true);
+          setHasMorePayments(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+        const selectedPaymentSource = state.paymentSources.find(
+          (ps) => ps.id === selectedPaymentSourceId,
+        );
+        const smartContractAddress =
+          selectedPaymentSource?.smartContractAddress;
+        // Fetch purchases
+        let purchases: Transaction[] = [];
+        let newPurchaseCursor: string | null = purchaseCursorId;
+        let morePurchases = hasMorePurchases;
+        if (hasMorePurchases) {
+          const purchaseRes = await getPurchase({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: purchaseCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+              filterSmartContractAddress: smartContractAddress
+                ? smartContractAddress
+                : undefined,
+            },
           });
-        });
-      }
+          if (purchaseRes.data?.data?.Purchases) {
+            purchases = purchaseRes.data.data.Purchases.map((purchase) => ({
+              ...purchase,
+              type: 'purchase',
+            }));
+            if (purchases.length > 0) {
+              newPurchaseCursor = purchases[purchases.length - 1].id;
+            }
+            morePurchases = purchases.length === 10;
+          } else {
+            morePurchases = false;
+          }
+        }
 
-      const payments = await getPayment({
-        client: apiClient,
-        query: {
-          network: state.network,
-          cursorId: cursor,
-          includeHistory: 'true',
-          limit: 10,
-        },
-      });
-
-      if (payments.data?.data?.Payments) {
-        payments.data.data.Payments.forEach((payment) => {
-          combined.push({
-            ...payment,
-            type: 'payment',
+        // Fetch payments
+        let payments: Transaction[] = [];
+        let newPaymentCursor: string | null = paymentCursorId;
+        let morePayments = hasMorePayments;
+        if (hasMorePayments) {
+          const paymentRes = await getPayment({
+            client: apiClient,
+            query: {
+              network: state.network,
+              cursorId: paymentCursorId || undefined,
+              includeHistory: 'true',
+              limit: 10,
+              filterSmartContractAddress: smartContractAddress
+                ? smartContractAddress
+                : undefined,
+            },
           });
+          if (paymentRes.data?.data?.Payments) {
+            payments = paymentRes.data.data.Payments.map((payment) => ({
+              ...payment,
+              type: 'payment',
+            }));
+            if (payments.length > 0) {
+              newPaymentCursor = payments[payments.length - 1].id;
+            }
+            morePayments = payments.length === 10;
+          } else {
+            morePayments = false;
+          }
+        }
+
+        // Combine and dedupe by type+hash
+        const combined = [
+          ...purchases,
+          ...payments,
+          //fixes ordering for updates
+          ...(reset ? [] : allTransactions),
+        ];
+        const seen = new Set();
+        const deduped = combined.filter((tx) => {
+          const key = tx.id;
+          if (!key) return true;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
+        // Sort by createdAt
+        const sorted = deduped.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        setAllTransactions(sorted);
+        setPurchaseCursorId(newPurchaseCursor);
+        setPaymentCursorId(newPaymentCursor);
+        setHasMorePurchases(morePurchases);
+        setHasMorePayments(morePayments);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+        toast.error('Failed to load transactions');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-
-      const newTransactions = combined.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-
-      if (cursor) {
-        setAllTransactions((prev) => [...prev, ...newTransactions]);
-      } else {
-        setAllTransactions(newTransactions);
-      }
-
-      setHasMore(newTransactions.length === 20);
-      setCursorId(newTransactions[newTransactions.length - 1]?.id ?? null);
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
-      toast.error('Failed to load transactions');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [
+      selectedPaymentSourceId,
+      apiClient,
+      state.network,
+      purchaseCursorId,
+      paymentCursorId,
+      hasMorePurchases,
+      hasMorePayments,
+      allTransactions,
+      activeTab,
+      searchQuery,
+    ],
+  );
 
   useEffect(() => {
-    fetchTransactions();
-  }, [state.network]);
+    fetchTransactions(true);
+  }, [state.network, apiClient, selectedPaymentSourceId]);
 
   useEffect(() => {
     filterTransactions();
   }, [filterTransactions, searchQuery, activeTab]);
 
   const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && cursorId) {
-      fetchTransactions(cursorId);
+    if (!isLoadingMore && (hasMorePurchases || hasMorePayments)) {
+      fetchTransactions();
     }
   };
 
@@ -240,10 +326,10 @@ export default function Transactions() {
   };
 
   const handleSelectAll = () => {
-    if (allTransactions.length === selectedTransactions.length) {
+    if (filteredTransactions.length === selectedTransactions.length) {
       setSelectedTransactions([]);
     } else {
-      setSelectedTransactions(allTransactions.map((t) => t.id));
+      setSelectedTransactions(filteredTransactions.map((t) => t.id));
     }
   };
 
@@ -269,122 +355,6 @@ export default function Transactions() {
   const formatStatus = (status: string) => {
     if (!status) return '—';
     return status.replace(/([A-Z])/g, ' $1').trim();
-  };
-
-  const clearTransactionError = async (transaction: Transaction) => {
-    try {
-      await apiClient.request({
-        method: 'PUT',
-        url: `/transactions/${transaction.id}/clear-error`,
-      });
-      toast.success('Error state cleared successfully');
-      return true;
-    } catch (error) {
-      handleError(error as ApiError);
-      return false;
-    }
-  };
-
-  const updateTransactionState = async (
-    transaction: Transaction,
-    newState: string,
-  ) => {
-    try {
-      await apiClient.request({
-        method: 'PUT',
-        url: `/transactions/${transaction.id}/state`,
-        data: { state: newState },
-      });
-      toast.success('Transaction state updated successfully');
-      return true;
-    } catch (error) {
-      handleError(error as ApiError);
-      return false;
-    }
-  };
-
-  const canRequestRefund = (transaction: Transaction) => {
-    return (
-      transaction.onChainState === 'ResultSubmitted' ||
-      transaction.onChainState === 'FundsLocked'
-    );
-  };
-
-  const canAllowRefund = (transaction: Transaction) => {
-    return (
-      transaction.onChainState === 'RefundRequested' ||
-      transaction.onChainState === 'Disputed'
-    );
-  };
-
-  const canCancelRefund = (transaction: Transaction) => {
-    return (
-      transaction.onChainState === 'RefundRequested' ||
-      transaction.onChainState === 'Disputed'
-    );
-  };
-
-  const handleRefundRequest = async (transaction: Transaction) => {
-    try {
-      await postPurchaseRequestRefund({
-        client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            smartContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
-      });
-      toast.success('Refund request submitted successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
-    } catch (error) {
-      handleError(error as ApiError);
-    }
-  };
-
-  const handleAllowRefund = async (transaction: Transaction) => {
-    try {
-      await postPaymentAuthorizeRefund({
-        client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            paymentContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
-      });
-      toast.success('Refund authorized successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
-    } catch (error) {
-      handleError(error as ApiError);
-    }
-  };
-
-  const handleCancelRefund = async (transaction: Transaction) => {
-    try {
-      await postPurchaseCancelRefundRequest({
-        client: apiClient,
-        data: {
-          body: {
-            blockchainIdentifier: transaction.blockchainIdentifier,
-            network: transaction.PaymentSource.network,
-            smartContractAddress:
-              transaction.PaymentSource.smartContractAddress,
-          },
-        },
-      });
-      toast.success('Refund request cancelled successfully');
-      fetchTransactions();
-      setSelectedTransaction(null);
-    } catch (error) {
-      handleError(error as ApiError);
-    }
   };
 
   return (
@@ -413,10 +383,8 @@ export default function Transactions() {
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              setAllTransactions([]);
-              setCursorId(null);
-              setHasMore(true);
-              fetchTransactions();
+              //setAllTransactions([]);
+              //fetchTransactions();
             }}
           />
 
@@ -432,15 +400,16 @@ export default function Transactions() {
             </div>
           </div>
 
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
                   <th className="p-4 text-left text-sm font-medium">
                     <Checkbox
                       checked={
-                        allTransactions.length > 0 &&
-                        selectedTransactions.length === allTransactions.length
+                        filteredTransactions.length > 0 &&
+                        selectedTransactions.length ===
+                          filteredTransactions.length
                       }
                       onCheckedChange={handleSelectAll}
                     />
@@ -528,7 +497,14 @@ export default function Transactions() {
                             !!transaction.NextAction?.errorType,
                           )}
                         >
-                          {formatStatus(transaction.onChainState)}
+                          {transaction.onChainState === 'Disputed' ? (
+                            <span className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              {formatStatus(transaction.onChainState)}
+                            </span>
+                          ) : (
+                            formatStatus(transaction.onChainState)
+                          )}
                         </span>
                       </td>
                       <td className="p-4">
@@ -549,7 +525,15 @@ export default function Transactions() {
           <div className="flex flex-col gap-4 items-center">
             {!isLoading && (
               <Pagination
-                hasMore={hasMore}
+                hasMore={
+                  activeTab === 'All' ||
+                  activeTab === 'Refund Requests' ||
+                  activeTab === 'Disputes'
+                    ? hasMorePurchases || hasMorePayments
+                    : activeTab === 'Payments'
+                      ? hasMorePayments
+                      : hasMorePurchases
+                }
                 isLoading={isLoadingMore}
                 onLoadMore={handleLoadMore}
               />
@@ -558,258 +542,13 @@ export default function Transactions() {
         </div>
       </div>
 
-      <Dialog
-        open={!!selectedTransaction}
-        onOpenChange={() => setSelectedTransaction(null)}
-      >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Transaction Details</DialogTitle>
-          </DialogHeader>
-          {selectedTransaction && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <h4 className="font-semibold mb-1">Transaction ID</h4>
-                  <div className="flex items-center gap-2 bg-muted/30 rounded-md p-2">
-                    <p className="text-sm font-mono break-all">
-                      {selectedTransaction.id}
-                    </p>
-                    <CopyButton value={selectedTransaction.id} />
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-1">Type</h4>
-                  <p className="text-sm capitalize">
-                    {selectedTransaction.type}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Created</h4>
-                  <p className="text-sm">
-                    {new Date(selectedTransaction.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-semibold">Transaction Details</h4>
-                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/10">
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Status</h5>
-                    <p
-                      className={cn(
-                        'text-sm',
-                        getStatusColor(
-                          selectedTransaction.onChainState,
-                          !!selectedTransaction.NextAction?.errorType,
-                        ),
-                      )}
-                    >
-                      {formatStatus(selectedTransaction.onChainState)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Amount</h5>
-                    <p className="text-sm">
-                      {selectedTransaction.type === 'payment' &&
-                      selectedTransaction.RequestedFunds?.[0]
-                        ? `${(parseInt(selectedTransaction.RequestedFunds[0].amount) / 1000000).toFixed(2)} ₳`
-                        : selectedTransaction.type === 'purchase' &&
-                            selectedTransaction.PaidFunds?.[0]
-                          ? `${(parseInt(selectedTransaction.PaidFunds[0].amount) / 1000000).toFixed(2)} ₳`
-                          : '—'}
-                    </p>
-                  </div>
-
-                  <div className="col-span-2">
-                    <h5 className="text-sm font-medium mb-1">
-                      Transaction Hash
-                    </h5>
-                    {selectedTransaction.CurrentTransaction?.txHash ? (
-                      <div className="flex items-center gap-2 bg-muted/30 rounded-md p-2">
-                        <p className="text-sm font-mono break-all">
-                          {selectedTransaction.CurrentTransaction.txHash}
-                        </p>
-                        <CopyButton
-                          value={selectedTransaction.CurrentTransaction?.txHash}
-                        />
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No transaction hash available
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-semibold">Time Information</h4>
-                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/10">
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Created</h5>
-                    <p className="text-sm">
-                      {formatTimestamp(selectedTransaction.createdAt)}
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Last Updated</h5>
-                    <p className="text-sm">
-                      {formatTimestamp(selectedTransaction.updatedAt)}
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">
-                      Submit Result By
-                    </h5>
-                    <p className="text-sm">
-                      {formatTimestamp(selectedTransaction.submitResultTime)}
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Unlock Time</h5>
-                    <p className="text-sm">
-                      {formatTimestamp(selectedTransaction.unlockTime)}
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">
-                      External Dispute Unlock Time
-                    </h5>
-                    <p className="text-sm">
-                      {formatTimestamp(
-                        selectedTransaction.externalDisputeUnlockTime,
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium mb-1">Last Checked</h5>
-                    <p className="text-sm">
-                      {formatTimestamp(selectedTransaction.lastCheckedAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {selectedTransaction.type === 'payment' &&
-                selectedTransaction.SmartContractWallet && (
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Wallet Information</h4>
-                    <div className="grid grid-cols-1 gap-4 rounded-md border p-4">
-                      <div>
-                        <h5 className="text-sm font-medium mb-1">
-                          Collection Wallet
-                        </h5>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-mono break-all">
-                            {
-                              selectedTransaction.SmartContractWallet
-                                .walletAddress
-                            }
-                          </p>
-                          <CopyButton
-                            value={
-                              selectedTransaction.SmartContractWallet
-                                ?.walletAddress
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {selectedTransaction.NextAction?.errorType && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Error Details</h4>
-                  <div className="space-y-2 rounded-md bg-destructive/20 p-4">
-                    <div className="space-y-1">
-                      <p className="text-sm">
-                        <span className="font-medium">Error Type:</span>{' '}
-                        {selectedTransaction.NextAction.errorType}
-                      </p>
-                      {selectedTransaction.NextAction.errorNote && (
-                        <p className="text-sm">
-                          <span className="font-medium">Error Note:</span>{' '}
-                          {selectedTransaction.NextAction.errorNote}
-                        </p>
-                      )}
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={async () => {
-                            if (
-                              await clearTransactionError(selectedTransaction)
-                            ) {
-                              setSelectedTransaction(null);
-                              fetchTransactions();
-                            }
-                          }}
-                        >
-                          Clear Error State
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={async () => {
-                            const newState = prompt('Enter new state:');
-                            if (
-                              newState &&
-                              (await updateTransactionState(
-                                selectedTransaction,
-                                newState,
-                              ))
-                            ) {
-                              setSelectedTransaction(null);
-                              fetchTransactions();
-                            }
-                          }}
-                        >
-                          Set New State
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end">
-                {canRequestRefund(selectedTransaction) &&
-                  selectedTransaction.type === 'purchase' && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleRefundRequest(selectedTransaction)}
-                    >
-                      Request Refund
-                    </Button>
-                  )}
-                {canAllowRefund(selectedTransaction) &&
-                  selectedTransaction.type === 'payment' && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleAllowRefund(selectedTransaction)}
-                    >
-                      Allow Refund
-                    </Button>
-                  )}
-                {canCancelRefund(selectedTransaction) &&
-                  selectedTransaction.type === 'purchase' && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleCancelRefund(selectedTransaction)}
-                    >
-                      Cancel Refund Request
-                    </Button>
-                  )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <TransactionDetailsDialog
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onRefresh={() => fetchTransactions(true)}
+        apiClient={apiClient}
+        state={state}
+      />
     </MainLayout>
   );
 }

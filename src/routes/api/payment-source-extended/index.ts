@@ -1,4 +1,7 @@
-import { getPaymentScriptV1 } from '@/utils/generator/contract-generator';
+import {
+  getPaymentScriptV1,
+  getRegistryScriptV1,
+} from '@/utils/generator/contract-generator';
 import { prisma } from '@/utils/db';
 import { encrypt } from '@/utils/security/encryption';
 import { adminAuthenticatedEndpointFactory } from '@/utils/security/auth/admin-authenticated';
@@ -14,6 +17,7 @@ import createHttpError from 'http-errors';
 import { z } from 'zod';
 import { generateOfflineWallet } from '@/utils/generator/wallet-generator';
 import { checkIsAllowedNetworkOrThrowUnauthorized } from '@/utils/middleware/auth-middleware';
+import { DEFAULTS } from '@/utils/config';
 
 export const paymentSourceExtendedSchemaInput = z.object({
   take: z
@@ -35,6 +39,7 @@ export const paymentSourceExtendedSchemaOutput = z.object({
       createdAt: z.date(),
       updatedAt: z.date(),
       network: z.nativeEnum(Network),
+      policyId: z.string().nullable(),
       smartContractAddress: z.string(),
       paymentType: z.nativeEnum(PaymentType),
       PaymentSourceConfig: z.object({
@@ -151,6 +156,13 @@ export const paymentSourceExtendedCreateSchemaInput = z.object({
     .max(1000)
     .describe(
       'The fee in permille to be used for the payment source. The default contract uses 50 (5%)',
+    ),
+  cooldownTime: z
+    .number({ coerce: true })
+    .min(0)
+    .optional()
+    .describe(
+      'The cooldown time in milliseconds to be used for the payment source. The default contract uses 1000 * 60 * 7 (7 minutes)',
     ),
   AdminWallets: z
     .array(
@@ -299,7 +311,15 @@ export const paymentSourceExtendedEndpointPost =
           input.AdminWallets[2].walletAddress,
           input.FeeReceiverNetworkWallet.walletAddress,
           input.feeRatePermille,
-          1000 * 60 * 15,
+          input.cooldownTime ??
+            (input.network == Network.Preprod
+              ? DEFAULTS.COOLDOWN_TIME_PREPROD
+              : DEFAULTS.COOLDOWN_TIME_MAINNET),
+          input.network,
+        );
+
+        const { policyId } = await getRegistryScriptV1(
+          smartContractAddress,
           input.network,
         );
 
@@ -345,6 +365,7 @@ export const paymentSourceExtendedEndpointPost =
           data: {
             network: input.network,
             smartContractAddress: smartContractAddress,
+            policyId: policyId,
             paymentType: input.paymentType,
             PaymentSourceConfig: {
               create: {
@@ -352,6 +373,11 @@ export const paymentSourceExtendedEndpointPost =
                 rpcProvider: input.PaymentSourceConfig.rpcProvider,
               },
             },
+            cooldownTime:
+              input.cooldownTime ??
+              (input.network == Network.Preprod
+                ? DEFAULTS.COOLDOWN_TIME_PREPROD
+                : DEFAULTS.COOLDOWN_TIME_MAINNET),
             AdminWallets: {
               createMany: {
                 data: input.AdminWallets.map((aw, index) => ({

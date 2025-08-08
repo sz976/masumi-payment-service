@@ -12,10 +12,14 @@ import { registerAgentV1 } from '../cardano-register-handler/';
 import { deRegisterAgentV1 } from '../cardano-deregister-handler/';
 import { submitResultV1 } from '../cardano-submit-result-handler/';
 import { authorizeRefundV1 } from '../cardano-authorize-refund-handler/';
+import { handleAutomaticDecisions } from '../automatic-decision-handler';
+import { checkRegistryTransactions } from '../cardano-registry-tx-sync-handler/cardano-registry-tx-sync-handler.service';
+
 export async function initJobs() {
   const start = new Date();
   await new Promise((resolve) => setTimeout(resolve, 500));
   await checkLatestTransactions();
+  await checkRegistryTransactions();
   logger.info(
     'Checked and synced transactions in ' +
       (new Date().getTime() - start.getTime()) / 1000 +
@@ -36,6 +40,13 @@ export async function initJobs() {
     }, CONFIG.BATCH_PAYMENT_INTERVAL * 1000); // Convert seconds to milliseconds
   });
 
+  void new Promise((resolve) => setTimeout(resolve, 1000)).then(() => {
+    // Check registry transactions interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting to check for registry transactions');
+      await checkRegistryTransactions();
+    }, CONFIG.CHECK_REGISTRY_TRANSACTIONS_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
   void new Promise((resolve) => setTimeout(resolve, 5000)).then(() => {
     // Check collections interval
     AsyncInterval.start(async () => {
@@ -177,6 +188,21 @@ export async function initJobs() {
       );
     }, CONFIG.CHECK_SUBMIT_RESULT_INTERVAL * 1000); // Convert seconds to milliseconds
   });
+
+  void new Promise((resolve) => setTimeout(resolve, 7500)).then(() => {
+    // Automatic decision handler interval
+    AsyncInterval.start(async () => {
+      logger.info('Starting automatic decision handler');
+      const start = new Date();
+      await handleAutomaticDecisions();
+      logger.info(
+        'Finished automatic decision handler in ' +
+          (new Date().getTime() - start.getTime()) / 1000 +
+          's',
+      );
+    }, CONFIG.AUTO_DECISION_INTERVAL * 1000); // Convert seconds to milliseconds
+  });
+
   await new Promise((resolve) => setTimeout(resolve, 200));
   logger.info('Initialized async intervals');
 }

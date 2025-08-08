@@ -18,6 +18,7 @@ export async function lockAndQueryRegistryRequests({
           paymentType: PaymentType.Web3CardanoV1,
           syncInProgress: false,
           deletedAt: null,
+          disablePaymentAt: null,
         },
         include: {
           RegistryRequest: {
@@ -39,6 +40,9 @@ export async function lockAndQueryRegistryRequests({
                 include: { FixedPricing: { include: { Amounts: true } } },
               },
               ExampleOutputs: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
             },
           },
           HotWallets: {
